@@ -36,12 +36,12 @@ export function RPSView() {
     return (
       <div key={`active-${playerId}`} className={`flex flex-col items-center transition-all ${mySideIndex !== -1 && mySideIndex !== index ? "opacity-50" : ""} ${isWinner ? "scale-110" : ""}`}>
         <span className={`font-black text-2xl ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-orange-400' : 'text-indigo-400'}`}>P{index + 1}</span>
-        <span className="text-slate-300 font-medium text-sm text-center truncate max-w-[100px]">{player.name}</span>
+        <span className="text-slate-700 font-medium text-sm text-center truncate max-w-[100px]">{player.name}</span>
         <span className={`text-xs mt-1 px-2 py-0.5 rounded-md border shadow-inner ${index === 0 ? 'text-amber-300 bg-amber-950/50 border-amber-900/50' : index === 1 ? 'text-orange-300 bg-orange-950/50 border-orange-900/50' : 'text-indigo-300 bg-indigo-950/50 border-indigo-900/50'}`}>
           {score} / {targetScore}
         </span>
         {room.status === RoomStatus.RESULT && choice && (
-          <div className={`mt-4 p-4 rounded-3xl border-4 ${isWinner ? (index === 0 ? "border-amber-500 bg-amber-900/20 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-bounce" : index === 1 ? "border-orange-500 bg-orange-900/20 shadow-[0_0_30px_rgba(249,115,22,0.3)] animate-bounce" : "border-indigo-500 bg-indigo-900/20 shadow-[0_0_30px_rgba(99,102,241,0.3)] animate-bounce") : rps.roundWinner === "DRAW" ? "border-slate-500 bg-slate-800" : "border-slate-800 bg-slate-900 opacity-50"}`}>
+          <div className={`mt-4 p-4 rounded-3xl border-4 ${isWinner ? (index === 0 ? "border-amber-500 bg-amber-900/20 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-bounce" : index === 1 ? "border-orange-500 bg-orange-900/20 shadow-[0_0_30px_rgba(249,115,22,0.3)] animate-bounce" : "border-indigo-500 bg-indigo-900/20 shadow-[0_0_30px_rgba(99,102,241,0.3)] animate-bounce") : rps.roundWinner === "DRAW" ? "border-slate-500 bg-amber-100" : "border-amber-200 bg-white opacity-50"}`}>
             <span className="text-5xl sm:text-7xl">{getEmoji(choice)}</span>
           </div>
         )}
@@ -51,17 +51,17 @@ export function RPSView() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4">
-      <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
+      <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-white border border-amber-200 rounded-3xl p-6 shadow-2xl relative">
         
         {/* Header */}
         <div className="flex justify-between w-full items-center px-2 sm:px-4 mb-4">
-          <div className="text-xs font-bold text-slate-400 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+          <div className="text-xs font-bold text-slate-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
             {room.config.rpsMode === 'ALL_AT_ONCE' ? 'ALL AT ONCE' : '1V1 ROUND ROBIN'}
           </div>
-          <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800 shadow-inner">
+          <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-inner">
             {room.status === RoomStatus.RESULT ? (rps.gameWinner ? "Match Over" : "Round Over") : "Playing"}
           </div>
-          <div className="text-xs font-bold text-amber-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+          <div className="text-xs font-bold text-amber-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
             FIRST TO {targetScore}
           </div>
         </div>
@@ -85,7 +85,7 @@ export function RPSView() {
         {room.status === RoomStatus.PLAYING && (
           <div className="w-full flex flex-col items-center gap-6 mt-8">
             {!isMyTurn ? (
-              <div className="text-2xl font-black text-slate-500 uppercase tracking-widest bg-slate-950 px-8 py-4 rounded-2xl border border-slate-800">
+              <div className="text-2xl font-black text-slate-500 uppercase tracking-widest bg-amber-50 px-8 py-4 rounded-2xl border border-amber-200">
                 Spectating...
               </div>
             ) : rps.choices[socketId] ? (
@@ -99,7 +99,7 @@ export function RPSView() {
                   <button
                     key={choice}
                     onClick={() => rpsMakeChoice(choice)}
-                    className="w-20 h-20 sm:w-28 sm:h-28 bg-slate-800 hover:bg-slate-700 rounded-2xl flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:scale-95 border-2 border-slate-700 hover:border-amber-500 shadow-xl"
+                    className="w-20 h-20 sm:w-28 sm:h-28 bg-amber-100 hover:bg-amber-200 rounded-2xl flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:scale-95 border-2 border-amber-300 hover:border-amber-500 shadow-xl"
                   >
                     {getEmoji(choice)}
                   </button>
@@ -115,7 +115,7 @@ export function RPSView() {
             
             {/* Announcement */}
             {rps.roundWinner === "DRAW" ? (
-              <div className="text-2xl sm:text-3xl font-black text-slate-400 bg-slate-800 px-6 py-2 rounded-2xl border-2 border-slate-600 shadow-lg">It's a Draw!</div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-600 bg-amber-100 px-6 py-2 rounded-2xl border-2 border-amber-400 shadow-lg">It's a Draw!</div>
             ) : rps.gameWinner ? (
               <div className="text-3xl sm:text-4xl font-black px-8 py-4 rounded-2xl border-2 shadow-2xl text-amber-400 bg-amber-950 border-amber-500 animate-pulse text-center">
                 🏆 {Array.isArray(rps.gameWinner) ? rps.gameWinner.map(id => room.players.find(p => p.socketId === id)?.name).join(", ") : room.players.find(p => p.socketId === rps.gameWinner)?.name} Wins the Match! 🏆
@@ -127,7 +127,7 @@ export function RPSView() {
             )}
             
             {(room.roomHostId === socketId || isMyTurn) && (
-              <button onClick={rpsNextRound} className={`font-bold px-10 py-4 rounded-xl mt-2 transition-all shadow-lg active:scale-95 text-lg uppercase tracking-wider ${rps.gameWinner ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
+              <button onClick={rpsNextRound} className={`font-bold px-10 py-4 rounded-xl mt-2 transition-all shadow-lg active:scale-95 text-lg uppercase tracking-wider ${rps.gameWinner ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-800'}`}>
                 {rps.gameWinner ? 'Play Again' : 'Next Round'}
               </button>
             )}
@@ -142,9 +142,9 @@ export function RPSView() {
               const p = room.players.find(p => p.socketId === id);
               if (!p) return null;
               return (
-                <div key={`queue-${id}`} className="bg-slate-800 border border-slate-700 px-4 py-2 rounded-lg text-sm font-medium text-slate-300 shadow-lg flex items-center justify-between min-w-[120px]">
+                <div key={`queue-${id}`} className="bg-amber-100 border border-amber-300 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 shadow-lg flex items-center justify-between min-w-[120px]">
                    <span className="truncate max-w-[80px]">{p.name}</span>
-                   <span className="text-[10px] text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded ml-2">#{idx + 1}</span>
+                   <span className="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded ml-2">#{idx + 1}</span>
                 </div>
               )
             })}

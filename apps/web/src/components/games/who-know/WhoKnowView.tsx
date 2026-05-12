@@ -14,11 +14,11 @@ export function WhoKnowView() {
       {room.status === RoomStatus.WORD_SETTING && (
         <div className="flex-1 flex flex-col items-center justify-center py-6 gap-4 min-h-[150px]">
           {myRole === "Host" ? (
-            <p className="text-slate-300 font-medium">Please set the secret word using the popup.</p>
+            <p className="text-slate-700 font-medium">Please set the secret word using the popup.</p>
           ) : (
             <>
               <div className="w-8 h-8 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
-              <p className="text-slate-300 font-medium animate-pulse">Waiting for the Game Host to pick a word...</p>
+              <p className="text-slate-700 font-medium animate-pulse">Waiting for the Game Host to pick a word...</p>
             </>
           )}
         </div>
@@ -27,10 +27,10 @@ export function WhoKnowView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 sm:gap-6 min-h-0 py-2 sm:py-4">
           <div className="text-center space-y-1 sm:space-y-2">
             <h4 className="text-base sm:text-lg font-black uppercase text-teal-400 tracking-widest bg-teal-500/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-teal-500/20 inline-block mb-1 sm:mb-2">Questioning Phase</h4>
-            {myRole === Role.Host ? <p className="text-slate-300 font-medium text-xs sm:text-sm">Answer the players' Yes/No questions.</p> : <p className="text-slate-300 font-medium text-xs sm:text-sm">Ask the Game Host Yes or No questions to find the Secret Word!</p>}
+            {myRole === Role.Host ? <p className="text-slate-700 font-medium text-xs sm:text-sm">Answer the players' Yes/No questions.</p> : <p className="text-slate-700 font-medium text-xs sm:text-sm">Ask the Game Host Yes or No questions to find the Secret Word!</p>}
           </div>
 
-          <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white bg-slate-950 px-6 py-4 rounded-2xl border-2 sm:border-4 border-slate-800 shadow-inner tracking-widest w-full max-w-sm text-center">{room.endTime ? <CountdownTimer endTime={room.endTime} /> : <span>--:--</span>}</div>
+          <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-slate-800 bg-amber-50 px-6 py-4 rounded-2xl border-2 sm:border-4 border-amber-200 shadow-inner tracking-widest w-full max-w-sm text-center">{room.endTime ? <CountdownTimer endTime={room.endTime} /> : <span>--:--</span>}</div>
 
           {myRole === Role.Host && (
             <div className="flex flex-col gap-3 mt-2 w-full max-w-md">
@@ -43,7 +43,7 @@ export function WhoKnowView() {
                 </button>
               </div>
               {room.endTime && (
-                <button onClick={() => useGameStore.getState().stopTimer()} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-3 rounded-xl transition-all shadow-md active:scale-[0.98] uppercase tracking-wider text-sm border border-slate-700">
+                <button onClick={() => useGameStore.getState().stopTimer()} className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-all shadow-md active:scale-[0.98] uppercase tracking-wider text-sm border border-amber-300">
                   Stop Timer
                 </button>
               )}
@@ -56,11 +56,11 @@ export function WhoKnowView() {
           <div className="text-center space-y-1 sm:space-y-2">
             <h4 className="text-base sm:text-lg font-black uppercase text-orange-400 tracking-widest bg-orange-500/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-orange-500/20 inline-block mb-1 sm:mb-2">Voting Phase</h4>
             {myRole === Role.Host ? (
-              <p className="text-slate-300 text-center font-medium text-xs sm:text-sm">
+              <p className="text-slate-700 text-center font-medium text-xs sm:text-sm">
                 Wait for the players to vote for the <span className="text-rose-400 font-bold bg-rose-500/10 px-1 py-0.5 rounded border border-rose-500/20">Insider</span>.
               </p>
             ) : (
-              <p className="text-slate-300 text-center font-medium text-xs sm:text-sm">Who was secretly guiding the group? Cast your vote:</p>
+              <p className="text-slate-700 text-center font-medium text-xs sm:text-sm">Who was secretly guiding the group? Cast your vote:</p>
             )}
           </div>
 
@@ -72,7 +72,7 @@ export function WhoKnowView() {
                 const hasVotedTarget = room.votes?.[socketId] === p.socketId;
 
                 return (
-                  <button key={p.id} onClick={() => useGameStore.getState().submitVote(p.socketId)} className={`px-4 py-4 rounded-xl font-bold transition-all shadow-md active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border ${hasVotedTarget ? "bg-orange-600 text-white border-orange-500 shadow-orange-900/50" : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 hover:text-white"}`}>
+                  <button key={p.id} onClick={() => useGameStore.getState().submitVote(p.socketId)} className={`px-4 py-4 rounded-xl font-bold transition-all shadow-md active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border ${hasVotedTarget ? "bg-orange-600 text-white border-orange-500 shadow-orange-900/50" : "bg-amber-100 hover:bg-amber-200 text-slate-700 border-amber-300 hover:text-slate-800"}`}>
                     {p.name}
                   </button>
                 );
@@ -103,17 +103,17 @@ export function WhoKnowView() {
             </div>
           ) : null}
 
-          <div className="text-center flex-none bg-slate-900/50 p-5 rounded-2xl border border-slate-800 w-full max-w-sm">
-            <p className="text-slate-400 mb-1 uppercase tracking-wide text-xs font-bold">The Secret Word was</p>
+          <div className="text-center flex-none bg-white/50 p-5 rounded-2xl border border-amber-200 w-full max-w-sm">
+            <p className="text-slate-600 mb-1 uppercase tracking-wide text-xs font-bold">The Secret Word was</p>
             <p className="text-2xl font-black text-rose-400 mb-4">{useGameStore.getState().secretWord || "Unknown"}</p>
 
-            <p className="text-slate-400 mb-1 uppercase tracking-wide text-xs font-bold">The Insider was</p>
-            <p className="text-xl font-black text-slate-200">{room.players.find((p) => p.role === Role.Know)?.name || "Unknown"}</p>
+            <p className="text-slate-600 mb-1 uppercase tracking-wide text-xs font-bold">The Insider was</p>
+            <p className="text-xl font-black text-slate-800">{room.players.find((p) => p.role === Role.Know)?.name || "Unknown"}</p>
           </div>
 
           {room.votes && Object.keys(room.votes).length > 0 && (
-            <div className="w-full flex-none max-w-sm bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-              <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center mb-3">Voting Results</h5>
+            <div className="w-full flex-none max-w-sm bg-white/50 p-4 rounded-2xl border border-amber-200">
+              <h5 className="text-xs font-bold text-slate-600 uppercase tracking-widest text-center mb-3">Voting Results</h5>
               <div className="space-y-2">
                 {(() => {
                   const targetToVoters: Record<string, string[]> = {};
@@ -130,9 +130,9 @@ export function WhoKnowView() {
                     if (!targetPlayer) return null;
                     const isMostVoted = voterIds.length === maxVotes && maxVotes > 0;
                     return (
-                      <div key={targetId} className={`flex flex-col gap-1.5 p-2.5 rounded-xl border ${isMostVoted ? "bg-orange-950/30 border-orange-900/50" : "bg-slate-950/50 border-slate-800/80"}`}>
+                      <div key={targetId} className={`flex flex-col gap-1.5 p-2.5 rounded-xl border ${isMostVoted ? "bg-orange-950/30 border-orange-900/50" : "bg-amber-50/50 border-amber-200/80"}`}>
                         <div className="flex justify-between items-center">
-                          <span className={`font-bold text-sm ${isMostVoted ? "text-orange-400" : "text-slate-200"}`}>
+                          <span className={`font-bold text-sm ${isMostVoted ? "text-orange-400" : "text-slate-800"}`}>
                             {targetPlayer.name}
                             {isMostVoted && <span className="ml-1.5 text-[9px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded uppercase tracking-wider font-black">Most Voted</span>}
                           </span>
@@ -144,7 +144,7 @@ export function WhoKnowView() {
                           {voterIds.map((voterId) => {
                             const voter = room.players.find((p) => p.socketId === voterId);
                             return voter ? (
-                              <span key={voterId} className="text-[10px] text-slate-400 bg-slate-900/80 border border-slate-700/80 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <span key={voterId} className="text-[10px] text-slate-600 bg-white/80 border border-amber-300/80 px-1.5 py-0.5 rounded flex items-center gap-1">
                                 {voter.name}
                               </span>
                             ) : null;

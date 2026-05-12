@@ -21,27 +21,27 @@ export function ScoringPhase() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-lg">
          <h2 className="text-4xl font-black mb-4 uppercase tracking-widest bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
             Round Over
          </h2>
-         <p className="text-slate-300 text-lg mb-2">The Conspirator was: <span className="text-rose-400 font-bold">{conspiratorName}</span></p>
+         <p className="text-slate-700 text-lg mb-2">The Conspirator was: <span className="text-rose-400 font-bold">{conspiratorName}</span></p>
          
          {votesAgainstConspirator > 0 ? (
             <div className="mt-4 bg-emerald-950/30 border border-emerald-900/50 p-4 rounded-xl">
                <p className="text-emerald-400 font-bold uppercase tracking-widest mb-1">Conspirator Caught!</p>
-               <p className="text-slate-400 text-sm">{votesAgainstConspirator} Detectives correctly identified them.</p>
+               <p className="text-slate-600 text-sm">{votesAgainstConspirator} Detectives correctly identified them.</p>
             </div>
          ) : (
             <div className="mt-4 bg-rose-950/30 border border-rose-900/50 p-4 rounded-xl">
                <p className="text-rose-400 font-bold uppercase tracking-widest mb-1">Conspirator Escaped!</p>
-               <p className="text-slate-400 text-sm">Nobody caught the Conspirator! They fooled you all.</p>
+               <p className="text-slate-600 text-sm">Nobody caught the Conspirator! They fooled you all.</p>
             </div>
          )}
       </div>
 
-      <div className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl p-4 sm:p-6 overflow-y-auto w-full md:max-w-2xl md:mx-auto">
-         <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-4 text-center">Scoreboard</h3>
+      <div className="flex-1 bg-amber-50/50 border border-amber-200 rounded-xl p-4 sm:p-6 overflow-y-auto w-full md:max-w-2xl md:mx-auto">
+         <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center">Scoreboard</h3>
          <div className="space-y-3">
             {room.players.map(p => {
                const pState = state.players[p.socketId];
@@ -51,9 +51,9 @@ export function ScoringPhase() {
                const votedFor = room.players.find(x => x.socketId === pState.votedFor)?.name;
 
                return (
-                  <div key={p.socketId} className={`flex items-center justify-between p-4 rounded-xl border ${isMe ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-slate-900/50 border-slate-800'}`}>
+                  <div key={p.socketId} className={`flex items-center justify-between p-4 rounded-xl border ${isMe ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-white/50 border-amber-200'}`}>
                      <div className="flex flex-col">
-                        <span className={`font-bold ${isMe ? 'text-indigo-300' : 'text-slate-200'}`}>
+                        <span className={`font-bold ${isMe ? 'text-indigo-300' : 'text-slate-800'}`}>
                            {p.name} {isMe && "(You)"}
                         </span>
                         <div className="flex flex-col gap-1 mt-1">
@@ -67,7 +67,7 @@ export function ScoringPhase() {
                              </span>
                            </div>
                            {pState.votedFor && (
-                              <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded inline-block w-fit mt-1 border border-slate-700/50 shadow-inner">
+                              <span className="text-xs text-slate-600 bg-amber-100/50 px-2 py-1 rounded inline-block w-fit mt-1 border border-amber-300/50 shadow-inner">
                                 Voted for: <span className="text-rose-400 font-bold">{votedFor}</span>
                               </span>
                            )}

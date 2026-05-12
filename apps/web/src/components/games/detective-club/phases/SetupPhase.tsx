@@ -13,9 +13,9 @@ export function SetupPhase() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">Setup Phase</h2>
-        <p className="text-slate-400">
+        <p className="text-slate-600">
           {isInformer
             ? "คุณเป็น Informer! ดูการ์ดในมือแล้วตั้งคำศัพท์ที่สื่อถึงการ์ดของคุณ"
             : "รอ Informer เลือกคำศัพท์..."}
@@ -24,13 +24,13 @@ export function SetupPhase() {
 
       {/* Your Hand - shown for ALL players */}
       {myPlayer && myPlayer.hand.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6 shadow-2xl">
-          <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-4 text-center">การ์ดในมือของคุณ</h3>
+        <div className="bg-white border border-amber-200 rounded-xl p-4 sm:p-6 shadow-2xl">
+          <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center">การ์ดในมือของคุณ</h3>
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 justify-start sm:justify-center items-center px-4">
             {myPlayer.hand.map((cardUrl, idx) => (
               <div
                 key={`hand-${idx}`}
-                className="relative flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 rounded-xl overflow-hidden border-2 border-slate-700 shadow-md transform hover:scale-105 transition-transform"
+                className="relative flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 rounded-xl overflow-hidden border-2 border-amber-300 shadow-md transform hover:scale-105 transition-transform"
               >
                 <img src={cardUrl} alt={`Card ${idx + 1}`} className="w-full h-full object-cover border-4 border-white rounded-lg" />
               </div>
@@ -41,8 +41,8 @@ export function SetupPhase() {
 
       {/* Informer word input */}
       {isInformer ? (
-        <div className="w-full max-w-md mx-auto space-y-4 bg-slate-950 p-6 rounded-xl border border-indigo-500/30">
-          <p className="text-slate-300 font-medium text-center">
+        <div className="w-full max-w-md mx-auto space-y-4 bg-amber-50 p-6 rounded-xl border border-indigo-500/30">
+          <p className="text-slate-700 font-medium text-center">
             พิมพ์คำศัพท์ที่เชื่อมโยงกับการ์ดในมือคุณ
           </p>
           <input
@@ -50,7 +50,7 @@ export function SetupPhase() {
             value={wordInput}
             onChange={(e) => setWordInput(e.target.value)}
             placeholder="เช่น อวกาศ, ทะเล, เวทมนตร์..."
-            className="w-full bg-slate-900 border-2 border-slate-800 focus:border-indigo-500 text-white px-4 py-3 rounded-xl outline-none transition-all font-medium text-center"
+            className="w-full bg-white border-2 border-amber-200 focus:border-indigo-500 text-slate-800 px-4 py-3 rounded-xl outline-none transition-all font-medium text-center"
             onKeyDown={(e) => e.key === 'Enter' && wordInput.trim() && detectiveClubSubmitWord(wordInput)}
           />
           <button
@@ -64,7 +64,7 @@ export function SetupPhase() {
       ) : (
         <div className="flex flex-col items-center justify-center space-y-4 py-6">
           <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
-          <p className="text-slate-300 font-medium animate-pulse">รอ Informer เลือกคำศัพท์...</p>
+          <p className="text-slate-700 font-medium animate-pulse">รอ Informer เลือกคำศัพท์...</p>
         </div>
       )}
     </div>

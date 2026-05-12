@@ -20,9 +20,9 @@ export function VotingPhase() {
   if (myPlayer?.role === 'INFORMER') {
     return (
       <div className="flex-1 flex flex-col space-y-6 items-center justify-center">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center max-w-lg shadow-2xl">
+        <div className="bg-white border border-amber-200 rounded-xl p-8 text-center max-w-lg shadow-2xl">
            <h2 className="text-3xl font-black text-indigo-400 mb-4 uppercase tracking-widest">Voting Phase</h2>
-           <p className="text-slate-300 text-lg mb-6">Detectives are voting on who they think the Conspirator is.</p>
+           <p className="text-slate-700 text-lg mb-6">Detectives are voting on who they think the Conspirator is.</p>
            <div className="w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin mx-auto"></div>
            <p className="text-slate-500 mt-6 font-medium">You are the Informer, sit tight!</p>
         </div>
@@ -32,9 +32,9 @@ export function VotingPhase() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <h2 className="text-2xl sm:text-3xl font-black text-rose-400 mb-2">Who is the Conspirator?</h2>
-        <p className="text-slate-400">
+        <p className="text-slate-600">
           Review the played cards below and vote for the player you think did NOT know the word: <span className="text-emerald-400 font-bold">{state.word}</span>
         </p>
       </div>
@@ -43,7 +43,7 @@ export function VotingPhase() {
         <div className="flex-1 flex flex-col items-center justify-center">
            <div className="bg-emerald-950/30 p-6 rounded-xl border border-emerald-900/50 text-center">
               <p className="text-emerald-400 font-bold text-xl mb-2">Vote Locked In</p>
-              <p className="text-slate-400">Waiting for other players...</p>
+              <p className="text-slate-600">Waiting for other players...</p>
            </div>
         </div>
       ) : (
@@ -69,17 +69,17 @@ export function VotingPhase() {
                 className={`flex items-center p-4 rounded-xl border-2 transition-all text-left ${
                   selectedPlayer === pid 
                     ? 'bg-rose-950/40 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
-                    : 'bg-slate-900 border-slate-800 hover:border-slate-600 hover:bg-slate-800'
+                    : 'bg-white border-amber-200 hover:border-amber-400 hover:bg-amber-100'
                 }`}
               >
                 <div className="flex-1">
-                   <span className={`text-lg font-bold ${selectedPlayer === pid ? 'text-rose-400' : 'text-slate-200'}`}>{pName}</span>
+                   <span className={`text-lg font-bold ${selectedPlayer === pid ? 'text-rose-400' : 'text-slate-800'}`}>{pName}</span>
                 </div>
                 <div className="flex gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                   {player.playedCards.map((cardUrl, idx) => (
                     <div 
                       key={idx} 
-                      className="relative w-10 h-14 sm:w-16 sm:h-24 rounded overflow-hidden border border-slate-700 cursor-pointer transform hover:scale-110 transition-transform origin-bottom z-10"
+                      className="relative w-10 h-14 sm:w-16 sm:h-24 rounded overflow-hidden border border-amber-300 cursor-pointer transform hover:scale-110 transition-transform origin-bottom z-10"
                       onClick={(e) => { e.stopPropagation(); setViewCardUrl(cardUrl); }}
                     >
                       <img src={cardUrl} alt={`Card ${idx}`} className="w-full h-full object-cover" />

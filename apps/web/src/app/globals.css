@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
+    --background: #fefce8; /* amber-50 */
+    --foreground: #1e293b; /* slate-800 */
   }
 }
 

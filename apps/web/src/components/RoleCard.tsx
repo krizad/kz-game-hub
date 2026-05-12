@@ -15,12 +15,12 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
   const [isRevealed, setIsRevealed] = useState(false);
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl relative w-full max-w-sm mx-auto overflow-hidden">
+    <div className="flex flex-col items-center justify-center p-8 bg-white border border-amber-200 rounded-2xl shadow-2xl relative w-full max-w-sm mx-auto overflow-hidden">
       <div className="flex items-center justify-between w-full mb-6">
-        <h2 className="text-2xl font-bold text-slate-200 tracking-wider m-0">YOUR ROLE</h2>
+        <h2 className="text-2xl font-bold text-slate-800 tracking-wider m-0">YOUR ROLE</h2>
         <button
           onClick={() => setIsRevealed(!isRevealed)}
-          className="p-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-slate-300 transition-colors flex items-center gap-2"
+          className="p-2 bg-amber-100 hover:bg-amber-200 active:bg-slate-600 rounded-lg text-slate-700 transition-colors flex items-center gap-2"
           title={isRevealed ? "Hide Role" : "Show Role"}
         >
           {isRevealed ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -41,10 +41,10 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
               animate={{ rotateX: 0, opacity: 1 }}
               exit={{ rotateX: 90, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-slate-800 rounded-xl border-2 border-dashed border-slate-600 flex flex-col items-center justify-center transform-gpu group-hover:bg-slate-700 transition-colors"
+              className="absolute inset-0 bg-amber-100 rounded-xl border-2 border-dashed border-amber-400 flex flex-col items-center justify-center transform-gpu group-hover:bg-amber-200 transition-colors"
             >
-              <EyeOff className="w-12 h-12 text-slate-500 mb-3 group-hover:text-slate-400 transition-colors" />
-              <p className="text-slate-400 font-medium group-hover:text-slate-300 transition-colors">Tap to Reveal</p>
+              <EyeOff className="w-12 h-12 text-slate-500 mb-3 group-hover:text-slate-600 transition-colors" />
+              <p className="text-slate-600 font-medium group-hover:text-slate-700 transition-colors">Tap to Reveal</p>
             </motion.div>
           ) : (
             <motion.div
@@ -58,7 +58,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
                 role === Role.Host && "bg-amber-900/50 border-amber-500 text-amber-500",
                 role === Role.Know && "bg-rose-900/50 border-rose-500 text-rose-500",
                 role === Role.Unknow && "bg-emerald-900/50 border-emerald-500 text-emerald-500",
-                !role && "bg-slate-800 border-slate-600 text-slate-400"
+                !role && "bg-amber-100 border-amber-400 text-slate-600"
               )}
             >
               <div className="flex flex-col items-center justify-center w-full">

@@ -17,7 +17,7 @@ export function SoundsFishyView() {
 
   if (!state) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-600">
         {t('gameSoundsFishy.loading')}
       </div>
     );
@@ -38,9 +38,9 @@ export function SoundsFishyView() {
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6">
       
       {/* Header Info */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-lg w-full gap-4">
+      <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-lg w-full gap-4">
         <div className="text-center sm:text-left">
-          <p className="text-slate-400 uppercase tracking-widest text-xs font-bold mb-1">{t('gameSoundsFishy.yourRole')}</p>
+          <p className="text-slate-600 uppercase tracking-widest text-xs font-bold mb-1">{t('gameSoundsFishy.yourRole')}</p>
           <div className="flex items-center gap-2 justify-center sm:justify-start">
             <span className={`text-xl font-black ${isPicker ? 'text-purple-400' : isBlueFish ? 'text-blue-400' : 'text-rose-400'}`}>
               {isPicker ? t('gameSoundsFishy.rolePicker') : isBlueFish ? t('gameSoundsFishy.roleBlueFish') : t('gameSoundsFishy.roleRedHerring')}
@@ -49,23 +49,23 @@ export function SoundsFishyView() {
         </div>
         
         <div className="text-center sm:text-right">
-           <p className="text-slate-400 uppercase tracking-widest text-xs font-bold mb-1">{t('gameSoundsFishy.currentPot')}</p>
+           <p className="text-slate-600 uppercase tracking-widest text-xs font-bold mb-1">{t('gameSoundsFishy.currentPot')}</p>
            <span className="text-2xl font-black text-amber-400">{state.roundScorePool} <span className="text-sm text-slate-500">{t('gameSoundsFishy.pts')}</span></span>
         </div>
       </div>
 
       {/* Main Game Area */}
       {state.currentPhase === SoundsFishyPhase.SETUP && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center w-full shadow-lg flex-1 flex flex-col items-center justify-center">
+        <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg flex-1 flex flex-col items-center justify-center">
              <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-6">{t('gameSoundsFishy.setupPhase')}</h2>
              
              {/* Question Display */}
-             <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 w-full mb-8">
+             <div className="bg-amber-50 p-6 rounded-xl border border-amber-200 w-full mb-8">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">{t('gameSoundsFishy.theTopic')}</span>
-                <p className="text-xl sm:text-2xl font-bold text-slate-200">{state.question?.question}</p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-800">{state.question?.question}</p>
                 
                 {!isPicker && (
-                    <div className="mt-4 pt-4 border-t border-slate-800">
+                    <div className="mt-4 pt-4 border-t border-amber-200">
                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">{t('gameSoundsFishy.trueAnswer')}</span>
                        <p className="text-2xl font-black text-blue-400 bg-blue-500/10 inline-block px-4 py-2 rounded-lg border border-blue-500/20">{state.question?.answer}</p>
                     </div>
@@ -76,18 +76,18 @@ export function SoundsFishyView() {
              {isPicker ? (
                  <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="w-12 h-12 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
-                    <p className="text-slate-300 font-medium animate-pulse">{t('gameSoundsFishy.waitingForFish')}</p>
+                    <p className="text-slate-700 font-medium animate-pulse">{t('gameSoundsFishy.waitingForFish')}</p>
                  </div>
              ) : (
                 myAnswer ? (
                   <div className="bg-emerald-950/30 p-4 rounded-xl border border-emerald-900/50">
                      <p className="text-emerald-400 font-bold mb-1">{t('gameSoundsFishy.answerSubmitted')}</p>
-                     <p className="text-sm text-slate-400">{t('gameSoundsFishy.waitingForOthers')}</p>
-                     <p className="text-lg font-bold text-slate-200 mt-2 bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">{myAnswer.answer}</p>
+                     <p className="text-sm text-slate-600">{t('gameSoundsFishy.waitingForOthers')}</p>
+                     <p className="text-lg font-bold text-slate-800 mt-2 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">{myAnswer.answer}</p>
                   </div>
                 ) : (
                   <div className="w-full max-w-md mx-auto space-y-4">
-                     <p className="text-slate-300 font-medium">
+                     <p className="text-slate-700 font-medium">
                         {isBlueFish ? t('gameSoundsFishy.mustEnterTrue') : t('gameSoundsFishy.mustEnterFake')}
                      </p>
                      <input 
@@ -99,7 +99,7 @@ export function SoundsFishyView() {
                            soundsFishyTypeAnswer(val);
                         }}
                         placeholder={t('gameSoundsFishy.typeAnswerPlaceholder')}
-                        className="w-full bg-slate-950 border-2 border-slate-800 focus:border-indigo-500 text-white px-4 py-3 rounded-xl outline-none transition-all font-medium text-center"
+                        className="w-full bg-amber-50 border-2 border-amber-200 focus:border-indigo-500 text-slate-800 px-4 py-3 rounded-xl outline-none transition-all font-medium text-center"
                         onKeyDown={(e) => e.key === 'Enter' && answerInput.trim() && soundsFishySubmitAnswer(answerInput)}
                      />
                      <button 
@@ -115,7 +115,7 @@ export function SoundsFishyView() {
 
              {/* Live typing display for non-pickers who are still answering */}
              {!isPicker && state.typingAnswers && Object.keys(state.typingAnswers).length > 0 && (
-                 <div className="w-full mt-8 max-w-2xl mx-auto border-t border-slate-800 pt-6">
+                 <div className="w-full mt-8 max-w-2xl mx-auto border-t border-amber-200 pt-6">
                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{t('gameSoundsFishy.otherFishesTyping')}</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                          {room.players.map(p => {
@@ -126,9 +126,9 @@ export function SoundsFishyView() {
                              if (!typingText) return null;
 
                              return (
-                                 <div key={p.socketId} className="bg-slate-950/50 p-3 rounded-lg border border-slate-800 text-left">
+                                 <div key={p.socketId} className="bg-amber-50/50 p-3 rounded-lg border border-amber-200 text-left">
                                      <span className="text-xs font-bold text-indigo-400 block mb-1">{p.name}</span>
-                                     <p className="text-slate-300 break-words">{typingText}</p>
+                                     <p className="text-slate-700 break-words">{typingText}</p>
                                  </div>
                              );
                          })}
@@ -140,17 +140,17 @@ export function SoundsFishyView() {
 
       {(state.currentPhase === SoundsFishyPhase.THE_PITCH || state.currentPhase === SoundsFishyPhase.THE_HUNT) && (
         <div className="flex-1 flex flex-col space-y-6">
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center w-full shadow-lg">
+             <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">{t('gameSoundsFishy.theTopic')}</span>
-                <p className="text-xl sm:text-2xl font-bold text-slate-200">{state.question?.question}</p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-800">{state.question?.question}</p>
                  {isPicker ? (
-                     <div className="mt-4 pt-4 border-t border-slate-800">
+                     <div className="mt-4 pt-4 border-t border-amber-200">
                         <span className="text-sm font-bold text-amber-500 uppercase tracking-widest mb-2 block">
                             {allRevealed ? t('gameSoundsFishy.allRevealedEliminate') : t('gameSoundsFishy.revealEveryoneFirst')}
                         </span>
                      </div>
                  ) : (
-                    <div className="mt-4 pt-4 border-t border-slate-800">
+                    <div className="mt-4 pt-4 border-t border-amber-200">
                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block flex items-center justify-center gap-2">
                           {t('gameSoundsFishy.trueAnswer')} <span className="text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{state.question?.answer}</span>
                        </span>
@@ -165,8 +165,8 @@ export function SoundsFishyView() {
                     const isEliminated = state.eliminatedPlayers.includes(p.socketId);
                     
                     return (
-                        <div key={p.socketId} className={`relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${isEliminated ? 'bg-rose-950/30 border-rose-900/50 opacity-50 grayscale' : isRevealed ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900 border-slate-800'}`}>
-                            <span className="font-bold text-slate-400 mb-2">{p.name}</span>
+                        <div key={p.socketId} className={`relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${isEliminated ? 'bg-rose-950/30 border-rose-900/50 opacity-50 grayscale' : isRevealed ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-white border-amber-200'}`}>
+                            <span className="font-bold text-slate-600 mb-2">{p.name}</span>
                             
                             {isRevealed ? (
                                 <p className="text-2xl font-black text-white text-center break-words w-full">{ans.answer}</p>
@@ -198,7 +198,7 @@ export function SoundsFishyView() {
 
              {isPicker && state.currentPhase === SoundsFishyPhase.THE_HUNT && state.roundScorePool > 0 && (
                 <div className="bg-amber-950/30 border border-amber-900/50 rounded-xl p-6 text-center shadow-lg mt-auto">
-                   <p className="text-slate-300 mb-4 font-medium">{t('gameSoundsFishy.youHavePointsPrefix')}<span className="text-amber-400 font-black">{state.roundScorePool}</span>{t('gameSoundsFishy.youHavePointsSuffix')}</p>
+                   <p className="text-slate-700 mb-4 font-medium">{t('gameSoundsFishy.youHavePointsPrefix')}<span className="text-amber-400 font-black">{state.roundScorePool}</span>{t('gameSoundsFishy.youHavePointsSuffix')}</p>
                    <button onClick={() => soundsFishyBankPoints()} className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-black px-8 py-4 rounded-xl text-lg uppercase tracking-widest transition-all shadow-xl active:scale-[0.98]">
                       {t('gameSoundsFishy.bankPointsAndEnd')}
                    </button>
@@ -208,16 +208,16 @@ export function SoundsFishyView() {
       )}
 
       {room.status === RoomStatus.RESULT && (
-         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center w-full shadow-lg flex-1 flex flex-col items-center justify-center">
+         <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-lg flex-1 flex flex-col items-center justify-center">
              <h2 className="text-4xl font-black text-yellow-400 mb-2 tracking-wider">{t('gameSoundsFishy.roundOver')}</h2>
-             <p className="text-slate-400 mb-8 font-medium">{t('gameSoundsFishy.howEveryoneScored')}</p>
+             <p className="text-slate-600 mb-8 font-medium">{t('gameSoundsFishy.howEveryoneScored')}</p>
              
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl mb-8">
                 {room.players.map(p => (
-                   <div key={p.socketId} className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                   <div key={p.socketId} className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex justify-between items-center">
                       <div className="flex flex-col items-start">
-                         <span className="font-bold text-slate-200">
-                             {p.name} {p.socketId === socketId && <span className="text-slate-400 font-normal">({t('lobby.you')})</span>}
+                         <span className="font-bold text-slate-800">
+                             {p.name} {p.socketId === socketId && <span className="text-slate-600 font-normal">({t('lobby.you')})</span>}
                          </span>
                          <span className="text-xs text-slate-500 font-medium">
                             {p.socketId === state.pickerId ? t('gameSoundsFishy.pickerText') : p.socketId === state.blueFishId ? t('gameSoundsFishy.blueFishText') : t('gameSoundsFishy.redHerringText')}

@@ -20,7 +20,7 @@ export function TicTacToeRules() {
             </span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="text-slate-400 flex-shrink-0 text-xl leading-none">🤝</span>
+            <span className="text-slate-600 flex-shrink-0 text-xl leading-none">🤝</span>
             <span>
               {t('rules.ticTacToe.winDesc2A')}<strong>{t('rules.ticTacToe.winDesc2B')}</strong>.
             </span>
