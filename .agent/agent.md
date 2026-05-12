@@ -8,7 +8,7 @@
 
 - **ชื่อโปรเจกต์:** KZ Game Hub
 - **คำอธิบาย:** เว็บแอป Real-time Multiplayer Game Hub — สร้างห้อง เชิญเพื่อน แล้วเลือกเกมเล่นด้วยกัน
-- **Live Demo:** [who-know-web.vercel.app](https://who-know-web.vercel.app/)
+- **Live Demo:** [kz-game-hub.vercel.app](https://kz-game-hub.vercel.app/)
 - **Repository:** Turborepo Monorepo
 
 ## Available Games

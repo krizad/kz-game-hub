@@ -2,7 +2,7 @@
 
 A real-time multiplayer online platform featuring a collection of classic and social deduction games.
 
-**Live Demo:** [who-know-web.vercel.app](https://who-know-web.vercel.app/)
+**Live Demo:** [kz-game-hub.vercel.app](https://kz-game-hub.vercel.app/)
 Built as a modern web application within a Turborepo.
 
 ## 🚀 Available Games
