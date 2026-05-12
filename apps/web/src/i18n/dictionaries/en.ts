@@ -87,7 +87,7 @@ export const en: Dictionary = {
       closeBtn: "Got it, let's play!"
     },
     lobby: {
-      welcomeTitle: "Welcome to Who Know?",
+      welcomeTitle: "Welcome to KZ Game Hub",
       welcomeDesc: "This is a multiplayer party game platform. Create a room or join a friend's room to play various games together!",
       modesTitle: "Available Game Modes",
       whoKnowDesc: "A game of deduction and deception. One player is the Insider trying to guide the group to guess a secret word without being too obvious, while the Commoners try to figure out both the word and who the Insider is!",

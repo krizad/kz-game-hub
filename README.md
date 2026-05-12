@@ -1,4 +1,4 @@
-# WHO KNOW: Multiplayer Game Hub
+# KZ Game Hub
 
 A real-time multiplayer online platform featuring a collection of classic and social deduction games.
 
@@ -28,7 +28,7 @@ Built as a modern web application within a Turborepo.
 ## 📦 Project Structure
 
 ```text
-who-know/
+kz-game-hub/
 ├── apps/
 │   ├── web/       # Next.js frontend application (Player screen & Lobby)
 │   └── api/       # NestJS backend/websocket server (Game logic & Rooms)
@@ -50,8 +50,8 @@ who-know/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/krizad/who-know.git
-   cd who-know
+   git clone https://github.com/krizad/kz-game-hub.git
+   cd kz-game-hub
    ```
 
 2. Install dependencies:

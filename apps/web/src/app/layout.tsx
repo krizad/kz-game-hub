@@ -9,7 +9,7 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: 'WHO KNOW?',
+  title: 'KZ Game Hub',
   description: 'Real-time Insider Game Controller',
 };
 

@@ -2,11 +2,11 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: who-know-db
+    container_name: kz-game-hub-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: who_know
+      POSTGRES_DB: kz_game_hub
     ports:
       - "5432:5432"
     volumes:

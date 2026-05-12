@@ -1,4 +1,4 @@
-# 🔍 WHO-KNOW: Real-time Multi-Game Hub
+# 🔍 KZ Game Hub: Real-time Multi-Game Hub
 
 **"Who knows the secret? Who's acting sus?"** โปรเจกต์เว็บแอปสำหรับคุมเกม Multiplayer แบบ Real-time ที่แต่ก่อนเริ่มต้นจากเกม Insider ตอนนี้ถูกพัฒนาให้เป็น Game Hub ที่รวบรวมเกมไว้หลายแบบ (Who Know, Gobbler, Tic Tac Toe, Hand Duel) เน้นความ Minimalist และ Real-time Experience สูงสุด พัฒนาด้วยสถาปัตยกรรม Monorepo
 
@@ -24,7 +24,7 @@
 ## 🏗 Project Structure
 
 ```text
-who-know/
+kz-game-hub/
 ├── apps/
 │   ├── web/                # Next.js Frontend (The Player's Screen & Game Lobby)
 │   │   ├── src/app/
