@@ -11,6 +11,8 @@ Built as a modern web application within a Turborepo.
 - **Gobbler Tic-Tac-Toe:** A strategic twist on the classic game where larger pieces can "gobble" smaller ones.
 - **Classic Tic-Tac-Toe:** The traditional game of X's and O's.
 - **Hand Duel:** A competitive Rock-Paper-Scissors game with multiple modes (1v1 Round Robin, All At Once) and Best-Of mechanics.
+- **Sounds Fishy:** A trivia bluffing game — one player knows the real answer, others make up convincing fakes. Can you spot the truth?
+- **Detective Club:** A social deduction card game — play cards to match a secret clue word, but one player is the spy who doesn't know it!
 
 ## ✨ Core Features
 
