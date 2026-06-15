@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomState, RoomStatus, Role, UserState, GameType, TicTacToeCell, RPSChoice } from '@repo/types';
+import { RoomState, RoomStatus, Role, UserState, GameType, TicTacToeCell, RPSChoice, WordCategory } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
@@ -7,6 +7,7 @@ import { RPSService } from './rps/rps.service';
 import { GobblerService } from './gobbler/gobbler.service';
 import { SoundsFishyService } from './sounds-fishy/sounds-fishy.service';
 import { DetectiveClubService } from './detective-club/detective-club.service';
+import { WhoAmIService } from './who-am-i/who-am-i.service';
 
 @Injectable()
 export class GamesService {
@@ -20,6 +21,7 @@ export class GamesService {
     private readonly gobblerService: GobblerService,
     private readonly soundsFishyService: SoundsFishyService,
     private readonly detectiveClubService: DetectiveClubService,
+    private readonly whoAmIService: WhoAmIService,
   ) {}
 
   createRoom(hostId: string, gameType: GameType = GameType.WHO_KNOW): RoomState {
@@ -77,6 +79,9 @@ export class GamesService {
         },
         scores: { X: 0, O: 0 }
       };
+    } else if (gameType === GameType.WHO_AM_I) {
+      room.config.maxRounds = 3;
+      room.config.wordMode = 'RANDOM';
     }
 
     this.rooms.set(code, room);
@@ -300,6 +305,27 @@ export class GamesService {
       const updatedRoom = this.detectiveClubService.startGame(room, requesterId);
       if (updatedRoom) this.rooms.set(code, updatedRoom);
       return updatedRoom ? { room: updatedRoom, roles: {} } : null; // Roles handled internally
+    }
+
+    if (room.gameType === GameType.WHO_AM_I) {
+      let updatedRoom: RoomState | null = null;
+      if (room.config.wordMode === 'HOST_INPUT') {
+        // In hub, we don't have playerWords at START_GAME. So HOST_INPUT must be handled by a specific event or we initialize it empty.
+        // Wait, for HOST_INPUT the original used a separate event or sent playerWords.
+        // Let's assume the host input starts with COLLECTING_WORDS just like PLAYER_INPUT for now, or requires a custom event.
+        // Actually, the original Who Am I had `whoAmIStartGameHostInput` passing `playerWords`.
+        // We'll return null here and let a custom event handle it, OR just initialize it.
+        // Let's use custom socket events for Who Am I starts to pass extra data if needed, or we adapt it here.
+        // Wait, I can just initialize PLAYER_INPUT here and let HOST_INPUT be handled separately.
+        updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
+      } else if (room.config.wordMode === 'RANDOM') {
+        updatedRoom = await this.whoAmIService.startGameRandom(room, requesterId);
+      } else if (room.config.wordMode === 'PLAYER_INPUT') {
+        updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
+      }
+      
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom ? { room: updatedRoom, roles: {} } : null;
     }
     
     // Default to WHO_KNOW
@@ -556,6 +582,37 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const updatedRoom = this.detectiveClubService.nextRound(room, clientId);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  // --- Who Am I Logic ---
+
+  whoAmISubmitPlayerWord(code: string, clientId: string, word: string): { room: RoomState; error?: string } | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const result = this.whoAmIService.submitPlayerWord(room, clientId, word);
+    if (result && result.room) this.rooms.set(code, result.room);
+    return result;
+  }
+
+  whoAmIGameAction(code: string, clientId: string, action: any): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.whoAmIService.handleGameAction(room, clientId, action);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  whoAmICategoriesList(): Promise<WordCategory[]> {
+    return this.whoAmIService.getCategories();
+  }
+
+  // Specific start for HOST_INPUT if needed
+  whoAmIStartHostInput(code: string, clientId: string, playerWords: Record<string, string>): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.whoAmIService.startGameHostInput(room, clientId, playerWords);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }

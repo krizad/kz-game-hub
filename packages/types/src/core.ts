@@ -4,6 +4,7 @@ import { GobblerState } from "./gobbler-tic-tac-toe";
 import { WinningTeam, Role } from "./who-know";
 import { SoundsFishyState } from "./sounds-fishy";
 import { DetectiveClubState } from "./detective-club";
+import { WhoAmIGameState } from "./who-am-i";
 
 export enum RoomStatus {
   LOBBY = "LOBBY",
@@ -21,6 +22,7 @@ export enum GameType {
   GOBBLER_TIC_TAC_TOE = "GOBBLER_TIC_TAC_TOE",
   SOUNDS_FISHY = "SOUNDS_FISHY",
   DETECTIVE_CLUB = "DETECTIVE_CLUB",
+  WHO_AM_I = "WHO_AM_I",
 }
 
 // Socket Constants
@@ -68,6 +70,12 @@ export const SOCKET_EVENTS = {
   DETECTIVE_CLUB_NEXT_PHASE: "detective_club_next_phase",
   DETECTIVE_CLUB_VOTE: "detective_club_vote",
   DETECTIVE_CLUB_NEXT_ROUND: "detective_club_next_round",
+  // Who Am I specific events
+  WHO_AM_I_SUBMIT_WORDS: "who_am_i_submit_words",
+  WHO_AM_I_SUBMIT_PLAYER_WORD: "who_am_i_submit_player_word",
+  WHO_AM_I_GET_CATEGORIES: "who_am_i_get_categories",
+  WHO_AM_I_CATEGORIES_LIST: "who_am_i_categories_list",
+  GAME_ACTION: "game_action",
 } as const;
 
 export interface UserState {
@@ -87,6 +95,10 @@ export interface RoomConfig {
   rpsBestOf?: number; // e.g., 1, 3, 5
   rpsMode?: "1V1_ROUND_ROBIN" | "ALL_AT_ONCE";
   language?: "en" | "th";
+  // Who Am I config
+  maxRounds?: number;
+  wordMode?: "HOST_INPUT" | "RANDOM" | "PLAYER_INPUT";
+  wordCategory?: string;
 }
 
 export interface RoomState {
@@ -106,6 +118,7 @@ export interface RoomState {
   gobblerState?: GobblerState;
   soundsFishyState?: SoundsFishyState;
   detectiveClubState?: DetectiveClubState;
+  whoAmIState?: WhoAmIGameState;
 }
 
 export interface AvailableRoom {

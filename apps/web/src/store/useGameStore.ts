@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
-import { RoomState, RoomStatus, Role, SOCKET_EVENTS, AvailableRoom, GameType } from '@repo/types';
+import { RoomState, RoomStatus, Role, SOCKET_EVENTS, AvailableRoom, GameType, WordCategory } from '@repo/types';
 import { toast } from 'react-hot-toast';
 
 interface GameState {
@@ -12,6 +12,7 @@ interface GameState {
   socketId: string;
   secretWord: string | null;
   availableRooms: AvailableRoom[];
+  categories: WordCategory[];
   connect: () => void;
   setName: (name: string) => void;
   createRoom: (gameType?: GameType) => void;
@@ -46,6 +47,10 @@ interface GameState {
   detectiveClubNextPhase: () => void;
   detectiveClubVote: (targetId: string) => void;
   detectiveClubNextRound: () => void;
+  submitWordsWhoAmI: (playerWords: Record<string, string>) => void;
+  submitPlayerWordWhoAmI: (word: string) => void;
+  getCategoriesWhoAmI: () => void;
+  gameActionWhoAmI: (action: any) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -57,6 +62,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   socketId: '',
   secretWord: null,
   availableRooms: [],
+  categories: [],
 
   setName: (name) => set({ myName: name }),
 
@@ -120,6 +126,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     socket.on(SOCKET_EVENTS.WORD_SETTING_COMPLETED, ({ word }: { word: string }) => {
       set({ secretWord: word });
+    });
+
+    socket.on(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, (categories: WordCategory[]) => {
+      set({ categories });
     });
 
     socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
@@ -359,6 +369,34 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { socket, room } = get();
     if (socket && room) {
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_ROUND, { code: room.code });
+    }
+  },
+
+  submitWordsWhoAmI: (playerWords: Record<string, string>) => {
+    const { socket, room } = get();
+    if (socket && room) {
+      socket.emit(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS, { code: room.code, playerWords });
+    }
+  },
+
+  submitPlayerWordWhoAmI: (word: string) => {
+    const { socket, room } = get();
+    if (socket && room) {
+      socket.emit(SOCKET_EVENTS.WHO_AM_I_SUBMIT_PLAYER_WORD, { code: room.code, word });
+    }
+  },
+
+  getCategoriesWhoAmI: () => {
+    const { socket } = get();
+    if (socket) {
+      socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES);
+    }
+  },
+
+  gameActionWhoAmI: (action: any) => {
+    const { socket, room } = get();
+    if (socket && room) {
+      socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
     }
   }
 }));

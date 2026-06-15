@@ -46,3 +46,12 @@ model SoundsFishyQuestion {
   lang        String @default("th")
   query_count Int    @default(0)
 }
+
+model Word {
+  id       String  @id @default(uuid())
+  word     String
+  category String
+  emoji    String?
+
+  @@index([category])
+}

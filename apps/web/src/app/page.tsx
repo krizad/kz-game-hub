@@ -16,12 +16,13 @@ import { WhoKnowView } from "@/components/games/who-know/WhoKnowView";
 import { GobblerView } from "@/components/games/gobbler/GobblerView";
 import { SoundsFishyView } from "@/components/games/sounds-fishy/SoundsFishyView";
 import { DetectiveClubView } from "@/components/games/detective-club/DetectiveClubView";
+import { WhoAmIView } from "@/components/games/who-am-i/WhoAmIView";
 import { useTranslate } from "@/hooks/useTranslate";
 
 // Components extracted to separate files
 
 function GameLobby() {
-  const { connect, connected, room, myName, setName, createRoom, joinRoom, startGame, myRole, leaveRoom, availableRooms } = useGameStore();
+  const { connect, connected, room, myName, setName, createRoom, joinRoom, startGame, myRole, leaveRoom, availableRooms, categories, getCategoriesWhoAmI, submitWordsWhoAmI } = useGameStore();
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get("room");
   const { t, language, setLanguage } = useTranslate();
@@ -29,6 +30,8 @@ function GameLobby() {
   const [joinCode, setJoinCode] = useState(roomQuery || "");
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showHostWordModal, setShowHostWordModal] = useState(false);
+  const [hostWordInputs, setHostWordInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     connect();
@@ -173,6 +176,13 @@ function GameLobby() {
               </button>
             </div>
 
+            <div className="grid grid-cols-1 gap-3 mb-3">
+              <button onClick={() => createRoom(GameType.WHO_AM_I)} disabled={!myName} className="w-full bg-pink-600/80 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-pink-500/50 flex flex-col items-center justify-center gap-1 group">
+                <span className="text-xl group-hover:scale-110 transition-transform">🤔❓</span>
+                <span className="text-xs tracking-wider text-center px-1">Who Am I</span>
+              </button>
+            </div>
+
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-amber-200"></div>
               <span className="flex-shrink-0 mx-4 text-slate-500 text-sm font-medium">{t('lobby.or')}</span>
@@ -228,7 +238,7 @@ function GameLobby() {
                       <div className="text-slate-800 font-bold tracking-widest text-lg leading-none mb-1 group-hover:text-indigo-300 transition-colors flex items-center gap-2">
                         {r.code}
                         <span className={`text-[9px] px-1.5 py-0.5 rounded border leading-none ml-2 tracking-normal font-sans ${r.gameType === GameType.GOBBLER_TIC_TAC_TOE || r.gameType === GameType.TIC_TAC_TOE ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : r.gameType === GameType.RPS ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
-                          {r.gameType === GameType.GOBBLER_TIC_TAC_TOE ? t('lobby.gameNames.gobbler').toUpperCase() : r.gameType === GameType.TIC_TAC_TOE ? t('lobby.gameNames.ticTacToe').toUpperCase() : r.gameType === GameType.RPS ? t('lobby.gameNames.handDuel').toUpperCase() : r.gameType === GameType.DETECTIVE_CLUB ? 'DETECTIVE CLUB' : r.gameType === GameType.SOUNDS_FISHY ? 'SOUNDS FISHY' : t('lobby.gameNames.whoKnow').toUpperCase()}
+                          {r.gameType === GameType.GOBBLER_TIC_TAC_TOE ? t('lobby.gameNames.gobbler').toUpperCase() : r.gameType === GameType.TIC_TAC_TOE ? t('lobby.gameNames.ticTacToe').toUpperCase() : r.gameType === GameType.RPS ? t('lobby.gameNames.handDuel').toUpperCase() : r.gameType === GameType.DETECTIVE_CLUB ? 'DETECTIVE CLUB' : r.gameType === GameType.SOUNDS_FISHY ? 'SOUNDS FISHY' : r.gameType === GameType.WHO_AM_I ? 'WHO AM I' : t('lobby.gameNames.whoKnow').toUpperCase()}
                         </span>
                       </div>
                       <div className="text-slate-500 text-[10px] font-medium uppercase mt-0.5 tracking-wider flex items-center gap-1.5">
@@ -267,7 +277,7 @@ function GameLobby() {
             <img src="/icon.png" alt="Logo" className="w-8 h-8 rounded-lg shadow-sm border border-amber-300" />
             <div className="flex flex-col">
               <span className="text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 hidden sm:block">
-               {room.gameType === GameType.GOBBLER_TIC_TAC_TOE ? t('lobby.gameNames.gobbler') : room.gameType === GameType.TIC_TAC_TOE ? t('lobby.gameNames.ticTacToe') : room.gameType === GameType.RPS ? t('lobby.gameNames.handDuel') : room.gameType === GameType.SOUNDS_FISHY ? "Sounds Fishy" : room.gameType === GameType.DETECTIVE_CLUB ? 'Detective Club' : t('lobby.gameNames.whoKnow')}
+               {room.gameType === GameType.GOBBLER_TIC_TAC_TOE ? t('lobby.gameNames.gobbler') : room.gameType === GameType.TIC_TAC_TOE ? t('lobby.gameNames.ticTacToe') : room.gameType === GameType.RPS ? t('lobby.gameNames.handDuel') : room.gameType === GameType.SOUNDS_FISHY ? "Sounds Fishy" : room.gameType === GameType.DETECTIVE_CLUB ? 'Detective Club' : room.gameType === GameType.WHO_AM_I ? 'Who Am I' : t('lobby.gameNames.whoKnow')}
               </span>
               <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">{room.code}</span>
             </div>
@@ -335,6 +345,8 @@ function GameLobby() {
           <SoundsFishyView />
         ) : room.gameType === GameType.DETECTIVE_CLUB && room.status !== RoomStatus.LOBBY ? (
           <DetectiveClubView />
+        ) : room.gameType === GameType.WHO_AM_I && room.status !== RoomStatus.LOBBY ? (
+          <WhoAmIView />
         ) : (
           <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-2 sm:gap-4">
             {/* Left: Players Table */}
@@ -393,7 +405,7 @@ function GameLobby() {
                 <h4 className="text-lg font-black uppercase text-indigo-400 tracking-widest bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">{t('lobby.waitingRoom')}</h4>
 
                 {/* Configuration Panel */}
-                {(room.gameType === GameType.WHO_KNOW || room.gameType === GameType.RPS) && (
+                {(room.gameType === GameType.WHO_KNOW || room.gameType === GameType.RPS || room.gameType === GameType.WHO_AM_I) && (
                 <div className="w-full max-w-sm bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-4">
                   {room.gameType === GameType.WHO_KNOW && (
                     <>
@@ -480,12 +492,102 @@ function GameLobby() {
                       </div>
                     </>
                   )}
+
+                  {room.gameType === GameType.WHO_AM_I && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Number of Rounds</label>
+                        {useGameStore.getState().socketId === room.roomHostId ? (
+                          <div className="flex items-center gap-4">
+                            <button onClick={() => useGameStore.getState().updateConfig({ maxRounds: Math.max(1, (room.config.maxRounds || 3) - 1) })} className="w-8 h-8 bg-white border border-amber-300 rounded-lg flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100">-</button>
+                            <span className="text-lg font-bold text-indigo-600 w-8 text-center">{room.config.maxRounds || 3}</span>
+                            <button onClick={() => useGameStore.getState().updateConfig({ maxRounds: Math.min(20, (room.config.maxRounds || 3) + 1) })} className="w-8 h-8 bg-white border border-amber-300 rounded-lg flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100">+</button>
+                          </div>
+                        ) : (
+                          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">{room.config.maxRounds || 3} Rounds</div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Word Mode</label>
+                        {useGameStore.getState().socketId === room.roomHostId ? (
+                          <select
+                            value={room.config.wordMode || "HOST_INPUT"}
+                            onChange={(e) => {
+                              const mode = e.target.value as any;
+                              useGameStore.getState().updateConfig({ wordMode: mode });
+                              if (mode === 'RANDOM') getCategoriesWhoAmI();
+                            }}
+                            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+                          >
+                            <option value="HOST_INPUT">📝 Host Picks</option>
+                            <option value="RANDOM">🎲 Random (DB)</option>
+                            <option value="PLAYER_INPUT">✍️ Players Write</option>
+                          </select>
+                        ) : (
+                          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+                            {room.config.wordMode === 'HOST_INPUT' ? '📝 Host Picks' : room.config.wordMode === 'RANDOM' ? '🎲 Random (DB)' : '✍️ Players Write'}
+                          </div>
+                        )}
+                      </div>
+
+                      {room.config.wordMode === 'RANDOM' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Category</label>
+                          {useGameStore.getState().socketId === room.roomHostId ? (
+                            categories.length === 0 ? (
+                              <p className="text-slate-500 text-sm italic">No categories found.</p>
+                            ) : (
+                              <select
+                                value={room.config.wordCategory || ""}
+                                onChange={(e) => useGameStore.getState().updateConfig({ wordCategory: e.target.value })}
+                                className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+                              >
+                                <option value="" disabled>Select a category...</option>
+                                {categories.map(cat => (
+                                  <option key={cat.name} value={cat.name}>{cat.name} ({cat.count})</option>
+                                ))}
+                              </select>
+                            )
+                          ) : (
+                            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">{room.config.wordCategory || "Not selected"}</div>
+                          )}
+                        </div>
+                      )}
+
+                      {room.config.wordMode === 'PLAYER_INPUT' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Theme (Optional)</label>
+                          {useGameStore.getState().socketId === room.roomHostId ? (
+                            <input
+                              type="text"
+                              value={room.config.wordCategory || ""}
+                              onChange={(e) => useGameStore.getState().updateConfig({ wordCategory: e.target.value })}
+                              placeholder="e.g. Animals, Movies..."
+                              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
+                            />
+                          ) : (
+                            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">{room.config.wordCategory || "Any Topic"}</div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 )}
 
                 {useGameStore.getState().socketId === room.roomHostId ? (
-                  <button onClick={startGame} disabled={room.players.length < (room.gameType === GameType.WHO_KNOW ? 4 : room.gameType === GameType.SOUNDS_FISHY ? 4 : room.gameType === GameType.DETECTIVE_CLUB ? 3 : 2)} className="w-full max-w-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-colors uppercase tracking-widest shadow-lg shadow-green-900/20">
-                    {room.players.length < (room.gameType === GameType.WHO_KNOW ? 4 : room.gameType === GameType.SOUNDS_FISHY ? 4 : room.gameType === GameType.DETECTIVE_CLUB ? 3 : 2) ? t('lobby.waitingMin', { count: room.gameType === GameType.WHO_KNOW ? 4 : room.gameType === GameType.SOUNDS_FISHY ? 4 : room.gameType === GameType.DETECTIVE_CLUB ? 3 : 2 }) : t('lobby.startGame')}
+                  <button onClick={() => {
+                    if (room.gameType === GameType.WHO_AM_I && room.config.wordMode === 'HOST_INPUT') {
+                      const inputs: Record<string, string> = {};
+                      room.players.filter(p => p.socketId !== useGameStore.getState().socketId).forEach(p => { inputs[p.socketId] = ''; });
+                      setHostWordInputs(inputs);
+                      setShowHostWordModal(true);
+                    } else {
+                      startGame();
+                    }
+                  }} disabled={room.players.length < (room.gameType === GameType.WHO_KNOW ? 4 : room.gameType === GameType.SOUNDS_FISHY ? 4 : room.gameType === GameType.DETECTIVE_CLUB ? 3 : room.gameType === GameType.WHO_AM_I ? 2 : 2) || (room.gameType === GameType.WHO_AM_I && room.config.wordMode === 'RANDOM' && !room.config.wordCategory)} className="w-full max-w-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-colors uppercase tracking-widest shadow-lg shadow-green-900/20">
+                    {room.players.length < (room.gameType === GameType.WHO_KNOW ? 4 : room.gameType === GameType.SOUNDS_FISHY ? 4 : room.gameType === GameType.DETECTIVE_CLUB ? 3 : room.gameType === GameType.WHO_AM_I ? 2 : 2) ? t('lobby.waitingMin', { count: room.gameType === GameType.WHO_KNOW ? 4 : room.gameType === GameType.SOUNDS_FISHY ? 4 : room.gameType === GameType.DETECTIVE_CLUB ? 3 : room.gameType === GameType.WHO_AM_I ? 2 : 2 }) : t('lobby.startGame')}
                   </button>
                 ) : (
                   <div className="w-full max-w-xs bg-amber-100/50 text-slate-600 border border-amber-200 font-bold text-sm py-4 rounded-xl text-center uppercase tracking-widest">{t('lobby.waitingForHost')}</div>
@@ -612,6 +714,62 @@ function GameLobby() {
               <button onClick={() => setShowQRModal(false)} className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-all border border-amber-300 mt-2">
                 {t('lobby.close')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Host Word Modal for Who Am I */}
+      {showHostWordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
+          <div className="bg-white border border-indigo-500/50 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+            <div className="p-6 md:p-8 flex flex-col gap-6 overflow-hidden flex-1">
+              <div className="text-center">
+                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest mb-2">📝 Set Words</h3>
+                <p className="text-slate-600 font-medium text-sm">Assign a word to each player. You (Host) won't get a word and will act as a spectator/moderator for this match.</p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                {room.players.filter(p => p.socketId !== useGameStore.getState().socketId).map(p => (
+                  <div key={p.socketId} className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-xs border border-amber-300">{getAvatarEmoji(p.id)}</span>
+                      {p.name}
+                    </label>
+                    <input
+                      type="text"
+                      value={hostWordInputs[p.socketId] || ''}
+                      onChange={(e) => setHostWordInputs(prev => ({ ...prev, [p.socketId]: e.target.value }))}
+                      placeholder="Enter a character, animal, object..."
+                      className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowHostWordModal(false)}
+                  className="flex-1 bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={Object.values(hostWordInputs).some(w => !w.trim())}
+                  onClick={() => {
+                    const cleanInputs: Record<string, string> = {};
+                    for (const [id, word] of Object.entries(hostWordInputs)) {
+                      cleanInputs[id] = word.trim();
+                    }
+                    setShowHostWordModal(false);
+                    submitWordsWhoAmI(cleanInputs);
+                  }}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Start Game
+                </button>
+              </div>
             </div>
           </div>
         </div>

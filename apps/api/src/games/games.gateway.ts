@@ -546,4 +546,60 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to move to next round' });
     }
   }
+
+  // --- Who Am I Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS)
+  handleWhoAmISubmitWords(
+    @MessageBody() data: { code: string; playerWords: Record<string, string> },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.whoAmIStartHostInput(data.code, client.id, data.playerWords);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot start Host Input mode' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_SUBMIT_PLAYER_WORD)
+  handleWhoAmISubmitPlayerWord(
+    @MessageBody() data: { code: string; word: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const result = this.gamesService.whoAmISubmitPlayerWord(data.code, client.id, data.word);
+    if (result && result.room) {
+      if (result.error) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: result.error });
+      }
+      this.server.to(result.room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot submit word' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES)
+  async handleWhoAmIGetCategories(
+    @ConnectedSocket() client: Socket,
+  ) {
+    const categories = await this.gamesService.whoAmICategoriesList();
+    client.emit(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.GAME_ACTION)
+  handleWhoAmIGameAction(
+    @MessageBody() data: { code: string; action: any },
+    @ConnectedSocket() client: Socket,
+  ) {
+    // Check gameType first
+    const roomInfo = (this.gamesService as any).rooms.get(data.code);
+    if (roomInfo && roomInfo.gameType === GameType.WHO_AM_I) {
+      const room = this.gamesService.whoAmIGameAction(data.code, client.id, data.action);
+      if (room) {
+        this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      } else {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
+      }
+    }
+  }
 }

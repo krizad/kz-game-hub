@@ -5,3 +5,4 @@ export * from "./rps";
 export * from "./gobbler-tic-tac-toe";
 export * from "./sounds-fishy";
 export * from "./detective-club";
+export * from "./who-am-i";
