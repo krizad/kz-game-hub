@@ -98,7 +98,7 @@ export interface RoomConfig {
   language?: 'en' | 'th';
   // Who Am I config
   maxRounds?: number;
-  wordMode?: 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT';
+  wordMode?: 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT' | 'AI_GENERATED';
   wordCategory?: string;
 }
 

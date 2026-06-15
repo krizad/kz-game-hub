@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GameType, SoundsFishyPhase } from '@repo/types';
 import { useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function SoundsFishyView() {
   const {
@@ -15,6 +16,7 @@ export function SoundsFishyView() {
     soundsFishyEliminatePlayer,
     soundsFishyBankPoints,
     soundsFishyReset,
+    actionLoading,
   } = useGameStore();
   const { t } = useTranslate();
 
@@ -44,7 +46,8 @@ export function SoundsFishyView() {
   });
 
   return (
-    <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6">
+    <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       {/* Header Info */}
       <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-lg w-full gap-4">
         <div className="text-center sm:text-left">
@@ -147,7 +150,7 @@ export function SoundsFishyView() {
               />
               <button
                 onClick={() => soundsFishySubmitAnswer(answerInput)}
-                disabled={!answerInput.trim()}
+                disabled={!answerInput.trim() || actionLoading}
                 className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-4 py-3 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider"
               >
                 {t('gameSoundsFishy.submitAnswer')}
@@ -245,7 +248,8 @@ export function SoundsFishyView() {
                       state.currentPhase === SoundsFishyPhase.THE_HUNT) && (
                       <button
                         onClick={() => soundsFishyRevealAnswer(p.socketId)}
-                        className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+                        disabled={actionLoading}
+                        className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t('gameSoundsFishy.revealAnswer')}
                       </button>
@@ -258,7 +262,8 @@ export function SoundsFishyView() {
                     state.currentPhase === SoundsFishyPhase.THE_HUNT && (
                       <button
                         onClick={() => soundsFishyEliminatePlayer(p.socketId)}
-                        className="mt-4 bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+                        disabled={actionLoading}
+                        className="mt-4 bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t('gameSoundsFishy.eliminateLooksFishy')}
                       </button>
@@ -287,7 +292,8 @@ export function SoundsFishyView() {
                 </p>
                 <button
                   onClick={() => soundsFishyBankPoints()}
-                  className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-black px-8 py-4 rounded-xl text-lg uppercase tracking-widest transition-all shadow-xl active:scale-[0.98]"
+                  disabled={actionLoading}
+                  className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-black px-8 py-4 rounded-xl text-lg uppercase tracking-widest transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('gameSoundsFishy.bankPointsAndEnd')}
                 </button>
@@ -348,7 +354,8 @@ export function SoundsFishyView() {
           {socketId === room.roomHostId && (
             <button
               onClick={() => soundsFishyReset()}
-              className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider text-lg"
+              disabled={actionLoading}
+              className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider text-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('gameSoundsFishy.playNextRound')}
             </button>

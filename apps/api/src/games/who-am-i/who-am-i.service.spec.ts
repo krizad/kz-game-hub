@@ -59,11 +59,7 @@ describe('WhoAmIService', () => {
       const room = {
         status: RoomStatus.LOBBY,
         roomHostId: 'host1',
-        players: [
-          { socketId: 'host1' },
-          { socketId: 'p1' },
-          { socketId: 'p2' },
-        ],
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
         config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
       } as unknown as RoomState;
 
@@ -106,10 +102,7 @@ describe('WhoAmIService', () => {
     it('should return null if fewer than 2 non-host players', () => {
       const room = {
         roomHostId: 'host1',
-        players: [
-          { socketId: 'host1' },
-          { socketId: 'p1' },
-        ],
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
         config: { wordMode: 'HOST_INPUT' },
       } as unknown as RoomState;
 
@@ -119,11 +112,7 @@ describe('WhoAmIService', () => {
     it('should return null if a player word is missing or empty', () => {
       const room = {
         roomHostId: 'host1',
-        players: [
-          { socketId: 'host1' },
-          { socketId: 'p1' },
-          { socketId: 'p2' },
-        ],
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
         config: { wordMode: 'HOST_INPUT' },
       } as unknown as RoomState;
 
@@ -137,11 +126,7 @@ describe('WhoAmIService', () => {
       const room = {
         status: RoomStatus.LOBBY,
         roomHostId: 'host1',
-        players: [
-          { socketId: 'host1' },
-          { socketId: 'p1' },
-          { socketId: 'p2' },
-        ],
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
         config: { wordMode: 'RANDOM', wordCategory: 'Food', maxRounds: 3 },
       } as unknown as RoomState;
 
@@ -208,9 +193,7 @@ describe('WhoAmIService', () => {
         players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
       } as unknown as RoomState;
 
-      (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([
-        { word: 'Pizza', emoji: '🍕' },
-      ]);
+      (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([{ word: 'Pizza', emoji: '🍕' }]);
 
       expect(await service.startGameRandom(room, 'host1')).toBeNull();
     });
@@ -242,11 +225,7 @@ describe('WhoAmIService', () => {
       const room = {
         status: RoomStatus.LOBBY,
         roomHostId: 'host1',
-        players: [
-          { socketId: 'host1' },
-          { socketId: 'p1' },
-          { socketId: 'p2' },
-        ],
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
         config: { wordMode: 'PLAYER_INPUT', wordCategory: 'Animals', maxRounds: 4 },
       } as unknown as RoomState;
 
@@ -308,11 +287,7 @@ describe('WhoAmIService', () => {
     function makeCollectingRoom() {
       return {
         status: RoomStatus.PLAYING,
-        players: [
-          { socketId: 'p1' },
-          { socketId: 'p2' },
-          { socketId: 'p3' },
-        ],
+        players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
         whoAmIState: {
           currentTurn: '',
           playerWords: {},
@@ -503,24 +478,30 @@ describe('WhoAmIService', () => {
 
       it('should return null if not current player', () => {
         const room = makeAskingRoom();
-        expect(service.handleGameAction(room, 'p2', {
-          type: 'SUBMIT_GUESS',
-          guess: 'Question',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p2', {
+            type: 'SUBMIT_GUESS',
+            guess: 'Question',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if not THINKING status', () => {
         const room = makeAskingRoom({ turnStatus: 'VOTING' });
-        expect(service.handleGameAction(room, 'p1', {
-          type: 'SUBMIT_GUESS',
-          guess: 'Question',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', {
+            type: 'SUBMIT_GUESS',
+            guess: 'Question',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if guess is not a string', () => {
         const room = makeAskingRoom();
         expect(service.handleGameAction(room, 'p1', { type: 'SUBMIT_GUESS' })).toBeNull();
-        expect(service.handleGameAction(room, 'p1', { type: 'SUBMIT_GUESS', guess: 123 })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', { type: 'SUBMIT_GUESS', guess: 123 }),
+        ).toBeNull();
       });
     });
 
@@ -558,34 +539,42 @@ describe('WhoAmIService', () => {
 
       it('should return null if the voter is the current turn player', () => {
         const room = makeAskingRoom({ turnStatus: 'VOTING' });
-        expect(service.handleGameAction(room, 'p1', {
-          type: 'VOTE_GUESS',
-          vote: 'YES',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', {
+            type: 'VOTE_GUESS',
+            vote: 'YES',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if turnStatus is THINKING', () => {
         const room = makeAskingRoom({ turnStatus: 'THINKING' });
-        expect(service.handleGameAction(room, 'p2', {
-          type: 'VOTE_GUESS',
-          vote: 'YES',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p2', {
+            type: 'VOTE_GUESS',
+            vote: 'YES',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if player is not in room', () => {
         const room = makeAskingRoom({ turnStatus: 'VOTING' });
-        expect(service.handleGameAction(room, 'p5', {
-          type: 'VOTE_GUESS',
-          vote: 'YES',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p5', {
+            type: 'VOTE_GUESS',
+            vote: 'YES',
+          }),
+        ).toBeNull();
       });
 
       it('should return null for invalid vote value', () => {
         const room = makeAskingRoom({ turnStatus: 'VOTING' });
-        expect(service.handleGameAction(room, 'p2', {
-          type: 'VOTE_GUESS',
-          vote: 'INVALID',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p2', {
+            type: 'VOTE_GUESS',
+            vote: 'INVALID',
+          }),
+        ).toBeNull();
       });
 
       it('should allow voting in RESULT status', () => {
@@ -669,30 +658,38 @@ describe('WhoAmIService', () => {
 
       it('should return null if not current player', () => {
         const room = makeAskingRoom({ turnStatus: 'VOTING' });
-        expect(service.handleGameAction(room, 'p2', {
-          type: 'GUESS_WORD',
-          guess: 'Apple',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p2', {
+            type: 'GUESS_WORD',
+            guess: 'Apple',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if not VOTING status', () => {
         const room = makeAskingRoom({ turnStatus: 'THINKING' });
-        expect(service.handleGameAction(room, 'p1', {
-          type: 'GUESS_WORD',
-          guess: 'Apple',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', {
+            type: 'GUESS_WORD',
+            guess: 'Apple',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if guess is empty', () => {
         const room = makeAskingRoom({ turnStatus: 'VOTING' });
-        expect(service.handleGameAction(room, 'p1', {
-          type: 'GUESS_WORD',
-          guess: '',
-        })).toBeNull();
-        expect(service.handleGameAction(room, 'p1', {
-          type: 'GUESS_WORD',
-          guess: '  ',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', {
+            type: 'GUESS_WORD',
+            guess: '',
+          }),
+        ).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', {
+            type: 'GUESS_WORD',
+            guess: '  ',
+          }),
+        ).toBeNull();
       });
 
       it('should return null if player is eliminated', () => {
@@ -700,10 +697,12 @@ describe('WhoAmIService', () => {
           turnStatus: 'VOTING',
           eliminatedPlayers: ['p1'],
         });
-        expect(service.handleGameAction(room, 'p1', {
-          type: 'GUESS_WORD',
-          guess: 'Apple',
-        })).toBeNull();
+        expect(
+          service.handleGameAction(room, 'p1', {
+            type: 'GUESS_WORD',
+            guess: 'Apple',
+          }),
+        ).toBeNull();
       });
     });
 

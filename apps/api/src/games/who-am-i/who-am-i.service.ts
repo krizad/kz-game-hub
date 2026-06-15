@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RoomState, RoomStatus, WhoAmIGameState, WordCategory } from '@repo/types';
 import { prisma } from '@repo/database';
+import { GoogleGenAI } from '@google/genai';
 
 @Injectable()
 export class WhoAmIService {
@@ -48,7 +49,7 @@ export class WhoAmIService {
       playerWords,
       currentGuess: null,
       votes: {},
-      turnStatus: 'THINKING',
+      turnStatus: 'VOTING',
       winner: null,
       currentRound: 1,
       maxRounds: room.config.maxRounds || 3,
@@ -59,6 +60,172 @@ export class WhoAmIService {
 
     room.whoAmIState = gameState;
     return room;
+  }
+
+  // ─── Start Game (AI_GENERATED mode) ───────────────────────────────
+  async startGameAiGenerated(room: RoomState, requesterId: string): Promise<RoomState | null> {
+    if (room.roomHostId !== requesterId) return null;
+    if (room.config.wordMode !== 'AI_GENERATED') return null;
+    if (room.players.length < 2) return null;
+
+    const lang = room.config.language || 'th';
+    const isThai = lang === 'th';
+    const langLabel = isThai ? 'Thai' : 'English';
+    const example = isThai
+      ? '["หมูปิ้ง", "ช้าง", "นายกรัฐมนตรี"]'
+      : '["Elephant", "Harry Potter", "Pizza"]';
+
+    const promptCategory = room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `You are an expert game master generating words for the game "Who Am I".
+Target Language: ${langLabel}
+Category: "${promptCategory}"
+Count: ${room.players.length} words
+
+RULES:
+1. Output MUST be strictly NOUNS (animals, objects, places, famous people) or VERBS (actions).
+2. NEVER output a full sentence, explanation, or long phrase. Keep each item to 1-3 words MAXIMUM.
+3. The words should be recognizable by an average person, but creative and fun to guess.
+4. Provide the output as a valid JSON array of strings.
+
+GOOD EXAMPLES: ${example}
+BAD EXAMPLES: ["A big animal with a trunk", "Running in the park", "The man who invented electricity"]
+
+Output ONLY a JSON array containing exactly ${room.players.length} strings. No markdown formatting.`;
+
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
+      } catch (err) {
+        console.log('gemini-2.5-flash failed, falling back to gemini-1.5-flash...');
+        response = await ai.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
+      }
+
+      const responseText = response.text;
+      let words: string[] = [];
+      try {
+        // Strip markdown if AI somehow includes it despite instructions
+        const cleanText = responseText
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim();
+        words = JSON.parse(cleanText);
+      } catch (e) {
+        console.error('Failed to parse AI response', responseText);
+        return null;
+      }
+
+      if (!Array.isArray(words) || words.length < room.players.length) {
+        return null; // Fallback or handle error
+      }
+
+      // Asynchronously insert generated words into DB
+      Promise.resolve().then(async () => {
+        try {
+          const existingWords = await prisma.word.findMany({
+            where: {
+              category: promptCategory,
+              lang: lang,
+              word: { in: words },
+            },
+            select: { word: true },
+          });
+          const existingSet = new Set(existingWords.map((w) => w.word.toLowerCase()));
+          const newWords = words.filter((w) => !existingSet.has(w.toLowerCase()));
+
+          if (newWords.length > 0) {
+            await prisma.word.createMany({
+              data: newWords.map((w) => ({
+                word: w,
+                category: promptCategory,
+                lang: lang,
+              })),
+            });
+          }
+        } catch (dbError) {
+          console.error('Failed to save AI words to DB:', dbError);
+        }
+      });
+
+      room.status = RoomStatus.PLAYING;
+
+      const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
+      const playerWords: Record<string, string> = {};
+      shuffledPlayers.forEach((p, idx) => {
+        playerWords[p.socketId] = words[idx];
+      });
+
+      const gameState: WhoAmIGameState = {
+        currentTurn: shuffledPlayers[0].socketId,
+        playerWords,
+        currentGuess: null,
+        votes: {},
+        turnStatus: 'VOTING',
+        winner: null,
+        currentRound: 1,
+        maxRounds: room.config.maxRounds || 3,
+        eliminatedPlayers: [],
+        phase: 'ASKING',
+        finalGuessUsed: [],
+      };
+
+      room.whoAmIState = gameState;
+      return room;
+    } catch (error) {
+      console.error('Error calling Gemini API:', error);
+      console.log('Falling back to database for words...');
+      
+      const lang = room.config.language || 'en';
+      const category = room.config.wordCategory || (lang === 'th' ? 'สิ่งของรอบตัว' : 'Random things');
+      
+      const dbWords = await prisma.$queryRawUnsafe<{ word: string; emoji: string | null }[]>(
+        `SELECT word, emoji FROM "Word" WHERE category = $1 AND lang = $2 ORDER BY RANDOM() LIMIT $3`,
+        category,
+        lang,
+        room.players.length,
+      );
+
+      if (dbWords.length < room.players.length) return null; // not enough words in DB
+
+      room.status = RoomStatus.PLAYING;
+      const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
+      const playerWords: Record<string, string> = {};
+      shuffledPlayers.forEach((p, idx) => {
+        const w = dbWords[idx];
+        playerWords[p.socketId] = w.emoji ? `${w.emoji} ${w.word}` : w.word;
+      });
+
+      const gameState: WhoAmIGameState = {
+        currentTurn: shuffledPlayers[0].socketId,
+        playerWords,
+        currentGuess: null,
+        votes: {},
+        turnStatus: 'VOTING',
+        winner: null,
+        currentRound: 1,
+        maxRounds: room.config.maxRounds || 3,
+        eliminatedPlayers: [],
+        phase: 'ASKING',
+        finalGuessUsed: [],
+      };
+
+      room.whoAmIState = gameState;
+      return room;
+    }
   }
 
   // ─── Start Game (RANDOM mode) ─────────────────────────────────────
@@ -95,7 +262,7 @@ export class WhoAmIService {
       playerWords,
       currentGuess: null,
       votes: {},
-      turnStatus: 'THINKING',
+      turnStatus: 'VOTING',
       winner: null,
       currentRound: 1,
       maxRounds: room.config.maxRounds || 3,
@@ -281,6 +448,10 @@ export class WhoAmIService {
     requesterId: string,
     action: Record<string, unknown>,
   ): RoomState | null {
+    if (action.type === 'END_MATCH') {
+      return this.resetGame(room, requesterId);
+    }
+
     if (room.status !== RoomStatus.PLAYING) return null;
 
     const gameState = room.whoAmIState;
@@ -289,18 +460,13 @@ export class WhoAmIService {
     // Don't allow game actions during word collection
     if (gameState.phase === 'COLLECTING_WORDS') return null;
 
-    if (action.type === 'SUBMIT_GUESS' && typeof action.guess === 'string') {
-      if (gameState.currentTurn !== requesterId) return null;
-      if (gameState.turnStatus !== 'THINKING') return null;
 
-      gameState.currentGuess = action.guess;
-      gameState.turnStatus = 'VOTING';
-      gameState.votes = {};
 
-      return room;
-    }
-
-    if (action.type === 'VOTE_GUESS' && typeof action.vote === 'string' && ['YES', 'NO', 'MAYBE'].includes(action.vote)) {
+    if (
+      action.type === 'VOTE_GUESS' &&
+      typeof action.vote === 'string' &&
+      ['YES', 'NO', 'MAYBE'].includes(action.vote)
+    ) {
       if (gameState.currentTurn === requesterId) return null;
       if (gameState.turnStatus !== 'VOTING' && gameState.turnStatus !== 'RESULT') return null;
       if (!room.players.find((p) => p.socketId === requesterId)) return null;
@@ -342,7 +508,7 @@ export class WhoAmIService {
 
       gameState.currentTurn = players[nextIndex].socketId;
       gameState.currentGuess = null;
-      gameState.turnStatus = 'THINKING';
+      gameState.turnStatus = 'VOTING';
       gameState.votes = {};
 
       return room;
@@ -360,10 +526,6 @@ export class WhoAmIService {
       gameState.votes = {};
 
       return room;
-    }
-
-    if (action.type === 'END_MATCH') {
-      return this.resetGame(room, requesterId);
     }
 
     if (action.type === 'NEXT_TURN') {
@@ -435,7 +597,7 @@ export class WhoAmIService {
 
           gameState.currentTurn = nextPlayer;
           gameState.currentGuess = null;
-          gameState.turnStatus = 'THINKING';
+          gameState.turnStatus = 'VOTING';
           gameState.votes = {};
           gameState.guessResult = undefined;
           gameState.guessedWord = undefined;

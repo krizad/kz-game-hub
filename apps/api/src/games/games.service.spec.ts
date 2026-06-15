@@ -342,7 +342,12 @@ describe('GamesService', () => {
       (service as any).rooms.set(room.code, room);
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
       room.players.push({
-        id: 'p1', name: 'Player1', socketId: 'p1', score: 0, roomId: room.id, connected: false,
+        id: 'p1',
+        name: 'Player1',
+        socketId: 'p1',
+        score: 0,
+        roomId: room.id,
+        connected: false,
       });
       (service as any).rooms.set(room.code, room);
 

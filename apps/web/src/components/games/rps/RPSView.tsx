@@ -2,9 +2,10 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function RPSView() {
-  const { room, socketId, rpsMakeChoice, rpsNextRound } = useGameStore();
+  const { room, socketId, rpsMakeChoice, rpsNextRound, actionLoading } = useGameStore();
 
   if (!room || !room.rpsState) return null;
   const rps = room.rpsState;
@@ -63,7 +64,8 @@ export function RPSView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-white border border-amber-200 rounded-3xl p-6 shadow-2xl relative">
         {/* Header */}
         <div className="flex justify-between w-full items-center px-2 sm:px-4 mb-4">
@@ -119,8 +121,9 @@ export function RPSView() {
                 {(['ROCK', 'PAPER', 'SCISSORS'] as const).map((choice) => (
                   <button
                     key={choice}
+                    disabled={actionLoading}
                     onClick={() => rpsMakeChoice(choice)}
-                    className="w-20 h-20 sm:w-28 sm:h-28 bg-amber-100 hover:bg-amber-200 rounded-2xl flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:scale-95 border-2 border-amber-300 hover:border-amber-500 shadow-xl"
+                    className="w-20 h-20 sm:w-28 sm:h-28 bg-amber-100 hover:bg-amber-200 rounded-2xl flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:scale-95 border-2 border-amber-300 hover:border-amber-500 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {getEmoji(choice)}
                   </button>
@@ -162,7 +165,8 @@ export function RPSView() {
             {(room.roomHostId === socketId || isMyTurn) && (
               <button
                 onClick={rpsNextRound}
-                className={`font-bold px-10 py-4 rounded-xl mt-2 transition-all shadow-lg active:scale-95 text-lg uppercase tracking-wider ${rps.gameWinner ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-800'}`}
+                disabled={actionLoading}
+                className={`font-bold px-10 py-4 rounded-xl mt-2 transition-all shadow-lg active:scale-95 text-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ${rps.gameWinner ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-800'}`}
               >
                 {rps.gameWinner ? 'Play Again' : 'Next Round'}
               </button>

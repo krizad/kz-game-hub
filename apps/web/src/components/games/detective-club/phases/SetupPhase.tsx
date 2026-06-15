@@ -1,8 +1,9 @@
 import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function SetupPhase() {
-  const { room, socketId, detectiveClubSubmitWord } = useGameStore();
+  const { room, socketId, detectiveClubSubmitWord, actionLoading } = useGameStore();
   const [wordInput, setWordInput] = useState('');
 
   if (!room?.detectiveClubState) return null;
@@ -12,7 +13,8 @@ export function SetupPhase() {
   const isInformer = myPlayer?.role === 'INFORMER';
 
   return (
-    <div className="flex-1 flex flex-col space-y-6">
+    <div className="flex-1 flex flex-col space-y-6 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">Setup Phase</h2>
         <p className="text-slate-600">
@@ -66,7 +68,7 @@ export function SetupPhase() {
           />
           <button
             onClick={() => detectiveClubSubmitWord(wordInput)}
-            disabled={!wordInput.trim()}
+            disabled={!wordInput.trim() || actionLoading}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-4 py-3 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider"
           >
             ยืนยันคำศัพท์

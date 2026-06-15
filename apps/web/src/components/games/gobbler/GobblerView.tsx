@@ -5,6 +5,7 @@ import { RoomStatus, GobblerSize, GobblerPiece, PlayerSide } from '@repo/types';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAvatarEmoji } from '@/components/core/utils';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import clsx from 'clsx';
 
 const SIZE_STYLES: Record<GobblerSize, { board: string; inventory: string }> = {
@@ -33,7 +34,7 @@ const COLOR_STYLES: Record<PlayerSide, { base: string; glow: string; text: strin
 };
 
 export function GobblerView() {
-  const { room, socketId, gobblerJoinSide, gobblerPlacePiece, gobblerMovePiece, gobblerReset } =
+  const { room, socketId, gobblerJoinSide, gobblerPlacePiece, gobblerMovePiece, gobblerReset, actionLoading } =
     useGameStore();
   const gb = room?.gobblerState;
 
@@ -46,7 +47,7 @@ export function GobblerView() {
   const isMyTurn = mySide === gb.currentTurn && room.status === RoomStatus.PLAYING;
 
   const handleCellClick = (index: number) => {
-    if (!isMyTurn) return;
+    if (!isMyTurn || actionLoading) return;
 
     if (selectedInventoryPieceId) {
       gobblerPlacePiece(selectedInventoryPieceId, index);
@@ -70,7 +71,7 @@ export function GobblerView() {
   };
 
   const handleInventoryClick = (pieceId: string) => {
-    if (!isMyTurn) return;
+    if (!isMyTurn || actionLoading) return;
     setSelectedBoardIndex(null); // Clear board selection
     if (selectedInventoryPieceId === pieceId) {
       setSelectedInventoryPieceId(null);
@@ -213,9 +214,9 @@ export function GobblerView() {
           )}
         </div>
         <div className="flex gap-4 sm:gap-6 justify-center">
-          {renderStack(smalls, 'SMALL')}
-          {renderStack(mediums, 'MEDIUM')}
-          {renderStack(larges, 'LARGE')}
+          {renderStack(smalls)}
+          {renderStack(mediums)}
+          {renderStack(larges)}
         </div>
       </div>
     );
@@ -282,7 +283,8 @@ export function GobblerView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+    <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full relative">
+      {actionLoading && <ActionLoadingOverlay />}
       {room.status === RoomStatus.LOBBY && (
         <div className="bg-white/60 backdrop-blur-xl border border-amber-300/50 rounded-[2.5rem] p-6 sm:p-10 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500">
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-100 rounded-3xl mx-auto mb-6 flex items-center justify-center text-3xl sm:text-4xl shadow-inner border border-amber-300/50 rotate-3">
@@ -298,6 +300,7 @@ export function GobblerView() {
           <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <button
               onClick={() => gobblerJoinSide('X')}
+              disabled={actionLoading || (!!gb.playerXId && gb.playerXId !== socketId)}
               className={clsx(
                 'p-6 sm:p-8 rounded-[2rem] border-[3px] transition-all flex flex-col items-center gap-4 group relative overflow-hidden',
                 gb.playerXId === socketId
@@ -306,7 +309,6 @@ export function GobblerView() {
                     ? 'border-amber-200 bg-white/50 opacity-50 cursor-not-allowed'
                     : 'border-amber-300 bg-amber-100/50 hover:border-cyan-400/50 hover:bg-amber-100 hover:shadow-xl hover:-translate-y-1',
               )}
-              disabled={!!gb.playerXId && gb.playerXId !== socketId}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="text-5xl sm:text-6xl font-black text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] group-hover:scale-110 transition-transform duration-300">
@@ -319,6 +321,7 @@ export function GobblerView() {
 
             <button
               onClick={() => gobblerJoinSide('O')}
+              disabled={actionLoading || (!!gb.playerOId && gb.playerOId !== socketId)}
               className={clsx(
                 'p-6 sm:p-8 rounded-[2rem] border-[3px] transition-all flex flex-col items-center gap-4 group relative overflow-hidden',
                 gb.playerOId === socketId
@@ -327,7 +330,6 @@ export function GobblerView() {
                     ? 'border-amber-200 bg-white/50 opacity-50 cursor-not-allowed'
                     : 'border-amber-300 bg-amber-100/50 hover:border-pink-500/50 hover:bg-amber-100 hover:shadow-xl hover:-translate-y-1',
               )}
-              disabled={!!gb.playerOId && gb.playerOId !== socketId}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-pink-500/0 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="text-5xl sm:text-6xl font-black text-pink-400 drop-shadow-[0_0_15px_rgba(236,72,153,0.4)] group-hover:scale-110 transition-transform duration-300">
@@ -476,7 +478,8 @@ export function GobblerView() {
                     {(room.roomHostId === socketId || mySide) && (
                       <button
                         onClick={gobblerReset}
-                        className="bg-white/10 hover:bg-white/20 border border-white/20 text-slate-800 font-black px-6 sm:px-10 py-3 sm:py-4 rounded-2xl transition-all shadow-xl hover:shadow-white/10 active:scale-95 uppercase tracking-widest text-sm sm:text-lg backdrop-blur-md overflow-hidden relative group"
+                        disabled={actionLoading}
+                        className="bg-white/10 hover:bg-white/20 border border-white/20 text-slate-800 font-black px-6 sm:px-10 py-3 sm:py-4 rounded-2xl transition-all shadow-xl hover:shadow-white/10 active:scale-95 uppercase tracking-widest text-sm sm:text-lg backdrop-blur-md overflow-hidden relative group disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                         Play Again

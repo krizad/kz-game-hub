@@ -2,9 +2,10 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function TicTacToeView() {
-  const { room, socketId, tttJoinSide, tttMakeMove, tttReset } = useGameStore();
+  const { room, socketId, tttJoinSide, tttMakeMove, tttReset, actionLoading } = useGameStore();
 
   if (!room || !room.ticTacToeState) return null;
   const ttt = room.ticTacToeState;
@@ -15,7 +16,8 @@ export function TicTacToeView() {
   const isMyTurn = mySide === ttt.currentTurn;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       {room.status === RoomStatus.LOBBY ? (
         <div className="flex flex-col items-center gap-6">
           <h2 className="text-2xl font-black text-indigo-400 uppercase tracking-widest">
@@ -33,7 +35,8 @@ export function TicTacToeView() {
               ) : (
                 <button
                   onClick={() => tttJoinSide('X')}
-                  className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold"
+                  disabled={actionLoading}
+                  className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Join as X
                 </button>
@@ -51,7 +54,8 @@ export function TicTacToeView() {
               ) : (
                 <button
                   onClick={() => tttJoinSide('O')}
-                  className="bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-lg font-bold"
+                  disabled={actionLoading}
+                  className="bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Join as O
                 </button>
@@ -99,11 +103,11 @@ export function TicTacToeView() {
               return (
                 <button
                   key={index}
-                  disabled={room.status !== RoomStatus.PLAYING || !isMyTurn || cell !== null}
+                  disabled={room.status !== RoomStatus.PLAYING || !isMyTurn || cell !== null || actionLoading}
                   onClick={() => tttMakeMove(index)}
                   className={`
                     w-20 h-20 sm:w-24 sm:h-24 bg-amber-50 rounded-xl flex items-center justify-center text-5xl font-black transition-all
-                    ${cell === null && isMyTurn && room.status === RoomStatus.PLAYING ? 'hover:bg-white cursor-pointer active:scale-95' : 'cursor-default'}
+                    ${cell === null && isMyTurn && room.status === RoomStatus.PLAYING && !actionLoading ? 'hover:bg-white cursor-pointer active:scale-95' : 'cursor-default'}
                     ${cell === 'X' ? 'text-blue-400' : cell === 'O' ? 'text-rose-400' : ''}
                     ${isWinningCell ? (cell === 'X' ? 'bg-blue-950/40 shadow-[inset_0_0_20px_rgba(96,165,250,0.2)]' : 'bg-rose-950/40 shadow-[inset_0_0_20px_rgba(244,63,94,0.2)]') : ''}
                   `}
@@ -131,7 +135,8 @@ export function TicTacToeView() {
               {(room.roomHostId === socketId || mySide) && (
                 <button
                   onClick={tttReset}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-xl mt-2 transition-all shadow-lg active:scale-95"
+                  disabled={actionLoading}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-xl mt-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Play Again
                 </button>

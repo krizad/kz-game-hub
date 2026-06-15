@@ -37,6 +37,7 @@ function GameLobby() {
     categories,
     getCategoriesWhoAmI,
     submitWordsWhoAmI,
+    isLoading,
   } = useGameStore();
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room');
@@ -834,7 +835,9 @@ function GameLobby() {
                                   const mode = e.target.value as any;
                                   useGameStore.getState().updateConfig({ wordMode: mode });
                                   if (mode === 'RANDOM') {
-                                    useGameStore.getState().updateConfig({ wordMode: mode, language });
+                                    useGameStore
+                                      .getState()
+                                      .updateConfig({ wordMode: mode, language });
                                     getCategoriesWhoAmI(language);
                                   } else {
                                     useGameStore.getState().updateConfig({ wordMode: mode });
@@ -845,6 +848,7 @@ function GameLobby() {
                                 <option value="HOST_INPUT">📝 Host Picks</option>
                                 <option value="RANDOM">🎲 Random (DB)</option>
                                 <option value="PLAYER_INPUT">✍️ Players Write</option>
+                                <option value="AI_GENERATED">🤖 AI Generate</option>
                               </select>
                             ) : (
                               <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
@@ -852,7 +856,9 @@ function GameLobby() {
                                   ? '📝 Host Picks'
                                   : room.config.wordMode === 'RANDOM'
                                     ? '🎲 Random (DB)'
-                                    : '✍️ Players Write'}
+                                    : room.config.wordMode === 'AI_GENERATED'
+                                      ? '🤖 AI Generate'
+                                      : '✍️ Players Write'}
                               </div>
                             )}
                           </div>
@@ -924,6 +930,34 @@ function GameLobby() {
                               )}
                             </div>
                           )}
+
+                          {room.config.wordMode === 'AI_GENERATED' && (
+                            <div>
+                              <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">
+                                AI Prompt / Topic
+                              </label>
+                              {useGameStore.getState().socketId === room.roomHostId ? (
+                                <input
+                                  id="aiPromptInput"
+                                  name="aiPrompt"
+                                  autoComplete="off"
+                                  type="text"
+                                  value={room.config.wordCategory || ''}
+                                  onChange={(e) =>
+                                    useGameStore
+                                      .getState()
+                                      .updateConfig({ wordCategory: e.target.value })
+                                  }
+                                  placeholder="e.g. ผีไทย, อาหารแปลกๆ..."
+                                  className="w-full bg-white border border-indigo-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              ) : (
+                                <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-200">
+                                  {room.config.wordCategory || 'Random Topic'}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
@@ -949,6 +983,7 @@ function GameLobby() {
                         }
                       }}
                       disabled={
+                        isLoading ||
                         room.players.length <
                           (room.gameType === GameType.WHO_KNOW
                             ? 4
@@ -987,7 +1022,9 @@ function GameLobby() {
                                       ? 2
                                       : 2,
                           })
-                        : t('lobby.startGame')}
+                        : isLoading 
+                          ? t('lobby.startingGame') 
+                          : t('lobby.startGame')}
                     </button>
                   ) : (
                     <div className="w-full max-w-xs bg-amber-100/50 text-slate-600 border border-amber-200 font-bold text-sm py-4 rounded-xl text-center uppercase tracking-widest">

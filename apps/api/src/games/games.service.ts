@@ -381,6 +381,8 @@ export class GamesService {
         updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
       } else if (room.config.wordMode === 'RANDOM') {
         updatedRoom = await this.whoAmIService.startGameRandom(room, requesterId);
+      } else if (room.config.wordMode === 'AI_GENERATED') {
+        updatedRoom = await this.whoAmIService.startGameAiGenerated(room, requesterId);
       } else if (room.config.wordMode === 'PLAYER_INPUT') {
         updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
       }

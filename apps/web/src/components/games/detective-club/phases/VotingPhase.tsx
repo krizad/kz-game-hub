@@ -2,9 +2,10 @@ import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
 import { CardViewerModal } from '../CardViewerModal';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function VotingPhase() {
-  const { room, socketId, detectiveClubVote } = useGameStore();
+  const { room, socketId, detectiveClubVote, actionLoading } = useGameStore();
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
 
@@ -33,7 +34,8 @@ export function VotingPhase() {
   }
 
   return (
-    <div className="flex-1 flex flex-col space-y-6">
+    <div className="flex-1 flex flex-col space-y-6 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <h2 className="text-2xl sm:text-3xl font-black text-rose-400 mb-2">
           Who is the Conspirator?
@@ -112,7 +114,7 @@ export function VotingPhase() {
           <div className="pt-6 mt-auto">
             <button
               onClick={() => selectedPlayer && detectiveClubVote(selectedPlayer)}
-              disabled={!selectedPlayer}
+              disabled={!selectedPlayer || actionLoading}
               className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-6 py-4 rounded-xl transition-all shadow-lg shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-xl"
             >
               Confirm Vote

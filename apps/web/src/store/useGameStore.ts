@@ -21,6 +21,8 @@ interface GameState {
   secretWord: string | null;
   availableRooms: AvailableRoom[];
   categories: WordCategory[];
+  isLoading: boolean;
+  actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
   createRoom: (gameType?: GameType) => void;
@@ -72,6 +74,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   secretWord: null,
   availableRooms: [],
   categories: [],
+  isLoading: false,
+  actionLoading: false,
 
   setName: (name) => set({ myName: name }),
 
@@ -109,9 +113,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!isMe) return;
 
       if (room.status === RoomStatus.LOBBY) {
-        set({ room, myRole: null, secretWord: null });
+        set({ room, myRole: null, secretWord: null, isLoading: false, actionLoading: false });
       } else {
-        set({ room });
+        set({ room, isLoading: false, actionLoading: false });
       }
 
       // Save session
@@ -146,6 +150,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         localStorage.removeItem('who-know-roomCode');
         set({ room: null });
       }
+      set({ isLoading: false, actionLoading: false });
       toast.error(message);
     });
   },
@@ -169,44 +174,49 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   startGame: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ isLoading: true, actionLoading: true });
       socket.emit(SOCKET_EVENTS.START_GAME, { code: room.code });
     }
   },
 
   setWord: (word: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SET_WORD, { code: room.code, word });
     }
   },
 
   endQuestioning: (timeout: boolean = false) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.END_QUESTIONING, { code: room.code, timeout });
     }
   },
 
   stopTimer: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.STOP_TIMER, { code: room.code });
     }
   },
 
   submitVote: (targetId: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SUBMIT_VOTE, { code: room.code, targetId });
     }
   },
 
   resetRoom: () => {
-    const { socket, room } = get();
-    if (socket && room) {
-      set({ myRole: null, secretWord: null });
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ myRole: null, secretWord: null, actionLoading: true });
       socket.emit(SOCKET_EVENTS.RESET_GAME, { code: room.code });
     }
   },
@@ -221,78 +231,89 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   updateConfig: (config: Partial<RoomState['config']>) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.UPDATE_CONFIG, { code: room.code, config });
     }
   },
 
   tttJoinSide: (side: 'X' | 'O') => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.TTT_JOIN_SIDE, { code: room.code, side });
     }
   },
 
   tttMakeMove: (index: number) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: room.code, index });
     }
   },
 
   tttReset: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.TTT_RESET, { code: room.code });
     }
   },
 
   rpsNextRound: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.RPS_NEXT_ROUND, { code: room.code });
     }
   },
 
   rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.RPS_MAKE_CHOICE, { code: room.code, choice });
     }
   },
 
   rpsReset: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.RPS_RESET, { code: room.code });
     }
   },
 
   gobblerJoinSide: (side: 'X' | 'O') => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GOBBLER_JOIN_SIDE, { code: room.code, side });
     }
   },
 
   gobblerPlacePiece: (pieceId: string, toIndex: number) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GOBBLER_PLACE, { code: room.code, pieceId, toIndex });
     }
   },
 
   gobblerMovePiece: (fromIndex: number, toIndex: number) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GOBBLER_MOVE, { code: room.code, fromIndex, toIndex });
     }
   },
 
   gobblerReset: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GOBBLER_RESET, { code: room.code });
     }
   },
@@ -305,99 +326,113 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   soundsFishySubmitAnswer: (answer: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_SUBMIT_ANSWER, { code: room.code, answer });
     }
   },
 
   soundsFishyRevealAnswer: (targetId: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_REVEAL_ANSWER, { code: room.code, targetId });
     }
   },
 
   soundsFishyEliminatePlayer: (targetId: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_ELIMINATE_PLAYER, { code: room.code, targetId });
     }
   },
 
   soundsFishyBankPoints: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_BANK_POINTS, { code: room.code });
     }
   },
 
   soundsFishyNextRound: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_NEXT_ROUND, { code: room.code });
     }
   },
 
   soundsFishyReset: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_RESET, { code: room.code });
     }
   },
 
   detectiveClubSubmitWord: (word: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_SUBMIT_WORD, { code: room.code, word });
     }
   },
 
   detectiveClubPlayCard: (cardIndex: number) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_PLAY_CARD, { code: room.code, cardIndex });
     }
   },
 
   detectiveClubNextPhase: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_PHASE, { code: room.code });
     }
   },
 
   detectiveClubVote: (targetId: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_VOTE, { code: room.code, targetId });
     }
   },
 
   detectiveClubNextRound: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_ROUND, { code: room.code });
     }
   },
 
   detectiveClubReset: () => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_RESET, { code: room.code });
     }
   },
 
   submitWordsWhoAmI: (playerWords: Record<string, string>) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS, { code: room.code, playerWords });
     }
   },
 
   submitPlayerWordWhoAmI: (word: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.WHO_AM_I_SUBMIT_PLAYER_WORD, { code: room.code, word });
     }
   },
@@ -410,8 +445,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   gameActionWhoAmI: (action: any) => {
-    const { socket, room } = get();
-    if (socket && room) {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
     }
   },

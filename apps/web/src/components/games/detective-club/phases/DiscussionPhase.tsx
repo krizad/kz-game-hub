@@ -2,9 +2,10 @@ import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
 import { CardViewerModal } from '../CardViewerModal';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function DiscussionPhase() {
-  const { room, socketId, detectiveClubNextPhase } = useGameStore();
+  const { room, socketId, detectiveClubNextPhase, actionLoading } = useGameStore();
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
 
   if (!room || !room.detectiveClubState) return null;
@@ -13,7 +14,8 @@ export function DiscussionPhase() {
   const isHost = socketId === room.roomHostId;
 
   return (
-    <div className="flex-1 flex flex-col space-y-6">
+    <div className="flex-1 flex flex-col space-y-6 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">Discussion Phase</h2>
         <p className="text-slate-600">
@@ -73,7 +75,8 @@ export function DiscussionPhase() {
         <div className="flex justify-center mt-6">
           <button
             onClick={() => detectiveClubNextPhase()}
-            className="w-full max-w-md bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider text-lg"
+            disabled={actionLoading}
+            className="w-full max-w-md bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Start Voting
           </button>

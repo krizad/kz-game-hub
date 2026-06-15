@@ -3,14 +3,16 @@
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, Role, GameType } from '@repo/types';
 import { CountdownTimer } from '@/components/core/CountdownTimer';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function WhoKnowView() {
-  const { room, socketId, myRole } = useGameStore();
+  const { room, socketId, myRole, actionLoading } = useGameStore();
 
   if (!room || room.gameType !== GameType.WHO_KNOW) return null;
 
   return (
-    <>
+    <div className="relative flex-1 flex flex-col min-h-0">
+      {actionLoading && <ActionLoadingOverlay />}
       {room.status === RoomStatus.WORD_SETTING && (
         <div className="flex-1 flex flex-col items-center justify-center py-6 gap-4 min-h-[150px]">
           {myRole === 'Host' ? (
@@ -53,13 +55,15 @@ export function WhoKnowView() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => useGameStore.getState().endQuestioning(false)}
-                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg shadow-teal-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-teal-500/30"
+                  disabled={actionLoading}
+                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg shadow-teal-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Word Guessed (Vote)
                 </button>
                 <button
                   onClick={() => useGameStore.getState().endQuestioning(true)}
-                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-rose-500/30"
+                  disabled={actionLoading}
+                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Time's Up (Fail)
                 </button>
@@ -67,7 +71,8 @@ export function WhoKnowView() {
               {room.endTime && (
                 <button
                   onClick={() => useGameStore.getState().stopTimer()}
-                  className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-all shadow-md active:scale-[0.98] uppercase tracking-wider text-sm border border-amber-300"
+                  disabled={actionLoading}
+                  className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-all shadow-md active:scale-[0.98] uppercase tracking-wider text-sm border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Stop Timer
                 </button>
@@ -108,7 +113,8 @@ export function WhoKnowView() {
                   <button
                     key={p.id}
                     onClick={() => useGameStore.getState().submitVote(p.socketId)}
-                    className={`px-4 py-4 rounded-xl font-bold transition-all shadow-md active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border ${hasVotedTarget ? 'bg-orange-600 text-white border-orange-500 shadow-orange-900/50' : 'bg-amber-100 hover:bg-amber-200 text-slate-700 border-amber-300 hover:text-slate-800'}`}
+                    disabled={actionLoading}
+                    className={`px-4 py-4 rounded-xl font-bold transition-all shadow-md active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border disabled:opacity-50 disabled:cursor-not-allowed ${hasVotedTarget ? 'bg-orange-600 text-white border-orange-500 shadow-orange-900/50' : 'bg-amber-100 hover:bg-amber-200 text-slate-700 border-amber-300 hover:text-slate-800'}`}
                   >
                     {p.name}
                   </button>
@@ -241,7 +247,8 @@ export function WhoKnowView() {
             <div className="w-full flex-none max-w-sm mt-4">
               <button
                 onClick={() => useGameStore.getState().resetRoom()}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-black text-lg py-4 rounded-xl transition-all uppercase tracking-widest shadow-xl shadow-yellow-900/20 active:scale-[0.98]"
+                disabled={actionLoading}
+                className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-black text-lg py-4 rounded-xl transition-all uppercase tracking-widest shadow-xl shadow-yellow-900/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Play Again
               </button>
@@ -249,6 +256,6 @@ export function WhoKnowView() {
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

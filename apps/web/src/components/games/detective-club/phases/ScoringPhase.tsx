@@ -1,7 +1,8 @@
 import { useGameStore } from '@/store/useGameStore';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function ScoringPhase() {
-  const { room, socketId, detectiveClubNextRound, leaveRoom } = useGameStore();
+  const { room, socketId, detectiveClubNextRound, leaveRoom, actionLoading } = useGameStore();
 
   if (!room || !room.detectiveClubState) return null;
 
@@ -18,7 +19,8 @@ export function ScoringPhase() {
   ).length;
 
   return (
-    <div className="flex-1 flex flex-col space-y-6">
+    <div className="flex-1 flex flex-col space-y-6 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-lg">
         <h2 className="text-4xl font-black mb-4 uppercase tracking-widest bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
           Round Over
@@ -114,7 +116,8 @@ export function ScoringPhase() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
           <button
             onClick={() => detectiveClubNextRound()}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98] uppercase tracking-wider text-xl"
+            disabled={actionLoading}
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98] uppercase tracking-wider text-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Play Next Round
           </button>

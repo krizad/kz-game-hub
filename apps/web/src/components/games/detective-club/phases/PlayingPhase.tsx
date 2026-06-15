@@ -3,9 +3,10 @@ import { DetectiveClubPhase } from '@repo/types';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
 import { CardViewerModal } from '../CardViewerModal';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function PlayingPhase() {
-  const { room, socketId, detectiveClubPlayCard } = useGameStore();
+  const { room, socketId, detectiveClubPlayCard, actionLoading } = useGameStore();
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
   const [confirmPlayIndex, setConfirmPlayIndex] = useState<number | null>(null);
 
@@ -21,7 +22,8 @@ export function PlayingPhase() {
     room.players.find((p) => p.socketId === state.activePlayerId)?.name || 'Someone';
 
   return (
-    <div className="flex-1 flex flex-col space-y-6">
+    <div className="flex-1 flex flex-col space-y-6 relative">
+      {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
           The Secret Word
@@ -194,7 +196,8 @@ export function PlayingPhase() {
                   detectiveClubPlayCard(confirmPlayIndex);
                   setConfirmPlayIndex(null);
                 }}
-                className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-lg transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-indigo-400"
+                disabled={actionLoading}
+                className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-lg transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-indigo-400"
               >
                 Play Card
               </button>

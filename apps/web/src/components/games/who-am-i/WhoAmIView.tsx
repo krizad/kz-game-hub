@@ -6,9 +6,10 @@ import { RoomStatus, WhoAmIGameState } from '@repo/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { useTranslate } from '@/hooks/useTranslate';
+import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function WhoAmIView() {
-  const { room, socketId, submitPlayerWordWhoAmI, gameActionWhoAmI } = useGameStore();
+  const { room, socketId, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } = useGameStore();
   const { t } = useTranslate();
 
   const [playerWordInput, setPlayerWordInput] = useState('');
@@ -23,7 +24,8 @@ export function WhoAmIView() {
     !isSpectator && gameState.currentTurn === socketId && room.status === RoomStatus.PLAYING;
 
   return (
-    <div className="flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xl min-h-[450px] relative overflow-hidden">
+      <div className="flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xl min-h-[450px] relative overflow-hidden">
+        {actionLoading && <ActionLoadingOverlay />}
       {/* PLAYING STATUS */}
       {room.status === RoomStatus.PLAYING && (
         <div className="flex-1 flex flex-col h-full">
@@ -31,26 +33,25 @@ export function WhoAmIView() {
           {gameState.phase === 'COLLECTING_WORDS' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4">
               <h4 className="text-lg font-black uppercase text-indigo-500 tracking-widest bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-200 animate-pulse">
-                ✍️ Submit Your Word
+                ✍️ {t('gameWhoAmI.submitYourWord')}
               </h4>
               {gameState.wordSubmissionCategory && (
                 <p className="text-slate-600 text-sm font-medium">
-                  Category:{' '}
+                  {t('gameWhoAmI.category')}:{' '}
                   <span className="font-bold text-indigo-600">
                     {gameState.wordSubmissionCategory}
                   </span>
                 </p>
               )}
               <p className="text-slate-500 text-sm text-center max-w-md">
-                Each player writes a word. Words are shuffled so you won't get your own! Duplicates
-                will be rejected.
+                {t('gameWhoAmI.wordSubmissionDesc')}
               </p>
 
               {/* Input */}
               {gameState.wordSubmissions?.[socketId] ? (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center shadow-inner">
-                  <span className="text-emerald-600 font-bold">✅ Word submitted!</span>
-                  <p className="text-slate-500 text-sm mt-1">Waiting for others...</p>
+                  <span className="text-emerald-600 font-bold">✅ {t('gameWhoAmI.wordSubmitted')}</span>
+                  <p className="text-slate-500 text-sm mt-1">{t('gameWhoAmI.waitingForOthers')}</p>
                 </div>
               ) : (
                 <div className="w-full max-w-sm flex flex-col gap-3">
@@ -68,7 +69,7 @@ export function WhoAmIView() {
                       }
                     }}
                     className="w-full bg-amber-50 border border-amber-300 rounded-xl px-4 py-4 text-slate-800 text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
-                    placeholder="Type your word..."
+                    placeholder={t('gameWhoAmI.typeYourWord')}
                     autoFocus
                   />
                   <button
@@ -76,10 +77,10 @@ export function WhoAmIView() {
                       submitPlayerWordWhoAmI(playerWordInput.trim());
                       setPlayerWordInput('');
                     }}
-                    disabled={!playerWordInput.trim()}
+                    disabled={!playerWordInput.trim() || actionLoading}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg"
                   >
-                    Submit Word
+                    {t('gameWhoAmI.submitWord')}
                   </button>
                 </div>
               )}
@@ -87,7 +88,7 @@ export function WhoAmIView() {
               {/* Submission Status */}
               <div className="w-full max-w-sm mt-4">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2 text-center">
-                  Submissions
+                  {t('gameWhoAmI.submissions')}
                 </label>
                 <div className="flex flex-wrap justify-center gap-2">
                   {room.players.map((p) => {
@@ -116,32 +117,32 @@ export function WhoAmIView() {
                 <div className="mb-3 flex items-center gap-2">
                   {gameState.phase === 'FINAL_GUESS' ? (
                     <span className="bg-amber-100 text-amber-600 text-xs font-black px-3 py-1 rounded-full border border-amber-300 animate-pulse uppercase tracking-wider">
-                      ⚡ Final Guess!
+                      ⚡ {t('gameWhoAmI.finalGuessRound')}
                     </span>
                   ) : (
                     <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
-                      Round {gameState.currentRound} / {gameState.maxRounds}
+                      {t('gameWhoAmI.round')} {gameState.currentRound} / {gameState.maxRounds}
                     </span>
                   )}
                 </div>
                 {isSpectator ? (
                   <span className="text-slate-500 font-medium bg-amber-50 px-4 py-2 rounded-xl border border-amber-200">
-                    You are spectating. Current turn:{' '}
+                    {t('gameWhoAmI.spectating')}{' '}
                     <span className="font-bold text-indigo-500">
                       {room.players.find((p) => p.socketId === gameState.currentTurn)?.name}
                     </span>
                   </span>
                 ) : isMyTurn ? (
                   <span className="text-emerald-600 animate-pulse font-black uppercase tracking-wider bg-emerald-50 px-6 py-2 rounded-full border border-emerald-200 shadow-md">
-                    It's Your Turn!
+                    {t('gameWhoAmI.yourTurn')}
                   </span>
                 ) : (
                   <span className="text-slate-600 font-medium bg-amber-50 px-4 py-2 rounded-xl border border-amber-200 shadow-sm">
-                    Waiting for{' '}
+                    {t('gameWhoAmI.waitingFor')}{' '}
                     <span className="text-indigo-600 font-bold">
                       {room.players.find((p) => p.socketId === gameState.currentTurn)?.name}
                     </span>{' '}
-                    to play...
+                    {t('gameWhoAmI.toPlay')}
                   </span>
                 )}
               </div>
@@ -167,14 +168,14 @@ export function WhoAmIView() {
                         {isEliminated ? (
                           <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                             <span className="bg-rose-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
-                              Eliminated
+                              {t('gameWhoAmI.eliminated')}
                             </span>
                           </div>
                         ) : (
                           isActive && (
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                               <span className="bg-indigo-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
-                                Active
+                                {t('gameWhoAmI.active')}
                               </span>
                             </div>
                           )
@@ -189,7 +190,7 @@ export function WhoAmIView() {
                         <span
                           className={`font-bold text-sm truncate w-full text-center ${isMe ? 'text-indigo-600' : 'text-slate-700'} mb-3`}
                         >
-                          {player.name} {isMe && '(You)'}
+                          {player.name} {isMe && `(${t('lobby.you')})`}
                         </span>
 
                         {/* 3D Flip Card for Word */}
@@ -206,7 +207,7 @@ export function WhoAmIView() {
                             {/* Back of card (Visible to others) */}
                             <div className="absolute inset-0 w-full h-full backface-hidden bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl border border-indigo-300 flex flex-col items-center justify-center shadow-md transform rotate-y-180 p-2">
                               <span className="text-xs text-indigo-100 font-medium mb-1 uppercase tracking-wider">
-                                They are
+                                {t('gameWhoAmI.theyAre')}
                               </span>
                               <span className="text-white font-black text-center break-words leading-tight">
                                 {word}
@@ -222,20 +223,7 @@ export function WhoAmIView() {
 
               {/* Interaction Panels */}
               <div className="mt-auto bg-amber-50/50 rounded-2xl p-4 sm:p-6 border border-amber-200 shadow-inner">
-                {gameState.turnStatus === 'THINKING' && (
-                  <div className="text-center py-6 flex flex-col items-center justify-center">
-                    <div className="w-8 h-8 rounded-full border-t-2 border-indigo-500 animate-spin mb-3"></div>
-                    <p className="text-slate-500 font-medium text-center">Preparing next turn...</p>
-                    {isMyTurn && (
-                      <button
-                        onClick={() => gameActionWhoAmI({ type: 'SUBMIT_GUESS', guess: '' })}
-                        className="mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-lg uppercase tracking-widest active:scale-95"
-                      >
-                        Start Asking
-                      </button>
-                    )}
-                  </div>
-                )}
+
 
                 {gameState.turnStatus === 'VOTING' && (
                   <div className="text-center animate-in zoom-in-95 fade-in duration-300">
@@ -247,17 +235,17 @@ export function WhoAmIView() {
                           </h4>
                           <p className="text-slate-500 text-sm mt-1">
                             {isMyTurn
-                              ? 'This is your last chance! Guess your word now!'
-                              : 'Waiting for the player to guess their word...'}
+                              ? t('gameWhoAmI.finalGuessDescActive')
+                              : t('gameWhoAmI.finalGuessDescWait')}
                           </p>
                         </>
                       ) : (
                         <>
-                          <h4 className="text-lg font-black text-indigo-600">Asking Phase</h4>
+                          <h4 className="text-lg font-black text-indigo-600">{t('gameWhoAmI.askingPhase')}</h4>
                           <p className="text-slate-500 text-sm mt-1">
                             {isMyTurn
-                              ? 'Ask the group a Yes/No question out loud!'
-                              : "Vote on the player's verbal question!"}
+                              ? t('gameWhoAmI.askingPhaseDescActive')
+                              : t('gameWhoAmI.askingPhaseDescWait')}
                           </p>
                         </>
                       )}
@@ -266,7 +254,7 @@ export function WhoAmIView() {
                     {isMyTurn ? (
                       <div className="flex flex-col items-center gap-4 animate-in slide-in-from-bottom-4 fade-in">
                         <p className="text-slate-600 text-center text-sm font-medium mb-2">
-                          When you are satisfied with the answers, click below to end your turn.
+                          {t('gameWhoAmI.endTurnHint')}
                         </p>
 
                         {(() => {
@@ -274,7 +262,7 @@ export function WhoAmIView() {
                           if (votes.length === 0)
                             return (
                               <p className="text-slate-400 italic mt-2 mb-4 font-medium">
-                                Waiting for votes...
+                                {t('gameWhoAmI.waitingForVotes')}
                               </p>
                             );
 
@@ -283,11 +271,11 @@ export function WhoAmIView() {
                           const maybeCount = votes.filter((v) => v === 'MAYBE').length;
 
                           const max = Math.max(yesCount, noCount, maybeCount);
-                          let majority = 'Tied / Mixed';
+                          let majority = t('gameWhoAmI.unknown');
                           let colorClass = 'text-slate-600 border-slate-300 bg-white shadow-sm';
 
                           if (yesCount === max && yesCount > noCount && yesCount > maybeCount) {
-                            majority = 'YES';
+                            majority = t('gameWhoAmI.yes');
                             colorClass =
                               'text-emerald-600 border-emerald-300 bg-emerald-50 shadow-md shadow-emerald-500/10';
                           } else if (
@@ -295,7 +283,7 @@ export function WhoAmIView() {
                             noCount > yesCount &&
                             noCount > maybeCount
                           ) {
-                            majority = 'NO';
+                            majority = t('gameWhoAmI.no');
                             colorClass =
                               'text-rose-600 border-rose-300 bg-rose-50 shadow-md shadow-rose-500/10';
                           } else if (
@@ -303,7 +291,7 @@ export function WhoAmIView() {
                             maybeCount > yesCount &&
                             maybeCount > noCount
                           ) {
-                            majority = 'MAYBE';
+                            majority = t('gameWhoAmI.maybe');
                             colorClass =
                               'text-amber-600 border-amber-300 bg-amber-50 shadow-md shadow-amber-500/10';
                           }
@@ -313,7 +301,7 @@ export function WhoAmIView() {
                               className={`mt-2 mb-4 p-4 border rounded-2xl flex flex-col items-center justify-center min-w-[240px] transition-all duration-300 ${colorClass}`}
                             >
                               <span className="text-xs uppercase font-bold tracking-widest opacity-70 mb-1">
-                                Majority Answer
+                                {t('gameWhoAmI.majorityAnswer')}
                               </span>
                               <span className="text-4xl font-black">{majority}</span>
                               <div className="flex gap-4 mt-3 text-sm font-bold border-t border-current/10 pt-2 w-full justify-center">
@@ -341,14 +329,15 @@ export function WhoAmIView() {
                               onClick={() => {
                                 gameActionWhoAmI({ type: 'END_TURN' });
                               }}
-                              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-4 rounded-xl transition-all shadow-md uppercase tracking-widest w-full sm:w-auto border border-slate-300 active:scale-95"
+                              disabled={actionLoading}
+                              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-4 rounded-xl transition-all shadow-md uppercase tracking-widest w-full sm:w-auto border border-slate-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              End Asking
+                              {t('gameWhoAmI.endAsking')}
                             </button>
                           )}
                           {gameState.eliminatedPlayers?.includes(socketId) ? (
                             <div className="bg-rose-50 text-rose-500 border border-rose-200 font-bold px-8 py-4 rounded-xl text-sm text-center w-full sm:w-auto shadow-sm">
-                              ❌ You've used your guess
+                              ❌ {t('gameWhoAmI.usedGuess')}
                             </div>
                           ) : (
                             <button
@@ -356,9 +345,10 @@ export function WhoAmIView() {
                                 setGuessInput('');
                                 setShowGuessModal(true);
                               }}
-                              className={`${gameState.phase === 'FINAL_GUESS' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 text-white' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 text-white'} active:scale-95 font-bold px-8 py-4 rounded-xl transition-all shadow-lg uppercase tracking-widest w-full sm:w-auto`}
+                              disabled={actionLoading}
+                              className={`${gameState.phase === 'FINAL_GUESS' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 text-white' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 text-white'} active:scale-95 font-bold px-8 py-4 rounded-xl transition-all shadow-lg uppercase tracking-widest w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
-                              Guess the Word!
+                              {t('gameWhoAmI.guessTheWord')}
                             </button>
                           )}
                         </div>
@@ -371,7 +361,7 @@ export function WhoAmIView() {
                                 key={voterId}
                                 className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${vote === 'YES' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : vote === 'NO' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}
                               >
-                                {voter?.name || 'Unknown'}: {vote}
+                                {voter?.name || t('gameWhoAmI.unknown')}: {vote === 'YES' ? t('gameWhoAmI.yes') : vote === 'NO' ? t('gameWhoAmI.no') : t('gameWhoAmI.maybe')}
                               </div>
                             );
                           })}
@@ -380,38 +370,40 @@ export function WhoAmIView() {
                     ) : !isSpectator ? (
                       <div className="flex flex-col gap-3 max-w-lg mx-auto">
                         <p className="text-slate-600 font-medium text-sm mb-1">
-                          Cast your vote based on their word (you can change it until they end the
-                          turn):
+                          {t('gameWhoAmI.castVoteHint')}
                         </p>
                         <div className="grid grid-cols-3 gap-3">
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' })}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-md' : 'bg-white text-rose-500 hover:bg-rose-50 border border-rose-200'}`}
+                            disabled={actionLoading}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-md' : 'bg-white text-rose-500 hover:bg-rose-50 border border-rose-200'}`}
                           >
-                            NO
+                            {t('gameWhoAmI.no')}
                           </button>
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'MAYBE' })}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm ${gameState.votes[socketId] === 'MAYBE' ? 'bg-amber-500 text-white ring-2 ring-amber-300 scale-105 shadow-amber-500/40 shadow-md' : 'bg-white text-amber-500 hover:bg-amber-50 border border-amber-200'}`}
+                            disabled={actionLoading}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'MAYBE' ? 'bg-amber-500 text-white ring-2 ring-amber-300 scale-105 shadow-amber-500/40 shadow-md' : 'bg-white text-amber-500 hover:bg-amber-50 border border-amber-200'}`}
                           >
-                            MAYBE
+                            {t('gameWhoAmI.maybe')}
                           </button>
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' })}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-md' : 'bg-white text-emerald-500 hover:bg-emerald-50 border border-emerald-200'}`}
+                            disabled={actionLoading}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-md' : 'bg-white text-emerald-500 hover:bg-emerald-50 border border-emerald-200'}`}
                           >
-                            YES
+                            {t('gameWhoAmI.yes')}
                           </button>
                         </div>
                         {gameState.votes[socketId] && (
                           <p className="text-emerald-500 text-sm font-medium mt-2">
-                            Vote cast! The asker can see your vote.
+                            {t('gameWhoAmI.voteCastHint')}
                           </p>
                         )}
                       </div>
                     ) : (
                       <div className="py-2">
-                        <p className="text-slate-500 font-medium">Waiting for players to vote...</p>
+                        <p className="text-slate-500 font-medium">{t('gameWhoAmI.waitingForPlayersToVote')}</p>
                       </div>
                     )}
                   </div>
@@ -420,7 +412,7 @@ export function WhoAmIView() {
                 {gameState.turnStatus === 'RESULT' && (
                   <div className="text-center animate-in zoom-in-95 fade-in duration-300">
                     <h3 className="text-xl font-black text-indigo-600 mb-4 uppercase tracking-widest bg-indigo-50 inline-block px-4 py-2 rounded-xl border border-indigo-200">
-                      Word Guess
+                      {t('gameWhoAmI.wordGuess')}
                     </h3>
 
                     {/* Show the guessed word */}
@@ -428,7 +420,7 @@ export function WhoAmIView() {
                       <div className="my-4 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl shadow-sm max-w-sm mx-auto">
                         <span className="text-xs uppercase font-bold tracking-widest text-slate-500 block mb-1">
                           {room.players.find((p) => p.socketId === gameState.currentTurn)?.name}{' '}
-                          guesses:
+                          {t('gameWhoAmI.guesses')}
                         </span>
                         <span className="text-3xl font-black text-indigo-700">
                           {gameState.guessedWord}
@@ -456,24 +448,26 @@ export function WhoAmIView() {
                     {!isMyTurn && !isSpectator && (
                       <div className="mb-6">
                         <p className="text-slate-600 font-medium text-sm mb-3">
-                          Is their guess correct?
+                          {t('gameWhoAmI.isGuessCorrect')}
                         </p>
                         <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' })}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-md' : 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200'}`}
+                            disabled={actionLoading}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-md' : 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200'}`}
                           >
                             ✅ YES
                           </button>
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' })}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-md' : 'bg-white text-rose-600 hover:bg-rose-50 border border-rose-200'}`}
+                            disabled={actionLoading}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-md' : 'bg-white text-rose-600 hover:bg-rose-50 border border-rose-200'}`}
                           >
                             ❌ NO
                           </button>
                         </div>
                         {gameState.votes[socketId] && (
-                          <p className="text-emerald-500 text-sm font-medium mt-2">Vote cast!</p>
+                          <p className="text-emerald-500 text-sm font-medium mt-2">{t('gameWhoAmI.voteCast')}</p>
                         )}
                       </div>
                     )}
@@ -481,7 +475,7 @@ export function WhoAmIView() {
                     {/* Active player waits */}
                     {isMyTurn && (
                       <p className="text-slate-500 text-sm mb-4 animate-pulse font-medium">
-                        Waiting for other players to verify your guess...
+                        {t('gameWhoAmI.waitingForVerify')}
                       </p>
                     )}
 
@@ -503,9 +497,10 @@ export function WhoAmIView() {
                     {(socketId === room.roomHostId || isMyTurn) && (
                       <button
                         onClick={() => gameActionWhoAmI({ type: 'NEXT_TURN' })}
-                        className="w-full sm:max-w-xs mx-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95"
+                        disabled={actionLoading}
+                        className="w-full sm:max-w-xs mx-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Continue
+                        {t('gameWhoAmI.continueBtn')}
                       </button>
                     )}
                   </div>
@@ -520,7 +515,7 @@ export function WhoAmIView() {
       {room.status === RoomStatus.RESULT && gameState && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 sm:gap-6 min-h-0 py-2 sm:py-4">
           <h4 className="text-base sm:text-lg font-black uppercase text-amber-500 tracking-widest bg-amber-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-amber-200 mb-2">
-            Game Over
+            {t('gameWhoAmI.gameOver')}
           </h4>
 
           <div className="text-center p-6 sm:p-8 border border-indigo-200 bg-white rounded-2xl shadow-xl animate-in zoom-in-95 duration-500 max-w-md w-full relative overflow-hidden">
@@ -535,14 +530,14 @@ export function WhoAmIView() {
               {gameState.winner ? (
                 room.players.find((p) => p.socketId === gameState.winner)?.name
               ) : (
-                <span className="text-slate-500 italic">No winners this round</span>
+                <span className="text-slate-500 italic">{t('gameWhoAmI.noWinners')}</span>
               )}
             </div>
 
             {/* Show all words revealed */}
             <div className="mt-6 text-left">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">
-                The Words Were
+                {t('gameWhoAmI.theWordsWere')}
               </h4>
               <div className="space-y-2 max-h-[150px] overflow-y-auto pr-2">
                 {Object.entries(gameState.playerWords).map(([pId, word]) => {
@@ -570,7 +565,8 @@ export function WhoAmIView() {
           {socketId === room.roomHostId && (
             <button
               onClick={() => gameActionWhoAmI({ type: 'END_MATCH' })}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-xl transition-all shadow-lg active:scale-95 text-sm sm:text-lg uppercase tracking-widest mt-4"
+              disabled={actionLoading}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-xl transition-all shadow-lg active:scale-95 text-sm sm:text-lg uppercase tracking-widest mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('result.playAgain')}
             </button>
@@ -592,10 +588,10 @@ export function WhoAmIView() {
               <div className="p-6 md:p-8 flex flex-col gap-4 text-center">
                 <div className="text-4xl mb-2">🤔</div>
                 <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest leading-tight">
-                  Who Are You?
+                  {t('gameWhoAmI.whoAreYou')}
                 </h3>
                 <p className="text-slate-600 font-medium text-sm mb-2">
-                  Take a guess! If you're wrong, you might be eliminated or lose your chance to win.
+                  {t('gameWhoAmI.takeAGuessDesc')}
                 </p>
 
                 <input
@@ -612,7 +608,7 @@ export function WhoAmIView() {
                     }
                   }}
                   className="w-full bg-amber-50 border border-amber-300 rounded-xl px-4 py-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-center text-xl shadow-inner mb-2"
-                  placeholder="Type your guess..."
+                  placeholder={t('gameWhoAmI.typeYourGuess')}
                   autoFocus
                 />
 
@@ -621,17 +617,17 @@ export function WhoAmIView() {
                     onClick={() => setShowGuessModal(false)}
                     className="flex-1 bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-all border border-amber-300"
                   >
-                    Cancel
+                    {t('gameWhoAmI.cancel')}
                   </button>
                   <button
-                    disabled={!guessInput.trim()}
+                    disabled={!guessInput.trim() || actionLoading}
                     onClick={() => {
                       setShowGuessModal(false);
                       gameActionWhoAmI({ type: 'GUESS_WORD', guess: guessInput.trim() });
                     }}
                     className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg"
                   >
-                    Submit Guess
+                    {t('gameWhoAmI.submitGuess')}
                   </button>
                 </div>
               </div>
