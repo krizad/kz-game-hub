@@ -306,10 +306,6 @@ export class GamesService {
     return null;
   }
 
-  getRoom(code: string): RoomState | undefined {
-    return this.rooms.get(code);
-  }
-
   getAvailableRooms(): {
     code: string;
     gameType: GameType;

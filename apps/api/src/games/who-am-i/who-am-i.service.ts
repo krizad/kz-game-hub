@@ -290,12 +290,12 @@ export class WhoAmIService {
       return room;
     }
 
-    if (action.type === 'VOTE_GUESS' && ['YES', 'NO', 'MAYBE'].includes(action.vote)) {
+    if (action.type === 'VOTE_GUESS' && typeof action.vote === 'string' && ['YES', 'NO', 'MAYBE'].includes(action.vote)) {
       if (gameState.currentTurn === requesterId) return null;
       if (gameState.turnStatus !== 'VOTING' && gameState.turnStatus !== 'RESULT') return null;
       if (!room.players.find((p) => p.socketId === requesterId)) return null;
 
-      gameState.votes[requesterId] = action.vote;
+      gameState.votes[requesterId] = action.vote as 'YES' | 'NO' | 'MAYBE';
 
       return room;
     }
