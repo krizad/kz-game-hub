@@ -58,7 +58,7 @@ interface GameState {
   detectiveClubReset: () => void;
   submitWordsWhoAmI: (playerWords: Record<string, string>) => void;
   submitPlayerWordWhoAmI: (word: string) => void;
-  getCategoriesWhoAmI: () => void;
+  getCategoriesWhoAmI: (lang?: string) => void;
   gameActionWhoAmI: (action: any) => void;
 }
 
@@ -402,10 +402,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  getCategoriesWhoAmI: () => {
+  getCategoriesWhoAmI: (lang?: string) => {
     const { socket } = get();
     if (socket) {
-      socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES);
+      socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang });
     }
   },
 

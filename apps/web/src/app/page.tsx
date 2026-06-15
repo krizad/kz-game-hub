@@ -833,7 +833,12 @@ function GameLobby() {
                                 onChange={(e) => {
                                   const mode = e.target.value as any;
                                   useGameStore.getState().updateConfig({ wordMode: mode });
-                                  if (mode === 'RANDOM') getCategoriesWhoAmI();
+                                  if (mode === 'RANDOM') {
+                                    useGameStore.getState().updateConfig({ wordMode: mode, language });
+                                    getCategoriesWhoAmI(language);
+                                  } else {
+                                    useGameStore.getState().updateConfig({ wordMode: mode });
+                                  }
                                 }}
                                 className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
                               >

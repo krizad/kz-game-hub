@@ -52,6 +52,7 @@ model Word {
   word     String
   category String
   emoji    String?
+  lang     String  @default("en")
 
-  @@index([category])
+  @@index([category, lang])
 }

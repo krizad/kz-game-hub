@@ -5,7 +5,15 @@ import { prisma } from '@repo/database';
 @Injectable()
 export class WhoAmIService {
   // ─── Categories from DB ────────────────────────────────────────────
-  async getCategories(): Promise<WordCategory[]> {
+  async getCategories(lang?: string): Promise<WordCategory[]> {
+    if (lang) {
+      const results = await prisma.word.groupBy({
+        by: ['category'],
+        _count: { id: true },
+        where: { lang },
+      });
+      return results.map((r) => ({ name: r.category, count: r._count.id }));
+    }
     const results = await prisma.word.groupBy({
       by: ['category'],
       _count: { id: true },
@@ -62,10 +70,12 @@ export class WhoAmIService {
     const category = room.config.wordCategory;
     if (!category) return null;
 
-    // Get random words from DB
+    const lang = room.config.language || 'en';
+
     const words = await prisma.$queryRawUnsafe<{ word: string; emoji: string | null }[]>(
-      `SELECT word, emoji FROM "Word" WHERE category = $1 ORDER BY RANDOM() LIMIT $2`,
+      `SELECT word, emoji FROM "Word" WHERE category = $1 AND lang = $2 ORDER BY RANDOM() LIMIT $3`,
       category,
+      lang,
       room.players.length,
     );
 

@@ -33,19 +33,17 @@ async function main() {
   if (fs.existsSync(wordsFilePath)) {
     const wordsContent = fs.readFileSync(wordsFilePath, 'utf-8');
     const wordsData = JSON.parse(wordsContent);
-    for (const category in wordsData) {
-      const items = wordsData[category];
-      for (const item of items) {
-        await prisma.word.create({
-          data: {
-            word: typeof item === 'string' ? item : item.word,
-            emoji: typeof item === 'string' ? null : item.emoji || null,
-            category: category,
-          },
-        });
-      }
+    for (const item of wordsData) {
+      await prisma.word.create({
+        data: {
+          word: item.word,
+          emoji: item.emoji || null,
+          category: item.category,
+          lang: item.lang || 'en',
+        },
+      });
     }
-    console.log('Successfully seeded Who Am I words.');
+    console.log(`Successfully seeded ${wordsData.length} Who Am I words.`);
   }
 }
 

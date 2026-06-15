@@ -697,8 +697,8 @@ export class GamesService {
     return updatedRoom;
   }
 
-  whoAmICategoriesList(): Promise<WordCategory[]> {
-    return this.whoAmIService.getCategories();
+  whoAmICategoriesList(lang?: string): Promise<WordCategory[]> {
+    return this.whoAmIService.getCategories(lang);
   }
 
   // Specific start for HOST_INPUT if needed

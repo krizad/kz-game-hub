@@ -655,8 +655,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES)
-  async handleWhoAmIGetCategories(@ConnectedSocket() client: Socket) {
-    const categories = await this.gamesService.whoAmICategoriesList();
+  async handleWhoAmIGetCategories(
+    @MessageBody() data: { lang?: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const categories = await this.gamesService.whoAmICategoriesList(data?.lang);
     client.emit(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
   }
 
