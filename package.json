@@ -9,6 +9,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "db:generate": "pnpm -F @repo/database db:generate",
     "db:migrate": "pnpm -F @repo/database db:migrate",
+    "db:reset": "pnpm -F @repo/database db:reset",
     "db:push": "pnpm -F @repo/database db:push",
     "db:studio": "pnpm -F @repo/database db:studio",
     "db:seed": "pnpm -F @repo/database db:seed",
