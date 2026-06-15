@@ -10,6 +10,16 @@ import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
 
 @Module({
-  providers: [GamesGateway, GamesService, WhoKnowService, TicTacToeService, RPSService, GobblerService, SoundsFishyService, DetectiveClubService, WhoAmIService]
+  providers: [
+    GamesGateway,
+    GamesService,
+    WhoKnowService,
+    TicTacToeService,
+    RPSService,
+    GobblerService,
+    SoundsFishyService,
+    DetectiveClubService,
+    WhoAmIService,
+  ],
 })
 export class GamesModule {}

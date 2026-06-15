@@ -1,5 +1,5 @@
-export type GobblerSize = "SMALL" | "MEDIUM" | "LARGE";
-export type PlayerSide = "X" | "O";
+export type GobblerSize = 'SMALL' | 'MEDIUM' | 'LARGE';
+export type PlayerSide = 'X' | 'O';
 
 export interface GobblerPiece {
   id: string; // unique identifier for the piece
@@ -22,6 +22,6 @@ export interface GobblerState {
     X: number;
     O: number;
   };
-  winner?: PlayerSide | "DRAW";
+  winner?: PlayerSide | 'DRAW';
   winningLine?: number[]; // indices of the winning line
 }

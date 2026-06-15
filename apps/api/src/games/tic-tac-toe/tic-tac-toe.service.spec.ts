@@ -22,7 +22,7 @@ describe('TicTacToeService', () => {
       const room = {
         gameType: GameType.TIC_TAC_TOE,
         status: RoomStatus.LOBBY,
-        ticTacToeState: {}
+        ticTacToeState: {},
       } as unknown as RoomState;
 
       let result = service.joinSide(room, 'p1', 'X');
@@ -45,7 +45,7 @@ describe('TicTacToeService', () => {
           playerOId: 'p2',
           currentTurn: 'X',
           board: Array(9).fill(null),
-        }
+        },
       } as unknown as RoomState;
 
       const result = service.makeMove(room, 'p1', 0);
@@ -55,58 +55,58 @@ describe('TicTacToeService', () => {
     });
 
     it('should handle a winning move', () => {
-       const room = {
+      const room = {
         players: [{ socketId: 'p1', score: 0 }],
         gameType: GameType.TIC_TAC_TOE,
         status: RoomStatus.PLAYING,
         ticTacToeState: {
-           playerXId: 'p1',
-           currentTurn: 'X',
-           board: ['X', 'X', null, null, null, null, null, null, null]
-        }
-       } as unknown as RoomState;
+          playerXId: 'p1',
+          currentTurn: 'X',
+          board: ['X', 'X', null, null, null, null, null, null, null],
+        },
+      } as unknown as RoomState;
 
-       const result = service.makeMove(room, 'p1', 2);
-       expect(result!.status).toBe(RoomStatus.RESULT);
-       expect(result!.ticTacToeState!.winner).toBe('X');
-       expect(result!.players[0].score).toBe(1);
+      const result = service.makeMove(room, 'p1', 2);
+      expect(result!.status).toBe(RoomStatus.RESULT);
+      expect(result!.ticTacToeState!.winner).toBe('X');
+      expect(result!.players[0].score).toBe(1);
     });
 
     it('should handle a draw', () => {
-       const room = {
+      const room = {
         gameType: GameType.TIC_TAC_TOE,
         status: RoomStatus.PLAYING,
         ticTacToeState: {
-           playerXId: 'p1',
-           currentTurn: 'X',
-           // Board has 1 spots left (index 8), others are filled
-           board: ['O', 'X', 'X', 'X', 'O', 'O', 'X', 'O', null]
-        }
-       } as unknown as RoomState;
+          playerXId: 'p1',
+          currentTurn: 'X',
+          // Board has 1 spots left (index 8), others are filled
+          board: ['O', 'X', 'X', 'X', 'O', 'O', 'X', 'O', null],
+        },
+      } as unknown as RoomState;
 
-       const result = service.makeMove(room, 'p1', 8);
-       expect(result!.status).toBe(RoomStatus.RESULT);
-       expect(result!.ticTacToeState!.winner).toBe('DRAW');
+      const result = service.makeMove(room, 'p1', 8);
+      expect(result!.status).toBe(RoomStatus.RESULT);
+      expect(result!.ticTacToeState!.winner).toBe('DRAW');
     });
   });
 
   describe('reset', () => {
-     it('should reset game to playing if both players present', () => {
-       const room = {
+    it('should reset game to playing if both players present', () => {
+      const room = {
         gameType: GameType.TIC_TAC_TOE,
         status: RoomStatus.RESULT,
         ticTacToeState: {
-           playerXId: 'p1',
-           playerOId: 'p2',
-           winner: 'X'
-        }
-       } as unknown as RoomState;
+          playerXId: 'p1',
+          playerOId: 'p2',
+          winner: 'X',
+        },
+      } as unknown as RoomState;
 
-       const result = service.reset(room, 'p1');
-       expect(result).not.toBeNull();
-       expect(result!.status).toBe(RoomStatus.PLAYING);
-       expect(result!.ticTacToeState!.currentTurn).toBe('O'); // Loser goes first
-       expect(result!.ticTacToeState!.board.every(cell => cell === null)).toBeTruthy();
-     });
+      const result = service.reset(room, 'p1');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.ticTacToeState!.currentTurn).toBe('O'); // Loser goes first
+      expect(result!.ticTacToeState!.board.every((cell) => cell === null)).toBeTruthy();
+    });
   });
 });

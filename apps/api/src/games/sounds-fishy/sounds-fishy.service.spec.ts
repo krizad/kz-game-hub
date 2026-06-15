@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SoundsFishyService } from './sounds-fishy.service';
-import { RoomState, RoomStatus, SoundsFishyPhase, Role } from '@repo/types';
+import { RoomState, RoomStatus, SoundsFishyPhase } from '@repo/types';
 
 jest.mock('@repo/database', () => ({
   prisma: {
@@ -8,8 +8,8 @@ jest.mock('@repo/database', () => ({
       aggregate: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
-    }
-  }
+    },
+  },
 }));
 
 import { prisma } from '@repo/database';
@@ -38,9 +38,11 @@ describe('SoundsFishyService', () => {
         config: { language: 'th' },
       } as unknown as RoomState;
 
-      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValue({ _min: { query_count: 0 } });
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValue({
+        _min: { query_count: 0 },
+      });
       (prisma.soundsFishyQuestion.findMany as jest.Mock).mockResolvedValue([
-        { id: 1, question: 'Q?', answer: 'A!', lang: 'th' }
+        { id: 1, question: 'Q?', answer: 'A!', lang: 'th' },
       ]);
       (prisma.soundsFishyQuestion.update as jest.Mock).mockResolvedValue({});
 
@@ -69,14 +71,18 @@ describe('SoundsFishyService', () => {
   describe('submitAnswer', () => {
     it('should allow answers and check resolution', () => {
       const room = {
-        players: [{ socketId: 'p1', connected: true }, { socketId: 'p2', connected: true }, { socketId: 'p3', connected: true }],
+        players: [
+          { socketId: 'p1', connected: true },
+          { socketId: 'p2', connected: true },
+          { socketId: 'p3', connected: true },
+        ],
         soundsFishyState: {
           currentPhase: SoundsFishyPhase.SETUP,
           pickerId: 'p1',
           redHerringIds: ['p2', 'p3'],
           question: { answer: 'Truth' },
-          playerAnswers: {}
-        }
+          playerAnswers: {},
+        },
       } as unknown as RoomState;
 
       // red herring submitting exact truth should return null
@@ -98,9 +104,9 @@ describe('SoundsFishyService', () => {
     it('should correctly handle eliminating a Red Herring', () => {
       const room = {
         players: [
-          { socketId: 'p1', score: 0 }, 
-          { socketId: 'p2', score: 0 }, 
-          { socketId: 'p3', score: 0 }
+          { socketId: 'p1', score: 0 },
+          { socketId: 'p2', score: 0 },
+          { socketId: 'p3', score: 0 },
         ],
         soundsFishyState: {
           currentPhase: SoundsFishyPhase.THE_HUNT,
@@ -109,12 +115,12 @@ describe('SoundsFishyService', () => {
           redHerringIds: ['p3'],
           eliminatedPlayers: [],
           playerAnswers: {
-            'p2': { isRevealed: true },
-            'p3': { isRevealed: true }
+            p2: { isRevealed: true },
+            p3: { isRevealed: true },
           },
           roundScorePool: 0,
-          roundPoints: {}
-        }
+          roundPoints: {},
+        },
       } as unknown as RoomState;
 
       const result = service.eliminatePlayer(room, 'p1', 'p3');
@@ -129,9 +135,9 @@ describe('SoundsFishyService', () => {
     it('should correctly handle eliminating the Blue Fish', () => {
       const room = {
         players: [
-          { socketId: 'p1', score: 0 }, 
-          { socketId: 'p2', score: 0 }, 
-          { socketId: 'p3', score: 0 }
+          { socketId: 'p1', score: 0 },
+          { socketId: 'p2', score: 0 },
+          { socketId: 'p3', score: 0 },
         ],
         soundsFishyState: {
           currentPhase: SoundsFishyPhase.THE_HUNT,
@@ -140,12 +146,12 @@ describe('SoundsFishyService', () => {
           redHerringIds: ['p3'],
           eliminatedPlayers: [],
           playerAnswers: {
-            'p2': { isRevealed: true },
-            'p3': { isRevealed: true }
+            p2: { isRevealed: true },
+            p3: { isRevealed: true },
           },
           roundScorePool: 0,
-          roundPoints: {}
-        }
+          roundPoints: {},
+        },
       } as unknown as RoomState;
 
       const result = service.eliminatePlayer(room, 'p1', 'p2');

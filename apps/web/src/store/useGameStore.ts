@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
-import { RoomState, RoomStatus, Role, SOCKET_EVENTS, AvailableRoom, GameType, WordCategory } from '@repo/types';
+import {
+  RoomState,
+  RoomStatus,
+  Role,
+  SOCKET_EVENTS,
+  AvailableRoom,
+  GameType,
+  WordCategory,
+} from '@repo/types';
 import { toast } from 'react-hot-toast';
 
 interface GameState {
@@ -25,13 +33,13 @@ interface GameState {
   resetRoom: () => void;
   leaveRoom: () => void;
   updateConfig: (config: Partial<RoomState['config']>) => void;
-  tttJoinSide: (side: "X" | "O") => void;
+  tttJoinSide: (side: 'X' | 'O') => void;
   tttMakeMove: (index: number) => void;
   tttReset: () => void;
-  rpsMakeChoice: (choice: "ROCK" | "PAPER" | "SCISSORS") => void;
+  rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => void;
   rpsNextRound: () => void;
   rpsReset: () => void;
-  gobblerJoinSide: (side: "X" | "O") => void;
+  gobblerJoinSide: (side: 'X' | 'O') => void;
   gobblerPlacePiece: (pieceId: string, toIndex: number) => void;
   gobblerMovePiece: (fromIndex: number, toIndex: number) => void;
   gobblerReset: () => void;
@@ -47,6 +55,7 @@ interface GameState {
   detectiveClubNextPhase: () => void;
   detectiveClubVote: (targetId: string) => void;
   detectiveClubNextRound: () => void;
+  detectiveClubReset: () => void;
   submitWordsWhoAmI: (playerWords: Record<string, string>) => void;
   submitPlayerWordWhoAmI: (word: string) => void;
   getCategoriesWhoAmI: () => void;
@@ -73,7 +82,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     socket.on('connect', () => {
       set({ connected: true, socket, socketId: socket.id });
-      
+
       // Auto-reconnect if session exists
       const savedCode = localStorage.getItem('who-know-roomCode');
       const savedName = localStorage.getItem('who-know-name');
@@ -81,7 +90,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({ myName: savedName });
         socket.emit(SOCKET_EVENTS.JOIN_ROOM, { code: savedCode, name: savedName });
       }
-      
+
       // Request active rooms lobby
       socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
     });
@@ -93,8 +102,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
       // Check if the current player is still in the room
       const currentName = get().myName;
-      const isMe = room.players.find(p => p.socketId === socket.id || p.name === currentName);
-      
+      const isMe = room.players.find((p) => p.socketId === socket.id || p.name === currentName);
+
       // If we're not in the room's player list, ignore this update
       // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
       if (!isMe) return;
@@ -104,7 +113,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       } else {
         set({ room });
       }
-      
+
       // Save session
       localStorage.setItem('who-know-roomCode', room.code);
       localStorage.setItem('who-know-name', currentName);
@@ -210,7 +219,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ room: null, myRole: null, secretWord: null });
     }
   },
-  
+
   updateConfig: (config: Partial<RoomState['config']>) => {
     const { socket, room } = get();
     if (socket && room) {
@@ -218,7 +227,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  tttJoinSide: (side: "X" | "O") => {
+  tttJoinSide: (side: 'X' | 'O') => {
     const { socket, room } = get();
     if (socket && room) {
       socket.emit(SOCKET_EVENTS.TTT_JOIN_SIDE, { code: room.code, side });
@@ -246,7 +255,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  rpsMakeChoice: (choice: "ROCK" | "PAPER" | "SCISSORS") => {
+  rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => {
     const { socket, room } = get();
     if (socket && room) {
       socket.emit(SOCKET_EVENTS.RPS_MAKE_CHOICE, { code: room.code, choice });
@@ -260,7 +269,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  gobblerJoinSide: (side: "X" | "O") => {
+  gobblerJoinSide: (side: 'X' | 'O') => {
     const { socket, room } = get();
     if (socket && room) {
       socket.emit(SOCKET_EVENTS.GOBBLER_JOIN_SIDE, { code: room.code, side });
@@ -372,6 +381,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  detectiveClubReset: () => {
+    const { socket, room } = get();
+    if (socket && room) {
+      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_RESET, { code: room.code });
+    }
+  },
+
   submitWordsWhoAmI: (playerWords: Record<string, string>) => {
     const { socket, room } = get();
     if (socket && room) {
@@ -398,5 +414,5 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (socket && room) {
       socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
     }
-  }
+  },
 }));

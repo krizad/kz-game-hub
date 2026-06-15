@@ -39,9 +39,9 @@ async function main() {
         await prisma.word.create({
           data: {
             word: typeof item === 'string' ? item : item.word,
-            emoji: typeof item === 'string' ? null : (item.emoji || null),
-            category: category
-          }
+            emoji: typeof item === 'string' ? null : item.emoji || null,
+            category: category,
+          },
         });
       }
     }

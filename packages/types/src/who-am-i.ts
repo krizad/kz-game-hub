@@ -1,6 +1,11 @@
 export type WordMode = 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT';
 
-export type GameActionType = 'SUBMIT_GUESS' | 'VOTE_GUESS' | 'END_TURN' | 'GUESS_WORD' | 'NEXT_TURN';
+export type GameActionType =
+  | 'SUBMIT_GUESS'
+  | 'VOTE_GUESS'
+  | 'END_TURN'
+  | 'GUESS_WORD'
+  | 'NEXT_TURN';
 
 export type VoteResult = 'YES' | 'NO' | 'MAYBE';
 

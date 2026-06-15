@@ -13,14 +13,14 @@
 
 ## Available Games
 
-| Game | Type | Min Players | Description |
-|------|------|-------------|-------------|
-| **Who Know!** | Social Deduction | 4 | ทายคำลับ ตามหา Insider |
-| **Classic Tic-Tac-Toe** | Strategy | 2 | เกม XO คลาสสิก |
-| **Gobbler Tic-Tac-Toe** | Strategy | 2 | XO ที่ตัวใหญ่ทับตัวเล็กได้ |
-| **Hand Duel (RPS)** | Competitive | 2+ | เป่ายิ้งฉุบ Best-Of |
-| **Sounds Fishy** | Trivia / Bluffing | 3+ | ตอบคำถาม แยกคำตอบจริง/ปลอม |
-| **Detective Club** | Social Deduction | 4+ | วางการ์ดตามคำใบ้ ล่าสายลับ |
+| Game                    | Type              | Min Players | Description                |
+| ----------------------- | ----------------- | ----------- | -------------------------- |
+| **Who Know!**           | Social Deduction  | 4           | ทายคำลับ ตามหา Insider     |
+| **Classic Tic-Tac-Toe** | Strategy          | 2           | เกม XO คลาสสิก             |
+| **Gobbler Tic-Tac-Toe** | Strategy          | 2           | XO ที่ตัวใหญ่ทับตัวเล็กได้ |
+| **Hand Duel (RPS)**     | Competitive       | 2+          | เป่ายิ้งฉุบ Best-Of        |
+| **Sounds Fishy**        | Trivia / Bluffing | 3+          | ตอบคำถาม แยกคำตอบจริง/ปลอม |
+| **Detective Club**      | Social Deduction  | 4+          | วางการ์ดตามคำใบ้ ล่าสายลับ |
 
 ## Behavior Guidelines
 
@@ -33,15 +33,15 @@
 
 ## Key File References
 
-| Purpose | Path |
-|---------|------|
-| Agent Instructions | `.agent/agent.md` (this file) |
-| Architecture | `.agent/architecture.md` |
-| Infrastructure | `.agent/infrastructure.md` |
-| Coding Rules | `.agent/rules.md` |
-| Shared Types | `packages/types/src/` |
-| API Gateway | `apps/api/src/games/games.gateway.ts` |
-| API Service | `apps/api/src/games/games.service.ts` |
-| Web Store | `apps/web/src/store/useGameStore.ts` |
-| Game Components | `apps/web/src/components/games/` |
-| Prisma Schema | `packages/database/prisma/schema.prisma` |
+| Purpose            | Path                                     |
+| ------------------ | ---------------------------------------- |
+| Agent Instructions | `.agent/agent.md` (this file)            |
+| Architecture       | `.agent/architecture.md`                 |
+| Infrastructure     | `.agent/infrastructure.md`               |
+| Coding Rules       | `.agent/rules.md`                        |
+| Shared Types       | `packages/types/src/`                    |
+| API Gateway        | `apps/api/src/games/games.gateway.ts`    |
+| API Service        | `apps/api/src/games/games.service.ts`    |
+| Web Store          | `apps/web/src/store/useGameStore.ts`     |
+| Game Components    | `apps/web/src/components/games/`         |
+| Prisma Schema      | `packages/database/prisma/schema.prisma` |

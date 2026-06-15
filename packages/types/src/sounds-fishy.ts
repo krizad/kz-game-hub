@@ -1,9 +1,9 @@
 export enum SoundsFishyPhase {
-  SETUP = "SETUP",
-  SUBMISSION = "SUBMISSION",
-  THE_PITCH = "THE_PITCH",
-  THE_HUNT = "THE_HUNT",
-  SCORING = "SCORING",
+  SETUP = 'SETUP',
+  SUBMISSION = 'SUBMISSION',
+  THE_PITCH = 'THE_PITCH',
+  THE_HUNT = 'THE_HUNT',
+  SCORING = 'SCORING',
 }
 
 export interface SoundsFishyQuestionData {

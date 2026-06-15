@@ -44,6 +44,7 @@ kz-game-hub/
 ## 💻 Getting Started Locally
 
 ### Prerequisites
+
 - Node.js (v18+)
 - pnpm (v9+)
 - Docker (for the database)
@@ -51,17 +52,20 @@ kz-game-hub/
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/krizad/kz-game-hub.git
    cd kz-game-hub
    ```
 
 2. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 3. Start the local database using Docker:
+
    ```bash
    docker compose up -d
    ```
@@ -71,37 +75,44 @@ kz-game-hub/
    - Ensure the `DATABASE_URL` in `packages/database/.env` points to your local Docker PostgreSQL instance.
 
 5. Push the database schema:
+
    ```bash
    pnpm db:push
    ```
 
 6. Start the development server:
+
    ```bash
    pnpm dev
    ```
-   
+
    - Web App will run on `http://localhost:3000`
    - API Server will run on `http://localhost:3001` (or whichever port configured)
 
 ## 🚢 Deployment (Recommended Free Stack)
 
 ### 1. Database (Supabase)
+
 We recommend using [Supabase](https://supabase.com/) for the production database. It offers a generous free tier with a 500MB PostgreSQL database.
-*Alternative: [Neon](https://neon.tech/) also offers a great "Serverless Postgres" free tier.*
+_Alternative: [Neon](https://neon.tech/) also offers a great "Serverless Postgres" free tier._
 
 1. Create a new Supabase project.
 2. Navigate to **Project Settings -> Database**.
 3. Scroll down to **Connection String -> URI**.
-4. Important: Ensure you are using the **Session** connection pooling (Port `5432`). 
-   - *Why?* The backend application utilizes standard `pg.Pool` alongside Prisma's `pg-adapter` which effectively manages connection pooling on the server side. You do not need transaction pooling (pgbouncer) for this setup.
+4. Important: Ensure you are using the **Session** connection pooling (Port `5432`).
+   - _Why?_ The backend application utilizes standard `pg.Pool` alongside Prisma's `pg-adapter` which effectively manages connection pooling on the server side. You do not need transaction pooling (pgbouncer) for this setup.
 5. In your production environment variables (e.g., Render, Railway), set the `DATABASE_URL` to this Session connection string.
 
 ### 2. API Backend (Render)
+
 Deploy the NestJS backend to a Node.js hosting provider such as [Render](https://render.com/), [Koyeb](https://www.koyeb.com/), or [Fly.io](https://fly.io/). Render offers a solid free tier with WebSocket support.
+
 - Ensure the `DATABASE_URL` is set to your Supabase Session string.
 - Set the `CORS_ORIGIN` to your deployed frontend URL.
 - **Turborepo specific:** Make sure to set the Build Command to `pnpm build --filter=api` (or similar depending on platform) and the Root Directory appropriately if needed.
 
 ### 3. Web Frontend (Vercel)
+
 Connect the GitHub repository to **[Vercel](https://vercel.com/)** (for `apps/web`) to deploy the Next.js application. Their free Hobby tier requires zero configuration for Next.js inside Turborepo.
+
 - Set the `NEXT_PUBLIC_API_URL` to your deployed backend URL. This ensures the WebSocket connections are properly routed to the live API.

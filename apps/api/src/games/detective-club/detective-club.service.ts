@@ -25,12 +25,15 @@ export class DetectiveClubService {
       const imagesDir = path.join(process.cwd(), '..', 'web', 'public', 'images', 'detective-club');
       if (fs.existsSync(imagesDir)) {
         const files = fs.readdirSync(imagesDir);
-        this.availableCards = files.filter(file => 
-          file.toLowerCase().endsWith('.jpg') || 
-          file.toLowerCase().endsWith('.png') || 
-          file.toLowerCase().endsWith('.jpeg')
+        this.availableCards = files.filter(
+          (file) =>
+            file.toLowerCase().endsWith('.jpg') ||
+            file.toLowerCase().endsWith('.png') ||
+            file.toLowerCase().endsWith('.jpeg'),
         );
-        this.logger.log(`Loaded ${this.availableCards.length} detective club cards from ${imagesDir}`);
+        this.logger.log(
+          `Loaded ${this.availableCards.length} detective club cards from ${imagesDir}`,
+        );
       } else {
         this.logger.warn(`Detective club images directory not found at ${imagesDir}`);
       }
@@ -43,12 +46,12 @@ export class DetectiveClubService {
       if (!state.deck || state.deck.length === 0) {
         // Reshuffle discard pile into deck, keeping an initial randomized state if empty
         if (state.discardPile && state.discardPile.length > 0) {
-           state.deck = [...state.discardPile].sort(() => 0.5 - Math.random());
-           state.discardPile = [];
+          state.deck = [...state.discardPile].sort(() => 0.5 - Math.random());
+          state.discardPile = [];
         } else {
-           // Fallback: refill with all available cards if everything is empty
-           state.deck = [...this.availableCards].sort(() => 0.5 - Math.random());
-           state.discardPile = [];
+          // Fallback: refill with all available cards if everything is empty
+          state.deck = [...this.availableCards].sort(() => 0.5 - Math.random());
+          state.discardPile = [];
         }
       }
 
@@ -70,7 +73,6 @@ export class DetectiveClubService {
     const shuffledPlayers = [...room.players].sort(() => 0.5 - Math.random());
     const informer = shuffledPlayers[0];
     const conspirator = shuffledPlayers[1];
-    const detectives = shuffledPlayers.slice(2);
 
     const deck = [...this.availableCards].sort(() => 0.5 - Math.random());
     const discardPile: string[] = [];
@@ -102,7 +104,7 @@ export class DetectiveClubService {
         playedCards: [],
         votedFor: null,
       };
-      
+
       this.drawCards(state, playersRecord[player.socketId], 5);
     });
 
@@ -123,13 +125,13 @@ export class DetectiveClubService {
     state.currentPhase = DetectiveClubPhase.PLAYING_ROUND_1;
 
     // Generate play order starting from Informer
-    const playerIds = room.players.map(p => p.socketId);
+    const playerIds = room.players.map((p) => p.socketId);
     const informerIndex = playerIds.indexOf(state.informerId);
     state.playOrder = [];
     for (let i = 0; i < playerIds.length; i++) {
       state.playOrder.push(playerIds[(informerIndex + i) % playerIds.length]);
     }
-    
+
     state.activePlayerId = state.informerId;
 
     return room;
@@ -161,9 +163,11 @@ export class DetectiveClubService {
     const currentIndex = state.playOrder.indexOf(playerId);
     let nextIndex = (currentIndex + 1) % state.playOrder.length;
     let nextPlayerId = state.playOrder[nextIndex];
-    
+
     // Skip disconnected players to avoid soft-lock
-    const activePlayerIds = new Set(room.players.filter(p => p.connected !== false).map(p => p.socketId));
+    const activePlayerIds = new Set(
+      room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
+    );
     let skippedCount = 0;
     while (!activePlayerIds.has(nextPlayerId) && skippedCount < state.playOrder.length) {
       nextIndex = (nextIndex + 1) % state.playOrder.length;
@@ -174,14 +178,16 @@ export class DetectiveClubService {
     // Check if round is over (back to the starter of the round, or the next available player if starter left)
     // Actually, round is over when we've cycled back to the starting position (index 0 is starter).
     // If nextIndex wrap-around or skipped over 0, we move to the next phase.
-    if (nextIndex <= currentIndex && skippedCount > 0 || nextIndex === 0) {
+    if ((nextIndex <= currentIndex && skippedCount > 0) || nextIndex === 0) {
       if (state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1) {
         state.currentPhase = DetectiveClubPhase.PLAYING_ROUND_2;
         // Informer starts again, or next active
-        state.activePlayerId = state.playOrder.find(id => activePlayerIds.has(id)) || state.playOrder[0];
+        state.activePlayerId =
+          state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
       } else {
         state.currentPhase = DetectiveClubPhase.DISCUSSION;
-        state.activePlayerId = state.playOrder.find(id => activePlayerIds.has(id)) || state.playOrder[0];
+        state.activePlayerId =
+          state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
       }
     } else {
       state.activePlayerId = nextPlayerId;
@@ -199,7 +205,7 @@ export class DetectiveClubService {
       if (room.roomHostId !== requesterId) return null;
       state.currentPhase = DetectiveClubPhase.VOTING;
     }
-    
+
     return room;
   }
 
@@ -221,9 +227,11 @@ export class DetectiveClubService {
 
     // Check if everyone (except Informer) has voted
     // Only wait for players who are still in the room to prevent softlocks
-    const activePlayerIds = new Set(room.players.map(p => p.socketId));
-    const votingPlayers = Object.values(state.players).filter(p => p.role !== DetectiveClubRole.INFORMER && activePlayerIds.has(p.id));
-    const allVoted = votingPlayers.every(p => p.votedFor !== null);
+    const activePlayerIds = new Set(room.players.map((p) => p.socketId));
+    const votingPlayers = Object.values(state.players).filter(
+      (p) => p.role !== DetectiveClubRole.INFORMER && activePlayerIds.has(p.id),
+    );
+    const allVoted = votingPlayers.every((p) => p.votedFor !== null);
 
     if (allVoted && votingPlayers.length > 0) {
       this.calculateScore(room);
@@ -238,8 +246,13 @@ export class DetectiveClubService {
     state.scoreDeltas = {};
 
     let conspiratorVotes = 0;
-    const votingPlayers = Object.values(state.players).filter(p => p.role !== DetectiveClubRole.INFORMER);
-    
+    const activePlayerIds = new Set(
+      room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
+    );
+    const votingPlayers = Object.values(state.players).filter(
+      (p) => p.role !== DetectiveClubRole.INFORMER && activePlayerIds.has(p.id),
+    );
+
     votingPlayers.forEach((p: DetectiveClubPlayer) => {
       if (p.votedFor === state.conspiratorId) {
         conspiratorVotes++;
@@ -262,16 +275,18 @@ export class DetectiveClubService {
     if (conspiratorVotes <= 1) {
       if (state.players[state.conspiratorId!]) {
         state.players[state.conspiratorId!].score += SCORE_CONSPIRATOR_WIN;
-        state.scoreDeltas![state.conspiratorId!] = (state.scoreDeltas![state.conspiratorId!] || 0) + SCORE_CONSPIRATOR_WIN;
+        state.scoreDeltas![state.conspiratorId!] =
+          (state.scoreDeltas![state.conspiratorId!] || 0) + SCORE_CONSPIRATOR_WIN;
       }
       if (state.players[state.informerId!]) {
         state.players[state.informerId!].score += SCORE_INFORMER_WIN;
-        state.scoreDeltas![state.informerId!] = (state.scoreDeltas![state.informerId!] || 0) + SCORE_INFORMER_WIN;
+        state.scoreDeltas![state.informerId!] =
+          (state.scoreDeltas![state.informerId!] || 0) + SCORE_INFORMER_WIN;
       }
     }
 
     // Initialize 0 deltas for players who didn't gain points
-    Object.values(state.players).forEach(p => {
+    Object.values(state.players).forEach((p) => {
       if (state.scoreDeltas![p.id] === undefined) {
         state.scoreDeltas![p.id] = 0;
       }
@@ -279,7 +294,7 @@ export class DetectiveClubService {
 
     // Update RoomState players copy for consistency
     Object.values(state.players).forEach((p: DetectiveClubPlayer) => {
-      const roomPlayer = room.players.find(rp => rp.socketId === p.id);
+      const roomPlayer = room.players.find((rp) => rp.socketId === p.id);
       if (roomPlayer) {
         roomPlayer.score = p.score;
       }
@@ -289,12 +304,12 @@ export class DetectiveClubService {
   nextRound(room: RoomState, requesterId: string): RoomState | null {
     if (!room.detectiveClubState) return null;
     if (room.roomHostId !== requesterId) return null;
-    
+
     const state = room.detectiveClubState;
     if (state.currentPhase !== DetectiveClubPhase.SCORING) return null;
 
     // Rotate Informer
-    const playerIds = room.players.map(p => p.socketId);
+    const playerIds = room.players.map((p) => p.socketId);
     let nextInformerId = state.informerId!;
     const currentIndex = playerIds.indexOf(state.informerId!);
     if (currentIndex !== -1) {
@@ -303,12 +318,19 @@ export class DetectiveClubService {
       nextInformerId = playerIds[0]!;
     }
 
-    // Assign new roles
-    const nonInformerPlayers = playerIds.filter(id => id !== nextInformerId);
+    const nonInformerPlayers = playerIds.filter((id) => id !== nextInformerId);
+    if (nonInformerPlayers.length === 0) return null;
     const randomConspiratorIndex = Math.floor(Math.random() * nonInformerPlayers.length);
     const nextConspiratorId = nonInformerPlayers[randomConspiratorIndex]!;
 
     if (!state.discardPile) state.discardPile = [];
+
+    const activePlayerIds = new Set(
+      room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
+    );
+    Object.keys(state.players).forEach((id) => {
+      if (!activePlayerIds.has(id)) delete state.players[id];
+    });
 
     Object.values(state.players).forEach((p: DetectiveClubPlayer) => {
       // Move played cards to discard pile before clearing
@@ -319,11 +341,11 @@ export class DetectiveClubService {
       p.role = DetectiveClubRole.DETECTIVE;
       if (p.id === nextInformerId) p.role = DetectiveClubRole.INFORMER;
       if (p.id === nextConspiratorId) p.role = DetectiveClubRole.CONSPIRATOR;
-      
+
       // Keep hand, keep score, reset playedCards and votedFor
       // Refill hand to 5 if it isn't (it should be 5 because we draw after play, but let's be safe)
       while (p.hand.length < 5) this.drawCards(state, p, 1);
-      
+
       p.playedCards = [];
       p.votedFor = null;
     });
@@ -335,6 +357,20 @@ export class DetectiveClubService {
     state.activePlayerId = null;
     state.playOrder = [];
     state.round1StarterId = nextInformerId;
+
+    return room;
+  }
+
+  reset(room: RoomState, requesterId: string): RoomState | null {
+    if (!room.detectiveClubState) return null;
+    if (room.roomHostId !== requesterId) return null;
+
+    room.status = RoomStatus.LOBBY;
+    room.detectiveClubState = undefined;
+
+    room.players.forEach((p) => {
+      p.score = 0;
+    });
 
     return room;
   }

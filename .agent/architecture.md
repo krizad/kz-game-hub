@@ -2,17 +2,17 @@
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Monorepo | Turborepo + pnpm | turbo ^2.0, pnpm 9.1 |
-| Backend | NestJS + Socket.io | - |
-| Frontend | Next.js (App Router) | 14+ |
-| State Management | Zustand | - |
-| ORM | Prisma + PostgreSQL | - |
-| UI Components | Shadcn/UI + Tailwind CSS | - |
-| Animations | Framer Motion | - |
-| Language | TypeScript | ^5.4 |
-| Node.js | - | ≥20.19 |
+| Layer            | Technology               | Version              |
+| ---------------- | ------------------------ | -------------------- |
+| Monorepo         | Turborepo + pnpm         | turbo ^2.0, pnpm 9.1 |
+| Backend          | NestJS + Socket.io       | -                    |
+| Frontend         | Next.js (App Router)     | 14+                  |
+| State Management | Zustand                  | -                    |
+| ORM              | Prisma + PostgreSQL      | -                    |
+| UI Components    | Shadcn/UI + Tailwind CSS | -                    |
+| Animations       | Framer Motion            | -                    |
+| Language         | TypeScript               | ^5.4                 |
+| Node.js          | -                        | ≥20.19               |
 
 ---
 

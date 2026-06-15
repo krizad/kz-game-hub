@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GobblerService } from './gobbler.service';
-import { RoomState, RoomStatus, GameType, PlayerSide, GobblerState } from '@repo/types';
+import { RoomState, RoomStatus, GameType } from '@repo/types';
 
 describe('GobblerService', () => {
   let service: GobblerService;
@@ -22,7 +22,7 @@ describe('GobblerService', () => {
       const room = {
         gameType: GameType.GOBBLER_TIC_TAC_TOE,
         status: RoomStatus.LOBBY,
-        gobblerState: {}
+        gobblerState: {},
       } as unknown as RoomState;
 
       let result = service.joinSide(room, 'p1', 'X');
@@ -48,10 +48,10 @@ describe('GobblerService', () => {
           board: Array.from({ length: 9 }, () => []),
           inventory: {
             X: [{ id: 'piece1', size: 'SMALL', side: 'X' }],
-            O: []
+            O: [],
           },
-          scores: { X: 0, O: 0 }
-        }
+          scores: { X: 0, O: 0 },
+        },
       } as unknown as RoomState;
 
       const result = service.placePiece(room, 'p1', 'piece1', 0);
@@ -64,7 +64,7 @@ describe('GobblerService', () => {
     });
 
     it('should result in a win when placing a row of 3', () => {
-       const room = {
+      const room = {
         players: [{ socketId: 'p1', score: 0 }],
         gameType: GameType.GOBBLER_TIC_TAC_TOE,
         status: RoomStatus.PLAYING,
@@ -75,14 +75,20 @@ describe('GobblerService', () => {
           board: [
             [{ id: 'piece1', size: 'LARGE', side: 'X' }],
             [{ id: 'piece2', size: 'LARGE', side: 'X' }],
-            [], [], [], [], [], [], []
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
           ],
           inventory: {
             X: [{ id: 'piece3', size: 'LARGE', side: 'X' }],
-            O: []
+            O: [],
           },
-          scores: { X: 0, O: 0 }
-        }
+          scores: { X: 0, O: 0 },
+        },
       } as unknown as RoomState;
 
       const result = service.placePiece(room, 'p1', 'piece3', 2);
@@ -94,8 +100,8 @@ describe('GobblerService', () => {
   });
 
   describe('movePiece', () => {
-     it('should move a piece on the board and check win status', () => {
-        const room = {
+    it('should move a piece on the board and check win status', () => {
+      const room = {
         players: [{ socketId: 'p1', score: 0 }],
         gameType: GameType.GOBBLER_TIC_TAC_TOE,
         status: RoomStatus.PLAYING,
@@ -106,39 +112,43 @@ describe('GobblerService', () => {
           board: [
             [{ id: 'piece1', size: 'LARGE', side: 'X' }],
             [{ id: 'piece2', size: 'LARGE', side: 'X' }],
-            [], 
-            [{ id: 'piece3', size: 'LARGE', side: 'X' }], 
-            [], [], [], [], []
+            [],
+            [{ id: 'piece3', size: 'LARGE', side: 'X' }],
+            [],
+            [],
+            [],
+            [],
+            [],
           ],
           inventory: { X: [], O: [] },
-          scores: { X: 0, O: 0 }
-        }
+          scores: { X: 0, O: 0 },
+        },
       } as unknown as RoomState;
 
       const result = service.movePiece(room, 'p1', 3, 2);
       expect(result).not.toBeNull();
       expect(result!.status).toBe(RoomStatus.RESULT);
       expect(result!.gobblerState!.winner).toBe('X');
-     });
+    });
   });
 
   describe('reset', () => {
-     it('should reset game to playing if both players present', () => {
-       const room = {
+    it('should reset game to playing if both players present', () => {
+      const room = {
         gameType: GameType.GOBBLER_TIC_TAC_TOE,
         status: RoomStatus.RESULT,
         gobblerState: {
-           playerXId: 'p1',
-           playerOId: 'p2',
-           winner: 'X'
-        }
-       } as unknown as RoomState;
+          playerXId: 'p1',
+          playerOId: 'p2',
+          winner: 'X',
+        },
+      } as unknown as RoomState;
 
-       const result = service.reset(room, 'p1');
-       expect(result).not.toBeNull();
-       expect(result!.status).toBe(RoomStatus.PLAYING);
-       expect(result!.gobblerState!.currentTurn).toBe('O'); // Loser goes first
-       expect(result!.gobblerState!.inventory.X.length).toBe(6);
-     });
+      const result = service.reset(room, 'p1');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.gobblerState!.currentTurn).toBe('O'); // Loser goes first
+      expect(result!.gobblerState!.inventory.X.length).toBe(6);
+    });
   });
 });

@@ -1,7 +1,7 @@
 export enum Role {
-  Host = "Host",
-  Know = "Know",
-  Unknow = "Unknow",
+  Host = 'Host',
+  Know = 'Know',
+  Unknow = 'Unknow',
 }
 
-export type WinningTeam = "INSIDER" | "COMMONERS" | "TIMEOUT";
+export type WinningTeam = 'INSIDER' | 'COMMONERS' | 'TIMEOUT';

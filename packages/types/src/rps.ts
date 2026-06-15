@@ -1,4 +1,4 @@
-export type RPSChoice = "ROCK" | "PAPER" | "SCISSORS";
+export type RPSChoice = 'ROCK' | 'PAPER' | 'SCISSORS';
 
 export interface RPSState {
   activePlayers: string[]; // socketIds

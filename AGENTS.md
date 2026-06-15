@@ -17,10 +17,10 @@ pnpm format             # Prettier (no custom config; default settings)
 
 A single root `.env` feeds ALL apps. Do NOT create per-app `.env` files — the code won't read them:
 
-| Consumer | Loading code |
-|----------|-------------|
-| `apps/web` | `next.config.mjs` → `dotenv.config({ path: '../../.env' })` |
-| `apps/api` | `src/main.ts` → `dotenv.config({ path: '../../../.env' })` |
+| Consumer            | Loading code                                                 |
+| ------------------- | ------------------------------------------------------------ |
+| `apps/web`          | `next.config.mjs` → `dotenv.config({ path: '../../.env' })`  |
+| `apps/api`          | `src/main.ts` → `dotenv.config({ path: '../../../.env' })`   |
 | `packages/database` | `prisma.config.ts` → `dotenv.config({ path: '../../.env' })` |
 
 Copy `.env.example` to `.env` at the repo root.
@@ -50,12 +50,12 @@ Missing any one breaks the chain. Also rebuild `@repo/types` after changing even
 
 ## Monorepo boundaries
 
-| Package | What it contains | Import rules |
-|---------|-----------------|--------------|
-| `@repo/types` | All shared types, enums, `SOCKET_EVENTS` | Imported by both `api` and `web` |
-| `@repo/database` | Prisma client + schema | Imported by `api` only |
-| `apps/web` | Next.js frontend | Must NOT import from `apps/api` |
-| `apps/api` | NestJS backend | Must NOT import from `apps/web` |
+| Package          | What it contains                         | Import rules                     |
+| ---------------- | ---------------------------------------- | -------------------------------- |
+| `@repo/types`    | All shared types, enums, `SOCKET_EVENTS` | Imported by both `api` and `web` |
+| `@repo/database` | Prisma client + schema                   | Imported by `api` only           |
+| `apps/web`       | Next.js frontend                         | Must NOT import from `apps/api`  |
+| `apps/api`       | NestJS backend                           | Must NOT import from `apps/web`  |
 
 ## Game module pattern
 
@@ -81,6 +81,7 @@ No frontend tests exist.
 ## Existing agent docs
 
 Detailed docs live in `.agent/`:
+
 - `.agent/agent.md` — identity, behavior guidelines, key file refs
 - `.agent/architecture.md` — full architecture with data flow diagram
 - `.agent/infrastructure.md` — scripts, ports, deployment

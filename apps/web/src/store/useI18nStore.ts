@@ -15,6 +15,6 @@ export const useI18nStore = create<I18nState>()(
     }),
     {
       name: 'who-know-language',
-    }
-  )
+    },
+  ),
 );

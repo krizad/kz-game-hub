@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export function CountdownTimer({ endTime }: { endTime?: number }) {
   const [timeLeft, setTimeLeft] = useState(0);
@@ -23,7 +23,7 @@ export function CountdownTimer({ endTime }: { endTime?: number }) {
 
   return (
     <span>
-      {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+      {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
     </span>
   );
 }

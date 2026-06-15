@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DetectiveClubService } from './detective-club.service';
-import { RoomState, RoomStatus, DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
+import { RoomState, RoomStatus, DetectiveClubPhase } from '@repo/types';
 
 describe('DetectiveClubService', () => {
   let service: DetectiveClubService;
@@ -43,7 +43,7 @@ describe('DetectiveClubService', () => {
         players: [
           { socketId: 'p1', score: 0 },
           { socketId: 'p2', score: 0 },
-          { socketId: 'p3', score: 0 }
+          { socketId: 'p3', score: 0 },
         ],
         roomHostId: 'p1',
       } as unknown as RoomState;
@@ -51,7 +51,7 @@ describe('DetectiveClubService', () => {
       const result = service.startGame(room, 'p1');
       expect(result).not.toBeNull();
       expect(result!.status).toBe(RoomStatus.PLAYING);
-      
+
       const state = result!.detectiveClubState!;
       expect(state).toBeDefined();
       expect(state.currentPhase).toBe(DetectiveClubPhase.SETUP);
@@ -66,7 +66,7 @@ describe('DetectiveClubService', () => {
         detectiveClubState: {
           currentPhase: DetectiveClubPhase.SETUP,
           informerId: 'p1',
-        }
+        },
       } as unknown as RoomState;
 
       const result = service.submitWord(room, 'p2', 'apple');
@@ -75,15 +75,11 @@ describe('DetectiveClubService', () => {
 
     it('should submit word and advance phase', () => {
       const room = {
-        players: [
-          { socketId: 'p1' },
-          { socketId: 'p2' },
-          { socketId: 'p3' }
-        ],
+        players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
         detectiveClubState: {
           currentPhase: DetectiveClubPhase.SETUP,
           informerId: 'p1',
-        }
+        },
       } as unknown as RoomState;
 
       const result = service.submitWord(room, 'p1', 'apple');
@@ -101,7 +97,7 @@ describe('DetectiveClubService', () => {
         roomHostId: 'p1',
         detectiveClubState: {
           currentPhase: DetectiveClubPhase.DISCUSSION,
-        }
+        },
       } as unknown as RoomState;
 
       const result = service.nextPhase(room, 'p1');
@@ -114,7 +110,7 @@ describe('DetectiveClubService', () => {
         roomHostId: 'p1',
         detectiveClubState: {
           currentPhase: DetectiveClubPhase.DISCUSSION,
-        }
+        },
       } as unknown as RoomState;
 
       const result = service.nextPhase(room, 'p2');

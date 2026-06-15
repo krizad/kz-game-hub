@@ -11,7 +11,7 @@ export default function NotFound() {
         <p className="text-slate-500 mb-8">
           The room you're looking for doesn't exist or the link is invalid.
         </p>
-        <Link 
+        <Link
           href="/"
           className="inline-block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/20"
         >

@@ -23,7 +23,7 @@ describe('RPSService', () => {
         players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
         roomHostId: 'p1',
         config: { rpsMode: '1V1' },
-        rpsState: {}
+        rpsState: {},
       } as unknown as RoomState;
 
       const result = service.assignRoles(room, 'p1');
@@ -38,7 +38,7 @@ describe('RPSService', () => {
         players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
         roomHostId: 'p1',
         config: { rpsMode: 'ALL_AT_ONCE' },
-        rpsState: {}
+        rpsState: {},
       } as unknown as RoomState;
 
       const result = service.assignRoles(room, 'p1');
@@ -57,15 +57,15 @@ describe('RPSService', () => {
         players: [
           { socketId: 'p1', connected: true },
           { socketId: 'p2', connected: true },
-          { socketId: 'p3', connected: true }
+          { socketId: 'p3', connected: true },
         ],
         config: { rpsMode: '1V1', rpsBestOf: 3 },
         rpsState: {
           activePlayers: ['p1', 'p2'],
           queue: ['p3'],
           choices: {},
-          scores: { p1: 0, p2: 0, p3: 0 }
-        }
+          scores: { p1: 0, p2: 0, p3: 0 },
+        },
       } as unknown as RoomState;
 
       // P1 chooses ROCK
@@ -75,7 +75,7 @@ describe('RPSService', () => {
       // P2 chooses SCISSORS
       result = service.makeChoice(room, 'p2', 'SCISSORS');
       expect(result!.status).toBe(RoomStatus.RESULT);
-      
+
       const rps = result!.rpsState!;
       expect(rps.roundWinner).toBe('p1');
       expect(rps.scores['p1']).toBe(1);
@@ -92,15 +92,15 @@ describe('RPSService', () => {
         players: [
           { socketId: 'p1', connected: true },
           { socketId: 'p2', connected: true },
-          { socketId: 'p3', connected: true }
+          { socketId: 'p3', connected: true },
         ],
         config: { rpsMode: 'ALL_AT_ONCE', rpsBestOf: 3 },
         rpsState: {
           activePlayers: ['p1', 'p2', 'p3'],
           queue: [],
           choices: {},
-          scores: { p1: 0, p2: 0, p3: 0 }
-        }
+          scores: { p1: 0, p2: 0, p3: 0 },
+        },
       } as unknown as RoomState;
 
       service.makeChoice(room, 'p1', 'ROCK');
@@ -113,21 +113,21 @@ describe('RPSService', () => {
     });
 
     it('should determine DRAW if all choices are present', () => {
-       const room = {
+      const room = {
         gameType: GameType.RPS,
         status: RoomStatus.PLAYING,
         players: [
           { socketId: 'p1', connected: true },
           { socketId: 'p2', connected: true },
-          { socketId: 'p3', connected: true }
+          { socketId: 'p3', connected: true },
         ],
         config: { rpsMode: 'ALL_AT_ONCE', rpsBestOf: 3 },
         rpsState: {
           activePlayers: ['p1', 'p2', 'p3'],
           queue: [],
           choices: {},
-          scores: { p1: 0, p2: 0, p3: 0 }
-        }
+          scores: { p1: 0, p2: 0, p3: 0 },
+        },
       } as unknown as RoomState;
 
       service.makeChoice(room, 'p1', 'ROCK');
@@ -145,7 +145,7 @@ describe('RPSService', () => {
         gameType: GameType.RPS,
         status: RoomStatus.RESULT,
         players: [{ socketId: 'p1', score: 5 }],
-        roomHostId: 'p1'
+        roomHostId: 'p1',
       } as unknown as RoomState;
 
       const result = service.reset(room, 'p1');

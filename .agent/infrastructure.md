@@ -4,12 +4,12 @@
 
 ### Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Node.js | ≥20.19.0 | Runtime |
-| pnpm | 9.1.0 | Package Manager |
-| Docker | Latest | PostgreSQL Database |
-| Turborepo | ^2.0.0 | Monorepo Build Orchestration |
+| Tool      | Version  | Purpose                      |
+| --------- | -------- | ---------------------------- |
+| Node.js   | ≥20.19.0 | Runtime                      |
+| pnpm      | 9.1.0    | Package Manager              |
+| Docker    | Latest   | PostgreSQL Database          |
+| Turborepo | ^2.0.0   | Monorepo Build Orchestration |
 
 ### Quick Start
 
@@ -22,18 +22,18 @@ pnpm dev
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all apps in dev mode (via Turborepo) |
-| `pnpm build` | Build all apps for production |
-| `pnpm lint` | Lint all apps |
-| `pnpm format` | Format all files with Prettier |
-| `pnpm db:generate` | Generate Prisma Client |
-| `pnpm db:migrate` | Run Prisma migrations |
-| `pnpm db:push` | Push schema to DB (no migration) |
-| `pnpm db:studio` | Open Prisma Studio GUI |
-| `pnpm db:seed` | Seed database (Sounds Fishy questions) |
-| `pnpm start` | Start all apps in production mode |
+| Command            | Description                                |
+| ------------------ | ------------------------------------------ |
+| `pnpm dev`         | Start all apps in dev mode (via Turborepo) |
+| `pnpm build`       | Build all apps for production              |
+| `pnpm lint`        | Lint all apps                              |
+| `pnpm format`      | Format all files with Prettier             |
+| `pnpm db:generate` | Generate Prisma Client                     |
+| `pnpm db:migrate`  | Run Prisma migrations                      |
+| `pnpm db:push`     | Push schema to DB (no migration)           |
+| `pnpm db:studio`   | Open Prisma Studio GUI                     |
+| `pnpm db:seed`     | Seed database (Sounds Fishy questions)     |
+| `pnpm start`       | Start all apps in production mode          |
 
 ### Turborepo Pipeline
 
@@ -42,11 +42,11 @@ pnpm dev
 
 ### Default Ports
 
-| App | Port | URL |
-|-----|------|-----|
-| Web (Next.js) | 3000 | `http://localhost:3000` |
-| API (NestJS) | 3001 | `http://localhost:3001` |
-| PostgreSQL | 5432 | `postgresql://localhost:5432` |
+| App           | Port | URL                           |
+| ------------- | ---- | ----------------------------- |
+| Web (Next.js) | 3000 | `http://localhost:3000`       |
+| API (NestJS)  | 3001 | `http://localhost:3001`       |
+| PostgreSQL    | 5432 | `postgresql://localhost:5432` |
 
 ---
 
@@ -99,10 +99,10 @@ PORT=3001
 
 ## Database Schema
 
-| Model | Purpose |
-|-------|---------|
-| `Room` | ห้องเกม (reference — ใช้ In-Memory Map เป็นหลัก) |
-| `User` | ผู้เล่นในห้อง ผูกกับ socketId |
-| `SoundsFishyQuestion` | คลังคำถามเกม Sounds Fishy (seed data) |
+| Model                 | Purpose                                          |
+| --------------------- | ------------------------------------------------ |
+| `Room`                | ห้องเกม (reference — ใช้ In-Memory Map เป็นหลัก) |
+| `User`                | ผู้เล่นในห้อง ผูกกับ socketId                    |
+| `SoundsFishyQuestion` | คลังคำถามเกม Sounds Fishy (seed data)            |
 
 > Room state จริงเก็บใน In-Memory `Map<string, RoomState>` ภายใน `GamesService`
