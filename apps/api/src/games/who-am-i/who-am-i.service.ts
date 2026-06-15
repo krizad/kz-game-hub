@@ -104,7 +104,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             responseMimeType: 'application/json',
           },
         });
-      } catch (err) {
+      } catch {
         console.log('gemini-2.5-flash failed, falling back to gemini-1.5-flash...');
         response = await ai.models.generateContent({
           model: 'gemini-1.5-flash',
@@ -124,7 +124,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
           .replace(/```/g, '')
           .trim();
         words = JSON.parse(cleanText);
-      } catch (e) {
+      } catch {
         console.error('Failed to parse AI response', responseText);
         return null;
       }

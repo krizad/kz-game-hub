@@ -23,6 +23,13 @@ export function LobbyRules() {
             </div>
           </li>
           <li className="flex gap-3 items-start bg-white/50 p-3 rounded-lg border border-amber-200">
+            <span className="text-pink-400 mt-0.5 flex-shrink-0 text-xl leading-none">🤔</span>
+            <div>
+              <strong className="text-slate-800 block mb-1">{t('lobby.gameNames.whoAmI')}</strong>
+              {t('rules.lobby.whoAmIDesc')}
+            </div>
+          </li>
+          <li className="flex gap-3 items-start bg-white/50 p-3 rounded-lg border border-amber-200">
             <span className="text-blue-400 mt-0.5 flex-shrink-0 text-xl leading-none">❌⭕️</span>
             <div>
               <strong className="text-slate-800 block mb-1">{t('lobby.gameNames.gobbler')}</strong>

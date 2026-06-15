@@ -18,6 +18,7 @@ export const en: Dictionary = {
       ticTacToe: 'Classic Tic Tac Toe',
       handDuel: 'Hand Duel',
       soundsFishy: 'Sounds Fishy',
+      whoAmI: 'Who Am I',
     },
     or: 'OR',
     roomCodePlaceholder: 'ROOM CODE',
@@ -85,6 +86,7 @@ export const en: Dictionary = {
         ticTacToe: 'Tic Tac Toe',
         handDuel: 'Hand Duel',
         soundsFishy: 'Sounds Fishy',
+        whoAmI: 'Who Am I',
       },
       closeBtn: "Got it, let's play!",
     },
@@ -101,6 +103,7 @@ export const en: Dictionary = {
       handDuelDesc:
         'An intense, competitive version of Rock Paper Scissors. Play in 1v1 Round Robin or Chaotic All-at-Once modes!',
       soundsFishyDesc: 'A fast-paced bluffing party game where one player tries to spot the liars.',
+      whoAmIDesc: 'A classic party game where players try to guess the word assigned to them by asking yes/no questions.',
     },
     whoKnow: {
       setupTitle: 'The Setup',
@@ -196,6 +199,18 @@ export const en: Dictionary = {
       scoreBank: 'Bank Points: End your turn immediately and secure the points in the pool.',
       scoreBlueFish:
         'Catch the Blue Fish: You get 0 points. Blue Fish gets +1 for every surviving Red Herring. Each surviving Red Herring gets +1.',
+    },
+    whoAmI: {
+      title: 'Who Am I',
+      desc: 'A classic party game where players try to guess the word assigned to them by asking yes/no questions.',
+      setupTitle: 'Setup',
+      setupDesc: 'Every player writes a word and submits it. Words are shuffled and assigned to each player. You can see everyone\'s word except your own!',
+      gameplayTitle: 'Gameplay',
+      gameplayDesc: 'Players take turns asking a yes/no question out loud to the group to figure out their word. The group votes Yes, No, or Maybe.',
+      guessingTitle: 'Guessing',
+      guessingDesc: 'You can make one guess during your turn. If you guess right, you win that round! If you\'re wrong, you continue to play but lose your ability to guess again.',
+      endgameTitle: 'Endgame',
+      endgameDesc: 'The game ends when everyone guesses their word or the game reaches the final round.',
     },
   },
   gameSoundsFishy: {

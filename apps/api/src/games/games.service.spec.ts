@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GamesService } from './games.service';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -394,7 +395,7 @@ describe('GamesService', () => {
     });
 
     it('should show Unknown for host name if host not in players', () => {
-      const room = service.createRoom('host1');
+      service.createRoom('host1');
       const available = service.getAvailableRooms();
       expect(available[0].hostName).toBe('Unknown');
     });
@@ -507,7 +508,7 @@ describe('GamesService', () => {
       const updatedRoom = { ...room, status: RoomStatus.PLAYING };
       whoAmIService.startGamePlayerInput.mockReturnValue(updatedRoom);
 
-      const result = await service.assignRoles(room.code, 'host1');
+      await service.assignRoles(room.code, 'host1');
 
       expect(whoAmIService.startGamePlayerInput).toHaveBeenCalledWith(room, 'host1');
     });

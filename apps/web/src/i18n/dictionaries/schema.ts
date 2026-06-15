@@ -16,6 +16,7 @@ export interface Dictionary {
       ticTacToe: string;
       handDuel: string;
       soundsFishy: string;
+      whoAmI: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -82,6 +83,7 @@ export interface Dictionary {
         ticTacToe: string;
         handDuel: string;
         soundsFishy: string;
+        whoAmI: string;
       };
       closeBtn: string;
     };
@@ -94,6 +96,7 @@ export interface Dictionary {
       ticTacToeDesc: string;
       handDuelDesc: string;
       soundsFishyDesc: string;
+      whoAmIDesc: string;
     };
     whoKnow: {
       setupTitle: string;
@@ -175,6 +178,18 @@ export interface Dictionary {
       scoreRedHerring: string;
       scoreBank: string;
       scoreBlueFish: string;
+    };
+    whoAmI: {
+      title: string;
+      desc: string;
+      setupTitle: string;
+      setupDesc: string;
+      gameplayTitle: string;
+      gameplayDesc: string;
+      guessingTitle: string;
+      guessingDesc: string;
+      endgameTitle: string;
+      endgameDesc: string;
     };
   };
   gameSoundsFishy: {
