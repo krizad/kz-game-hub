@@ -9,6 +9,7 @@ import { SoundsFishyService } from './sounds-fishy/sounds-fishy.service';
 import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
+import { WhoFirstService } from './who-first/who-first.service';
 
 @Module({
   providers: [
@@ -22,6 +23,7 @@ import { LeaderboardService } from './leaderboard/leaderboard.service';
     DetectiveClubService,
     WhoAmIService,
     LeaderboardService,
+    WhoFirstService,
   ],
 })
 export class GamesModule {}

@@ -16,6 +16,7 @@ import { GobblerService } from './gobbler/gobbler.service';
 import { SoundsFishyService } from './sounds-fishy/sounds-fishy.service';
 import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
+import { WhoFirstService } from './who-first/who-first.service';
 
 @Injectable()
 export class GamesService {
@@ -30,6 +31,7 @@ export class GamesService {
     private readonly soundsFishyService: SoundsFishyService,
     private readonly detectiveClubService: DetectiveClubService,
     private readonly whoAmIService: WhoAmIService,
+    private readonly whoFirstService: WhoFirstService,
   ) {}
 
   findRoomCodeBySocketId(socketId: string): string | null {
@@ -103,6 +105,16 @@ export class GamesService {
     } else if (gameType === GameType.WHO_AM_I) {
       room.config.maxRounds = 3;
       room.config.wordMode = 'RANDOM';
+    } else if (gameType === GameType.WHO_FIRST) {
+      room.config.whoFirstPenalty = true;
+      room.config.whoFirstHostPlays = false;
+      room.config.maxRounds = 5;
+      room.whoFirstState = {
+        phase: 'LOBBY',
+        presses: [],
+        currentRound: 1,
+        maxRounds: 5,
+      };
     }
 
     this.rooms.set(code, room);
@@ -254,6 +266,12 @@ export class GamesService {
           delete waState.wordSubmissions[oldSocketId];
         }
       }
+
+      if (room.whoFirstState) {
+        room.whoFirstState.presses.forEach((p) => {
+          if (p.socketId === oldSocketId) p.socketId = user.socketId;
+        });
+      }
     } else {
       room.players.push({
         ...user,
@@ -380,6 +398,12 @@ export class GamesService {
         updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
       }
 
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+    }
+
+    if (room.gameType === GameType.WHO_FIRST) {
+      const updatedRoom = this.whoFirstService.startGame(room, requesterId);
       if (updatedRoom) this.rooms.set(code, updatedRoom);
       return updatedRoom ? { room: updatedRoom, roles: {} } : null;
     }
@@ -688,6 +712,18 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const updatedRoom = this.whoAmIService.handleGameAction(room, clientId, action);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  whoFirstGameAction(
+    code: string,
+    clientId: string,
+    action: { type: any; payload?: any },
+  ): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.whoFirstService.handleGameAction(room, clientId, action);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }

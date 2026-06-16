@@ -18,6 +18,7 @@ import { GobblerView } from '@/components/games/gobbler/GobblerView';
 import { SoundsFishyView } from '@/components/games/sounds-fishy/SoundsFishyView';
 import { DetectiveClubView } from '@/components/games/detective-club/DetectiveClubView';
 import { WhoAmIView } from '@/components/games/who-am-i/WhoAmIView';
+import { WhoFirstView } from '@/components/games/who-first/WhoFirstView';
 import { useTranslate } from '@/hooks/useTranslate';
 
 // Components extracted to separate files
@@ -142,7 +143,7 @@ function GameLobby() {
 
               <button
                 onClick={() => joinRoom(joinCode)}
-                disabled={!myName || joinCode.length < 4}
+                disabled={!connected || !myName || joinCode.length < 4}
                 className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xl py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
               >
                 {t('lobby.enterGame')}
@@ -213,7 +214,7 @@ function GameLobby() {
             <div className="grid grid-cols-2 gap-3 mb-3">
               <button
                 onClick={() => createRoom(GameType.WHO_KNOW)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <span className="text-xl group-hover:scale-110 transition-transform">🕵️</span>
@@ -223,7 +224,7 @@ function GameLobby() {
               </button>
               <button
                 onClick={() => createRoom(GameType.SOUNDS_FISHY)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-purple-500/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <span className="text-xl group-hover:scale-110 transition-transform">🐟</span>
@@ -234,7 +235,7 @@ function GameLobby() {
             <div className="grid grid-cols-2 gap-3 mb-3">
               <button
                 onClick={() => createRoom(GameType.GOBBLER_TIC_TAC_TOE)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-blue-600/80 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-blue-500/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <div className="flex items-end justify-center gap-1.5 group-hover:scale-110 transition-transform h-7">
@@ -248,7 +249,7 @@ function GameLobby() {
               </button>
               <button
                 onClick={() => createRoom(GameType.TIC_TAC_TOE)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-zinc-600/80 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-zinc-500/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <span className="text-xl group-hover:scale-110 transition-transform">❌⭕️</span>
@@ -261,7 +262,7 @@ function GameLobby() {
             <div className="grid grid-cols-2 gap-3 mb-3">
               <button
                 onClick={() => createRoom(GameType.RPS)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-amber-600/80 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-amber-500/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <span className="text-xl group-hover:scale-110 transition-transform">✌️✊✋</span>
@@ -271,7 +272,7 @@ function GameLobby() {
               </button>
               <button
                 onClick={() => createRoom(GameType.DETECTIVE_CLUB)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-amber-200/80 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 font-bold py-3 rounded-xl transition-colors shadow-lg border border-amber-400/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <span className="text-xl group-hover:scale-110 transition-transform">🔍</span>
@@ -279,14 +280,22 @@ function GameLobby() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 mb-3">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <button
                 onClick={() => createRoom(GameType.WHO_AM_I)}
-                disabled={!myName}
+                disabled={!connected || !myName}
                 className="w-full bg-pink-600/80 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-pink-500/50 flex flex-col items-center justify-center gap-1 group"
               >
                 <span className="text-xl group-hover:scale-110 transition-transform">🤔❓</span>
                 <span className="text-xs tracking-wider text-center px-1">Who Am I</span>
+              </button>
+              <button
+                onClick={() => createRoom(GameType.WHO_FIRST)}
+                disabled={!connected || !myName}
+                className="w-full bg-emerald-600/80 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-emerald-500/50 flex flex-col items-center justify-center gap-1 group"
+              >
+                <span className="text-xl group-hover:scale-110 transition-transform">🛎️</span>
+                <span className="text-xs tracking-wider text-center px-1">Who First</span>
               </button>
             </div>
 
@@ -370,7 +379,9 @@ function GameLobby() {
                                     ? 'SOUNDS FISHY'
                                     : r.gameType === GameType.WHO_AM_I
                                       ? 'WHO AM I'
-                                      : t('lobby.gameNames.whoKnow').toUpperCase()}
+                                      : r.gameType === GameType.WHO_FIRST
+                                        ? 'WHO FIRST'
+                                        : t('lobby.gameNames.whoKnow').toUpperCase()}
                         </span>
                       </div>
                       <div className="text-slate-500 text-[10px] font-medium uppercase mt-0.5 tracking-wider flex items-center gap-1.5">
@@ -453,7 +464,9 @@ function GameLobby() {
                           ? 'Detective Club'
                           : room.gameType === GameType.WHO_AM_I
                             ? 'Who Am I'
-                            : t('lobby.gameNames.whoKnow')}
+                            : room.gameType === GameType.WHO_FIRST
+                              ? 'Who First'
+                              : t('lobby.gameNames.whoKnow')}
               </span>
               <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
                 {room.code}
@@ -574,6 +587,8 @@ function GameLobby() {
           <DetectiveClubView />
         ) : room.gameType === GameType.WHO_AM_I && room.status !== RoomStatus.LOBBY ? (
           <WhoAmIView />
+        ) : room.gameType === GameType.WHO_FIRST ? (
+          <WhoFirstView />
         ) : (
           <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-2 sm:gap-4">
             {/* Left: Players Table */}

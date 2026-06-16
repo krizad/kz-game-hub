@@ -5,6 +5,7 @@ import { WinningTeam, Role } from './who-know';
 import { SoundsFishyState } from './sounds-fishy';
 import { DetectiveClubState } from './detective-club';
 import { WhoAmIGameState } from './who-am-i';
+import { WhoFirstState } from './who-first';
 
 export enum RoomStatus {
   LOBBY = 'LOBBY',
@@ -23,6 +24,7 @@ export enum GameType {
   SOUNDS_FISHY = 'SOUNDS_FISHY',
   DETECTIVE_CLUB = 'DETECTIVE_CLUB',
   WHO_AM_I = 'WHO_AM_I',
+  WHO_FIRST = 'WHO_FIRST',
 }
 
 // Socket Constants
@@ -105,6 +107,10 @@ export interface RoomConfig {
   maxRounds?: number;
   wordMode?: 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT' | 'AI_GENERATED';
   wordCategory?: string;
+  // Who First config
+  whoFirstPenalty?: boolean;
+  whoFirstCooldownMs?: number;
+  whoFirstHostPlays?: boolean;
 }
 
 export interface RoomState {
@@ -125,6 +131,7 @@ export interface RoomState {
   soundsFishyState?: SoundsFishyState;
   detectiveClubState?: DetectiveClubState;
   whoAmIState?: WhoAmIGameState;
+  whoFirstState?: WhoFirstState;
 }
 
 export interface AvailableRoom {

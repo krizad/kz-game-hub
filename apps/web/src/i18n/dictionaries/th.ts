@@ -20,6 +20,7 @@ export const th: Dictionary = {
       soundsFishy: 'จับโกหกปลาเน่า (Sounds Fishy)',
       whoAmI: 'ฉันคือใคร (Who Am I)',
       detectiveClub: 'Detective Club',
+      whoFirst: 'ใครกดก่อน (Who First)',
     },
     or: 'หรือ',
     roomCodePlaceholder: 'รหัสห้อง',
@@ -88,6 +89,7 @@ export const th: Dictionary = {
         soundsFishy: 'จับโกหกปลาเน่า',
         whoAmI: 'ฉันคือใคร',
         detectiveClub: 'ดีเทคทีฟคลับ',
+        whoFirst: 'ใครกดก่อน',
       },
       closeBtn: 'เข้าใจแล้ว ลุยกันเลย!',
     },
@@ -109,6 +111,7 @@ export const th: Dictionary = {
         'ปาร์ตี้เกมสุดคลาสสิกที่ผู้เล่นต้องทายคำปริศนาบนหัวของตัวเองโดยการถามคำถาม ใช่/ไม่ใช่',
       detectiveClubDesc:
         'เกมแนวบลัฟฟิง + การตีความภาพ ผู้เล่นทุกคนรู้ "คำศัพท์" ยกเว้น Conspirator ที่ต้องเนียนตามน้ำให้ทัน',
+      whoFirstDesc: 'ใครเร็วกว่าคนนั้นชนะ! แข่งกันกดปุ่มให้เร็วที่สุดเมื่อสัญญาณดังขึ้น',
     },
     whoKnow: {
       setupTitle: 'การเริ่มต้น',
@@ -230,6 +233,10 @@ export const th: Dictionary = {
       scoringTitle: 'การให้คะแนน',
       caughtScoring: 'จับ Conspirator ได้: Detective ที่โหวตถูกได้ +3 แต้ม, Informer ได้ +3 แต้ม',
       escapedScoring: 'Conspirator หนีรอด: Conspirator ได้ +5 แต้ม, Informer ได้ 0 แต้ม',
+    },
+    whoFirst: {
+      title: 'ใครกดก่อน (Who First)',
+      desc: 'แข่งกันว่าใครมีปฏิกิริยาตอบสนองเร็วที่สุด!',
     },
   },
   gameSoundsFishy: {
@@ -422,5 +429,41 @@ export const th: Dictionary = {
   result: {
     winners: 'ผู้ชนะ',
     playAgain: 'เล่นอีกครั้ง',
+  },
+  whoFirst: {
+    lobby: {
+      title: 'ล็อบบี้ Who First',
+      penaltyLabel: 'เปิดใช้บทลงโทษหากกดก่อนสัญญาณ',
+      hostPlaysLabel: 'เจ้าของห้องร่วมเล่นด้วย',
+      startBtn: 'เริ่มนับถอยหลัง!',
+      waitingForHost: 'รอเจ้าของห้องเริ่มเกม',
+    },
+    game: {
+      ready: 'เตรียมตัว...',
+      go: 'กดเลย!!',
+      pressBtn: 'กด!',
+      pressed: 'กดแล้ว!',
+      penalty: 'ฟาวล์!',
+      spectating: 'กำลังดูคนอื่นเล่น',
+    },
+    result: {
+      roundTitle: 'ผลลัพธ์รอบนี้',
+      finalTitle: 'ผลลัพธ์สุดท้าย',
+      earlyPress: 'กดก่อนเวลา!',
+      noPress: 'ไม่ได้กด',
+      nextRoundBtn: 'รอบต่อไป',
+      endGameBtn: 'จบเกม',
+    },
+    rules: {
+      title: 'กติกา',
+      desc1: 'เป็นเกมวัดความไว ใครกดปุ่มได้เร็วที่สุดคือผู้ชนะ',
+      rule1Title: 'เตรียมพร้อม',
+      rule1Desc: 'รอให้สัญญาณนับถอยหลังปรากฏคำว่า "กดเลย!!" ค่อยกดปุ่ม',
+      rule2Title: 'กดก่อนเวลา',
+      rule2Desc: 'ถ้าเจ้าของห้องเปิดบทลงโทษไว้ ใครกดก่อนที่จะถึงเวลาจะถือว่าฟาวล์และถูกปรับแพ้ในรอบนั้น',
+      rule3Title: 'ดูเวลา',
+      rule3Desc: 'เมื่อรอบจบลง จะสามารถดูเวลาตอบสนองของคุณเทียบกับคนที่เร็วที่สุดได้',
+      footer: 'ตาไว มือไว คือกุญแจสำคัญ!',
+    },
   },
 };

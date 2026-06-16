@@ -8,6 +8,7 @@ import { LobbyRules } from './games/LobbyRules';
 import { SoundsFishyRules } from './games/sounds-fishy/SoundsFishyRules';
 import { DetectiveClubRules } from './games/detective-club/DetectiveClubRules';
 import { WhoAmIRules } from './games/who-am-i/WhoAmIRules';
+import { WhoFirstRules } from './games/who-first/WhoFirstRules';
 import { useTranslate } from '@/hooks/useTranslate';
 
 interface RulesModalProps {
@@ -53,6 +54,8 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
         return <WhoAmIRules />;
       case GameType.DETECTIVE_CLUB:
         return <DetectiveClubRules />;
+      case GameType.WHO_FIRST:
+        return <WhoFirstRules />;
       default:
         return null;
     }
@@ -177,6 +180,12 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
                     className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.DETECTIVE_CLUB ? 'bg-slate-500/20 text-slate-700 shadow-inner border border-slate-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
                   >
                     {t('rules.modal.tabs.detectiveClub')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab(GameType.WHO_FIRST)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_FIRST ? 'bg-red-500/20 text-red-500 shadow-inner border border-red-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                  >
+                    {t('rules.modal.tabs.whoFirst')}
                   </button>
                 </div>
               </div>

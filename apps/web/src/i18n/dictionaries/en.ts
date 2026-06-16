@@ -20,6 +20,7 @@ export const en: Dictionary = {
       soundsFishy: 'Sounds Fishy',
       whoAmI: 'Who Am I',
       detectiveClub: 'Detective Club',
+      whoFirst: 'Who First',
     },
     or: 'OR',
     roomCodePlaceholder: 'ROOM CODE',
@@ -89,6 +90,7 @@ export const en: Dictionary = {
         soundsFishy: 'Sounds Fishy',
         whoAmI: 'Who Am I',
         detectiveClub: 'Detective Club',
+        whoFirst: 'Who First',
       },
       closeBtn: "Got it, let's play!",
     },
@@ -106,7 +108,9 @@ export const en: Dictionary = {
         'An intense, competitive version of Rock Paper Scissors. Play in 1v1 Round Robin or Chaotic All-at-Once modes!',
       soundsFishyDesc: 'A fast-paced bluffing party game where one player tries to spot the liars.',
       whoAmIDesc: 'A classic party game where players try to guess the word assigned to them by asking yes/no questions.',
-      detectiveClubDesc: "A bluffing + Dixit game. All players know the secret word except the Conspirator, who must blend in.",
+      detectiveClubDesc:
+        'A bluffing and image interpretation game. Everyone knows the secret word except the Conspirator, who must blend in.',
+      whoFirstDesc: 'The fastest reactor wins! Compete to press the button first when the signal drops.',
     },
     whoKnow: {
       setupTitle: 'The Setup',
@@ -229,8 +233,12 @@ export const en: Dictionary = {
       step4Voting: 'Voting — Everyone (except the Informer) votes on who they think the Conspirator is.',
       step5Scoring: 'Scoring — Results are revealed. Points are awarded based on whether the Conspirator was caught.',
       scoringTitle: 'Scoring',
-      caughtScoring: 'Conspirator Caught: Correct Detectives get +3 points, Informer gets +3 points.',
-      escapedScoring: 'Conspirator Escaped: Conspirator gets +5 points, Informer gets 0 points.',
+      caughtScoring: 'Conspirator caught: Detectives who guessed right get +3, Informer gets +3.',
+      escapedScoring: 'Conspirator escaped: Conspirator gets +5, Informer gets 0.',
+    },
+    whoFirst: {
+      title: 'Who First',
+      desc: 'Compete to see who has the fastest reaction time!',
     },
   },
   gameSoundsFishy: {
@@ -424,5 +432,41 @@ export const en: Dictionary = {
   result: {
     winners: 'Winners',
     playAgain: 'Play Again',
+  },
+  whoFirst: {
+    lobby: {
+      title: 'Who First Lobby',
+      penaltyLabel: 'Enable penalty for early press',
+      hostPlaysLabel: 'Host plays too',
+      startBtn: 'Start Countdown!',
+      waitingForHost: 'Waiting for host to start...',
+    },
+    game: {
+      ready: 'Ready...',
+      go: 'GO!!',
+      pressBtn: 'PRESS!',
+      pressed: 'Pressed!',
+      penalty: 'Foul!',
+      spectating: 'Spectating',
+    },
+    result: {
+      roundTitle: 'Round Result',
+      finalTitle: 'Final Result',
+      earlyPress: 'Pressed early!',
+      noPress: 'Did not press',
+      nextRoundBtn: 'Next Round',
+      endGameBtn: 'End Game',
+    },
+    rules: {
+      title: 'Rules',
+      desc1: 'This is a reaction game. The fastest player to press the button wins.',
+      rule1Title: 'Get Ready',
+      rule1Desc: 'Wait for the countdown to display "GO!!" before pressing the button.',
+      rule2Title: 'Early Press',
+      rule2Desc: 'If the host enables penalties, pressing before the signal will result in a foul for that round.',
+      rule3Title: 'Reaction Time',
+      rule3Desc: 'When the round ends, you can compare your reaction time against the fastest player.',
+      footer: 'Fast eyes, fast hands are the key!',
+    },
   },
 };

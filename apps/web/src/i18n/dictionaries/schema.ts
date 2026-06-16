@@ -18,6 +18,7 @@ export interface Dictionary {
       soundsFishy: string;
       whoAmI: string;
       detectiveClub: string;
+      whoFirst: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -86,6 +87,7 @@ export interface Dictionary {
         soundsFishy: string;
         whoAmI: string;
         detectiveClub: string;
+        whoFirst: string;
       };
       closeBtn: string;
     };
@@ -100,6 +102,7 @@ export interface Dictionary {
       soundsFishyDesc: string;
       whoAmIDesc: string;
       detectiveClubDesc: string;
+      whoFirstDesc: string;
     };
     whoKnow: {
       setupTitle: string;
@@ -210,6 +213,10 @@ export interface Dictionary {
       scoringTitle: string;
       caughtScoring: string;
       escapedScoring: string;
+    };
+    whoFirst: {
+      title: string;
+      desc: string;
     };
   };
   gameSoundsFishy: {
@@ -402,5 +409,41 @@ export interface Dictionary {
   result: {
     winners: string;
     playAgain: string;
+  };
+  whoFirst: {
+    lobby: {
+      title: string;
+      penaltyLabel: string;
+      hostPlaysLabel: string;
+      startBtn: string;
+      waitingForHost: string;
+    };
+    game: {
+      ready: string;
+      go: string;
+      pressBtn: string;
+      pressed: string;
+      penalty: string;
+      spectating: string;
+    };
+    result: {
+      roundTitle: string;
+      finalTitle: string;
+      earlyPress: string;
+      noPress: string;
+      nextRoundBtn: string;
+      endGameBtn: string;
+    };
+    rules: {
+      title: string;
+      desc1: string;
+      rule1Title: string;
+      rule1Desc: string;
+      rule2Title: string;
+      rule2Desc: string;
+      rule3Title: string;
+      rule3Desc: string;
+      footer: string;
+    };
   };
 }

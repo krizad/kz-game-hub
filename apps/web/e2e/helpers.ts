@@ -49,6 +49,7 @@ export async function createRoom(
 export async function joinRoom(page: Page, origin: string, roomCode: string, name: string) {
   const joinUrl = `${origin}/?room=${roomCode}`;
   await page.goto(joinUrl);
+  await switchToEnglish(page);
   await page.locator('#inviteNameInput').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#inviteNameInput').fill(name);
   await page.locator('button').filter({ hasText: /Enter Game|เข้าสู่เกม/ }).click();
