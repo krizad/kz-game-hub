@@ -71,7 +71,7 @@ describe('WhoAmIService', () => {
       expect(result!.whoAmIState).toBeDefined();
       expect(result!.whoAmIState!.phase).toBe('ASKING');
       expect(result!.whoAmIState!.playerWords).toEqual(playerWords);
-      expect(result!.whoAmIState!.turnStatus).toBe('THINKING');
+      expect(result!.whoAmIState!.turnStatus).toBe('VOTING');
       expect(result!.whoAmIState!.currentRound).toBe(1);
       expect(result!.whoAmIState!.maxRounds).toBe(5);
       expect(result!.whoAmIState!.eliminatedPlayers).toEqual([]);
@@ -423,7 +423,7 @@ describe('WhoAmIService', () => {
           playerWords: { p1: 'Apple', p2: 'Banana', p3: 'Cherry' },
           currentGuess: null,
           votes: {},
-          turnStatus: 'THINKING',
+          turnStatus: 'VOTING',
           winner: null,
           currentRound: 1,
           maxRounds: 3,
@@ -463,17 +463,14 @@ describe('WhoAmIService', () => {
     });
 
     describe('SUBMIT_GUESS', () => {
-      it('should record guess and advance to VOTING', () => {
+      it('should return null for SUBMIT_GUESS (unhandled action type)', () => {
         const room = makeAskingRoom();
         const result = service.handleGameAction(room, 'p1', {
           type: 'SUBMIT_GUESS',
           guess: 'Is it red?',
         });
 
-        expect(result).not.toBeNull();
-        expect(result!.whoAmIState!.currentGuess).toBe('Is it red?');
-        expect(result!.whoAmIState!.turnStatus).toBe('VOTING');
-        expect(result!.whoAmIState!.votes).toEqual({});
+        expect(result).toBeNull();
       });
 
       it('should return null if not current player', () => {
@@ -596,7 +593,7 @@ describe('WhoAmIService', () => {
 
         expect(result).not.toBeNull();
         expect(result!.whoAmIState!.currentTurn).toBe('p2');
-        expect(result!.whoAmIState!.turnStatus).toBe('THINKING');
+        expect(result!.whoAmIState!.turnStatus).toBe('VOTING');
         expect(result!.whoAmIState!.currentGuess).toBeNull();
         expect(result!.whoAmIState!.votes).toEqual({});
       });
@@ -617,7 +614,7 @@ describe('WhoAmIService', () => {
       });
 
       it('should return null if not VOTING status', () => {
-        const room = makeAskingRoom({ turnStatus: 'THINKING' });
+        const room = makeAskingRoom({ turnStatus: 'RESULT' });
         expect(service.handleGameAction(room, 'p1', { type: 'END_TURN' })).toBeNull();
       });
 
@@ -667,7 +664,7 @@ describe('WhoAmIService', () => {
       });
 
       it('should return null if not VOTING status', () => {
-        const room = makeAskingRoom({ turnStatus: 'THINKING' });
+        const room = makeAskingRoom({ turnStatus: 'RESULT' });
         expect(
           service.handleGameAction(room, 'p1', {
             type: 'GUESS_WORD',
@@ -748,7 +745,7 @@ describe('WhoAmIService', () => {
         expect(result).not.toBeNull();
         expect(result!.whoAmIState!.eliminatedPlayers).toContain('p1');
         expect(result!.whoAmIState!.currentTurn).not.toBe('p1');
-        expect(result!.whoAmIState!.turnStatus).toBe('THINKING');
+        expect(result!.whoAmIState!.turnStatus).toBe('VOTING');
       });
 
       it('should allow host to execute NEXT_TURN', () => {

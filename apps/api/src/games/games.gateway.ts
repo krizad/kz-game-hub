@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
+import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice } from '@repo/types';
 
 @WebSocketGateway({
@@ -20,7 +21,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly gamesService: GamesService) {}
+  constructor(
+    private readonly gamesService: GamesService,
+    private readonly leaderboardService: LeaderboardService,
+  ) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -253,6 +257,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to submit vote.' });
     }
@@ -668,15 +673,86 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { code: string; action: Record<string, unknown> },
     @ConnectedSocket() client: Socket,
   ) {
-    // Check gameType first
     const roomInfo = this.gamesService.getRoom(data.code);
     if (roomInfo && roomInfo.gameType === GameType.WHO_AM_I) {
       const room = this.gamesService.whoAmIGameAction(data.code, client.id, data.action);
       if (room) {
         this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+        this.maybeRecordGameResult(room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
       }
     }
+  }
+
+  // --- Leaderboard ---
+
+  @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)
+  async handleLeaderboardGet(
+    @MessageBody() data: { gameType?: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const leaderboard = await this.leaderboardService.getLeaderboard(data?.gameType);
+    client.emit(SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
+  }
+
+  // --- Spectator ---
+
+  @SubscribeMessage(SOCKET_EVENTS.SPECTATE_JOIN)
+  handleSpectateJoin(
+    @MessageBody() data: { code: string; name: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.getRoom(data.code);
+    if (!room) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
+      return;
+    }
+
+    // Spectators join as a non-playing observer
+    const existing = room.players.find((p) => p.name === data.name);
+    if (existing) {
+      existing.socketId = client.id;
+      existing.connected = true;
+    } else {
+      room.players.push({
+        id: client.id,
+        name: data.name,
+        socketId: client.id,
+        score: 0,
+        roomId: room.id,
+        connected: true,
+      });
+    }
+
+    client.join(room.code);
+    this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+  }
+
+  // --- Private helpers ---
+
+  private maybeRecordGameResult(room: RoomState) {
+    if (room.status !== RoomStatus.RESULT) return;
+
+    const results = room.players
+      .filter((p) => p.name)
+      .map((p) => ({
+        playerName: p.name,
+        score: p.score,
+        rank: this.calculateRank(p, room),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    results.forEach((r, idx) => {
+      r.rank = idx + 1;
+    });
+
+    this.leaderboardService.recordGameResult(room.gameType, room.code, results);
+  }
+
+  private calculateRank(player: { socketId: string; score: number }, room: RoomState): number {
+    const sorted = [...room.players].sort((a, b) => b.score - a.score);
+    return sorted.findIndex((p) => p.socketId === player.socketId) + 1;
   }
 }

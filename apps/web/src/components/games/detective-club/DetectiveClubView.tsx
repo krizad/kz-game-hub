@@ -2,14 +2,25 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { GameType, DetectiveClubPhase } from '@repo/types';
+import { useTranslate } from '@/hooks/useTranslate';
 import { SetupPhase } from './phases/SetupPhase';
 import { PlayingPhase } from './phases/PlayingPhase';
 import { DiscussionPhase } from './phases/DiscussionPhase';
 import { VotingPhase } from './phases/VotingPhase';
 import { ScoringPhase } from './phases/ScoringPhase';
 
+function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslate>['t']): string {
+  switch (role) {
+    case 'INFORMER': return t('gameDetectiveClub.informer');
+    case 'CONSPIRATOR': return t('gameDetectiveClub.conspirator');
+    case 'DETECTIVE': return t('gameDetectiveClub.detective');
+    default: return t('gameDetectiveClub.unknownRole');
+  }
+}
+
 export function DetectiveClubView() {
   const { room, socketId } = useGameStore();
+  const { t } = useTranslate();
 
   if (!room || room.gameType !== GameType.DETECTIVE_CLUB) return null;
 
@@ -18,7 +29,7 @@ export function DetectiveClubView() {
   if (!state) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-600">
-        Loading Detective Club...
+        {t('gameDetectiveClub.loading')}
       </div>
     );
   }
@@ -31,23 +42,23 @@ export function DetectiveClubView() {
       <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-lg w-full gap-4">
         <div className="text-center sm:text-left">
           <p className="text-slate-600 uppercase tracking-widest text-xs font-bold mb-1">
-            Your Role
+            {t('gameDetectiveClub.yourRole')}
           </p>
           <div className="flex items-center gap-2 justify-center sm:justify-start">
             <span
               className={`text-xl font-black ${myPlayer?.role === 'INFORMER' ? 'text-indigo-400' : myPlayer?.role === 'CONSPIRATOR' ? 'text-rose-400' : 'text-emerald-400'}`}
             >
-              {myPlayer?.role || 'UNKNOWN'}
+              {getRoleLabel(myPlayer?.role, t)}
             </span>
           </div>
         </div>
 
         <div className="text-center sm:text-right">
           <p className="text-slate-600 uppercase tracking-widest text-xs font-bold mb-1">
-            Your Score
+            {t('gameDetectiveClub.yourScore')}
           </p>
           <span className="text-2xl font-black text-amber-400">
-            {myPlayer?.score || 0} <span className="text-sm text-slate-500">pts</span>
+            {myPlayer?.score || 0} <span className="text-sm text-slate-500">{t('gameDetectiveClub.pts')}</span>
           </span>
         </div>
       </div>
@@ -62,3 +73,5 @@ export function DetectiveClubView() {
     </div>
   );
 }
+
+export { getRoleLabel };

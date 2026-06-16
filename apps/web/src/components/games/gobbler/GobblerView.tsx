@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GobblerSize, GobblerPiece, PlayerSide } from '@repo/types';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import clsx from 'clsx';
@@ -36,6 +37,7 @@ const COLOR_STYLES: Record<PlayerSide, { base: string; glow: string; text: strin
 export function GobblerView() {
   const { room, socketId, gobblerJoinSide, gobblerPlacePiece, gobblerMovePiece, gobblerReset, actionLoading } =
     useGameStore();
+  const { t } = useTranslate();
   const gb = room?.gobblerState;
 
   const [selectedInventoryPieceId, setSelectedInventoryPieceId] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export function GobblerView() {
 
   const handleInventoryClick = (pieceId: string) => {
     if (!isMyTurn || actionLoading) return;
-    setSelectedBoardIndex(null); // Clear board selection
+    setSelectedBoardIndex(null);
     if (selectedInventoryPieceId === pieceId) {
       setSelectedInventoryPieceId(null);
     } else {
@@ -194,7 +196,7 @@ export function GobblerView() {
               side === 'X' ? 'text-cyan-400/80' : 'text-pink-400/80',
             )}
           >
-            {side} Inventory
+            {t('gameGobbler.inventory', { side })}
           </h4>
           {isActive && (
             <span className="flex h-2 w-2 relative">
@@ -229,9 +231,6 @@ export function GobblerView() {
   const pX = getPlayerDetails(gb.playerXId);
   const pO = getPlayerDetails(gb.playerOId);
 
-  // Layout decision for mobile
-  // Top side is the opposing player (or X if spectating)
-  // Bottom side is current player (or O if spectating)
   const bottomSide = mySide || 'X';
   const topSide = bottomSide === 'X' ? 'O' : 'X';
 
@@ -264,9 +263,9 @@ export function GobblerView() {
         </div>
         <div className="flex flex-col">
           <div className="text-sm sm:text-lg font-black text-white">
-            {details ? details.name : `Player ${side}`}
+            {details ? details.name : t('gameGobbler.player', { side })}
             {isMe && (
-              <span className="ml-2 text-slate-600 font-medium text-xs sm:text-sm">(You)</span>
+              <span className="ml-2 text-slate-600 font-medium text-xs sm:text-sm">({t('lobby.you')})</span>
             )}
           </div>
           <div
@@ -275,7 +274,7 @@ export function GobblerView() {
               side === 'X' ? 'text-cyan-400' : 'text-pink-400',
             )}
           >
-            Team {side}
+            {t('gameGobbler.team', { side })}
           </div>
         </div>
       </div>
@@ -291,10 +290,10 @@ export function GobblerView() {
             🦃
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-center mb-3 text-white drop-shadow-sm">
-            Gobbler
+            {t('gameGobbler.lobby')}
           </h2>
           <p className="text-slate-600 text-center mb-10 font-medium text-sm sm:text-base px-4">
-            Larger pieces can gobble smaller ones! Select your team to begin.
+            {t('gameGobbler.gobblerTagline')}
           </p>
 
           <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -315,7 +314,7 @@ export function GobblerView() {
                 X
               </div>
               <div className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-widest z-10">
-                {pX ? pX.name : 'Join X'}
+                {pX ? pX.name : t('gameGobbler.join', { side: 'X' })}
               </div>
             </button>
 
@@ -336,7 +335,7 @@ export function GobblerView() {
                 O
               </div>
               <div className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-widest z-10">
-                {pO ? pO.name : 'Join O'}
+                {pO ? pO.name : t('gameGobbler.join', { side: 'O' })}
               </div>
             </button>
           </div>
@@ -360,7 +359,7 @@ export function GobblerView() {
                   {gb.scores.X}
                 </span>
                 <span className="text-[10px] text-cyan-500/80 font-bold uppercase tracking-widest mt-1">
-                  Team X
+                  {t('gameGobbler.team', { side: 'X' })}
                 </span>
               </div>
               <div className="text-slate-500 font-bold text-xl px-2">-</div>
@@ -369,7 +368,7 @@ export function GobblerView() {
                   {gb.scores.O}
                 </span>
                 <span className="text-[10px] text-pink-500/80 font-bold uppercase tracking-widest mt-1">
-                  Team O
+                  {t('gameGobbler.team', { side: 'O' })}
                 </span>
               </div>
             </div>
@@ -385,7 +384,7 @@ export function GobblerView() {
                     )}
                   />
                   <span className="text-xs sm:text-sm font-black uppercase tracking-widest whitespace-nowrap">
-                    {gb.currentTurn === mySide ? 'Your Turn' : `${gb.currentTurn}'s Turn`}
+                    {gb.currentTurn === mySide ? t('gameGobbler.yourTurn') : t('gameGobbler.turn', { side: gb.currentTurn })}
                   </span>
                 </div>
               )}
@@ -436,7 +435,7 @@ export function GobblerView() {
               </div>
             </div>
 
-            {/* Result Overlay Container directly over the board area to fit cleanly */}
+            {/* Result Overlay */}
             <AnimatePresence>
               {room.status === RoomStatus.RESULT && (
                 <motion.div
@@ -451,10 +450,10 @@ export function GobblerView() {
                       <>
                         <div className="text-5xl sm:text-7xl mb-4 sm:mb-6 animate-bounce">🤝</div>
                         <div className="text-3xl sm:text-5xl font-black text-white uppercase tracking-widest mb-2 drop-shadow-lg">
-                          Draw!
+                          {t('gameGobbler.draw')}
                         </div>
                         <div className="text-slate-700 font-medium mb-6 sm:mb-8 text-sm sm:text-lg">
-                          A truly balanced match.
+                          {t('gameGobbler.drawSubtitle')}
                         </div>
                       </>
                     ) : (
@@ -464,13 +463,12 @@ export function GobblerView() {
                           className="text-3xl sm:text-5xl font-black uppercase tracking-widest mb-2 drop-shadow-lg"
                           style={{ color: gb.winner === 'X' ? '#22d3ee' : '#f472b6' }}
                         >
-                          {gb.winner} Wins!
+                          {t('gameGobbler.wins', { winner: gb.winner || '' })}
                         </div>
                         <div className="text-slate-700 font-medium mb-6 sm:mb-10 text-sm sm:text-lg">
                           <strong className="text-white">
-                            {gb.winner === 'X' ? pX?.name : pO?.name}
-                          </strong>{' '}
-                          claims victory!
+                            {t('gameGobbler.claimsVictory', { name: (gb.winner === 'X' ? pX?.name : pO?.name) || '' })}
+                          </strong>
                         </div>
                       </>
                     )}
@@ -482,7 +480,7 @@ export function GobblerView() {
                         className="bg-white/10 hover:bg-white/20 border border-white/20 text-slate-800 font-black px-6 sm:px-10 py-3 sm:py-4 rounded-2xl transition-all shadow-xl hover:shadow-white/10 active:scale-95 uppercase tracking-widest text-sm sm:text-lg backdrop-blur-md overflow-hidden relative group disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                        Play Again
+                        {t('gameGobbler.playAgain')}
                       </button>
                     )}
                   </div>

@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, Role, GameType } from '@repo/types';
 import { RoleCard } from '@/components/RoleCard';
 import { RulesModal } from '@/components/RulesModal';
+import { LeaderboardModal } from '@/components/LeaderboardModal';
 import { Toaster, toast } from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -48,6 +49,7 @@ function GameLobby() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showHostWordModal, setShowHostWordModal] = useState(false);
   const [hostWordInputs, setHostWordInputs] = useState<Record<string, string>>({});
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     connect();
@@ -85,7 +87,14 @@ function GameLobby() {
           <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
             <LanguageSwitcher />
           </div>
-          <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex gap-2">
+            <button
+              onClick={() => setShowLeaderboard(true)}
+              className="text-sm font-bold text-slate-600 hover:text-slate-800 transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent hover:border-amber-200 hover:bg-amber-100/50 text-nowrap"
+            >
+              🏆
+              <span className="hidden sm:inline">Leaderboard</span>
+            </button>
             <RulesModal />
           </div>
           <div className="w-full max-w-md p-6 sm:p-8 bg-white border border-indigo-500/30 rounded-3xl shadow-2xl relative overflow-hidden">
@@ -159,7 +168,14 @@ function GameLobby() {
         <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
           <LanguageSwitcher />
         </div>
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex gap-2">
+          <button
+            onClick={() => setShowLeaderboard(true)}
+            className="text-sm font-bold text-slate-600 hover:text-slate-800 transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent hover:border-amber-200 hover:bg-amber-100/50 text-nowrap"
+          >
+            🏆
+            <span className="hidden sm:inline">Leaderboard</span>
+          </button>
           <RulesModal />
         </div>
         <div className="w-full max-w-md p-6 sm:p-8 bg-white border border-amber-200 rounded-3xl shadow-2xl">
@@ -505,6 +521,13 @@ function GameLobby() {
             <LanguageSwitcher />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setShowLeaderboard(true)}
+              className="text-sm font-bold text-slate-600 hover:text-slate-800 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-transparent hover:border-amber-200 hover:bg-amber-100/50"
+              title="Leaderboard"
+            >
+              🏆
+            </button>
             <RulesModal defaultGameType={room.gameType} isGameRoom={true} />
             <button
               onClick={() => setShowLeaveModal(true)}
@@ -1262,6 +1285,7 @@ function GameLobby() {
           </div>
         </div>
       )}
+      <LeaderboardModal isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
     </main>
   );
 }

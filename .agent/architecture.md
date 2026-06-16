@@ -9,10 +9,12 @@
 | Frontend         | Next.js (App Router)     | 14+                  |
 | State Management | Zustand                  | -                    |
 | ORM              | Prisma + PostgreSQL      | -                    |
-| UI Components    | Shadcn/UI + Tailwind CSS | -                    |
-| Animations       | Framer Motion            | -                    |
+| UI Components    | Tailwind CSS + Framer Motion | -                    |
+| Icons            | Lucide React             | -                    |
 | Language         | TypeScript               | ^5.4                 |
 | Node.js          | -                        | ≥20.19               |
+| AI               | Google Gemini (GenAI SDK)| -                    |
+| i18n             | Custom dictionaries (th/en) | -                 |
 
 ---
 
@@ -34,7 +36,9 @@ kz-game-hub/
 │   │           ├── gobbler/           # Gobbler TTT logic
 │   │           ├── rps/               # Rock Paper Scissors logic
 │   │           ├── sounds-fishy/      # Sounds Fishy logic
-│   │           └── detective-club/    # Detective Club logic
+│   │           ├── detective-club/    # Detective Club logic
+│   │           └── who-am-i/          # Who Am I logic
+│   │       └── health/               # GET /health REST endpoint
 │   │
 │   └── web/                    # Next.js Frontend (Player's Screen)
 │       └── src/
@@ -50,7 +54,8 @@ kz-game-hub/
 │           │   │   ├── gobbler/
 │           │   │   ├── rps/
 │           │   │   ├── sounds-fishy/
-│           │   │   └── detective-club/
+│           │   │   ├── detective-club/
+│           │   │   └── who-am-i/
 │           │   ├── RoleCard.tsx
 │           │   └── RulesModal.tsx
 │           ├── store/
@@ -68,8 +73,9 @@ kz-game-hub/
 │   │       ├── gobbler-tic-tac-toe.ts
 │   │       ├── rps.ts
 │   │       ├── who-know.ts
-│   │       ├── sounds-fishy.ts
-│   │       └── detective-club.ts
+│       │       ├── sounds-fishy.ts
+│   │       ├── detective-club.ts
+│   │       └── who-am-i.ts
 │   ├── database/               # Prisma Client & Schema
 │   │   └── prisma/schema.prisma
 │   └── config/                 # Shared ESLint, TSConfig, Prettier
@@ -169,3 +175,61 @@ Client                          Server
 6. **`apps/web/src/components/games/<game-name>/`** — สร้าง UI components
 7. **`apps/web/src/store/useGameStore.ts`** — เพิ่ม socket listeners + actions
 8. **`apps/web/src/app/page.tsx`** — เพิ่ม rendering condition ตาม `GameType`
+
+---
+
+### 6. Who Am I — `game_action` Pattern
+
+Who Am I ใช้ pattern ที่แตกต่างจากเกมอื่นๆ:
+
+- **Single `game_action` event** แทนที่ per-action events (เช่น `ttt_make_move`)
+- `GameActionType` discriminator (`SUBMIT_GUESS`, `VOTE_GUESS`, `END_TURN`, `GUESS_WORD`, `NEXT_TURN`, `END_MATCH`)
+- **Category Events** (`WHO_AM_I_GET_CATEGORIES`, `WHO_AM_I_CATEGORIES_LIST`) — request-response โดยตรงไปยัง socket ที่ร้องขอ ไม่ broadcast ผ่าน `ROOM_STATE_UPDATED`
+- **4 Word Modes:** `HOST_INPUT`, `RANDOM`, `PLAYER_INPUT`, `AI_GENERATED`
+
+### 7. Reconnection & Socket Migration
+
+เมื่อ player disconnect แล้ว reconnect ด้วย socket ใหม่ `GamesService.joinRoom()` จะ remap socket ID ทั้งหมด:
+
+```
+votes, ticTacToeState, rpsState, gobblerState,
+soundsFishyState, detectiveClubState, whoAmIState
+```
+
+- `UserState.connected?: boolean` — tracking สถานะการเชื่อมต่อ
+- `UserState.hasBeenHost?: boolean` — ใช้สำหรับ host rotation เมื่อ host disconnect
+
+### 8. Swagger & Health Endpoint
+
+- NestJS Swagger (`@nestjs/swagger`) ตั้งค่าใน `main.ts` เปิดเฉพาะ non-production
+- `GET /health` → `{ status, uptime, timestamp }` (ใน `HealthModule`)
+- Swagger UI ที่ `http://localhost:3001/api` (dev only)
+
+### 9. i18n Architecture
+
+| File | Purpose |
+|------|---------|
+| `apps/web/src/i18n/dictionaries/schema.ts` | ทั้ง `Dictionary` interface |
+| `apps/web/src/i18n/dictionaries/{th,en}.ts` | Translation dictionaries |
+| `apps/web/src/hooks/useTranslate.ts` | Hook `useTranslate()` — dot-path keys, parameter interpolation, English fallback |
+| `apps/web/src/store/useI18nStore.ts` | Zustand store + `persist` middleware (localStorage key: `who-know-language`) |
+| `apps/web/src/app/page.tsx` | `<LanguageSwitcher>` component |
+
+Default language = `th` (Thai). `RoomConfig.language` ส่งค่า language ไป server สำหรับเกมที่ต้องการ language-aware logic.
+
+### 10. Google Gemini AI Integration
+
+- Package: `@google/genai` (เฉพาะใน `apps/api`)
+- Env var: `GEMINI_API_KEY` (ใน root `.env`)
+- ใช้ใน `WhoAmIService.startGameAiGenerated()` สำหรับสร้างคำจาก category
+- Prompts ถูกสร้างตาม `room.config.language`
+
+### 11. Detective Club — Cross-App File Dependency
+
+`DetectiveClubService.loadAvailableCards()` อ่านชื่อไฟล์รูปภาพจาก `apps/web/public/images/detective-club/` โดยตรง:
+
+```typescript
+const imagesDir = path.join(process.cwd(), '..', 'web', 'public', 'images', 'detective-club');
+```
+
+Server โหลด filenames ตอน startup และใช้เป็น image paths ในการแจกการ์ดให้ผู้เล่น

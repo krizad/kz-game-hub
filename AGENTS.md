@@ -6,11 +6,13 @@
 pnpm install            # pnpm@9.1.0 required, Node >=20.19.0
 docker compose up -d    # PostgreSQL 15 (postgres:password@localhost:5432/kz_game_hub)
 pnpm db:push            # push schema (no migration file needed in dev)
-pnpm db:seed            # seed SoundsFishyQuestion (150+ Thai trivia)
+pnpm db:seed            # seed SoundsFishyQuestion (150+ Thai trivia) + WhoAmI words
 pnpm dev                # turbo dev (web:3000 + api:3001)
 pnpm -F api test        # run all API tests (Jest)
 pnpm -F api test -- --testPathPattern=sounds-fishy   # single test file
-pnpm format             # Prettier (no custom config; default settings)
+pnpm test:e2e           # run all E2E tests (Playwright)
+pnpm test:e2e:ui        # run E2E tests with Playwright UI
+pnpm format             # Prettier
 ```
 
 ## Env loading gotcha
@@ -33,11 +35,12 @@ Copy `.env.example` to `.env` at the repo root.
 
 ## Architecture constraints
 
-- **WebSocket-only backend**: `apps/api` has zero REST controllers. All communication is via Socket.io events through `GamesGateway`. Do not add `@Controller` classes.
+- **WebSocket-only backend**: All communication is via Socket.io events through `GamesGateway`. The only REST endpoint is `GET /health` (with Swagger UI at `/api` in dev). Do not add new `@Controller` classes.
 - **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Only Sounds Fishy trivia questions touch PostgreSQL. Do not persist game state to DB during play.
 - **Server-authoritative**: Client never mutates state directly. Client emits actions → server processes → broadcasts `room_state_updated`. Zustand store (`useGameStore`) is a read-only mirror of server state.
 - **Private data**: Roles and secret words are sent via `server.to(socketId).emit('role_assigned')`, NOT in broadcasted `RoomState`. Do not add sensitive fields to broadcast payloads.
 - **Single-page frontend**: `apps/web/src/app/page.tsx` is a `"use client"` component that conditionally renders the correct game view based on `room.gameType`. There are no separate routes per game.
+- **Reconnection**: `GamesService.joinRoom` remaps socket IDs across ALL game state fields when a player reconnects. `UserState.connected` and `UserState.hasBeenHost` support reconnection and host rotation.
 
 ## Adding or changing Socket events — update all 4 locations
 
@@ -57,15 +60,34 @@ Missing any one breaks the chain. Also rebuild `@repo/types` after changing even
 | `apps/web`       | Next.js frontend                         | Must NOT import from `apps/api`  |
 | `apps/api`       | NestJS backend                           | Must NOT import from `apps/web`  |
 
+## i18n
+
+Supports `th` (Thai, default) and `en` (English). Key files:
+
+| File | Purpose |
+|------|---------|
+| `apps/web/src/i18n/dictionaries/schema.ts` | `Dictionary` interface |
+| `apps/web/src/i18n/dictionaries/{th,en}.ts` | Translation dictionaries |
+| `apps/web/src/store/useI18nStore.ts` | Zustand store + persist middleware |
+| `apps/web/src/hooks/useTranslate.ts` | `useTranslate()` hook, dot-path keys, param interpolation |
+
+`RoomConfig.language` passes language preference to server for language-aware logic (Sounds Fishy questions, Who Am I word generation).
+
 ## Game module pattern
 
-Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`) follows:
+Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`) follows:
 
 - `apps/api/src/games/<game>/` — service class with init/handle/reset logic, plus `*.spec.ts`
 - `apps/web/src/components/games/<game>/` — view components + rules modal
 - `packages/types/src/<game>.ts` — game-specific state interfaces
 
 `GamesService` delegates to per-game services. `GamesGateway` routes Socket events to `GamesService` methods.
+
+### Who Am I — special patterns
+
+Who Am I uses a **generic `game_action` event** with a `GameActionType` discriminator (`SUBMIT_GUESS`, `VOTE_GUESS`, etc.), unlike other games which use per-action events (e.g., `ttt_make_move`). Two category events — `WHO_AM_I_GET_CATEGORIES` / `WHO_AM_I_CATEGORIES_LIST` — use a request-response pattern sent directly to the requesting socket.
+
+4 word modes via `RoomConfig.wordMode`: `HOST_INPUT`, `RANDOM`, `PLAYER_INPUT`, `AI_GENERATED`. The `AI_GENERATED` mode uses Google Gemini (`GEMINI_API_KEY` in `.env`, `@google/genai` package).
 
 ## Tests
 
@@ -77,6 +99,8 @@ pnpm -F api test -- --testPathPattern=rps  # single game
 ```
 
 No frontend tests exist.
+
+E2E tests use Playwright with Chromium. Config at `apps/web/playwright.config.ts`. Tests live in `apps/web/e2e/`. The config auto-starts the API (port 3001) and web (port 3000) dev servers, or reuses existing ones. Multi-player tests use separate browser contexts to simulate different players in a room.
 
 ## Existing agent docs
 

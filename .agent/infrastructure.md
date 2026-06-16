@@ -17,6 +17,7 @@
 pnpm install
 docker compose up -d
 pnpm db:push
+pnpm db:seed
 pnpm dev
 ```
 
@@ -32,7 +33,7 @@ pnpm dev
 | `pnpm db:migrate`  | Run Prisma migrations                      |
 | `pnpm db:push`     | Push schema to DB (no migration)           |
 | `pnpm db:studio`   | Open Prisma Studio GUI                     |
-| `pnpm db:seed`     | Seed database (Sounds Fishy questions)     |
+| `pnpm db:seed`     | Seed database (Sounds Fishy + Who Am I) |
 | `pnpm start`       | Start all apps in production mode          |
 
 ### Turborepo Pipeline
@@ -46,33 +47,36 @@ pnpm dev
 | ------------- | ---- | ----------------------------- |
 | Web (Next.js) | 3000 | `http://localhost:3000`       |
 | API (NestJS)  | 3001 | `http://localhost:3001`       |
+| Swagger UI    | 3001 | `http://localhost:3001/api`   |
 | PostgreSQL    | 5432 | `postgresql://localhost:5432` |
 
 ---
 
 ## Environment Variables
 
-### Root `.env`
+A single root `.env` feeds ALL apps. **Do NOT create per-app `.env` files** — the code won't read them.
+
+Copy `.env.example` to `.env` at the repo root:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/kz-game-hub"
-```
-
-### `apps/web/.env`
-
-```env
+DATABASE_URL="postgresql://user:password@localhost:5432/kz_game_hub"
 NEXT_PUBLIC_API_URL=http://localhost:3001
+GEMINI_API_KEY=your-gemini-api-key    # optional, for Who Am I AI word generation
 ```
 
-### `apps/api/.env`
+| Variable               | Used By     | Purpose               |
+| ---------------------- | ----------- | --------------------- |
+| `DATABASE_URL`         | api, DB pkg | PostgreSQL conn       |
+| `NEXT_PUBLIC_API_URL`  | web         | API/WS URL            |
+| `GEMINI_API_KEY`       | api         | Google Gemini SDK     |
 
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/kz-game-hub"
-CORS_ORIGIN=http://localhost:3000
-PORT=3001
-```
+| Consumer            | Env Loading Code                                          |
+| ------------------- | --------------------------------------------------------- |
+| `apps/web`          | `next.config.mjs` → `dotenv.config({ path: '../../.env' })`  |
+| `apps/api`          | `src/main.ts` → `dotenv.config({ path: '../../../.env' })`   |
+| `packages/database` | `prisma.config.ts` → `dotenv.config({ path: '../../.env' })` |
 
-> ⚠️ ห้าม commit `.env` ไฟล์ — ใช้ `.env.example` เป็น template
+> ⚠️ ห้าม commit `.env` — ใช้ `.env.example` เป็น template
 
 ---
 
@@ -104,5 +108,6 @@ PORT=3001
 | `Room`                | ห้องเกม (reference — ใช้ In-Memory Map เป็นหลัก) |
 | `User`                | ผู้เล่นในห้อง ผูกกับ socketId                    |
 | `SoundsFishyQuestion` | คลังคำถามเกม Sounds Fishy (seed data)            |
+| `Word`                | คลังคำศัพท์ Who Am I (seed data, มี index `[category, lang]`) |
 
 > Room state จริงเก็บใน In-Memory `Map<string, RoomState>` ภายใน `GamesService`

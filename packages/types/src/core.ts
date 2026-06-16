@@ -77,6 +77,11 @@ export const SOCKET_EVENTS = {
   WHO_AM_I_GET_CATEGORIES: 'who_am_i_get_categories',
   WHO_AM_I_CATEGORIES_LIST: 'who_am_i_categories_list',
   GAME_ACTION: 'game_action',
+  // Leaderboard events
+  LEADERBOARD_GET: 'leaderboard_get',
+  LEADERBOARD_DATA: 'leaderboard_data',
+  // Spectator events
+  SPECTATE_JOIN: 'spectate_join',
 } as const;
 
 export interface UserState {
@@ -127,4 +132,18 @@ export interface AvailableRoom {
   gameType: GameType;
   hostName: string;
   playerCount: number;
+}
+
+export interface LeaderboardEntry {
+  playerName: string;
+  totalScore: number;
+  gamesPlayed: number;
+  rank: number;
+}
+
+export interface GameResultRecord {
+  gameType: string;
+  playerName: string;
+  score: number;
+  rank: number;
 }

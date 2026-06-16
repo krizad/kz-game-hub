@@ -56,3 +56,16 @@ model Word {
 
   @@index([category, lang])
 }
+
+model GameResult {
+  id         String   @id @default(uuid())
+  gameType   String
+  roomCode   String
+  playerName String
+  score      Int
+  rank       Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  @@index([gameType])
+  @@index([playerName])
+}

@@ -10,6 +10,7 @@
 - **คำอธิบาย:** เว็บแอป Real-time Multiplayer Game Hub — สร้างห้อง เชิญเพื่อน แล้วเลือกเกมเล่นด้วยกัน
 - **Live Demo:** [kz-game-hub.vercel.app](https://kz-game-hub.vercel.app/)
 - **Repository:** Turborepo Monorepo
+- **AI Features:** Google Gemini สำหรับสร้างคำใน Who Am I (`GEMINI_API_KEY`)
 
 ## Available Games
 
@@ -21,6 +22,7 @@
 | **Hand Duel (RPS)**     | Competitive       | 2+          | เป่ายิ้งฉุบ Best-Of        |
 | **Sounds Fishy**        | Trivia / Bluffing | 3+          | ตอบคำถาม แยกคำตอบจริง/ปลอม |
 | **Detective Club**      | Social Deduction  | 4+          | วางการ์ดตามคำใบ้ ล่าสายลับ |
+| **Who Am I**            | Word Guessing     | 3+          | ทายเอกลักษณ์ผู้เล่นจากคำ      |
 
 ## Behavior Guidelines
 

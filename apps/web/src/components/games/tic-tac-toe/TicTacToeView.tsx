@@ -2,10 +2,12 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
+import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function TicTacToeView() {
   const { room, socketId, tttJoinSide, tttMakeMove, tttReset, actionLoading } = useGameStore();
+  const { t } = useTranslate();
 
   if (!room || !room.ticTacToeState) return null;
   const ttt = room.ticTacToeState;
@@ -21,7 +23,7 @@ export function TicTacToeView() {
       {room.status === RoomStatus.LOBBY ? (
         <div className="flex flex-col items-center gap-6">
           <h2 className="text-2xl font-black text-indigo-400 uppercase tracking-widest">
-            Tic-Tac-Toe Lobby
+            {t('gameTicTacToe.lobby')}
           </h2>
           <div className="flex gap-4">
             <div
@@ -38,7 +40,7 @@ export function TicTacToeView() {
                   disabled={actionLoading}
                   className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Join as X
+                  {t('gameTicTacToe.joinAs', { side: 'X' })}
                 </button>
               )}
             </div>
@@ -57,12 +59,12 @@ export function TicTacToeView() {
                   disabled={actionLoading}
                   className="bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Join as O
+                  {t('gameTicTacToe.joinAs', { side: 'O' })}
                 </button>
               )}
             </div>
           </div>
-          <p className="text-slate-600 font-medium">Waiting for both players to join...</p>
+          <p className="text-slate-600 font-medium">{t('gameTicTacToe.waitingJoin')}</p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-8 w-full max-w-md bg-white border border-amber-200 rounded-3xl p-6 shadow-2xl">
@@ -75,12 +77,12 @@ export function TicTacToeView() {
                 {room.players.find((p) => p.socketId === ttt.playerXId)?.name}
               </span>
               <span className="text-blue-300 text-xs mt-1 bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-900/50 shadow-inner">
-                Score: {room.players.find((p) => p.socketId === ttt.playerXId)?.score || 0}
+                {t('gameTicTacToe.score')}: {room.players.find((p) => p.socketId === ttt.playerXId)?.score || 0}
               </span>
             </div>
 
             <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-              {room.status === RoomStatus.RESULT ? 'Game Over' : 'Playing'}
+              {room.status === RoomStatus.RESULT ? t('gameTicTacToe.gameOver') : t('gameTicTacToe.playing')}
             </div>
 
             <div
@@ -91,7 +93,7 @@ export function TicTacToeView() {
                 {room.players.find((p) => p.socketId === ttt.playerOId)?.name}
               </span>
               <span className="text-rose-300 text-xs mt-1 bg-rose-950/50 px-2 py-0.5 rounded-md border border-rose-900/50 shadow-inner">
-                Score: {room.players.find((p) => p.socketId === ttt.playerOId)?.score || 0}
+                {t('gameTicTacToe.score')}: {room.players.find((p) => p.socketId === ttt.playerOId)?.score || 0}
               </span>
             </div>
           </div>
@@ -122,13 +124,13 @@ export function TicTacToeView() {
             <div className="flex flex-col items-center gap-4 animate-in zoom-in slide-in-from-bottom-4">
               {ttt.winner === 'DRAW' ? (
                 <div className="text-2xl font-black text-slate-600 bg-amber-100 px-6 py-2 rounded-xl border border-amber-300">
-                  It's a Draw!
+                  {t('gameTicTacToe.draw')}
                 </div>
               ) : (
                 <div
                   className={`text-3xl font-black px-6 py-2 rounded-xl border ${ttt.winner === 'X' ? 'text-blue-400 bg-blue-950/30 border-blue-900' : 'text-rose-400 bg-rose-950/30 border-rose-900'} drop-shadow-xl`}
                 >
-                  {ttt.winner} Wins!
+                  {t('gameTicTacToe.wins', { winner: ttt.winner || '' })}
                 </div>
               )}
 
@@ -138,7 +140,7 @@ export function TicTacToeView() {
                   disabled={actionLoading}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-xl mt-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Play Again
+                  {t('gameTicTacToe.playAgain')}
                 </button>
               )}
             </div>

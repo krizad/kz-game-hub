@@ -33,6 +33,10 @@
 3. `apps/api/src/games/games.service.ts` → เพิ่ม business logic method
 4. `apps/web/src/store/useGameStore.ts` → เพิ่ม listener / action
 
+> **หมายเหตุ:** `create_room` และ `leave_room` เป็น hardcoded strings ใน gateway (ไม่ได้อยู่ใน `SOCKET_EVENTS` constant) — pattern นี้ไม่แนะนำสำหรับเกมใหม่
+>
+> **Who Am I exception:** Who Am I ใช้ `game_action` event แบบ generic (ไม่ per-action) และ `WHO_AM_I_GET_CATEGORIES`/`WHO_AM_I_CATEGORIES_LIST` เป็น request-response แทน broadcast
+
 ### State Management
 
 - **Server-Side:** `GamesService` เก็บ room state ใน `Map<string, RoomState>` (in-memory)
@@ -65,11 +69,13 @@ export function resetGameState(): void { ... }
 ## UI Rules
 
 1. **Tailwind CSS** — ใช้ utility classes, ไม่เขียน custom CSS ยกเว้นจำเป็น
-2. **Shadcn/UI** — ใช้ components จาก shadcn เป็นหลัก
-3. **Framer Motion** — ใช้สำหรับ animations
-4. **Responsive First** — ต้อง responsive ทั้ง mobile และ desktop
-5. **สี Theme:** ใช้ warm palette (amber/white base) — ดูสดใส board-game friendly
-6. **i18n:** รองรับ `th` (ไทย) และ `en` (English) ผ่าน dictionary files
+2. **Framer Motion** — ใช้สำหรับ animations (RoleCard flip, overlays)
+3. **Lucide React** — icon library for all icons
+4. **react-hot-toast** — toast notifications
+5. **qrcode.react** — QR code generation for room invites
+6. **Responsive First** — ต้อง responsive ทั้ง mobile และ desktop
+7. **สี Theme:** ใช้ warm palette (amber/white base) — ดูสดใส board-game friendly
+8. **i18n:** รองรับ `th` (ไทย — default) และ `en` (English) ผ่าน dictionary files
 
 ---
 

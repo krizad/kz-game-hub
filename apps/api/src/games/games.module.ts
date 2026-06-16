@@ -8,6 +8,7 @@ import { GobblerService } from './gobbler/gobbler.service';
 import { SoundsFishyService } from './sounds-fishy/sounds-fishy.service';
 import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
+import { LeaderboardService } from './leaderboard/leaderboard.service';
 
 @Module({
   providers: [
@@ -20,6 +21,7 @@ import { WhoAmIService } from './who-am-i/who-am-i.service';
     SoundsFishyService,
     DetectiveClubService,
     WhoAmIService,
+    LeaderboardService,
   ],
 })
 export class GamesModule {}

@@ -2,11 +2,13 @@ import { useGameStore } from '@/store/useGameStore';
 import { DetectiveClubPhase } from '@repo/types';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 import { CardViewerModal } from '../CardViewerModal';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function PlayingPhase() {
   const { room, socketId, detectiveClubPlayCard, actionLoading } = useGameStore();
+  const { t } = useTranslate();
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
   const [confirmPlayIndex, setConfirmPlayIndex] = useState<number | null>(null);
 
@@ -17,16 +19,15 @@ export function PlayingPhase() {
   const isMyTurn = state.activePlayerId === socketId;
   const isConspirator = myPlayer?.role === 'CONSPIRATOR';
 
-  // Find the active player's name
   const activePlayerName =
-    room.players.find((p) => p.socketId === state.activePlayerId)?.name || 'Someone';
+    room.players.find((p) => p.socketId === state.activePlayerId)?.name || 'Unknown';
 
   return (
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
-          The Secret Word
+          {t('gameDetectiveClub.theSecretWord')}
         </span>
         {isConspirator ? (
           <div className="flex items-center justify-center">
@@ -40,16 +41,17 @@ export function PlayingPhase() {
           </p>
         )}
         <p className="text-sm text-slate-600 mt-4">
-          {state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1
-            ? 'Round 1 of 2'
-            : 'Round 2 of 2'}
+          {t('gameDetectiveClub.roundOf', {
+            current: state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1 ? 1 : 2,
+            total: 2,
+          })}
         </p>
       </div>
 
       {/* Table / Played Cards Area */}
       <div className="flex-1 bg-amber-50/50 border border-amber-200 rounded-xl p-4 sm:p-6 overflow-x-auto min-h-[300px]">
         <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center">
-          Played Cards
+          {t('gameDetectiveClub.playedCards')}
         </h3>
         <div className="flex flex-wrap gap-4 justify-center items-center">
           {state.playOrder.map((pid) => {
@@ -83,7 +85,6 @@ export function PlayingPhase() {
                       </div>
                     </div>
                   ))}
-                  {/* Empty slots for missing plays */}
                   {Array.from({
                     length:
                       (state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1 ? 1 : 2) -
@@ -107,15 +108,14 @@ export function PlayingPhase() {
 
       {/* Your Hand */}
       <div className="bg-white border border-amber-200 rounded-xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
-        {/* Status indicator banner */}
         <div
           className={`absolute top-0 left-0 w-full py-1 text-center text-xs font-bold uppercase tracking-widest ${isMyTurn ? 'bg-indigo-600 text-white' : 'bg-amber-100 text-slate-600'}`}
         >
-          {isMyTurn ? 'Your Turn - Play a Card' : `Waiting for ${activePlayerName}...`}
+          {isMyTurn ? t('gameDetectiveClub.yourTurnPlayCard') : t('gameDetectiveClub.waitingFor', { name: activePlayerName })}
         </div>
 
         <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center mt-6">
-          Your Hand
+          {t('gameDetectiveClub.yourHand')}
         </h3>
         <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 justify-start sm:justify-center items-center px-4">
           {myPlayer?.hand.map((cardUrl, idx) => (
@@ -133,19 +133,17 @@ export function PlayingPhase() {
                 className="w-full h-full object-cover border-4 border-white rounded-lg"
               />
 
-              {/* Play Action Area */}
               {isMyTurn && (
                 <div
                   className="absolute inset-0 bg-transparent group-hover:bg-indigo-900/40 transition-colors flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[2px] cursor-pointer"
                   onClick={() => setConfirmPlayIndex(idx)}
                 >
                   <span className="opacity-0 group-hover:opacity-100 bg-indigo-600 text-white text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-all">
-                    Play
+                    {t('gameDetectiveClub.play')}
                   </span>
                 </div>
               )}
 
-              {/* View Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -171,7 +169,7 @@ export function PlayingPhase() {
             className="bg-white border-2 border-amber-300 rounded-xl max-w-sm w-full p-6 text-center shadow-2xl transform scale-100 transition-transform"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-black text-white mb-4">Confirm Card Play</h2>
+            <h2 className="text-xl font-black text-slate-800 mb-4">{t('gameDetectiveClub.confirmCardPlay')}</h2>
             <div className="flex justify-center mb-6">
               <div className="w-32 h-44 rounded-lg overflow-hidden border-4 border-indigo-500 shadow-lg">
                 <img
@@ -182,14 +180,14 @@ export function PlayingPhase() {
               </div>
             </div>
             <p className="text-slate-600 mb-6 font-medium">
-              Are you sure you want to play this card?
+              {t('gameDetectiveClub.confirmPlayDescription')}
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setConfirmPlayIndex(null)}
                 className="flex-1 py-3 px-4 bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold rounded-lg transition-colors border border-amber-400"
               >
-                Cancel
+                {t('gameDetectiveClub.cancel')}
               </button>
               <button
                 onClick={() => {
@@ -199,7 +197,7 @@ export function PlayingPhase() {
                 disabled={actionLoading}
                 className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-lg transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-indigo-400"
               >
-                Play Card
+                {t('gameDetectiveClub.playCard')}
               </button>
             </div>
           </div>

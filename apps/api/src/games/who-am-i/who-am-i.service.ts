@@ -275,6 +275,35 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     return room;
   }
 
+  // ─── Start Game (HOST_INPUT) — waiting for host to submit all words ─
+  startGameAwaitHostInput(room: RoomState, requesterId: string): RoomState | null {
+    if (room.roomHostId !== requesterId) return null;
+    if (room.config.wordMode !== 'HOST_INPUT') return null;
+    if (room.players.length < 3) return null; // host + at least 2 players
+
+    const gamePlayers = room.players.filter((p) => p.socketId !== requesterId);
+    if (gamePlayers.length < 2) return null;
+
+    room.status = RoomStatus.PLAYING;
+
+    const gameState: WhoAmIGameState = {
+      currentTurn: '',
+      playerWords: {},
+      currentGuess: null,
+      votes: {},
+      turnStatus: 'VOTING',
+      winner: null,
+      currentRound: 1,
+      maxRounds: room.config.maxRounds || 3,
+      eliminatedPlayers: [],
+      phase: 'AWAITING_HOST_INPUT',
+      finalGuessUsed: [],
+    };
+
+    room.whoAmIState = gameState;
+    return room;
+  }
+
   // ─── Start Game (PLAYER_INPUT) — enter COLLECTING_WORDS phase ─────
   startGamePlayerInput(room: RoomState, requesterId: string): RoomState | null {
     if (room.roomHostId !== requesterId) return null;

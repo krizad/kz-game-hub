@@ -15,6 +15,7 @@ export function WhoAmIView() {
   const [playerWordInput, setPlayerWordInput] = useState('');
   const [showGuessModal, setShowGuessModal] = useState(false);
   const [guessInput, setGuessInput] = useState('');
+  const [hostWords, setHostWords] = useState<Record<string, string>>({});
 
   if (!room || !room.whoAmIState) return null;
   const gameState = room.whoAmIState as WhoAmIGameState;
@@ -109,8 +110,67 @@ export function WhoAmIView() {
             </div>
           )}
 
+          {/* AWAITING_HOST_INPUT PHASE - host submits words for all players */}
+          {gameState.phase === 'AWAITING_HOST_INPUT' && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4">
+              <h4 className="text-lg font-black uppercase text-indigo-500 tracking-widest bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-200 animate-pulse">
+                Secret Word Selection
+              </h4>
+              {socketId === room.roomHostId ? (
+                <div className="w-full max-w-md space-y-4">
+                  <p className="text-slate-600 text-sm text-center">
+                    Enter a secret word for each player. They will NOT see their own word.
+                  </p>
+                  {/* Input for each non-host player */}
+                  {room.players
+                    .filter((p) => p.socketId !== room.roomHostId)
+                    .map((p) => (
+                      <div key={p.socketId} className="space-y-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          {p.name}
+                        </label>
+                        <input
+                          type="text"
+                          value={hostWords[p.socketId] || ''}
+                          onChange={(e) =>
+                            setHostWords((prev) => ({
+                              ...prev,
+                              [p.socketId]: e.target.value,
+                            }))
+                          }
+                          placeholder={t('gameWhoAmI.typeYourWord')}
+                          className="w-full bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-slate-800 text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
+                        />
+                      </div>
+                    ))}
+                  <button
+                    onClick={() => {
+                      if (Object.keys(hostWords).length < room.players.filter((p) => p.socketId !== room.roomHostId).length) return;
+                      useGameStore.getState().submitWordsWhoAmI(hostWords);
+                    }}
+                    disabled={
+                      Object.keys(hostWords).length < room.players.filter((p) => p.socketId !== room.roomHostId).length ||
+                      Object.values(hostWords).some((w) => !w.trim()) ||
+                      actionLoading
+                    }
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg"
+                  >
+                    {t('gameWhoAmI.submitWord')}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-4 py-6">
+                  <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                  <p className="text-slate-500 font-medium animate-pulse">
+                    Waiting for Host to submit secret words...
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Normal game UI (ASKING / FINAL_GUESS phases) */}
-          {gameState.phase !== 'COLLECTING_WORDS' && (
+          {(gameState.phase !== 'COLLECTING_WORDS' && gameState.phase !== 'AWAITING_HOST_INPUT') && (
             <>
               {/* Status Bar */}
               <div className="flex flex-col items-center justify-center text-center mb-6">

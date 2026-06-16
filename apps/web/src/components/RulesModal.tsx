@@ -176,7 +176,7 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
                     onClick={() => setActiveTab(GameType.DETECTIVE_CLUB)}
                     className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.DETECTIVE_CLUB ? 'bg-slate-500/20 text-slate-700 shadow-inner border border-slate-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
                   >
-                    Detective Club
+                    {t('rules.modal.tabs.detectiveClub')}
                   </button>
                 </div>
               </div>

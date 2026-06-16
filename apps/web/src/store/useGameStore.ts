@@ -62,6 +62,10 @@ interface GameState {
   submitPlayerWordWhoAmI: (word: string) => void;
   getCategoriesWhoAmI: (lang?: string) => void;
   gameActionWhoAmI: (action: any) => void;
+  spectateJoin: (code: string) => void;
+  getLeaderboard: (gameType?: string) => void;
+  leaderboard: any[];
+  setLeaderboard: (data: any[]) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -74,6 +78,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   secretWord: null,
   availableRooms: [],
   categories: [],
+  leaderboard: [],
   isLoading: false,
   actionLoading: false,
 
@@ -152,6 +157,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
       set({ isLoading: false, actionLoading: false });
       toast.error(message);
+    });
+
+    socket.on(SOCKET_EVENTS.LEADERBOARD_DATA, (data: any[]) => {
+      set({ leaderboard: data || [] });
     });
   },
 
@@ -450,5 +459,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
     }
+  },
+
+  spectateJoin: (code: string) => {
+    const { socket, myName } = get();
+    if (socket && myName) {
+      set({ isLoading: true });
+      socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: code.toUpperCase(), name: myName });
+    }
+  },
+
+  getLeaderboard: (gameType?: string) => {
+    const { socket } = get();
+    if (socket) {
+      socket.emit(SOCKET_EVENTS.LEADERBOARD_GET, { gameType });
+    }
+  },
+
+  setLeaderboard: (data: any[]) => {
+    set({ leaderboard: data });
   },
 }));

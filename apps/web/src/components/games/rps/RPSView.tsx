@@ -2,10 +2,12 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
+import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function RPSView() {
   const { room, socketId, rpsMakeChoice, rpsNextRound, actionLoading } = useGameStore();
+  const { t } = useTranslate();
 
   if (!room || !room.rpsState) return null;
   const rps = room.rpsState;
@@ -21,6 +23,17 @@ export function RPSView() {
     if (choice === 'PAPER') return '✋';
     if (choice === 'SCISSORS') return '✌️';
     return '?';
+  };
+
+  const getWinnerNames = (winnerIds: string | string[] | undefined): string => {
+    if (!winnerIds) return '';
+    if (Array.isArray(winnerIds)) {
+      return winnerIds
+        .map((id) => room.players.find((p) => p.socketId === id)?.name)
+        .filter(Boolean)
+        .join(', ');
+    }
+    return room.players.find((p) => p.socketId === winnerIds)?.name || '';
   };
 
   const renderActivePlayer = (playerId: string | undefined, index: number) => {
@@ -70,17 +83,17 @@ export function RPSView() {
         {/* Header */}
         <div className="flex justify-between w-full items-center px-2 sm:px-4 mb-4">
           <div className="text-xs font-bold text-slate-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-            {room.config.rpsMode === 'ALL_AT_ONCE' ? 'ALL AT ONCE' : '1V1 ROUND ROBIN'}
+            {room.config.rpsMode === 'ALL_AT_ONCE' ? t('gameRps.allAtOnce') : t('gameRps.oneVOneRoundRobin')}
           </div>
           <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-inner">
             {room.status === RoomStatus.RESULT
               ? rps.gameWinner
-                ? 'Match Over'
-                : 'Round Over'
-              : 'Playing'}
+                ? t('gameRps.matchOver')
+                : t('gameRps.roundOver')
+              : t('gameRps.playing')}
           </div>
           <div className="text-xs font-bold text-amber-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-            FIRST TO {targetScore}
+            {t('gameRps.firstTo', { score: targetScore })}
           </div>
         </div>
 
@@ -94,7 +107,7 @@ export function RPSView() {
             {renderActivePlayer(rps.activePlayers[0], 0)}
             {room.status === RoomStatus.RESULT && (
               <div className="hidden sm:block text-4xl font-black text-slate-600 italic px-4 pb-10">
-                VS
+                {t('gameRps.vs')}
               </div>
             )}
             {renderActivePlayer(rps.activePlayers[1], 1)}
@@ -106,14 +119,14 @@ export function RPSView() {
           <div className="w-full flex flex-col items-center gap-6 mt-8">
             {!isMyTurn ? (
               <div className="text-2xl font-black text-slate-500 uppercase tracking-widest bg-amber-50 px-8 py-4 rounded-2xl border border-amber-200">
-                Spectating...
+                {t('gameRps.spectating')}
               </div>
             ) : rps.choices[socketId] ? (
               <div className="text-2xl font-black text-amber-500 animate-pulse text-center bg-amber-950/30 px-8 py-4 rounded-2xl border border-amber-900/50">
-                Choice locked!
+                {t('gameRps.choiceLocked')}
                 <br />
                 <span className="text-base text-amber-500/50 mt-2 block">
-                  Waiting for opponent...
+                  {t('gameRps.waitingOpponent')}
                 </span>
               </div>
             ) : (
@@ -136,29 +149,17 @@ export function RPSView() {
         {/* Results & Transitions */}
         {room.status === RoomStatus.RESULT && (
           <div className="flex flex-col items-center gap-6 animate-in zoom-in slide-in-from-bottom-4 w-full mt-4">
-            {/* Announcement */}
             {rps.roundWinner === 'DRAW' ? (
               <div className="text-2xl sm:text-3xl font-black text-slate-600 bg-amber-100 px-6 py-2 rounded-2xl border-2 border-amber-400 shadow-lg">
-                It's a Draw!
+                {t('gameRps.draw')}
               </div>
             ) : rps.gameWinner ? (
               <div className="text-3xl sm:text-4xl font-black px-8 py-4 rounded-2xl border-2 shadow-2xl text-amber-400 bg-amber-950 border-amber-500 animate-pulse text-center">
-                🏆{' '}
-                {Array.isArray(rps.gameWinner)
-                  ? rps.gameWinner
-                      .map((id) => room.players.find((p) => p.socketId === id)?.name)
-                      .join(', ')
-                  : room.players.find((p) => p.socketId === rps.gameWinner)?.name}{' '}
-                Wins the Match! 🏆
+                🏆 {t('gameRps.winsMatch', { winner: getWinnerNames(rps.gameWinner) })} 🏆
               </div>
             ) : (
               <div className="text-2xl sm:text-3xl font-black px-6 py-2 rounded-2xl border-2 shadow-lg text-indigo-400 bg-indigo-950/50 border-indigo-500/50">
-                {Array.isArray(rps.roundWinner)
-                  ? rps.roundWinner
-                      .map((id) => room.players.find((p) => p.socketId === id)?.name)
-                      .join(', ')
-                  : room.players.find((p) => p.socketId === rps.roundWinner)?.name}{' '}
-                Wins the Round!
+                {t('gameRps.winsRound', { winner: getWinnerNames(rps.roundWinner) })}
               </div>
             )}
 
@@ -168,7 +169,7 @@ export function RPSView() {
                 disabled={actionLoading}
                 className={`font-bold px-10 py-4 rounded-xl mt-2 transition-all shadow-lg active:scale-95 text-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ${rps.gameWinner ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-800'}`}
               >
-                {rps.gameWinner ? 'Play Again' : 'Next Round'}
+                {rps.gameWinner ? t('gameRps.playAgain') : t('gameRps.nextRound')}
               </button>
             )}
           </div>
@@ -178,7 +179,7 @@ export function RPSView() {
         {room.config.rpsMode === '1V1_ROUND_ROBIN' && rps.queue.length > 0 && (
           <div className="absolute -left-6 top-1/2 -translate-y-1/2 -translate-x-full hidden lg:flex flex-col gap-2">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-2">
-              Queue
+              {t('gameRps.queue')}
             </h4>
             {rps.queue.map((id, idx) => {
               const p = room.players.find((p) => p.socketId === id);

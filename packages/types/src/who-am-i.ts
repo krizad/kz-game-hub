@@ -27,7 +27,7 @@ export interface WhoAmIGameState {
   currentRound: number; // Current round number (1-indexed)
   maxRounds: number; // Total rounds configured
   eliminatedPlayers: string[]; // socketIds of players who guessed wrong and are out
-  phase: 'COLLECTING_WORDS' | 'ASKING' | 'FINAL_GUESS';
+  phase: 'COLLECTING_WORDS' | 'AWAITING_HOST_INPUT' | 'ASKING' | 'FINAL_GUESS';
   finalGuessUsed: string[]; // socketIds who already used their final guess
   // PLAYER_INPUT collection phase
   wordSubmissions?: Record<string, string>; // socketId -> submitted word (during COLLECTING_WORDS)

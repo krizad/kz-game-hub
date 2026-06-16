@@ -371,14 +371,7 @@ export class GamesService {
     if (room.gameType === GameType.WHO_AM_I) {
       let updatedRoom: RoomState | null = null;
       if (room.config.wordMode === 'HOST_INPUT') {
-        // In hub, we don't have playerWords at START_GAME. So HOST_INPUT must be handled by a specific event or we initialize it empty.
-        // Wait, for HOST_INPUT the original used a separate event or sent playerWords.
-        // Let's assume the host input starts with COLLECTING_WORDS just like PLAYER_INPUT for now, or requires a custom event.
-        // Actually, the original Who Am I had `whoAmIStartGameHostInput` passing `playerWords`.
-        // We'll return null here and let a custom event handle it, OR just initialize it.
-        // Let's use custom socket events for Who Am I starts to pass extra data if needed, or we adapt it here.
-        // Wait, I can just initialize PLAYER_INPUT here and let HOST_INPUT be handled separately.
-        updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
+        updatedRoom = this.whoAmIService.startGameAwaitHostInput(room, requesterId);
       } else if (room.config.wordMode === 'RANDOM') {
         updatedRoom = await this.whoAmIService.startGameRandom(room, requesterId);
       } else if (room.config.wordMode === 'AI_GENERATED') {

@@ -72,6 +72,7 @@ describe('GamesService', () => {
       startGameHostInput: jest.fn(),
       startGameRandom: jest.fn(),
       startGamePlayerInput: jest.fn(),
+      startGameAwaitHostInput: jest.fn(),
       submitPlayerWord: jest.fn(),
       handleGameAction: jest.fn(),
       resetGame: jest.fn(),
@@ -488,16 +489,16 @@ describe('GamesService', () => {
       expect(result).toEqual({ room: updatedRoom, roles: {} });
     });
 
-    it('should route WHO_AM_I HOST_INPUT mode to startGamePlayerInput', async () => {
+    it('should route WHO_AM_I HOST_INPUT mode to startGameAwaitHostInput', async () => {
       const room = service.createRoom('host1', GameType.WHO_AM_I);
       room.config.wordMode = 'HOST_INPUT';
       (service as any).rooms.set(room.code, room);
       const updatedRoom = { ...room, status: RoomStatus.PLAYING };
-      whoAmIService.startGamePlayerInput.mockReturnValue(updatedRoom);
+      whoAmIService.startGameAwaitHostInput.mockReturnValue(updatedRoom);
 
       const result = await service.assignRoles(room.code, 'host1');
 
-      expect(whoAmIService.startGamePlayerInput).toHaveBeenCalledWith(room, 'host1');
+      expect(whoAmIService.startGameAwaitHostInput).toHaveBeenCalledWith(room, 'host1');
       expect(result).toEqual({ room: updatedRoom, roles: {} });
     });
 
