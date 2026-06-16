@@ -435,6 +435,10 @@ export const th: Dictionary = {
       title: 'ล็อบบี้ Who First',
       penaltyLabel: 'เปิดใช้บทลงโทษหากกดก่อนสัญญาณ',
       hostPlaysLabel: 'เจ้าของห้องร่วมเล่นด้วย',
+      minCountdown: 'เวลาสุ่มต่ำสุด (วิ)',
+      maxCountdown: 'เวลาสุ่มสูงสุด (วิ)',
+      infiniteRounds: 'เล่นไม่จำกัดรอบ',
+      showCounter: 'แสดงตัวจับเวลา (วิ)',
       startBtn: 'เริ่มนับถอยหลัง!',
       waitingForHost: 'รอเจ้าของห้องเริ่มเกม',
     },
@@ -445,6 +449,7 @@ export const th: Dictionary = {
       pressed: 'กดแล้ว!',
       penalty: 'ฟาวล์!',
       spectating: 'กำลังดูคนอื่นเล่น',
+      endGameNow: 'จบเกมทันที',
     },
     result: {
       roundTitle: 'ผลลัพธ์รอบนี้',
@@ -453,6 +458,7 @@ export const th: Dictionary = {
       noPress: 'ไม่ได้กด',
       nextRoundBtn: 'รอบต่อไป',
       endGameBtn: 'จบเกม',
+      allFouls: 'ทุกคนฟาวล์หมด!',
     },
     rules: {
       title: 'กติกา',

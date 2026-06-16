@@ -6,7 +6,7 @@ export class WhoFirstService {
   startGame(room: RoomState, requesterId: string): RoomState | null {
     if (room.roomHostId !== requesterId) return null;
 
-    const maxRounds = room.config.maxRounds || 3;
+    const maxRounds = room.config.whoFirstInfiniteRounds ? 0 : (room.config.maxRounds || 3);
 
     room.whoFirstState = {
       phase: 'LOBBY',
@@ -39,8 +39,8 @@ export class WhoFirstService {
         if (isHost && (state.phase === 'LOBBY' || state.phase === 'ROUND_RESULT')) {
           state.phase = 'COUNTDOWN';
           state.presses = [];
-          const min = 2000;
-          const max = 5000;
+          const min = room.config.whoFirstMinCountdownMs || 2000;
+          const max = room.config.whoFirstMaxCountdownMs || 5000;
           state.countdownDurationMs = Math.floor(Math.random() * (max - min + 1) + min);
           state.countdownStartTime = Date.now();
         }
@@ -63,6 +63,10 @@ export class WhoFirstService {
               timestamp: pressTime,
               isPenalty: true,
             });
+            const expectedCount = room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+            if (state.presses.length >= expectedCount && expectedCount > 0) {
+              state.phase = 'ROUND_RESULT';
+            }
           }
         } else if (state.phase === 'ACTIVE') {
           const reactionTimeMs = state.activeStartTime
@@ -79,9 +83,10 @@ export class WhoFirstService {
           // Check if all active players have pressed
           const expectedCount = room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
           const activePresses = state.presses.filter((p) => !p.isPenalty).length;
+          const foulCount = state.presses.filter((p) => p.isPenalty).length;
           
           // Optionally end round automatically if everyone has pressed
-          if (activePresses >= expectedCount && expectedCount > 0) {
+          if (activePresses + foulCount >= expectedCount && expectedCount > 0) {
             state.phase = 'ROUND_RESULT';
           }
         }
@@ -90,12 +95,12 @@ export class WhoFirstService {
 
       case 'NEXT_ROUND':
         if (isHost && state.phase === 'ROUND_RESULT') {
-          if (state.currentRound < state.maxRounds) {
+          if (state.maxRounds === 0 || state.currentRound < state.maxRounds) {
             state.currentRound++;
             state.phase = 'COUNTDOWN';
             state.presses = [];
-            const min = 2000;
-            const max = 5000;
+            const min = room.config.whoFirstMinCountdownMs || 2000;
+            const max = room.config.whoFirstMaxCountdownMs || 5000;
             state.countdownDurationMs = Math.floor(Math.random() * (max - min + 1) + min);
             state.countdownStartTime = Date.now();
           } else {
@@ -120,6 +125,21 @@ export class WhoFirstService {
         }
         break;
     }
+
+    return room;
+  }
+
+  resetGame(room: RoomState, requesterId: string): RoomState | null {
+    if (room.status !== RoomStatus.RESULT) return null;
+    if (room.roomHostId !== requesterId) return null;
+
+    room.status = RoomStatus.LOBBY;
+    room.whoFirstState = {
+      phase: 'LOBBY',
+      presses: [],
+      currentRound: 1,
+      maxRounds: room.config.whoFirstInfiniteRounds ? 0 : (room.config.maxRounds || 3),
+    };
 
     return room;
   }

@@ -415,6 +415,10 @@ export interface Dictionary {
       title: string;
       penaltyLabel: string;
       hostPlaysLabel: string;
+      minCountdown: string;
+      maxCountdown: string;
+      infiniteRounds: string;
+      showCounter: string;
       startBtn: string;
       waitingForHost: string;
     };
@@ -425,6 +429,7 @@ export interface Dictionary {
       pressed: string;
       penalty: string;
       spectating: string;
+      endGameNow: string;
     };
     result: {
       roundTitle: string;
@@ -433,6 +438,7 @@ export interface Dictionary {
       noPress: string;
       nextRoundBtn: string;
       endGameBtn: string;
+      allFouls: string;
     };
     rules: {
       title: string;

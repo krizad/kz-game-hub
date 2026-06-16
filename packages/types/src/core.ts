@@ -111,6 +111,10 @@ export interface RoomConfig {
   whoFirstPenalty?: boolean;
   whoFirstCooldownMs?: number;
   whoFirstHostPlays?: boolean;
+  whoFirstMinCountdownMs?: number;
+  whoFirstMaxCountdownMs?: number;
+  whoFirstInfiniteRounds?: boolean;
+  whoFirstShowCounter?: boolean;
 }
 
 export interface RoomState {

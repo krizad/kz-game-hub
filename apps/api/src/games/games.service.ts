@@ -460,6 +460,12 @@ export class GamesService {
       return updatedRoom;
     }
 
+    if (room.gameType === GameType.WHO_FIRST) {
+      const updatedRoom = this.whoFirstService.resetGame(room, requesterId);
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom;
+    }
+
     const updatedRoom = this.whoKnowService.resetGame(room, requesterId, this.secretWords);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
