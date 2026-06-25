@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomState, RoomStatus, WhoFirstState, WhoFirstGameActionType } from '@repo/types';
+import { RoomState, RoomStatus, WhoFirstGameActionType } from '@repo/types';
 
 @Injectable()
 export class WhoFirstService {
@@ -21,7 +21,7 @@ export class WhoFirstService {
   handleGameAction(
     room: RoomState,
     clientId: string,
-    action: { type: WhoFirstGameActionType; payload?: any }
+    action: { type: WhoFirstGameActionType | string; payload?: unknown }
   ): RoomState | null {
     const state = room.whoFirstState;
     if (!state) return null;
@@ -119,7 +119,7 @@ export class WhoFirstService {
         
       default:
         // Handle custom internal action if frontend sends ACTIVE transition
-        if (action.type === ('SET_ACTIVE' as any) && isHost && state.phase === 'COUNTDOWN') {
+        if (action.type === 'SET_ACTIVE' && isHost && state.phase === 'COUNTDOWN') {
            state.phase = 'ACTIVE';
            state.activeStartTime = Date.now();
         }

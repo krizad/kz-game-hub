@@ -22,6 +22,7 @@ interface GameState {
   availableRooms: AvailableRoom[];
   categories: WordCategory[];
   isLoading: boolean;
+  musicTriviaHostAnswer: { title: string; artist: string; artworkUrl?: string; trackViewUrl?: string } | null;
   actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
@@ -62,10 +63,20 @@ interface GameState {
   submitPlayerWordWhoAmI: (word: string) => void;
   getCategoriesWhoAmI: (lang?: string) => void;
   gameActionWhoAmI: (action: any) => void;
+  musicTriviaGameAction: (action: any) => void;
   spectateJoin: (code: string) => void;
   getLeaderboard: (gameType?: string) => void;
   leaderboard: any[];
   setLeaderboard: (data: any[]) => void;
+  musicTriviaTrackAnswer: { roundNumber: number } | null;
+  musicTriviaSyncPlay: {
+    roundNumber: number;
+    playStartTime: number;
+    previewUrl: string;
+    sourceType: string;
+    durationMs: number;
+    artworkUrl?: string;
+  } | null;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -80,7 +91,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   categories: [],
   leaderboard: [],
   isLoading: false,
+  musicTriviaHostAnswer: null,
   actionLoading: false,
+  musicTriviaTrackAnswer: null,
+  musicTriviaSyncPlay: null,
 
   setName: (name) => set({ myName: name }),
 
@@ -120,6 +134,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (room.status === RoomStatus.LOBBY) {
         set({ room, myRole: null, secretWord: null, isLoading: false, actionLoading: false });
       } else {
+        // Clear host answer when state updates (if not GAME_MASTER playing)
+        if (room.musicTriviaState?.phase !== 'PLAYING' && room.musicTriviaState?.phase !== 'BUZZED' && room.musicTriviaState?.phase !== 'ANSWERING') {
+          set({ musicTriviaHostAnswer: null });
+        }
+        
         set({ room, isLoading: false, actionLoading: false });
       }
 
@@ -150,6 +169,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ categories });
     });
 
+    socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, (answer: any) => {
+      set({ musicTriviaHostAnswer: answer });
+    });
+
     socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
       if (message === 'Room not found') {
         localStorage.removeItem('who-know-roomCode');
@@ -161,6 +184,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     socket.on(SOCKET_EVENTS.LEADERBOARD_DATA, (data: any[]) => {
       set({ leaderboard: data || [] });
+    });
+
+    socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_TRACK_ANSWER, (data) => {
+      set({ musicTriviaTrackAnswer: data });
+    });
+
+    socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, (data) => {
+      set({ musicTriviaSyncPlay: data });
     });
   },
 
@@ -454,6 +485,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   gameActionWhoAmI: (action: any) => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
+    }
+  },
+
+  musicTriviaGameAction: (action: any) => {
     const { socket, room, actionLoading } = get();
     if (socket && room && !actionLoading) {
       set({ actionLoading: true });

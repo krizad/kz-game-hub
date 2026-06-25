@@ -6,6 +6,7 @@ import { SoundsFishyState } from './sounds-fishy';
 import { DetectiveClubState } from './detective-club';
 import { WhoAmIGameState } from './who-am-i';
 import { WhoFirstState } from './who-first';
+import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-trivia';
 
 export enum RoomStatus {
   LOBBY = 'LOBBY',
@@ -25,6 +26,7 @@ export enum GameType {
   DETECTIVE_CLUB = 'DETECTIVE_CLUB',
   WHO_AM_I = 'WHO_AM_I',
   WHO_FIRST = 'WHO_FIRST',
+  MUSIC_TRIVIA = 'MUSIC_TRIVIA',
 }
 
 // Socket Constants
@@ -84,6 +86,10 @@ export const SOCKET_EVENTS = {
   LEADERBOARD_DATA: 'leaderboard_data',
   // Spectator events
   SPECTATE_JOIN: 'spectate_join',
+  // Music Trivia specific events
+  MUSIC_TRIVIA_SYNC_PLAY: 'music_trivia_sync_play',
+  MUSIC_TRIVIA_TRACK_ANSWER: 'music_trivia_track_answer',
+  MUSIC_TRIVIA_HOST_ANSWER: 'music_trivia_host_answer',
 } as const;
 
 export interface UserState {
@@ -115,6 +121,16 @@ export interface RoomConfig {
   whoFirstMaxCountdownMs?: number;
   whoFirstInfiniteRounds?: boolean;
   whoFirstShowCounter?: boolean;
+  // Music Trivia config
+  musicTriviaMode?: MusicTriviaMode;
+  musicTriviaSource?: MusicSourceType;
+  musicTriviaQuery?: string;
+  musicTriviaCountry?: string;
+  musicTriviaAttribute?: string;
+  musicTriviaRounds?: number;
+  musicTriviaHostPlays?: boolean;
+  musicTriviaAnswerTimeoutMs?: number;
+  musicTriviaAudioPlayback?: 'HOST_ONLY' | 'EVERYONE';
 }
 
 export interface RoomState {
@@ -136,6 +152,7 @@ export interface RoomState {
   detectiveClubState?: DetectiveClubState;
   whoAmIState?: WhoAmIGameState;
   whoFirstState?: WhoFirstState;
+  musicTriviaState?: MusicTriviaState;
 }
 
 export interface AvailableRoom {

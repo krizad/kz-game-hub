@@ -9,6 +9,7 @@ import { SoundsFishyRules } from './games/sounds-fishy/SoundsFishyRules';
 import { DetectiveClubRules } from './games/detective-club/DetectiveClubRules';
 import { WhoAmIRules } from './games/who-am-i/WhoAmIRules';
 import { WhoFirstRules } from './games/who-first/WhoFirstRules';
+import { MusicTriviaRules } from './games/music-trivia/MusicTriviaRules';
 import { useTranslate } from '@/hooks/useTranslate';
 
 interface RulesModalProps {
@@ -56,6 +57,8 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
         return <DetectiveClubRules />;
       case GameType.WHO_FIRST:
         return <WhoFirstRules />;
+      case GameType.MUSIC_TRIVIA:
+        return <MusicTriviaRules />;
       default:
         return null;
     }

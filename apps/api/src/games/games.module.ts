@@ -10,6 +10,7 @@ import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { WhoFirstService } from './who-first/who-first.service';
+import { MusicTriviaService } from './music-trivia/music-trivia.service';
 
 @Module({
   providers: [
@@ -24,6 +25,8 @@ import { WhoFirstService } from './who-first/who-first.service';
     WhoAmIService,
     LeaderboardService,
     WhoFirstService,
+    MusicTriviaService,
   ],
 })
 export class GamesModule {}
+

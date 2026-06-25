@@ -669,7 +669,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.GAME_ACTION)
-  handleGameAction(
+  async handleGameAction(
     @MessageBody() data: { code: string; action: Record<string, unknown> },
     @ConnectedSocket() client: Socket,
   ) {
@@ -683,10 +683,50 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
       }
     } else if (roomInfo && roomInfo.gameType === GameType.WHO_FIRST) {
-      const room = this.gamesService.whoFirstGameAction(data.code, client.id, data.action as any);
+      const room = this.gamesService.whoFirstGameAction(data.code, client.id, data.action as { type: string; payload?: unknown });
       if (room) {
         this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
         this.maybeRecordGameResult(room);
+      } else {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
+      }
+    } else if (roomInfo && roomInfo.gameType === GameType.MUSIC_TRIVIA) {
+      const result = await this.gamesService.musicTriviaGameAction(
+        data.code,
+        client.id,
+        data.action as { type: string; payload?: unknown },
+      );
+      if (result) {
+        this.server.to(result.room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+
+        // Emit sync play signal for audio synchronization
+        if (result.syncPlay) {
+          this.server
+            .to(result.room.code)
+            .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, result.syncPlay);
+        }
+
+        // Emit track answer privately to buzzed player (if applicable)
+        if (result.trackAnswerTo) {
+          this.server
+            .to(result.trackAnswerTo.socketId)
+            .emit(SOCKET_EVENTS.MUSIC_TRIVIA_TRACK_ANSWER, {
+              roundNumber: result.trackAnswerTo.roundNumber,
+            });
+        }
+
+        // Emit answer privately to host in GAME_MASTER mode
+        if (result.hostAnswerTo) {
+          this.server
+            .to(result.hostAnswerTo.socketId)
+            .emit(SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, {
+              title: result.hostAnswerTo.title,
+              artist: result.hostAnswerTo.artist,
+              artworkUrl: result.hostAnswerTo.artworkUrl,
+            });
+        }
+
+        this.maybeRecordGameResult(result.room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
       }

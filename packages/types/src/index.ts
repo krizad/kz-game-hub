@@ -7,3 +7,4 @@ export * from './sounds-fishy';
 export * from './detective-club';
 export * from './who-am-i';
 export * from './who-first';
+export * from './music-trivia';

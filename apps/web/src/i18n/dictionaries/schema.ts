@@ -218,6 +218,22 @@ export interface Dictionary {
       title: string;
       desc: string;
     };
+    musicTrivia: {
+      title: string;
+      desc: string;
+      rules: {
+        sharedFeaturesTitle: string;
+        sharedFeatures: string;
+        modeTypingTitle: string;
+        modeTypingDesc: string;
+        modeTypingRules: string;
+        modeGmTitle: string;
+        modeGmDesc: string;
+        modeGmRules: string;
+        tipsTitle: string;
+        tips: string;
+      };
+    };
   };
   gameSoundsFishy: {
     loading: string;
@@ -450,6 +466,27 @@ export interface Dictionary {
       rule3Title: string;
       rule3Desc: string;
       footer: string;
+    };
+  };
+  gameMusicTrivia: {
+    lobby: {
+      musicCategory: string;
+      waitingForHost: string;
+      region: string;
+      regionIntl: string;
+      regionTh: string;
+      searchBy: string;
+      searchAnything: string;
+      searchArtist: string;
+      searchSong: string;
+      searchAlbum: string;
+      audioPlayback: string;
+      playbackHostOnly: string;
+      playbackEveryone: string;
+    };
+    game: {
+      viewOnAppleMusic: string;
+      listenOnAppleMusic: string;
     };
   };
 }

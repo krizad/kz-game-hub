@@ -17,6 +17,7 @@ import { SoundsFishyService } from './sounds-fishy/sounds-fishy.service';
 import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { WhoFirstService } from './who-first/who-first.service';
+import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 
 @Injectable()
 export class GamesService {
@@ -32,6 +33,7 @@ export class GamesService {
     private readonly detectiveClubService: DetectiveClubService,
     private readonly whoAmIService: WhoAmIService,
     private readonly whoFirstService: WhoFirstService,
+    private readonly musicTriviaService: MusicTriviaService,
   ) {}
 
   findRoomCodeBySocketId(socketId: string): string | null {
@@ -115,6 +117,12 @@ export class GamesService {
         currentRound: 1,
         maxRounds: 5,
       };
+    } else if (gameType === GameType.MUSIC_TRIVIA) {
+      room.config.musicTriviaMode = 'TYPING';
+      room.config.musicTriviaSource = 'ITUNES';
+      room.config.musicTriviaRounds = 10;
+      room.config.musicTriviaHostPlays = true;
+      room.config.musicTriviaAnswerTimeoutMs = 15000;
     }
 
     this.rooms.set(code, room);
@@ -272,6 +280,10 @@ export class GamesService {
           if (p.socketId === oldSocketId) p.socketId = user.socketId;
         });
       }
+
+      if (room.musicTriviaState) {
+        this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
+      }
     } else {
       room.players.push({
         ...user,
@@ -408,6 +420,12 @@ export class GamesService {
       return updatedRoom ? { room: updatedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.MUSIC_TRIVIA) {
+      const updatedRoom = this.musicTriviaService.startGame(room, requesterId);
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+    }
+
     // Default to WHO_KNOW
     const result = this.whoKnowService.assignRoles(room, requesterId);
     if (result) this.rooms.set(code, result.room);
@@ -462,6 +480,12 @@ export class GamesService {
 
     if (room.gameType === GameType.WHO_FIRST) {
       const updatedRoom = this.whoFirstService.resetGame(room, requesterId);
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom;
+    }
+
+    if (room.gameType === GameType.MUSIC_TRIVIA) {
+      const updatedRoom = this.musicTriviaService.resetGame(room, requesterId);
       if (updatedRoom) this.rooms.set(code, updatedRoom);
       return updatedRoom;
     }
@@ -725,11 +749,11 @@ export class GamesService {
   whoFirstGameAction(
     code: string,
     clientId: string,
-    action: { type: any; payload?: any },
+    action: { type: string; payload?: unknown },
   ): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.whoFirstService.handleGameAction(room, clientId, action);
+    const updatedRoom = this.whoFirstService.handleGameAction(room, clientId, action as Parameters<typeof this.whoFirstService.handleGameAction>[2]);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -749,5 +773,17 @@ export class GamesService {
     const updatedRoom = this.whoAmIService.startGameHostInput(room, clientId, playerWords);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
+  }
+
+  async musicTriviaGameAction(
+    code: string,
+    clientId: string,
+    action: { type: string; payload?: unknown },
+  ): Promise<MusicTriviaActionResult | null> {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const result = await this.musicTriviaService.handleGameAction(room, clientId, action as Parameters<typeof this.musicTriviaService.handleGameAction>[2]);
+    if (result) this.rooms.set(code, result.room);
+    return result;
   }
 }

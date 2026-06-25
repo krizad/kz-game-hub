@@ -19,6 +19,7 @@ import { SoundsFishyView } from '@/components/games/sounds-fishy/SoundsFishyView
 import { DetectiveClubView } from '@/components/games/detective-club/DetectiveClubView';
 import { WhoAmIView } from '@/components/games/who-am-i/WhoAmIView';
 import { WhoFirstView } from '@/components/games/who-first/WhoFirstView';
+import { MusicTriviaView } from '@/components/games/music-trivia/MusicTriviaView';
 import { useTranslate } from '@/hooks/useTranslate';
 
 // Components extracted to separate files
@@ -35,6 +36,7 @@ function GameLobby() {
     startGame,
     myRole,
     leaveRoom,
+    secretWord,
     availableRooms,
     categories,
     getCategoriesWhoAmI,
@@ -298,6 +300,16 @@ function GameLobby() {
                 <span className="text-xs tracking-wider text-center px-1">Who First</span>
               </button>
             </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <button
+                onClick={() => createRoom(GameType.MUSIC_TRIVIA)}
+                disabled={!connected || !myName}
+                className="w-full bg-indigo-500/80 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
+              >
+                <span className="text-xl group-hover:scale-110 transition-transform">🎵</span>
+                <span className="text-xs tracking-wider text-center px-1">Music Trivia</span>
+              </button>
+            </div>
 
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-amber-200"></div>
@@ -377,11 +389,13 @@ function GameLobby() {
                                   ? 'DETECTIVE CLUB'
                                   : r.gameType === GameType.SOUNDS_FISHY
                                     ? 'SOUNDS FISHY'
-                                    : r.gameType === GameType.WHO_AM_I
-                                      ? 'WHO AM I'
-                                      : r.gameType === GameType.WHO_FIRST
-                                        ? 'WHO FIRST'
-                                        : t('lobby.gameNames.whoKnow').toUpperCase()}
+                                    : r.gameType === GameType.MUSIC_TRIVIA
+                                      ? 'MUSIC TRIVIA'
+                                      : r.gameType === GameType.WHO_AM_I
+                                        ? 'WHO AM I'
+                                        : r.gameType === GameType.WHO_FIRST
+                                          ? 'WHO FIRST'
+                                          : t('lobby.gameNames.whoKnow').toUpperCase()}
                         </span>
                       </div>
                       <div className="text-slate-500 text-[10px] font-medium uppercase mt-0.5 tracking-wider flex items-center gap-1.5">
@@ -462,11 +476,13 @@ function GameLobby() {
                         ? 'Sounds Fishy'
                         : room.gameType === GameType.DETECTIVE_CLUB
                           ? 'Detective Club'
-                          : room.gameType === GameType.WHO_AM_I
-                            ? 'Who Am I'
-                            : room.gameType === GameType.WHO_FIRST
-                              ? 'Who First'
-                              : t('lobby.gameNames.whoKnow')}
+                          : room.gameType === GameType.MUSIC_TRIVIA
+                            ? 'Music Trivia'
+                            : room.gameType === GameType.WHO_AM_I
+                              ? 'Who Am I'
+                              : room.gameType === GameType.WHO_FIRST
+                                ? 'Who First'
+                                : t('lobby.gameNames.whoKnow')}
               </span>
               <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
                 {room.code}
@@ -587,6 +603,8 @@ function GameLobby() {
           <DetectiveClubView />
         ) : room.gameType === GameType.WHO_AM_I && room.status !== RoomStatus.LOBBY ? (
           <WhoAmIView />
+        ) : room.gameType === GameType.MUSIC_TRIVIA && room.status !== RoomStatus.LOBBY ? (
+          <MusicTriviaView />
         ) : room.gameType === GameType.WHO_FIRST ? (
           <WhoFirstView />
         ) : (
@@ -689,7 +707,8 @@ function GameLobby() {
                   {/* Configuration Panel */}
                   {(room.gameType === GameType.WHO_KNOW ||
                     room.gameType === GameType.RPS ||
-                    room.gameType === GameType.WHO_AM_I) && (
+                    room.gameType === GameType.WHO_AM_I ||
+                    room.gameType === GameType.MUSIC_TRIVIA) && (
                     <div className="w-full max-w-sm bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-4">
                       {room.gameType === GameType.WHO_KNOW && (
                         <>
@@ -998,6 +1017,199 @@ function GameLobby() {
                           )}
                         </>
                       )}
+
+                      {room.gameType === GameType.MUSIC_TRIVIA && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                              {t('gameMusicTrivia.lobby.musicCategory')}
+                            </label>
+                            {useGameStore.getState().socketId === room.roomHostId ? (
+                              <input
+                                autoComplete="off"
+                                type="text"
+                                value={room.config.musicTriviaQuery || ''}
+                                onChange={(e) =>
+                                  useGameStore
+                                    .getState()
+                                    .updateConfig({ musicTriviaQuery: e.target.value })
+                                }
+                                placeholder="e.g. Taylor Swift, Anime OST, Thai Pop 90s..."
+                                className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                            ) : (
+                              <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                                {room.config.musicTriviaQuery || t('gameMusicTrivia.lobby.waitingForHost')}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                              {t('gameMusicTrivia.lobby.musicSource') || 'Music Source'}
+                            </label>
+                            {useGameStore.getState().socketId === room.roomHostId ? (
+                              <select
+                                title="Select music source"
+                                aria-label="Music source"
+                                value={room.config.musicTriviaSource || 'ITUNES'}
+                                onChange={(e) =>
+                                  useGameStore
+                                    .getState()
+                                    .updateConfig({ musicTriviaSource: e.target.value as any })
+                                }
+                                className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="ITUNES">iTunes (Apple Music)</option>
+                                <option value="YOUTUBE">YouTube</option>
+                              </select>
+                            ) : (
+                              <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                                {room.config.musicTriviaSource === 'SPOTIFY' ? 'Spotify' : 
+                                 room.config.musicTriviaSource === 'YOUTUBE' ? 'YouTube' : 'Apple Music (iTunes)'}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                {t('gameMusicTrivia.lobby.region')}
+                              </label>
+                              {useGameStore.getState().socketId === room.roomHostId ? (
+                                <select
+                                  title="Select music region"
+                                  aria-label="Music region"
+                                  value={room.config.musicTriviaCountry || 'TH'}
+                                  onChange={(e) =>
+                                    useGameStore
+                                      .getState()
+                                      .updateConfig({ musicTriviaCountry: e.target.value })
+                                  }
+                                  className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                  <option value="TH">{t('gameMusicTrivia.lobby.regionTh')}</option>
+                                  <option value="US">{t('gameMusicTrivia.lobby.regionIntl')}</option>
+                                </select>
+                              ) : (
+                                <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                                  {room.config.musicTriviaCountry === 'US' ? t('gameMusicTrivia.lobby.regionIntl') : t('gameMusicTrivia.lobby.regionTh')}
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                {t('gameMusicTrivia.lobby.searchBy')}
+                              </label>
+                              {useGameStore.getState().socketId === room.roomHostId ? (
+                                <select
+                                  title="Select search attribute"
+                                  aria-label="Search attribute"
+                                  value={room.config.musicTriviaAttribute || ''}
+                                  onChange={(e) =>
+                                    useGameStore
+                                      .getState()
+                                      .updateConfig({ musicTriviaAttribute: e.target.value })
+                                  }
+                                  className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                  <option value="">{t('gameMusicTrivia.lobby.searchAnything')}</option>
+                                  <option value="artistTerm">{t('gameMusicTrivia.lobby.searchArtist')}</option>
+                                  <option value="songTerm">{t('gameMusicTrivia.lobby.searchSong')}</option>
+                                  <option value="albumTerm">{t('gameMusicTrivia.lobby.searchAlbum')}</option>
+                                </select>
+                              ) : (
+                                <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200 truncate">
+                                  {room.config.musicTriviaAttribute === 'artistTerm' ? t('gameMusicTrivia.lobby.searchArtist') :
+                                   room.config.musicTriviaAttribute === 'songTerm' ? t('gameMusicTrivia.lobby.searchSong') :
+                                   room.config.musicTriviaAttribute === 'albumTerm' ? t('gameMusicTrivia.lobby.searchAlbum') : t('gameMusicTrivia.lobby.searchAnything')}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                              Game Mode
+                            </label>
+                            {useGameStore.getState().socketId === room.roomHostId ? (
+                              <select
+                                id="musicModeSelect"
+                                name="musicTriviaMode"
+                                value={room.config?.musicTriviaMode || 'TYPING'}
+                                onChange={(e) => {
+                                  useGameStore
+                                    .getState()
+                                    .updateConfig({ musicTriviaMode: e.target.value as any });
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+                              >
+                                <option value="TYPING">⌨️ Typing (Auto Judge)</option>
+                                <option value="GAME_MASTER">🎤 Voice (Host Judge)</option>
+                              </select>
+                            ) : (
+                              <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+                                {room.config?.musicTriviaMode === 'GAME_MASTER' ? '🎤 Voice (Host Judge)' : '⌨️ Typing (Auto Judge)'}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                              Number of Rounds
+                            </label>
+                            {useGameStore.getState().socketId === room.roomHostId ? (
+                              <select
+                                id="musicRoundsSelect"
+                                name="musicTriviaRounds"
+                                value={room.config?.musicTriviaRounds || 10}
+                                onChange={(e) => {
+                                  useGameStore
+                                    .getState()
+                                    .updateConfig({ musicTriviaRounds: parseInt(e.target.value) });
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+                              >
+                                <option value={5}>5 Rounds</option>
+                                <option value={10}>10 Rounds</option>
+                                <option value={15}>15 Rounds</option>
+                                <option value={20}>20 Rounds</option>
+                              </select>
+                            ) : (
+                              <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+                                {room.config?.musicTriviaRounds || 10} Rounds
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                              {t('gameMusicTrivia.lobby.audioPlayback')}
+                            </label>
+                            {useGameStore.getState().socketId === room.roomHostId ? (
+                              <select
+                                id="musicPlaybackSelect"
+                                name="musicTriviaAudioPlayback"
+                                value={room.config?.musicTriviaAudioPlayback || 'EVERYONE'}
+                                onChange={(e) => {
+                                  useGameStore
+                                    .getState()
+                                    .updateConfig({ musicTriviaAudioPlayback: e.target.value as any });
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+                              >
+                                <option value="EVERYONE">{t('gameMusicTrivia.lobby.playbackEveryone')}</option>
+                                <option value="HOST_ONLY">{t('gameMusicTrivia.lobby.playbackHostOnly')}</option>
+                              </select>
+                            ) : (
+                              <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+                                {room.config?.musicTriviaAudioPlayback === 'HOST_ONLY' ? t('gameMusicTrivia.lobby.playbackHostOnly') : t('gameMusicTrivia.lobby.playbackEveryone')}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -1021,48 +1233,68 @@ function GameLobby() {
                         }
                       }}
                       disabled={
-                        isLoading ||
-                        room.players.length <
-                          (room.gameType === GameType.WHO_KNOW
-                            ? 4
-                            : room.gameType === GameType.SOUNDS_FISHY
-                              ? 4
-                              : room.gameType === GameType.DETECTIVE_CLUB
-                                ? 3
-                                : room.gameType === GameType.WHO_AM_I
-                                  ? 2
-                                  : 2) ||
+                        (room.gameType === GameType.WHO_KNOW && !secretWord) ||
+                        (room.gameType === GameType.SOUNDS_FISHY && room.players.length < 4) ||
+                        (room.gameType === GameType.DETECTIVE_CLUB && room.players.length < 4) ||
+                        (room.gameType === GameType.WHO_AM_I && room.players.length < 2) ||
+                        (room.gameType === GameType.MUSIC_TRIVIA && room.players.length < 2) ||
+                        (room.gameType === GameType.MUSIC_TRIVIA && !room.config.musicTriviaQuery?.trim()) ||
+                        (room.gameType === GameType.WHO_AM_I &&
+                          room.config.wordMode === 'PLAYER_INPUT' &&
+                          Object.keys(hostWordInputs).length < room.players.length) ||
                         (room.gameType === GameType.WHO_AM_I &&
                           room.config.wordMode === 'RANDOM' &&
                           !room.config.wordCategory)
                       }
-                      className="w-full max-w-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-colors uppercase tracking-widest shadow-lg shadow-green-900/20"
+                      className={`w-full max-w-xs text-white font-black text-lg py-4 rounded-xl transition-colors uppercase tracking-widest shadow-lg ${
+                        (room.gameType === GameType.WHO_KNOW && !secretWord) ||
+                        (room.gameType === GameType.SOUNDS_FISHY && room.players.length < 4) ||
+                        (room.gameType === GameType.DETECTIVE_CLUB && room.players.length < 4) ||
+                        (room.gameType === GameType.WHO_AM_I && room.players.length < 2) ||
+                        (room.gameType === GameType.MUSIC_TRIVIA && room.players.length < 2) ||
+                        (room.gameType === GameType.MUSIC_TRIVIA && !room.config.musicTriviaQuery?.trim()) ||
+                        (room.gameType === GameType.WHO_AM_I &&
+                          room.config.wordMode === 'PLAYER_INPUT' &&
+                          Object.keys(hostWordInputs).length < room.players.length)
+                          ? 'bg-slate-400 cursor-not-allowed'
+                          : 'bg-green-600 hover:bg-green-500 shadow-green-900/20'
+                      }`}
                     >
-                      {room.players.length <
-                      (room.gameType === GameType.WHO_KNOW
-                        ? 4
-                        : room.gameType === GameType.SOUNDS_FISHY
-                          ? 4
-                          : room.gameType === GameType.DETECTIVE_CLUB
-                            ? 3
-                            : room.gameType === GameType.WHO_AM_I
-                              ? 2
-                              : 2)
-                        ? t('lobby.waitingMin', {
-                            count:
-                              room.gameType === GameType.WHO_KNOW
+                      {room.gameType === GameType.WHO_KNOW && !secretWord
+                        ? 'Waiting for Secret Word...'
+                        : room.players.length <
+                            (room.gameType === GameType.WHO_KNOW
+                              ? 4
+                              : room.gameType === GameType.SOUNDS_FISHY
                                 ? 4
-                                : room.gameType === GameType.SOUNDS_FISHY
+                                : room.gameType === GameType.DETECTIVE_CLUB
+                                  ? 3
+                                  : room.gameType === GameType.WHO_AM_I
+                                    ? 2
+                                    : room.gameType === GameType.MUSIC_TRIVIA
+                                      ? 1
+                                      : 2)
+                          ? t('lobby.waitingMin', {
+                              count:
+                                room.gameType === GameType.WHO_KNOW
                                   ? 4
-                                  : room.gameType === GameType.DETECTIVE_CLUB
-                                    ? 3
-                                    : room.gameType === GameType.WHO_AM_I
-                                      ? 2
-                                      : 2,
-                          })
-                        : isLoading 
-                          ? t('lobby.startingGame') 
-                          : t('lobby.startGame')}
+                                  : room.gameType === GameType.SOUNDS_FISHY
+                                    ? 4
+                                    : room.gameType === GameType.DETECTIVE_CLUB
+                                      ? 3
+                                      : room.gameType === GameType.WHO_AM_I
+                                        ? 2
+                                        : room.gameType === GameType.MUSIC_TRIVIA
+                                          ? 1
+                                          : 2,
+                            })
+                          : room.gameType === GameType.WHO_AM_I &&
+                              room.config.wordMode === 'PLAYER_INPUT' &&
+                              Object.keys(hostWordInputs).length < room.players.length
+                            ? 'Enter all words'
+                            : isLoading 
+                              ? t('lobby.startingGame') 
+                              : t('lobby.startGame')}
                     </button>
                   ) : (
                     <div className="w-full max-w-xs bg-amber-100/50 text-slate-600 border border-amber-200 font-bold text-sm py-4 rounded-xl text-center uppercase tracking-widest">
