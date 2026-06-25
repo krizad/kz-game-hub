@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createRoom, goToLobbyInEnglish } from './helpers';
+import { createRoom } from './helpers';
 
 test.describe('Room Creation & Join Flow', () => {
   test('can create a Who Know room', async ({ page }) => {

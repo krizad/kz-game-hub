@@ -5,7 +5,7 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: ["**/.next/**", "**/node_modules/**", "**/dist/**", "postcss.config.js"],
+    ignores: ["**/.next/**", "**/node_modules/**", "**/dist/**", "postcss.config.js", "playwright-report/**", "test-results/**"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

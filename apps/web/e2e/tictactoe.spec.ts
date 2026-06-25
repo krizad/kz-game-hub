@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createRoom, joinRoom, getOrigin, goToLobbyInEnglish } from './helpers';
+import { createRoom, joinRoom, getOrigin } from './helpers';
 
 test.describe('Tic-Tac-Toe Game Flow', () => {
   test('player can create room and see lobby setup', async ({ page }) => {

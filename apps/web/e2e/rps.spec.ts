@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createRoom, joinRoom, getOrigin, goToLobbyInEnglish } from './helpers';
+import { createRoom, joinRoom, getOrigin } from './helpers';
 
 test.describe('RPS (Hand Duel) Game Flow', () => {
   test('can create RPS room and see lobby config', async ({ page }) => {
