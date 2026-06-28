@@ -76,9 +76,7 @@ export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
                 <div
                   key={entry.playerName}
                   className={`flex items-center gap-4 p-4 rounded-xl border ${
-                    idx === 0
-                      ? 'bg-amber-50 border-amber-300'
-                      : 'bg-white border-amber-200'
+                    idx === 0 ? 'bg-amber-50 border-amber-300' : 'bg-white border-amber-200'
                   }`}
                 >
                   <div
@@ -101,9 +99,7 @@ export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-black text-indigo-500">
-                      {entry.totalScore}
-                    </span>
+                    <span className="text-xl font-black text-indigo-500">{entry.totalScore}</span>
                     <span className="text-xs text-slate-400 block">pts</span>
                   </div>
                 </div>

@@ -38,7 +38,12 @@ test.describe('Sounds Fishy Gameplay', () => {
           await answerInput.fill('This is the truth');
         }
         const submitBtn = page.locator('button').filter({ hasText: /Submit/ });
-        if (await submitBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+        if (
+          await submitBtn
+            .first()
+            .isVisible({ timeout: 3000 })
+            .catch(() => false)
+        ) {
           await submitBtn.first().click();
         }
       }

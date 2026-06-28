@@ -20,7 +20,9 @@ test.describe('Lobby Page', () => {
   test('can enter name and enable create buttons', async ({ page }) => {
     await goToLobbyInEnglish(page);
     await page.locator('#lobbyNameInput').fill('TestPlayer');
-    await expect(page.locator('button:has-text("Who Know")').first()).toBeEnabled({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Who Know")').first()).toBeEnabled({
+      timeout: 5000,
+    });
   });
 
   test('language switcher has EN and TH buttons', async ({ page }) => {

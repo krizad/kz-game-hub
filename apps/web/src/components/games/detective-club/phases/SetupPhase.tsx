@@ -18,7 +18,9 @@ export function SetupPhase() {
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
-        <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">{t('gameDetectiveClub.setupPhase')}</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">
+          {t('gameDetectiveClub.setupPhase')}
+        </h2>
         <p className="text-slate-600">
           {isInformer
             ? t('gameDetectiveClub.informerSetup')
@@ -79,7 +81,9 @@ export function SetupPhase() {
       ) : (
         <div className="flex flex-col items-center justify-center space-y-4 py-6">
           <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
-          <p className="text-slate-700 font-medium animate-pulse">{t('gameDetectiveClub.waitingForInformer')}</p>
+          <p className="text-slate-700 font-medium animate-pulse">
+            {t('gameDetectiveClub.waitingForInformer')}
+          </p>
         </div>
       )}
     </div>

@@ -188,10 +188,11 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     } catch (error) {
       console.error('Error calling Gemini API:', error);
       console.log('Falling back to database for words...');
-      
+
       const lang = room.config.language || 'en';
-      const category = room.config.wordCategory || (lang === 'th' ? 'สิ่งของรอบตัว' : 'Random things');
-      
+      const category =
+        room.config.wordCategory || (lang === 'th' ? 'สิ่งของรอบตัว' : 'Random things');
+
       const dbWords = await prisma.$queryRawUnsafe<{ word: string; emoji: string | null }[]>(
         `SELECT word, emoji FROM "Word" WHERE category = $1 AND lang = $2 ORDER BY RANDOM() LIMIT $3`,
         category,
@@ -488,8 +489,6 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     // Don't allow game actions during word collection
     if (gameState.phase === 'COLLECTING_WORDS') return null;
-
-
 
     if (
       action.type === 'VOTE_GUESS' &&

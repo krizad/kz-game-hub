@@ -683,7 +683,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
       }
     } else if (roomInfo && roomInfo.gameType === GameType.WHO_FIRST) {
-      const room = this.gamesService.whoFirstGameAction(data.code, client.id, data.action as { type: string; payload?: unknown });
+      const room = this.gamesService.whoFirstGameAction(
+        data.code,
+        client.id,
+        data.action as { type: string; payload?: unknown },
+      );
       if (room) {
         this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
         this.maybeRecordGameResult(room);

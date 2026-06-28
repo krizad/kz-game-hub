@@ -5,10 +5,12 @@ test.describe('Who First Game Flow', () => {
   test('player can create room and see lobby setup', async ({ page }) => {
     const roomCode = await createRoom(page, 'HostPlayer', 'Who First');
     expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
-    
+
     // Check for Who First lobby specifics
     await expect(page.locator('text=Who First Lobby')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("Start Countdown!")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Start Countdown!")')).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('two players can play a round', async ({ browser }) => {
@@ -29,12 +31,12 @@ test.describe('Who First Game Flow', () => {
     // Wait, the test might fail if the switch ID doesn't exist, but it does: id="host-plays-switch"
     const hostPlaysSwitch = p1.locator('#host-plays-switch');
     if (await hostPlaysSwitch.isVisible()) {
-       // if not checked, click it
-       const isChecked = await hostPlaysSwitch.getAttribute('aria-checked');
-       if (isChecked !== 'true') {
-         await hostPlaysSwitch.click();
-         await p1.waitForTimeout(500);
-       }
+      // if not checked, click it
+      const isChecked = await hostPlaysSwitch.getAttribute('aria-checked');
+      if (isChecked !== 'true') {
+        await hostPlaysSwitch.click();
+        await p1.waitForTimeout(500);
+      }
     }
 
     // Host starts game

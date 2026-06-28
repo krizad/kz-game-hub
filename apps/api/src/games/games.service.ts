@@ -753,7 +753,11 @@ export class GamesService {
   ): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.whoFirstService.handleGameAction(room, clientId, action as Parameters<typeof this.whoFirstService.handleGameAction>[2]);
+    const updatedRoom = this.whoFirstService.handleGameAction(
+      room,
+      clientId,
+      action as Parameters<typeof this.whoFirstService.handleGameAction>[2],
+    );
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -782,7 +786,11 @@ export class GamesService {
   ): Promise<MusicTriviaActionResult | null> {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const result = await this.musicTriviaService.handleGameAction(room, clientId, action as Parameters<typeof this.musicTriviaService.handleGameAction>[2]);
+    const result = await this.musicTriviaService.handleGameAction(
+      room,
+      clientId,
+      action as Parameters<typeof this.musicTriviaService.handleGameAction>[2],
+    );
     if (result) this.rooms.set(code, result.room);
     return result;
   }

@@ -77,12 +77,15 @@ export function TicTacToeView() {
                 {room.players.find((p) => p.socketId === ttt.playerXId)?.name}
               </span>
               <span className="text-blue-300 text-xs mt-1 bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-900/50 shadow-inner">
-                {t('gameTicTacToe.score')}: {room.players.find((p) => p.socketId === ttt.playerXId)?.score || 0}
+                {t('gameTicTacToe.score')}:{' '}
+                {room.players.find((p) => p.socketId === ttt.playerXId)?.score || 0}
               </span>
             </div>
 
             <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-              {room.status === RoomStatus.RESULT ? t('gameTicTacToe.gameOver') : t('gameTicTacToe.playing')}
+              {room.status === RoomStatus.RESULT
+                ? t('gameTicTacToe.gameOver')
+                : t('gameTicTacToe.playing')}
             </div>
 
             <div
@@ -93,7 +96,8 @@ export function TicTacToeView() {
                 {room.players.find((p) => p.socketId === ttt.playerOId)?.name}
               </span>
               <span className="text-rose-300 text-xs mt-1 bg-rose-950/50 px-2 py-0.5 rounded-md border border-rose-900/50 shadow-inner">
-                {t('gameTicTacToe.score')}: {room.players.find((p) => p.socketId === ttt.playerOId)?.score || 0}
+                {t('gameTicTacToe.score')}:{' '}
+                {room.players.find((p) => p.socketId === ttt.playerOId)?.score || 0}
               </span>
             </div>
           </div>
@@ -105,7 +109,12 @@ export function TicTacToeView() {
               return (
                 <button
                   key={index}
-                  disabled={room.status !== RoomStatus.PLAYING || !isMyTurn || cell !== null || actionLoading}
+                  disabled={
+                    room.status !== RoomStatus.PLAYING ||
+                    !isMyTurn ||
+                    cell !== null ||
+                    actionLoading
+                  }
                   onClick={() => tttMakeMove(index)}
                   className={`
                     w-20 h-20 sm:w-24 sm:h-24 bg-amber-50 rounded-xl flex items-center justify-center text-5xl font-black transition-all

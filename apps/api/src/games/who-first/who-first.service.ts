@@ -6,7 +6,7 @@ export class WhoFirstService {
   startGame(room: RoomState, requesterId: string): RoomState | null {
     if (room.roomHostId !== requesterId) return null;
 
-    const maxRounds = room.config.whoFirstInfiniteRounds ? 0 : (room.config.maxRounds || 3);
+    const maxRounds = room.config.whoFirstInfiniteRounds ? 0 : room.config.maxRounds || 3;
 
     room.whoFirstState = {
       phase: 'LOBBY',
@@ -21,7 +21,7 @@ export class WhoFirstService {
   handleGameAction(
     room: RoomState,
     clientId: string,
-    action: { type: WhoFirstGameActionType | string; payload?: unknown }
+    action: { type: WhoFirstGameActionType | string; payload?: unknown },
   ): RoomState | null {
     const state = room.whoFirstState;
     if (!state) return null;
@@ -63,15 +63,14 @@ export class WhoFirstService {
               timestamp: pressTime,
               isPenalty: true,
             });
-            const expectedCount = room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+            const expectedCount =
+              room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
             if (state.presses.length >= expectedCount && expectedCount > 0) {
               state.phase = 'ROUND_RESULT';
             }
           }
         } else if (state.phase === 'ACTIVE') {
-          const reactionTimeMs = state.activeStartTime
-            ? pressTime - state.activeStartTime
-            : 0;
+          const reactionTimeMs = state.activeStartTime ? pressTime - state.activeStartTime : 0;
 
           state.presses.push({
             socketId: clientId,
@@ -81,10 +80,11 @@ export class WhoFirstService {
           });
 
           // Check if all active players have pressed
-          const expectedCount = room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+          const expectedCount =
+            room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
           const activePresses = state.presses.filter((p) => !p.isPenalty).length;
           const foulCount = state.presses.filter((p) => p.isPenalty).length;
-          
+
           // Optionally end round automatically if everyone has pressed
           if (activePresses + foulCount >= expectedCount && expectedCount > 0) {
             state.phase = 'ROUND_RESULT';
@@ -116,12 +116,12 @@ export class WhoFirstService {
           room.status = RoomStatus.RESULT;
         }
         break;
-        
+
       default:
         // Handle custom internal action if frontend sends ACTIVE transition
         if (action.type === 'SET_ACTIVE' && isHost && state.phase === 'COUNTDOWN') {
-           state.phase = 'ACTIVE';
-           state.activeStartTime = Date.now();
+          state.phase = 'ACTIVE';
+          state.activeStartTime = Date.now();
         }
         break;
     }
@@ -138,7 +138,7 @@ export class WhoFirstService {
       phase: 'LOBBY',
       presses: [],
       currentRound: 1,
-      maxRounds: room.config.whoFirstInfiniteRounds ? 0 : (room.config.maxRounds || 3),
+      maxRounds: room.config.whoFirstInfiniteRounds ? 0 : room.config.maxRounds || 3,
     };
 
     return room;

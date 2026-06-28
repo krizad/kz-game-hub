@@ -4,7 +4,9 @@ export async function waitForConnection(page: Page) {
   await page.waitForFunction(
     () => {
       const h1 = document.querySelector('h1');
-      return h1 && !h1.textContent?.includes('Connecting') && !h1.textContent?.includes('กำลังเชื่อมต่อ');
+      return (
+        h1 && !h1.textContent?.includes('Connecting') && !h1.textContent?.includes('กำลังเชื่อมต่อ')
+      );
     },
     { timeout: 20000 },
   );
@@ -39,7 +41,10 @@ export async function createRoom(
 ): Promise<string> {
   await goToLobbyInEnglish(page);
   await page.locator('#lobbyNameInput').fill(playerName);
-  await page.locator('button:has-text("' + gameButtonText + '")').first().click();
+  await page
+    .locator('button:has-text("' + gameButtonText + '")')
+    .first()
+    .click();
   await page.waitForTimeout(3000);
   const code = await extractRoomCode(page);
   if (!code) throw new Error('Could not extract room code');
@@ -52,7 +57,10 @@ export async function joinRoom(page: Page, origin: string, roomCode: string, nam
   await switchToEnglish(page);
   await page.locator('#inviteNameInput').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#inviteNameInput').fill(name);
-  await page.locator('button').filter({ hasText: /Enter Game|เข้าสู่เกม/ }).click();
+  await page
+    .locator('button')
+    .filter({ hasText: /Enter Game|เข้าสู่เกม/ })
+    .click();
   await page.waitForTimeout(2000);
 }
 

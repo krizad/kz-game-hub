@@ -19,14 +19,14 @@ export function DiscussionPhase() {
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
       <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
-        <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">{t('gameDetectiveClub.discussionPhase')}</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">
+          {t('gameDetectiveClub.discussionPhase')}
+        </h2>
         <p className="text-slate-600">
           {t('gameDetectiveClub.informerExplain')}{' '}
           <span className="text-emerald-400 font-bold">{state.word}</span>
         </p>
-        <p className="text-slate-600 mt-2">
-          {t('gameDetectiveClub.everyoneExplain')}
-        </p>
+        <p className="text-slate-600 mt-2">{t('gameDetectiveClub.everyoneExplain')}</p>
       </div>
 
       {/* Table / Played Cards Area (View Only) */}

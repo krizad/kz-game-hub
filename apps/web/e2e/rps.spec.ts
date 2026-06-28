@@ -4,7 +4,9 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
 test.describe('RPS (Hand Duel) Game Flow', () => {
   test('can create RPS room and see lobby config', async ({ page }) => {
     await createRoom(page, 'RPSHost', 'Hand Duel');
-    await expect(page.getByText('Waiting Room').or(page.getByText('ห้องรอ'))).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Waiting Room').or(page.getByText('ห้องรอ'))).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('two players can join RPS room', async ({ browser }) => {

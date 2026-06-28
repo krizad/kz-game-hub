@@ -187,7 +187,7 @@ export class MusicTriviaService {
 
     try {
       const adapter = this.sourceFactory.get(sourceType);
-      
+
       // Fetch more tracks than needed to allow for shuffling and filtering duplicates
       const fetchLimit = Math.max(state.totalRounds * 3, 50);
       const rawTracks = await adapter.search(query.trim(), fetchLimit, action.searchOptions);
@@ -200,7 +200,7 @@ export class MusicTriviaService {
       // Filter duplicates by title and artist
       const uniqueTracks: typeof rawTracks = [];
       const seen = new Set<string>();
-      
+
       for (const t of rawTracks) {
         // Create a normalized key to detect duplicates
         const key = `${t.title.toLowerCase().trim()}::${t.artist.toLowerCase().trim()}`;
@@ -254,7 +254,8 @@ export class MusicTriviaService {
     } catch (error) {
       console.error('[MusicTriviaService] configureSource error:', error);
       state.phase = 'SETUP'; // Reset back on error
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while configuring source';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred while configuring source';
       state.errorMessage = errorMessage;
       return { room };
     }

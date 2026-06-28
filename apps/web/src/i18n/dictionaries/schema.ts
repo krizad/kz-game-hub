@@ -31,6 +31,7 @@ export interface Dictionary {
     copyLink: string;
     qrCode: string;
     leave: string;
+    confirmLeave: string;
     players: string;
     score: string;
     offline: string;
@@ -56,6 +57,7 @@ export interface Dictionary {
     startingGame: string;
     waitingMin: string;
     waitingForHost: string;
+    waitingForSecretWord: string;
     phase: string;
     secretWordSelection: string;
     youAreHost: string;
@@ -272,6 +274,25 @@ export interface Dictionary {
     playNextRound: string;
   };
   gameWhoAmI: {
+    lobby: {
+      numRounds: string;
+      roundsCount: string;
+      wordMode: string;
+      modeHostPick: string;
+      modeRandom: string;
+      modePlayer: string;
+      modeAi: string;
+      category: string;
+      noCategories: string;
+      selectCategory: string;
+      notSelected: string;
+      themeOptional: string;
+      themePlaceholder: string;
+      anyTopic: string;
+      aiPrompt: string;
+      aiPromptPlaceholder: string;
+      randomTopic: string;
+    };
     submitYourWord: string;
     category: string;
     wordSubmissionDesc: string;
@@ -480,6 +501,16 @@ export interface Dictionary {
       searchArtist: string;
       searchSong: string;
       searchAlbum: string;
+      musicSource: string;
+      sourceItunes: string;
+      sourceYoutube: string;
+      sourceSpotify: string;
+      gameMode: string;
+      modeTyping: string;
+      modeVoice: string;
+      numRounds: string;
+      roundsCount: string;
+      queryPlaceholder: string;
       audioPlayback: string;
       playbackHostOnly: string;
       playbackEveryone: string;

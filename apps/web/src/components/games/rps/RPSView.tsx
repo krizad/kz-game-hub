@@ -83,7 +83,9 @@ export function RPSView() {
         {/* Header */}
         <div className="flex justify-between w-full items-center px-2 sm:px-4 mb-4">
           <div className="text-xs font-bold text-slate-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-            {room.config.rpsMode === 'ALL_AT_ONCE' ? t('gameRps.allAtOnce') : t('gameRps.oneVOneRoundRobin')}
+            {room.config.rpsMode === 'ALL_AT_ONCE'
+              ? t('gameRps.allAtOnce')
+              : t('gameRps.oneVOneRoundRobin')}
           </div>
           <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-inner">
             {room.status === RoomStatus.RESULT

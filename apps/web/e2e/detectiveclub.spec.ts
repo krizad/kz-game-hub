@@ -33,8 +33,14 @@ test.describe('Detective Club Gameplay', () => {
     await p1.waitForTimeout(1000);
 
     // Check for role display or setup phase text
-    const hasRole = await p1.locator('text=Your Role').isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSetup = await p1.locator('text=Setup Phase').isVisible({ timeout: 5000 }).catch(() => false);
+    const hasRole = await p1
+      .locator('text=Your Role')
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+    const hasSetup = await p1
+      .locator('text=Setup Phase')
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(hasRole || hasSetup).toBeTruthy();
 
     // Informer should submit a word if visible

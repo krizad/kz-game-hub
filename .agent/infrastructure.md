@@ -33,7 +33,7 @@ pnpm dev
 | `pnpm db:migrate`  | Run Prisma migrations                      |
 | `pnpm db:push`     | Push schema to DB (no migration)           |
 | `pnpm db:studio`   | Open Prisma Studio GUI                     |
-| `pnpm db:seed`     | Seed database (Sounds Fishy + Who Am I) |
+| `pnpm db:seed`     | Seed database (Sounds Fishy + Who Am I)    |
 | `pnpm start`       | Start all apps in production mode          |
 
 ### Turborepo Pipeline
@@ -64,14 +64,14 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 GEMINI_API_KEY=your-gemini-api-key    # optional, for Who Am I AI word generation
 ```
 
-| Variable               | Used By     | Purpose               |
-| ---------------------- | ----------- | --------------------- |
-| `DATABASE_URL`         | api, DB pkg | PostgreSQL conn       |
-| `NEXT_PUBLIC_API_URL`  | web         | API/WS URL            |
-| `GEMINI_API_KEY`       | api         | Google Gemini SDK     |
+| Variable              | Used By     | Purpose           |
+| --------------------- | ----------- | ----------------- |
+| `DATABASE_URL`        | api, DB pkg | PostgreSQL conn   |
+| `NEXT_PUBLIC_API_URL` | web         | API/WS URL        |
+| `GEMINI_API_KEY`      | api         | Google Gemini SDK |
 
-| Consumer            | Env Loading Code                                          |
-| ------------------- | --------------------------------------------------------- |
+| Consumer            | Env Loading Code                                             |
+| ------------------- | ------------------------------------------------------------ |
 | `apps/web`          | `next.config.mjs` → `dotenv.config({ path: '../../.env' })`  |
 | `apps/api`          | `src/main.ts` → `dotenv.config({ path: '../../../.env' })`   |
 | `packages/database` | `prisma.config.ts` → `dotenv.config({ path: '../../.env' })` |
@@ -103,11 +103,11 @@ GEMINI_API_KEY=your-gemini-api-key    # optional, for Who Am I AI word generatio
 
 ## Database Schema
 
-| Model                 | Purpose                                          |
-| --------------------- | ------------------------------------------------ |
-| `Room`                | ห้องเกม (reference — ใช้ In-Memory Map เป็นหลัก) |
-| `User`                | ผู้เล่นในห้อง ผูกกับ socketId                    |
-| `SoundsFishyQuestion` | คลังคำถามเกม Sounds Fishy (seed data)            |
+| Model                 | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `Room`                | ห้องเกม (reference — ใช้ In-Memory Map เป็นหลัก)              |
+| `User`                | ผู้เล่นในห้อง ผูกกับ socketId                                 |
+| `SoundsFishyQuestion` | คลังคำถามเกม Sounds Fishy (seed data)                         |
 | `Word`                | คลังคำศัพท์ Who Am I (seed data, มี index `[category, lang]`) |
 
 > Room state จริงเก็บใน In-Memory `Map<string, RoomState>` ภายใน `GamesService`

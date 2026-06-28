@@ -111,7 +111,9 @@ export function PlayingPhase() {
         <div
           className={`absolute top-0 left-0 w-full py-1 text-center text-xs font-bold uppercase tracking-widest ${isMyTurn ? 'bg-indigo-600 text-white' : 'bg-amber-100 text-slate-600'}`}
         >
-          {isMyTurn ? t('gameDetectiveClub.yourTurnPlayCard') : t('gameDetectiveClub.waitingFor', { name: activePlayerName })}
+          {isMyTurn
+            ? t('gameDetectiveClub.yourTurnPlayCard')
+            : t('gameDetectiveClub.waitingFor', { name: activePlayerName })}
         </div>
 
         <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center mt-6">
@@ -169,7 +171,9 @@ export function PlayingPhase() {
             className="bg-white border-2 border-amber-300 rounded-xl max-w-sm w-full p-6 text-center shadow-2xl transform scale-100 transition-transform"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-black text-slate-800 mb-4">{t('gameDetectiveClub.confirmCardPlay')}</h2>
+            <h2 className="text-xl font-black text-slate-800 mb-4">
+              {t('gameDetectiveClub.confirmCardPlay')}
+            </h2>
             <div className="flex justify-center mb-6">
               <div className="w-32 h-44 rounded-lg overflow-hidden border-4 border-indigo-500 shadow-lg">
                 <img

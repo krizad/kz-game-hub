@@ -9,7 +9,8 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function WhoAmIView() {
-  const { room, socketId, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } = useGameStore();
+  const { room, socketId, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
+    useGameStore();
   const { t } = useTranslate();
 
   const [playerWordInput, setPlayerWordInput] = useState('');
@@ -25,8 +26,8 @@ export function WhoAmIView() {
     !isSpectator && gameState.currentTurn === socketId && room.status === RoomStatus.PLAYING;
 
   return (
-      <div className="flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xl min-h-[450px] relative overflow-hidden">
-        {actionLoading && <ActionLoadingOverlay />}
+    <div className="flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xl min-h-[450px] relative overflow-hidden">
+      {actionLoading && <ActionLoadingOverlay />}
       {/* PLAYING STATUS */}
       {room.status === RoomStatus.PLAYING && (
         <div className="flex-1 flex flex-col h-full">
@@ -51,7 +52,9 @@ export function WhoAmIView() {
               {/* Input */}
               {gameState.wordSubmissions?.[socketId] ? (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center shadow-inner">
-                  <span className="text-emerald-600 font-bold">✅ {t('gameWhoAmI.wordSubmitted')}</span>
+                  <span className="text-emerald-600 font-bold">
+                    ✅ {t('gameWhoAmI.wordSubmitted')}
+                  </span>
                   <p className="text-slate-500 text-sm mt-1">{t('gameWhoAmI.waitingForOthers')}</p>
                 </div>
               ) : (
@@ -145,11 +148,16 @@ export function WhoAmIView() {
                     ))}
                   <button
                     onClick={() => {
-                      if (Object.keys(hostWords).length < room.players.filter((p) => p.socketId !== room.roomHostId).length) return;
+                      if (
+                        Object.keys(hostWords).length <
+                        room.players.filter((p) => p.socketId !== room.roomHostId).length
+                      )
+                        return;
                       useGameStore.getState().submitWordsWhoAmI(hostWords);
                     }}
                     disabled={
-                      Object.keys(hostWords).length < room.players.filter((p) => p.socketId !== room.roomHostId).length ||
+                      Object.keys(hostWords).length <
+                        room.players.filter((p) => p.socketId !== room.roomHostId).length ||
                       Object.values(hostWords).some((w) => !w.trim()) ||
                       actionLoading
                     }
@@ -170,7 +178,7 @@ export function WhoAmIView() {
           )}
 
           {/* Normal game UI (ASKING / FINAL_GUESS phases) */}
-          {(gameState.phase !== 'COLLECTING_WORDS' && gameState.phase !== 'AWAITING_HOST_INPUT') && (
+          {gameState.phase !== 'COLLECTING_WORDS' && gameState.phase !== 'AWAITING_HOST_INPUT' && (
             <>
               {/* Status Bar */}
               <div className="flex flex-col items-center justify-center text-center mb-6">
@@ -283,8 +291,6 @@ export function WhoAmIView() {
 
               {/* Interaction Panels */}
               <div className="mt-auto bg-amber-50/50 rounded-2xl p-4 sm:p-6 border border-amber-200 shadow-inner">
-
-
                 {gameState.turnStatus === 'VOTING' && (
                   <div className="text-center animate-in zoom-in-95 fade-in duration-300">
                     <div className="mb-6">
@@ -301,7 +307,9 @@ export function WhoAmIView() {
                         </>
                       ) : (
                         <>
-                          <h4 className="text-lg font-black text-indigo-600">{t('gameWhoAmI.askingPhase')}</h4>
+                          <h4 className="text-lg font-black text-indigo-600">
+                            {t('gameWhoAmI.askingPhase')}
+                          </h4>
                           <p className="text-slate-500 text-sm mt-1">
                             {isMyTurn
                               ? t('gameWhoAmI.askingPhaseDescActive')
@@ -421,7 +429,12 @@ export function WhoAmIView() {
                                 key={voterId}
                                 className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${vote === 'YES' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : vote === 'NO' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}
                               >
-                                {voter?.name || t('gameWhoAmI.unknown')}: {vote === 'YES' ? t('gameWhoAmI.yes') : vote === 'NO' ? t('gameWhoAmI.no') : t('gameWhoAmI.maybe')}
+                                {voter?.name || t('gameWhoAmI.unknown')}:{' '}
+                                {vote === 'YES'
+                                  ? t('gameWhoAmI.yes')
+                                  : vote === 'NO'
+                                    ? t('gameWhoAmI.no')
+                                    : t('gameWhoAmI.maybe')}
                               </div>
                             );
                           })}
@@ -463,7 +476,9 @@ export function WhoAmIView() {
                       </div>
                     ) : (
                       <div className="py-2">
-                        <p className="text-slate-500 font-medium">{t('gameWhoAmI.waitingForPlayersToVote')}</p>
+                        <p className="text-slate-500 font-medium">
+                          {t('gameWhoAmI.waitingForPlayersToVote')}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -527,7 +542,9 @@ export function WhoAmIView() {
                           </button>
                         </div>
                         {gameState.votes[socketId] && (
-                          <p className="text-emerald-500 text-sm font-medium mt-2">{t('gameWhoAmI.voteCast')}</p>
+                          <p className="text-emerald-500 text-sm font-medium mt-2">
+                            {t('gameWhoAmI.voteCast')}
+                          </p>
                         )}
                       </div>
                     )}

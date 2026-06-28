@@ -46,9 +46,7 @@ export function ScoringPhase() {
             <p className="text-rose-400 font-bold uppercase tracking-widest mb-1">
               {t('gameDetectiveClub.conspiratorEscaped')}
             </p>
-            <p className="text-slate-600 text-sm">
-              {t('gameDetectiveClub.nobodyCaught')}
-            </p>
+            <p className="text-slate-600 text-sm">{t('gameDetectiveClub.nobodyCaught')}</p>
           </div>
         )}
       </div>
@@ -99,7 +97,9 @@ export function ScoringPhase() {
                 <div className="flex flex-col items-end">
                   <span className="text-2xl font-black text-amber-500 leading-none">
                     {p.score}{' '}
-                    <span className="text-sm text-amber-500/50 uppercase tracking-widest">{t('gameDetectiveClub.pts')}</span>
+                    <span className="text-sm text-amber-500/50 uppercase tracking-widest">
+                      {t('gameDetectiveClub.pts')}
+                    </span>
                   </span>
                   {state.scoreDeltas && state.scoreDeltas[p.socketId] !== undefined && (
                     <span

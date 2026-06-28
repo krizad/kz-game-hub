@@ -11,9 +11,16 @@ export function MusicTriviaRules() {
           <span className="text-lg">🌟</span> {t('rules.musicTrivia.rules.sharedFeaturesTitle')}
         </h4>
         <ul className="list-disc pl-5 space-y-2">
-          {t('rules.musicTrivia.rules.sharedFeatures').split('||').map((rule, idx) => (
-            <li key={idx} dangerouslySetInnerHTML={{ __html: rule.replace(/^([^:]+):/, '<strong>$1:</strong>') }} />
-          ))}
+          {t('rules.musicTrivia.rules.sharedFeatures')
+            .split('||')
+            .map((rule, idx) => (
+              <li
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: rule.replace(/^([^:]+):/, '<strong>$1:</strong>'),
+                }}
+              />
+            ))}
         </ul>
       </div>
 
@@ -23,9 +30,16 @@ export function MusicTriviaRules() {
         </h4>
         <p className="mb-2 italic text-slate-500">{t('rules.musicTrivia.rules.modeTypingDesc')}</p>
         <ul className="list-disc pl-5 space-y-2">
-          {t('rules.musicTrivia.rules.modeTypingRules').split('||').map((rule, idx) => (
-            <li key={idx} dangerouslySetInnerHTML={{ __html: rule.replace(/^([^:]+):/, '<strong>$1:</strong>') }} />
-          ))}
+          {t('rules.musicTrivia.rules.modeTypingRules')
+            .split('||')
+            .map((rule, idx) => (
+              <li
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: rule.replace(/^([^:]+):/, '<strong>$1:</strong>'),
+                }}
+              />
+            ))}
         </ul>
       </div>
 
@@ -35,9 +49,16 @@ export function MusicTriviaRules() {
         </h4>
         <p className="mb-2 italic text-slate-500">{t('rules.musicTrivia.rules.modeGmDesc')}</p>
         <ul className="list-disc pl-5 space-y-2">
-          {t('rules.musicTrivia.rules.modeGmRules').split('||').map((rule, idx) => (
-            <li key={idx} dangerouslySetInnerHTML={{ __html: rule.replace(/^([^:]+):/, '<strong>$1:</strong>') }} />
-          ))}
+          {t('rules.musicTrivia.rules.modeGmRules')
+            .split('||')
+            .map((rule, idx) => (
+              <li
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: rule.replace(/^([^:]+):/, '<strong>$1:</strong>'),
+                }}
+              />
+            ))}
         </ul>
       </div>
 
@@ -46,9 +67,11 @@ export function MusicTriviaRules() {
           <span className="text-lg">💡</span> {t('rules.musicTrivia.rules.tipsTitle')}
         </h4>
         <ul className="list-disc pl-5 space-y-1">
-          {t('rules.musicTrivia.rules.tips').split('||').map((tip, idx) => (
-            <li key={idx}>{tip}</li>
-          ))}
+          {t('rules.musicTrivia.rules.tips')
+            .split('||')
+            .map((tip, idx) => (
+              <li key={idx}>{tip}</li>
+            ))}
         </ul>
       </div>
     </div>

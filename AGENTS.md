@@ -64,12 +64,12 @@ Missing any one breaks the chain. Also rebuild `@repo/types` after changing even
 
 Supports `th` (Thai, default) and `en` (English). Key files:
 
-| File | Purpose |
-|------|---------|
-| `apps/web/src/i18n/dictionaries/schema.ts` | `Dictionary` interface |
-| `apps/web/src/i18n/dictionaries/{th,en}.ts` | Translation dictionaries |
-| `apps/web/src/store/useI18nStore.ts` | Zustand store + persist middleware |
-| `apps/web/src/hooks/useTranslate.ts` | `useTranslate()` hook, dot-path keys, param interpolation |
+| File                                        | Purpose                                                   |
+| ------------------------------------------- | --------------------------------------------------------- |
+| `apps/web/src/i18n/dictionaries/schema.ts`  | `Dictionary` interface                                    |
+| `apps/web/src/i18n/dictionaries/{th,en}.ts` | Translation dictionaries                                  |
+| `apps/web/src/store/useI18nStore.ts`        | Zustand store + persist middleware                        |
+| `apps/web/src/hooks/useTranslate.ts`        | `useTranslate()` hook, dot-path keys, param interpolation |
 
 `RoomConfig.language` passes language preference to server for language-aware logic (Sounds Fishy questions, Who Am I word generation).
 

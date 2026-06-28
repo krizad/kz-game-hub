@@ -11,10 +11,14 @@ import { ScoringPhase } from './phases/ScoringPhase';
 
 function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslate>['t']): string {
   switch (role) {
-    case 'INFORMER': return t('gameDetectiveClub.informer');
-    case 'CONSPIRATOR': return t('gameDetectiveClub.conspirator');
-    case 'DETECTIVE': return t('gameDetectiveClub.detective');
-    default: return t('gameDetectiveClub.unknownRole');
+    case 'INFORMER':
+      return t('gameDetectiveClub.informer');
+    case 'CONSPIRATOR':
+      return t('gameDetectiveClub.conspirator');
+    case 'DETECTIVE':
+      return t('gameDetectiveClub.detective');
+    default:
+      return t('gameDetectiveClub.unknownRole');
   }
 }
 
@@ -58,7 +62,8 @@ export function DetectiveClubView() {
             {t('gameDetectiveClub.yourScore')}
           </p>
           <span className="text-2xl font-black text-amber-400">
-            {myPlayer?.score || 0} <span className="text-sm text-slate-500">{t('gameDetectiveClub.pts')}</span>
+            {myPlayer?.score || 0}{' '}
+            <span className="text-sm text-slate-500">{t('gameDetectiveClub.pts')}</span>
           </span>
         </div>
       </div>

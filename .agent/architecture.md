@@ -2,19 +2,19 @@
 
 ## Tech Stack
 
-| Layer            | Technology               | Version              |
-| ---------------- | ------------------------ | -------------------- |
-| Monorepo         | Turborepo + pnpm         | turbo ^2.0, pnpm 9.1 |
-| Backend          | NestJS + Socket.io       | -                    |
-| Frontend         | Next.js (App Router)     | 14+                  |
-| State Management | Zustand                  | -                    |
-| ORM              | Prisma + PostgreSQL      | -                    |
+| Layer            | Technology                   | Version              |
+| ---------------- | ---------------------------- | -------------------- |
+| Monorepo         | Turborepo + pnpm             | turbo ^2.0, pnpm 9.1 |
+| Backend          | NestJS + Socket.io           | -                    |
+| Frontend         | Next.js (App Router)         | 14+                  |
+| State Management | Zustand                      | -                    |
+| ORM              | Prisma + PostgreSQL          | -                    |
 | UI Components    | Tailwind CSS + Framer Motion | -                    |
-| Icons            | Lucide React             | -                    |
-| Language         | TypeScript               | ^5.4                 |
-| Node.js          | -                        | ≥20.19               |
-| AI               | Google Gemini (GenAI SDK)| -                    |
-| i18n             | Custom dictionaries (th/en) | -                 |
+| Icons            | Lucide React                 | -                    |
+| Language         | TypeScript                   | ^5.4                 |
+| Node.js          | -                            | ≥20.19               |
+| AI               | Google Gemini (GenAI SDK)    | -                    |
+| i18n             | Custom dictionaries (th/en)  | -                    |
 
 ---
 
@@ -207,13 +207,13 @@ soundsFishyState, detectiveClubState, whoAmIState
 
 ### 9. i18n Architecture
 
-| File | Purpose |
-|------|---------|
-| `apps/web/src/i18n/dictionaries/schema.ts` | ทั้ง `Dictionary` interface |
-| `apps/web/src/i18n/dictionaries/{th,en}.ts` | Translation dictionaries |
-| `apps/web/src/hooks/useTranslate.ts` | Hook `useTranslate()` — dot-path keys, parameter interpolation, English fallback |
-| `apps/web/src/store/useI18nStore.ts` | Zustand store + `persist` middleware (localStorage key: `who-know-language`) |
-| `apps/web/src/app/page.tsx` | `<LanguageSwitcher>` component |
+| File                                        | Purpose                                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `apps/web/src/i18n/dictionaries/schema.ts`  | ทั้ง `Dictionary` interface                                                      |
+| `apps/web/src/i18n/dictionaries/{th,en}.ts` | Translation dictionaries                                                         |
+| `apps/web/src/hooks/useTranslate.ts`        | Hook `useTranslate()` — dot-path keys, parameter interpolation, English fallback |
+| `apps/web/src/store/useI18nStore.ts`        | Zustand store + `persist` middleware (localStorage key: `who-know-language`)     |
+| `apps/web/src/app/page.tsx`                 | `<LanguageSwitcher>` component                                                   |
 
 Default language = `th` (Thai). `RoomConfig.language` ส่งค่า language ไป server สำหรับเกมที่ต้องการ language-aware logic.
 

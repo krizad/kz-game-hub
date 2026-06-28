@@ -8,7 +8,7 @@ export const WhoFirstRules = () => {
     <div className="space-y-4 text-slate-300">
       <h3 className="text-lg font-bold text-slate-100">{t('whoFirst.rules.title')}</h3>
       <p>{t('whoFirst.rules.desc1')}</p>
-      
+
       <ul className="list-disc pl-5 space-y-2">
         <li>
           <strong className="text-slate-200">{t('whoFirst.rules.rule1Title')}:</strong>{' '}
@@ -24,9 +24,7 @@ export const WhoFirstRules = () => {
         </li>
       </ul>
 
-      <p className="pt-2 text-sm text-slate-400">
-        {t('whoFirst.rules.footer')}
-      </p>
+      <p className="pt-2 text-sm text-slate-400">{t('whoFirst.rules.footer')}</p>
     </div>
   );
 };

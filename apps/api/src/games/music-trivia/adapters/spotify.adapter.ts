@@ -43,12 +43,16 @@ export class SpotifyAdapter implements MusicSourceAdapter {
     return data.access_token;
   }
 
-  async search(query: string, limit: number, options?: MusicSourceSearchOptions): Promise<TrackResult[]> {
+  async search(
+    query: string,
+    limit: number,
+    options?: MusicSourceSearchOptions,
+  ): Promise<TrackResult[]> {
     const token = await this.getAccessToken();
 
     // Default to fetching more results because we need to filter out tracks without preview URLs
     const fetchLimit = limit * 3;
-    
+
     // Construct search URL
     let searchQuery = encodeURIComponent(query);
     if (options?.attribute === 'artistTerm') {
@@ -63,12 +67,14 @@ export class SpotifyAdapter implements MusicSourceAdapter {
     url.searchParams.append('q', searchQuery);
     url.searchParams.append('type', 'track');
     url.searchParams.append('limit', fetchLimit.toString());
-    
+
     // Always use the configured country or default to TH to get playable preview URLs
     const market = options?.country || 'TH';
     url.searchParams.append('market', market);
 
-    console.log(`[SpotifyAdapter] Searching for: ${searchQuery} (Market: ${market}, Limit: ${fetchLimit})`);
+    console.log(
+      `[SpotifyAdapter] Searching for: ${searchQuery} (Market: ${market}, Limit: ${fetchLimit})`,
+    );
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -78,7 +84,12 @@ export class SpotifyAdapter implements MusicSourceAdapter {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[SpotifyAdapter] Search API failed:', response.status, response.statusText, errorText);
+      console.error(
+        '[SpotifyAdapter] Search API failed:',
+        response.status,
+        response.statusText,
+        errorText,
+      );
       throw new Error(`Spotify API Error: ${response.statusText}`);
     }
 
@@ -87,7 +98,9 @@ export class SpotifyAdapter implements MusicSourceAdapter {
     console.log(`[SpotifyAdapter] Found ${tracks.length} raw tracks from Spotify API.`);
 
     // Filter tracks to ONLY include those with a preview URL
-    const validTracks = tracks.filter((t: SpotifyItem) => t.preview_url !== null && t.preview_url !== undefined);
+    const validTracks = tracks.filter(
+      (t: SpotifyItem) => t.preview_url !== null && t.preview_url !== undefined,
+    );
     console.log(`[SpotifyAdapter] ${validTracks.length} tracks have preview URLs.`);
 
     return validTracks.slice(0, limit).map((t: SpotifyItem) => ({

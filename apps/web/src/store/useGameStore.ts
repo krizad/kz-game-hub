@@ -22,7 +22,12 @@ interface GameState {
   availableRooms: AvailableRoom[];
   categories: WordCategory[];
   isLoading: boolean;
-  musicTriviaHostAnswer: { title: string; artist: string; artworkUrl?: string; trackViewUrl?: string } | null;
+  musicTriviaHostAnswer: {
+    title: string;
+    artist: string;
+    artworkUrl?: string;
+    trackViewUrl?: string;
+  } | null;
   actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
@@ -135,10 +140,14 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({ room, myRole: null, secretWord: null, isLoading: false, actionLoading: false });
       } else {
         // Clear host answer when state updates (if not GAME_MASTER playing)
-        if (room.musicTriviaState?.phase !== 'PLAYING' && room.musicTriviaState?.phase !== 'BUZZED' && room.musicTriviaState?.phase !== 'ANSWERING') {
+        if (
+          room.musicTriviaState?.phase !== 'PLAYING' &&
+          room.musicTriviaState?.phase !== 'BUZZED' &&
+          room.musicTriviaState?.phase !== 'ANSWERING'
+        ) {
           set({ musicTriviaHostAnswer: null });
         }
-        
+
         set({ room, isLoading: false, actionLoading: false });
       }
 

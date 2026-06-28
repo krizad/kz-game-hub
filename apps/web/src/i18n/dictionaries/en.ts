@@ -32,7 +32,8 @@ export const en: Dictionary = {
     unknownHost: 'Unknown',
     copyLink: 'Copy Link',
     qrCode: 'QR Code',
-    leave: 'Leave',
+    leave: 'Leave Room',
+    confirmLeave: 'Confirm Leave',
     players: 'Players',
     score: 'Score',
     offline: 'OFFLINE',
@@ -58,6 +59,7 @@ export const en: Dictionary = {
     startingGame: 'Starting...',
     waitingMin: 'Waiting (min {count})',
     waitingForHost: 'Waiting for Room Host to start',
+    waitingForSecretWord: 'Waiting for Secret Word...',
     phase: 'Phase',
     secretWordSelection: 'SECRET WORD SELECTION',
     youAreHost: 'You are the Host',
@@ -107,10 +109,12 @@ export const en: Dictionary = {
       handDuelDesc:
         'An intense, competitive version of Rock Paper Scissors. Play in 1v1 Round Robin or Chaotic All-at-Once modes!',
       soundsFishyDesc: 'A fast-paced bluffing party game where one player tries to spot the liars.',
-      whoAmIDesc: 'A classic party game where players try to guess the word assigned to them by asking yes/no questions.',
+      whoAmIDesc:
+        'A classic party game where players try to guess the word assigned to them by asking yes/no questions.',
       detectiveClubDesc:
         'A bluffing and image interpretation game. Everyone knows the secret word except the Conspirator, who must blend in.',
-      whoFirstDesc: 'The fastest reactor wins! Compete to press the button first when the signal drops.',
+      whoFirstDesc:
+        'The fastest reactor wins! Compete to press the button first when the signal drops.',
     },
     whoKnow: {
       setupTitle: 'The Setup',
@@ -211,27 +215,39 @@ export const en: Dictionary = {
       title: 'Who Am I',
       desc: 'A classic party game where players try to guess the word assigned to them by asking yes/no questions.',
       setupTitle: 'Setup',
-      setupDesc: 'Every player writes a word and submits it. Words are shuffled and assigned to each player. You can see everyone\'s word except your own!',
+      setupDesc:
+        "Every player writes a word and submits it. Words are shuffled and assigned to each player. You can see everyone's word except your own!",
       gameplayTitle: 'Gameplay',
-      gameplayDesc: 'Players take turns asking a yes/no question out loud to the group to figure out their word. The group votes Yes, No, or Maybe.',
+      gameplayDesc:
+        'Players take turns asking a yes/no question out loud to the group to figure out their word. The group votes Yes, No, or Maybe.',
       guessingTitle: 'Guessing',
-      guessingDesc: 'You can make one guess during your turn. If you guess right, you win that round! If you\'re wrong, you continue to play but lose your ability to guess again.',
+      guessingDesc:
+        "You can make one guess during your turn. If you guess right, you win that round! If you're wrong, you continue to play but lose your ability to guess again.",
       endgameTitle: 'Endgame',
-      endgameDesc: 'The game ends when everyone guesses their word or the game reaches the final round.',
+      endgameDesc:
+        'The game ends when everyone guesses their word or the game reaches the final round.',
     },
     detectiveClub: {
       title: 'Detective Club',
       desc: 'A bluffing + Dixit game where players interpret abstract card images. Everyone knows the secret word... except the Conspirator who must bluff.',
       rolesTitle: 'Roles',
-      informerDesc: 'Informer — Chooses a word from their hand and writes it in the notebooks, except the Conspirator\'s notebook is blank. Always plays the first card.',
-      conspiratorDesc: 'Conspirator — Doesn\'t know the word! Must play cards to blend in without getting caught.',
-      detectiveDesc: 'Detective — Knows the word, plays cards normally, and tries to figure out who the Conspirator is.',
+      informerDesc:
+        "Informer — Chooses a word from their hand and writes it in the notebooks, except the Conspirator's notebook is blank. Always plays the first card.",
+      conspiratorDesc:
+        "Conspirator — Doesn't know the word! Must play cards to blend in without getting caught.",
+      detectiveDesc:
+        'Detective — Knows the word, plays cards normally, and tries to figure out who the Conspirator is.',
       stepsTitle: 'Game Steps',
-      step1Setup: 'Setup — Roles are assigned → Informer chooses a word → Everyone sees the word except the Conspirator.',
-      step2Playing: 'Card Playing (2 rounds) — Each player selects cards from hand. Informer starts first, then clockwise.',
-      step3Discussion: 'Discussion — Informer explains why their cards match the word first, then everyone takes turns explaining.',
-      step4Voting: 'Voting — Everyone (except the Informer) votes on who they think the Conspirator is.',
-      step5Scoring: 'Scoring — Results are revealed. Points are awarded based on whether the Conspirator was caught.',
+      step1Setup:
+        'Setup — Roles are assigned → Informer chooses a word → Everyone sees the word except the Conspirator.',
+      step2Playing:
+        'Card Playing (2 rounds) — Each player selects cards from hand. Informer starts first, then clockwise.',
+      step3Discussion:
+        'Discussion — Informer explains why their cards match the word first, then everyone takes turns explaining.',
+      step4Voting:
+        'Voting — Everyone (except the Informer) votes on who they think the Conspirator is.',
+      step5Scoring:
+        'Scoring — Results are revealed. Points are awarded based on whether the Conspirator was caught.',
       scoringTitle: 'Scoring',
       caughtScoring: 'Conspirator caught: Detectives who guessed right get +3, Informer gets +3.',
       escapedScoring: 'Conspirator escaped: Conspirator gets +5, Informer gets 0.',
@@ -245,13 +261,16 @@ export const en: Dictionary = {
       desc: 'Guess the song and artist as fast as you can. Fastest fingers win!',
       rules: {
         sharedFeaturesTitle: '🌟 Shared Features (Both Modes)',
-        sharedFeatures: 'Sync Play: The music starts playing simultaneously on all devices in real-time.||Fastest Finger: Only the first person to press the Buzzer gets to answer.||Global Pause: When someone buzzes, the music pauses for everyone.||Strike Out: 1 wrong answer = Struck out for the current song. The music resumes from the paused point for the rest to guess.',
+        sharedFeatures:
+          'Sync Play: The music starts playing simultaneously on all devices in real-time.||Fastest Finger: Only the first person to press the Buzzer gets to answer.||Global Pause: When someone buzzes, the music pauses for everyone.||Strike Out: 1 wrong answer = Struck out for the current song. The music resumes from the paused point for the rest to guess.',
         modeTypingTitle: '⌨️ Typing Mode',
         modeTypingDesc: 'Focus on precision. Everyone including the host can play.',
-        modeTypingRules: 'The buzzed player must "type" the correct song title or artist before the time runs out.||Fuzzy Search Engine: Minor typos or missing spaces are forgiven!||Correct answers automatically earn 1 point.',
+        modeTypingRules:
+          'The buzzed player must "type" the correct song title or artist before the time runs out.||Fuzzy Search Engine: Minor typos or missing spaces are forgiven!||Correct answers automatically earn 1 point.',
         modeGmTitle: '👑 Game Master Mode',
         modeGmDesc: 'Fast-paced gameplay. No input box for players.',
-        modeGmRules: 'The host cannot play. They act as the "Judge" to listen to answers.||When buzzed, the screen says "Say your answer out loud!" The player must shout the answer.||The host decides if it is correct by clicking ✅ Yes or ❌ No on their screen.||If no one knows: The host can click the Reveal button to show the answer and skip to the next song.',
+        modeGmRules:
+          'The host cannot play. They act as the "Judge" to listen to answers.||When buzzed, the screen says "Say your answer out loud!" The player must shout the answer.||The host decides if it is correct by clicking ✅ Yes or ❌ No on their screen.||If no one knows: The host can click the Reveal button to show the answer and skip to the next song.',
         tipsTitle: '💡 Additional Tips',
         tips: 'Speed is everything! Keep your finger ready on the buzzer.||If a player buzzes but answers wrong, get ready! The music will resume immediately.',
       },
@@ -295,9 +314,29 @@ export const en: Dictionary = {
     playNextRound: 'Play Next Round',
   },
   gameWhoAmI: {
+    lobby: {
+      numRounds: 'Number of Rounds',
+      roundsCount: '{count} Rounds',
+      wordMode: 'Word Mode',
+      modeHostPick: '📝 Host Picks',
+      modeRandom: '🎲 Random (DB)',
+      modePlayer: '✍️ Players Write',
+      modeAi: '🤖 AI Generate',
+      category: 'Category',
+      noCategories: 'No categories found.',
+      selectCategory: 'Select a category...',
+      notSelected: 'Not selected',
+      themeOptional: 'Theme (Optional)',
+      themePlaceholder: 'e.g. Animals, Movies...',
+      anyTopic: 'Any Topic',
+      aiPrompt: 'AI Prompt / Topic',
+      aiPromptPlaceholder: 'e.g. Ghost, Strange Food...',
+      randomTopic: 'Random Topic',
+    },
     submitYourWord: 'Submit Your Word',
     category: 'Category',
-    wordSubmissionDesc: 'Each player writes a word. Words are shuffled so you won\'t get your own! Duplicates will be rejected.',
+    wordSubmissionDesc:
+      "Each player writes a word. Words are shuffled so you won't get your own! Duplicates will be rejected.",
     wordSubmitted: 'Word submitted!',
     waitingForOthers: 'Waiting for others...',
     typeYourWord: 'Type your word...',
@@ -306,7 +345,7 @@ export const en: Dictionary = {
     finalGuessRound: 'Final Guess Round',
     round: 'Round',
     spectating: 'You are spectating. Current turn:',
-    yourTurn: 'It\'s Your Turn!',
+    yourTurn: "It's Your Turn!",
     waitingFor: 'Waiting for',
     toPlay: 'to play...',
     eliminated: 'Eliminated',
@@ -316,7 +355,7 @@ export const en: Dictionary = {
     finalGuessDescWait: 'Waiting for the player to guess their word...',
     askingPhase: 'Asking Phase',
     askingPhaseDescActive: 'Ask the group a Yes/No question out loud!',
-    askingPhaseDescWait: 'Vote on the player\'s verbal question!',
+    askingPhaseDescWait: "Vote on the player's verbal question!",
     endTurnHint: 'When you are satisfied with the answers, click below to end your turn.',
     waitingForVotes: 'Waiting for votes...',
     majorityAnswer: 'Majority Answer',
@@ -324,7 +363,7 @@ export const en: Dictionary = {
     no: 'NO',
     maybe: 'MAYBE',
     endAsking: 'End Asking',
-    usedGuess: 'You\'ve used your guess',
+    usedGuess: "You've used your guess",
     guessTheWord: 'Guess the Word!',
     unknown: 'Unknown',
     castVoteHint: 'Cast your vote based on their word (you can change it until they end the turn):',
@@ -340,7 +379,8 @@ export const en: Dictionary = {
     noWinners: 'No winners this round',
     theWordsWere: 'The Words Were',
     whoAreYou: 'Who Are You?',
-    takeAGuessDesc: 'Take a guess! If you\'re wrong, you might be eliminated or lose your chance to win.',
+    takeAGuessDesc:
+      "Take a guess! If you're wrong, you might be eliminated or lose your chance to win.",
     typeYourGuess: 'Type your guess...',
     cancel: 'Cancel',
     submitGuess: 'Submit Guess',
@@ -355,7 +395,8 @@ export const en: Dictionary = {
     detective: 'Detective',
     unknownRole: 'Unknown',
     setupPhase: 'Setup Phase',
-    informerSetup: 'You are the Informer! Look at your hand and pick a word that connects your cards.',
+    informerSetup:
+      'You are the Informer! Look at your hand and pick a word that connects your cards.',
     waitingInformer: 'Waiting for Informer to pick a word...',
     yourHandCards: 'Your Hand Cards',
     typeWordConnectedToCards: 'Type a word that connects to your hand cards',
@@ -375,14 +416,16 @@ export const en: Dictionary = {
     playCard: 'Play Card',
     discussionPhase: 'Discussion Phase',
     informerExplain: 'The Informer must now explain why their cards match the word:',
-    everyoneExplain: 'Then, everyone else takes turns explaining their cards. The Conspirator must bluff!',
+    everyoneExplain:
+      'Then, everyone else takes turns explaining their cards. The Conspirator must bluff!',
     startVoting: 'Start Voting',
     waitingForHostVoting: 'Waiting for the host to start the voting phase...',
     votingPhase: 'Voting Phase',
     detectivesVoting: 'Detectives are voting on who they think the Conspirator is.',
     informerSitTight: 'You are the Informer, sit tight!',
     whoIsConspirator: 'Who is the Conspirator?',
-    reviewCardsAndVote: 'Review the played cards and vote for the player you think did NOT know the word:',
+    reviewCardsAndVote:
+      'Review the played cards and vote for the player you think did NOT know the word:',
     voteLockedIn: 'Vote Locked In',
     waitingForOtherPlayers: 'Waiting for other players...',
     confirmVote: 'Confirm Vote',
@@ -485,16 +528,19 @@ export const en: Dictionary = {
       rule1Title: 'Get Ready',
       rule1Desc: 'Wait for the countdown to display "GO!!" before pressing the button.',
       rule2Title: 'Early Press',
-      rule2Desc: 'If the host enables penalties, pressing before the signal will result in a foul for that round.',
+      rule2Desc:
+        'If the host enables penalties, pressing before the signal will result in a foul for that round.',
       rule3Title: 'Timer Reset',
-      rule3Desc: 'When either side presses the button, the timer resets to the max countdown for the other side.',
-      footer: 'The game ends when a team reaches the set number of fouls. The side with fewer fouls wins!',
+      rule3Desc:
+        'When either side presses the button, the timer resets to the max countdown for the other side.',
+      footer:
+        'The game ends when a team reaches the set number of fouls. The side with fewer fouls wins!',
     },
   },
   gameMusicTrivia: {
     lobby: {
       musicCategory: 'Music Category / Artist',
-      waitingForHost: 'Waiting for host...',
+      waitingForHost: 'Waiting for Host...',
       region: 'Region',
       regionIntl: '🌐 International',
       regionTh: '🇹🇭 Thai (TH)',
@@ -503,6 +549,16 @@ export const en: Dictionary = {
       searchArtist: '🎤 Artist Only',
       searchSong: '🎵 Song Name Only',
       searchAlbum: '💿 Album Only',
+      musicSource: 'Music Source',
+      sourceItunes: 'Apple Music (iTunes)',
+      sourceYoutube: 'YouTube',
+      sourceSpotify: 'Spotify',
+      gameMode: 'Game Mode',
+      modeTyping: '⌨️ Typing (Auto Judge)',
+      modeVoice: '🎤 Voice (Host Judge)',
+      numRounds: 'Number of Rounds',
+      roundsCount: '{count} Rounds',
+      queryPlaceholder: 'e.g. Taylor Swift, Anime OST, 90s Pop...',
       audioPlayback: 'Audio Playback',
       playbackHostOnly: 'Host Only',
       playbackEveryone: 'Everyone',

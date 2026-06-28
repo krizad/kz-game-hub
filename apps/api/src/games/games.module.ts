@@ -29,4 +29,3 @@ import { MusicTriviaService } from './music-trivia/music-trivia.service';
   ],
 })
 export class GamesModule {}
-

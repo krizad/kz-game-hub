@@ -6,13 +6,13 @@
 
 ## Resolved Decisions
 
-| Question | Decision |
-|----------|----------|
-| Minimum players | **2 คน** เล่นได้เลย |
-| จำนวนเพลงต่อเกม | **Suggested options**: 5 / 10 / 15 / 20 เพลง (โฮสต์เลือก) |
-| คะแนนต่อเพลง | **1 แต้มเท่ากัน** ทุกเพลง |
-| Hint System | **ไม่มี** — ตัดออก |
-| Phase 1 Source | **iTunes เท่านั้น** — แต่ Adapter Pattern พร้อมเสียบ Spotify/YouTube ทีหลัง |
+| Question        | Decision                                                                    |
+| --------------- | --------------------------------------------------------------------------- |
+| Minimum players | **2 คน** เล่นได้เลย                                                         |
+| จำนวนเพลงต่อเกม | **Suggested options**: 5 / 10 / 15 / 20 เพลง (โฮสต์เลือก)                   |
+| คะแนนต่อเพลง    | **1 แต้มเท่ากัน** ทุกเพลง                                                   |
+| Hint System     | **ไม่มี** — ตัดออก                                                          |
+| Phase 1 Source  | **iTunes เท่านั้น** — แต่ Adapter Pattern พร้อมเสียบ Spotify/YouTube ทีหลัง |
 
 ---
 
@@ -36,15 +36,15 @@
 ```typescript
 // Game phases
 export type MusicTriviaPhase =
-  | 'SETUP'           // Host configures music source & settings
-  | 'LOADING'         // Server fetching tracks
-  | 'PLAYING'         // Music playing, waiting for buzzer
-  | 'BUZZED'          // Someone buzzed, music paused
-  | 'ANSWERING'       // Buzzed player is answering (typing or verbal)
-  | 'ANSWER_RESULT'   // Showing if answer was correct/wrong
-  | 'REVEAL'          // Host revealed the answer (no winner)
-  | 'ROUND_RESULT'    // Showing round scores
-  | 'FINISHED';       // Game over
+  | 'SETUP' // Host configures music source & settings
+  | 'LOADING' // Server fetching tracks
+  | 'PLAYING' // Music playing, waiting for buzzer
+  | 'BUZZED' // Someone buzzed, music paused
+  | 'ANSWERING' // Buzzed player is answering (typing or verbal)
+  | 'ANSWER_RESULT' // Showing if answer was correct/wrong
+  | 'REVEAL' // Host revealed the answer (no winner)
+  | 'ROUND_RESULT' // Showing round scores
+  | 'FINISHED'; // Game over
 
 // Music source types (Phase 1: ITUNES only, extensible)
 export type MusicSourceType = 'ITUNES' | 'SPOTIFY' | 'YOUTUBE';
@@ -55,7 +55,7 @@ export type MusicTriviaMode = 'TYPING' | 'GAME_MASTER';
 // Track info (public — no answer spoilers)
 export interface MusicTriviaTrack {
   id: string;
-  previewUrl: string;          // Audio URL or YouTube videoId
+  previewUrl: string; // Audio URL or YouTube videoId
   sourceType: MusicSourceType;
   durationMs: number;
   artworkUrl?: string;
@@ -75,7 +75,7 @@ export interface MusicTriviaRound {
   track: MusicTriviaTrack;
   buzzerPresses: BuzzerPress[];
   currentBuzzerId: string | null;
-  struckOutIds: string[];       // Players who answered wrong this round
+  struckOutIds: string[]; // Players who answered wrong this round
   answeredCorrectly: boolean;
   winnerId: string | null;
 }
@@ -94,7 +94,7 @@ export interface MusicTriviaState {
     artistName: string;
     artworkUrl?: string;
   }>;
-  scores: Record<string, number>;  // playerId → total points (1 per correct)
+  scores: Record<string, number>; // playerId → total points (1 per correct)
   hostPlays: boolean;
   answerTimeoutMs: number;
   playStartTime?: number;
@@ -107,14 +107,14 @@ export interface MusicTriviaState {
 
 // Action types for GAME_ACTION pattern
 export type MusicTriviaActionType =
-  | 'CONFIGURE_SOURCE'    // Host sets source + query
-  | 'START_ROUND'         // Host starts playing music
-  | 'PRESS_BUZZER'        // Player presses buzzer
-  | 'SUBMIT_ANSWER'       // Typing mode: buzzed player submits text
-  | 'HOST_JUDGE'          // GM mode: host approves/rejects
-  | 'REVEAL_ANSWER'       // Host reveals answer (skip)
-  | 'NEXT_ROUND'          // Host advances to next round
-  | 'END_GAME';           // Host ends game early
+  | 'CONFIGURE_SOURCE' // Host sets source + query
+  | 'START_ROUND' // Host starts playing music
+  | 'PRESS_BUZZER' // Player presses buzzer
+  | 'SUBMIT_ANSWER' // Typing mode: buzzed player submits text
+  | 'HOST_JUDGE' // GM mode: host approves/rejects
+  | 'REVEAL_ANSWER' // Host reveals answer (skip)
+  | 'NEXT_ROUND' // Host advances to next round
+  | 'END_GAME'; // Host ends game early
 ```
 
 #### [MODIFY] [core.ts](file:///Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/packages/types/src/core.ts)
@@ -147,19 +147,19 @@ export type MusicTriviaActionType =
 
 หัวใจของ module — จัดการ game logic ทั้งหมด:
 
-| Method | Description |
-|--------|-------------|
-| `startGame(room, requesterId)` | Init state, set defaults from config, min 2 players |
-| `handleGameAction(room, clientId, action)` | Main dispatcher ตาม `MusicTriviaActionType` |
-| `configureSource(room, clientId, query)` | Fetch tracks via adapter, store answers server-side |
-| `startRound(room, clientId)` | Start playing music, set `playStartTime` |
-| `pressBuzzer(room, clientId)` | Record buzzer press, pause music, grant answer right |
-| `submitAnswer(room, clientId, answer)` | Typing mode: fuzzy-match answer |
-| `hostJudge(room, clientId, correct)` | GM mode: host decides ✅/❌ |
-| `revealAnswer(room, clientId)` | Show correct answer to everyone |
-| `nextRound(room, clientId)` | Advance to next track |
-| `endGame(room, clientId)` | Finish game, calculate final scores |
-| `resetGame(room, requesterId)` | Reset to LOBBY |
+| Method                                     | Description                                          |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `startGame(room, requesterId)`             | Init state, set defaults from config, min 2 players  |
+| `handleGameAction(room, clientId, action)` | Main dispatcher ตาม `MusicTriviaActionType`          |
+| `configureSource(room, clientId, query)`   | Fetch tracks via adapter, store answers server-side  |
+| `startRound(room, clientId)`               | Start playing music, set `playStartTime`             |
+| `pressBuzzer(room, clientId)`              | Record buzzer press, pause music, grant answer right |
+| `submitAnswer(room, clientId, answer)`     | Typing mode: fuzzy-match answer                      |
+| `hostJudge(room, clientId, correct)`       | GM mode: host decides ✅/❌                          |
+| `revealAnswer(room, clientId)`             | Show correct answer to everyone                      |
+| `nextRound(room, clientId)`                | Advance to next track                                |
+| `endGame(room, clientId)`                  | Finish game, calculate final scores                  |
+| `resetGame(room, requesterId)`             | Reset to LOBBY                                       |
 
 **Scoring**: ตอบถูก = **+1 แต้ม** เท่ากันทุกเพลง ไม่มี bonus
 
@@ -213,6 +213,7 @@ export class MusicSourceFactory {
 #### [NEW] [music-trivia/music-trivia.service.spec.ts](file:///Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/apps/api/src/games/music-trivia/music-trivia.service.spec.ts)
 
 Unit tests ครอบคลุม:
+
 - Phase transitions (SETUP → LOADING → PLAYING → BUZZED → ANSWERING → etc.)
 - Buzzer ordering (fastest wins)
 - Strike out logic (ตอบผิด → lock → resume music → เปิดให้คนอื่นกด)
@@ -258,19 +259,20 @@ Unit tests ครอบคลุม:
 
 Main view component — conditionally renders based on `phase`:
 
-| Phase | UI |
-|-------|----|
-| `SETUP` | Search input (ค้นหาจาก iTunes), round count selector (5/10/15/20), mode toggle |
-| `LOADING` | Loading spinner + "กำลังโหลดเพลง..." |
-| `PLAYING` | 🔊 Audio waveform CSS animation + **ปุ่ม BUZZER ขนาดใหญ่** กลางจอ |
-| `BUZZED` | แสดงว่าใครกดติด + countdown timer สำหรับตอบ |
-| `ANSWERING` | Typing: input box + countdown / GM: host ✅❌ panel |
-| `ANSWER_RESULT` | ✅ ถูก / ❌ ผิด animation + "+1" score popup |
-| `REVEAL` | แสดงชื่อเพลง + ศิลปิน + artwork |
-| `ROUND_RESULT` | Mini scoreboard + "Next Round" (host) |
-| `FINISHED` | Final leaderboard + Play Again |
+| Phase           | UI                                                                             |
+| --------------- | ------------------------------------------------------------------------------ |
+| `SETUP`         | Search input (ค้นหาจาก iTunes), round count selector (5/10/15/20), mode toggle |
+| `LOADING`       | Loading spinner + "กำลังโหลดเพลง..."                                           |
+| `PLAYING`       | 🔊 Audio waveform CSS animation + **ปุ่ม BUZZER ขนาดใหญ่** กลางจอ              |
+| `BUZZED`        | แสดงว่าใครกดติด + countdown timer สำหรับตอบ                                    |
+| `ANSWERING`     | Typing: input box + countdown / GM: host ✅❌ panel                            |
+| `ANSWER_RESULT` | ✅ ถูก / ❌ ผิด animation + "+1" score popup                                   |
+| `REVEAL`        | แสดงชื่อเพลง + ศิลปิน + artwork                                                |
+| `ROUND_RESULT`  | Mini scoreboard + "Next Round" (host)                                          |
+| `FINISHED`      | Final leaderboard + Play Again                                                 |
 
 **Design highlights:**
+
 - ปุ่ม Buzzer: วงกลมใหญ่กลางจอ, gradient สีแดง, pulse animation ตอนเพลงเล่น, haptic feedback (Vibration API)
 - Waveform: CSS animated bars (5-7 แท่ง) แสดงว่าเพลงกำลังเล่น
 - Audio player: `<audio>` element ซ่อน — เล่น preview URL จาก iTunes
@@ -378,6 +380,7 @@ apps/web/src/components/games/music-trivia/
 ## Verification Plan
 
 ### Automated Tests
+
 ```bash
 pnpm -F api test -- --testPathPattern=music-trivia  # Unit tests
 pnpm build --filter=@repo/types                      # Type compilation check
@@ -385,6 +388,7 @@ pnpm dev                                             # Full integration
 ```
 
 ### Manual Verification
+
 1. สร้างห้อง Music Trivia → search "BTS" จาก iTunes → เลือก 10 เพลง
 2. เริ่มเกม → ฟังเพลง → กด Buzzer → พิมพ์คำตอบ (Typing mode)
 3. ทดสอบ fuzzy: พิมพ์ "dynamit" แทน "Dynamite" → ต้องได้แต้ม

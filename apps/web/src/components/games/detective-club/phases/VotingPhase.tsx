@@ -24,11 +24,11 @@ export function VotingPhase() {
           <h2 className="text-3xl font-black text-indigo-400 mb-4 uppercase tracking-widest">
             {t('gameDetectiveClub.votingPhase')}
           </h2>
-          <p className="text-slate-700 text-lg mb-6">
-            {t('gameDetectiveClub.detectivesVoting')}
-          </p>
+          <p className="text-slate-700 text-lg mb-6">{t('gameDetectiveClub.detectivesVoting')}</p>
           <div className="w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin mx-auto"></div>
-          <p className="text-slate-500 mt-6 font-medium">{t('gameDetectiveClub.informerSitTight')}</p>
+          <p className="text-slate-500 mt-6 font-medium">
+            {t('gameDetectiveClub.informerSitTight')}
+          </p>
         </div>
       </div>
     );
@@ -50,7 +50,9 @@ export function VotingPhase() {
       {hasVoted ? (
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="bg-emerald-950/30 p-6 rounded-xl border border-emerald-900/50 text-center">
-            <p className="text-emerald-400 font-bold text-xl mb-2">{t('gameDetectiveClub.voteLockedIn')}</p>
+            <p className="text-emerald-400 font-bold text-xl mb-2">
+              {t('gameDetectiveClub.voteLockedIn')}
+            </p>
             <p className="text-slate-600">{t('gameDetectiveClub.waitingForOtherPlayers')}</p>
           </div>
         </div>

@@ -35,8 +35,15 @@ const COLOR_STYLES: Record<PlayerSide, { base: string; glow: string; text: strin
 };
 
 export function GobblerView() {
-  const { room, socketId, gobblerJoinSide, gobblerPlacePiece, gobblerMovePiece, gobblerReset, actionLoading } =
-    useGameStore();
+  const {
+    room,
+    socketId,
+    gobblerJoinSide,
+    gobblerPlacePiece,
+    gobblerMovePiece,
+    gobblerReset,
+    actionLoading,
+  } = useGameStore();
   const { t } = useTranslate();
   const gb = room?.gobblerState;
 
@@ -265,7 +272,9 @@ export function GobblerView() {
           <div className="text-sm sm:text-lg font-black text-white">
             {details ? details.name : t('gameGobbler.player', { side })}
             {isMe && (
-              <span className="ml-2 text-slate-600 font-medium text-xs sm:text-sm">({t('lobby.you')})</span>
+              <span className="ml-2 text-slate-600 font-medium text-xs sm:text-sm">
+                ({t('lobby.you')})
+              </span>
             )}
           </div>
           <div
@@ -384,7 +393,9 @@ export function GobblerView() {
                     )}
                   />
                   <span className="text-xs sm:text-sm font-black uppercase tracking-widest whitespace-nowrap">
-                    {gb.currentTurn === mySide ? t('gameGobbler.yourTurn') : t('gameGobbler.turn', { side: gb.currentTurn })}
+                    {gb.currentTurn === mySide
+                      ? t('gameGobbler.yourTurn')
+                      : t('gameGobbler.turn', { side: gb.currentTurn })}
                   </span>
                 </div>
               )}
@@ -467,7 +478,9 @@ export function GobblerView() {
                         </div>
                         <div className="text-slate-700 font-medium mb-6 sm:mb-10 text-sm sm:text-lg">
                           <strong className="text-white">
-                            {t('gameGobbler.claimsVictory', { name: (gb.winner === 'X' ? pX?.name : pO?.name) || '' })}
+                            {t('gameGobbler.claimsVictory', {
+                              name: (gb.winner === 'X' ? pX?.name : pO?.name) || '',
+                            })}
                           </strong>
                         </div>
                       </>

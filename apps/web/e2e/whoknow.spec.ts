@@ -4,8 +4,10 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
 test.describe('Who Know Gameplay', () => {
   test('four players can start game flow', async ({ browser }) => {
     const contexts = await Promise.all([
-      browser.newContext(), browser.newContext(),
-      browser.newContext(), browser.newContext(),
+      browser.newContext(),
+      browser.newContext(),
+      browser.newContext(),
+      browser.newContext(),
     ]);
     const [p1, p2, p3, p4] = await Promise.all(contexts.map((c) => c.newPage()));
 
@@ -36,6 +38,8 @@ test.describe('Who Know Gameplay', () => {
   test('host sees lobby config options', async ({ page }) => {
     await createRoom(page, 'SoloHost', 'Who Know');
     await expect(page.getByText('SoloHost').first()).toBeVisible();
-    await expect(page.getByText('Host Selection').or(page.getByText('การเลือกโฮสต์'))).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Host Selection').or(page.getByText('การเลือกโฮสต์'))).toBeVisible({
+      timeout: 5000,
+    });
   });
 });

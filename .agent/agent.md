@@ -22,7 +22,7 @@
 | **Hand Duel (RPS)**     | Competitive       | 2+          | เป่ายิ้งฉุบ Best-Of        |
 | **Sounds Fishy**        | Trivia / Bluffing | 3+          | ตอบคำถาม แยกคำตอบจริง/ปลอม |
 | **Detective Club**      | Social Deduction  | 4+          | วางการ์ดตามคำใบ้ ล่าสายลับ |
-| **Who Am I**            | Word Guessing     | 3+          | ทายเอกลักษณ์ผู้เล่นจากคำ      |
+| **Who Am I**            | Word Guessing     | 3+          | ทายเอกลักษณ์ผู้เล่นจากคำ   |
 
 ## Behavior Guidelines
 
