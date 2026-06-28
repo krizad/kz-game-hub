@@ -538,6 +538,13 @@ export interface Dictionary {
       preparingMusic: string;
       searchingFor: string;
       on: string;
+      getReadyTitle: string;
+      getReadyHostWait: string;
+      getReadyUnlock: string;
+      getReadyBtn: string;
+      getReadyPlayers: string;
+      getReadyStartBtn: string;
+      countdownTitle: string;
       nowPlaying: string;
       listenCarefully: string;
       cantHearMusic: string;

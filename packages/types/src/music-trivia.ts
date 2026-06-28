@@ -3,6 +3,8 @@
 export type MusicTriviaPhase =
   | 'SETUP' // Host configures music source & settings
   | 'LOADING' // Server fetching tracks
+  | 'GET_READY' // Players unlocking audio, host waiting to start
+  | 'COUNTDOWN' // 3..2..1 countdown before PLAYING
   | 'PLAYING' // Music playing, waiting for buzzer
   | 'BUZZED' // Someone buzzed, music paused
   | 'ANSWERING' // Buzzed player is answering (typing or verbal)
@@ -62,6 +64,8 @@ export interface MusicTriviaState {
   totalRounds: number;
   currentRound: MusicTriviaRound | null;
   roundHistory: MusicTriviaRoundHistory[];
+  readyPlayerIds: string[]; // List of players who clicked "Ready"
+  countdownEndsAt?: number; // Timestamp for 3..2..1 countdown
   scores: Record<string, number>; // playerId → total points (1 per correct)
   hostPlays: boolean;
   answerTimeoutMs: number;
@@ -83,6 +87,8 @@ export interface MusicTriviaState {
 export type MusicTriviaActionType =
   | 'CONFIGURE_SOURCE' // Host sets source + query and starts fetching
   | 'START_ROUND' // Host starts playing music (used internally after configure + next round)
+  | 'PLAYER_READY' // Player taps to unlock audio
+  | 'START_COUNTDOWN' // Host clicks start song
   | 'PRESS_BUZZER' // Player presses buzzer
   | 'GIVE_UP' // Player gives up without answering
   | 'SUBMIT_ANSWER' // Typing mode: buzzed player submits text

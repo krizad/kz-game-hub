@@ -730,6 +730,24 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
             });
         }
 
+        // Handle countdown trigger
+        const actionData = data.action as { type: string };
+        if (actionData.type === 'START_COUNTDOWN') {
+          setTimeout(() => {
+            const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
+            if (finalResult) {
+              this.server
+                .to(finalResult.room.code)
+                .emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, finalResult.room);
+              if (finalResult.syncPlay) {
+                this.server
+                  .to(finalResult.room.code)
+                  .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, finalResult.syncPlay);
+              }
+            }
+          }, 3000);
+        }
+
         this.maybeRecordGameResult(result.room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });

@@ -44,7 +44,9 @@ export function MusicTriviaView() {
         if (elapsed > 0 && elapsed < musicTriviaSyncPlay.durationMs / 1000) {
           audioRef.current.currentTime = elapsed;
           if (shouldPlay) {
-            audioRef.current.play().catch((e) => console.error('Audio playback failed:', e));
+            audioRef.current.play().catch((e) => {
+              console.error('Audio playback failed:', e);
+            });
           } else {
             audioRef.current.pause();
           }
@@ -68,6 +70,19 @@ export function MusicTriviaView() {
       }
     };
   }, [state?.phase, musicTriviaSyncPlay, room?.config.musicTriviaAudioPlayback, isHost, volume]);
+
+  // Handle countdown calculation for COUNTDOWN phase
+  useEffect(() => {
+    if (state?.phase === 'COUNTDOWN' && state.countdownEndsAt) {
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((state.countdownEndsAt! - Date.now()) / 1000));
+        setCountdown(remaining);
+      }, 100);
+      return () => clearInterval(interval);
+    } else {
+      setCountdown(null);
+    }
+  }, [state?.phase, state?.countdownEndsAt]);
 
   // Auto-fetch tracks if we just started the game
   useEffect(() => {
@@ -138,9 +153,7 @@ export function MusicTriviaView() {
     setAnswerInput('');
   };
 
-  const amIStruckOut = state.currentRound?.struckOutIds.includes(
-    room?.players.find((p) => p.name === myName)?.socketId || '',
-  );
+  const amIStruckOut = state.currentRound?.struckOutIds.includes(socketId || '');
 
   const amICurrentBuzzer = state.currentRound?.currentBuzzerId === socketId;
 
@@ -259,8 +272,6 @@ export function MusicTriviaView() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 relative">
-        {/* YouTube Player is now rendered inside the PLAYING phase */}
-
         <div className="max-w-2xl mx-auto space-y-6">
           {/* SETUP Phase */}
           {state.phase === 'SETUP' && (
@@ -278,6 +289,68 @@ export function MusicTriviaView() {
                     ? 'YouTube'
                     : 'iTunes'}
               </p>
+            </div>
+          )}
+
+          {/* GET_READY Phase */}
+          {state.phase === 'GET_READY' && (
+            <div className="bg-white p-8 rounded-3xl shadow-sm border text-center space-y-8 animate-in fade-in zoom-in duration-300">
+              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <span className="text-4xl">🎵</span>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-slate-800">{t('gameMusicTrivia.game.getReadyTitle')}</h3>
+                <p className="text-slate-500">
+                  {state.readyPlayerIds?.includes(socketId) 
+                    ? t('gameMusicTrivia.game.getReadyHostWait')
+                    : t('gameMusicTrivia.game.getReadyUnlock')}
+                </p>
+              </div>
+
+              {!state.readyPlayerIds?.includes(socketId) && (
+                <Button
+                  onClick={() => {
+                    // Unlock audio element with a silent play/pause if not youtube
+                    if (audioRef.current) {
+                      audioRef.current.play().catch(() => {}).finally(() => {
+                        audioRef.current?.pause();
+                      });
+                    }
+                    musicTriviaGameAction({ type: 'PLAYER_READY' });
+                  }}
+                  className="w-full max-w-xs mx-auto h-16 rounded-2xl text-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
+                >
+                  {t('gameMusicTrivia.game.getReadyBtn')}
+                </Button>
+              )}
+
+              {isHost && (
+                <div className="pt-6 border-t mt-6 space-y-4">
+                  <div className="flex justify-between items-center text-sm font-medium text-slate-600 bg-slate-50 p-4 rounded-xl border">
+                    <span>{t('gameMusicTrivia.game.getReadyPlayers')}</span>
+                    <span className="text-indigo-600 font-bold text-lg">{state.readyPlayerIds?.length || 0} / {room.players.length}</span>
+                  </div>
+                  <Button
+                    onClick={() => musicTriviaGameAction({ type: 'START_COUNTDOWN' })}
+                    className="w-full h-14 rounded-2xl text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200 transition-all"
+                  >
+                    {t('gameMusicTrivia.game.getReadyStartBtn')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* COUNTDOWN Phase */}
+          {state.phase === 'COUNTDOWN' && (
+            <div className="flex flex-col items-center justify-center py-20 space-y-8 animate-in fade-in">
+              <h3 className="text-2xl font-bold text-slate-500 uppercase tracking-widest animate-pulse">{t('gameMusicTrivia.game.countdownTitle')}</h3>
+              <div className="relative">
+                <div className="text-9xl font-black text-indigo-600 drop-shadow-xl animate-bounce">
+                  {countdown}
+                </div>
+                <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full z-[-1] animate-pulse"></div>
+              </div>
             </div>
           )}
 

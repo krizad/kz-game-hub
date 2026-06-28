@@ -72,6 +72,7 @@ export class MusicTriviaService {
       totalRounds: config.musicTriviaRounds || 10,
       currentRound: null,
       roundHistory: [],
+      readyPlayerIds: [],
       scores: {},
       hostPlays: config.musicTriviaHostPlays ?? true,
       answerTimeoutMs: config.musicTriviaAnswerTimeoutMs || 15000,
@@ -111,6 +112,10 @@ export class MusicTriviaService {
         return this.revealAnswer(room, clientId);
       case 'NEXT_ROUND':
         return this.nextRound(room, clientId);
+      case 'PLAYER_READY':
+        return this.playerReady(room, clientId);
+      case 'START_COUNTDOWN':
+        return this.startCountdown(room, clientId);
       case 'END_GAME':
         return this.endGame(room, clientId);
       default:
@@ -162,6 +167,10 @@ export class MusicTriviaService {
       }
     }
 
+    if (state.readyPlayerIds) {
+      state.readyPlayerIds = state.readyPlayerIds.map((id) => (id === oldId ? newId : id));
+    }
+
     // Remap round history
     for (const h of state.roundHistory) {
       if (h.winnerId === oldId) h.winnerId = newId;
@@ -171,6 +180,51 @@ export class MusicTriviaService {
   // ------------------------------------------------------------------
   // Action Handlers
   // ------------------------------------------------------------------
+
+  private playerReady(room: RoomState, clientId: string): MusicTriviaActionResult | null {
+    const state = room.musicTriviaState!;
+    if (state.phase !== 'GET_READY') return null;
+
+    if (!state.readyPlayerIds.includes(clientId)) {
+      state.readyPlayerIds.push(clientId);
+    }
+    return { room };
+  }
+
+  private startCountdown(room: RoomState, clientId: string): MusicTriviaActionResult | null {
+    const state = room.musicTriviaState!;
+    if (room.roomHostId !== clientId) return null;
+    if (state.phase !== 'GET_READY') return null;
+
+    state.phase = 'COUNTDOWN';
+    state.countdownEndsAt = Date.now() + 3000;
+    return { room };
+  }
+
+  public finalizeCountdown(room: RoomState): MusicTriviaActionResult | null {
+    const state = room.musicTriviaState!;
+    if (state.phase !== 'COUNTDOWN') return null;
+    
+    // Jump to playing
+    state.phase = 'PLAYING';
+    state.playStartTime = Date.now();
+    state.countdownEndsAt = undefined;
+
+    const round = state.currentRound;
+    if (!round) return null;
+
+    return {
+      room,
+      syncPlay: {
+        roundNumber: round.roundNumber,
+        playStartTime: state.playStartTime,
+        previewUrl: round.track.previewUrl,
+        sourceType: round.track.sourceType,
+        durationMs: round.track.durationMs,
+        artworkUrl: round.track.artworkUrl,
+      },
+    };
+  }
 
   private async configureSource(
     room: RoomState,
@@ -241,23 +295,13 @@ export class MusicTriviaService {
       // Store full tracks for later rounds
       this.fullTracks.set(room.code, selectedTracks);
 
-      // Start first round automatically
+      // Start first round automatically in GET_READY phase
       const firstTrack = selectedTracks[0];
       state.currentRound = this.createRound(1, firstTrack);
-      state.phase = 'PLAYING';
-      state.playStartTime = Date.now();
+      state.phase = 'GET_READY';
+      state.readyPlayerIds = [];
 
-      return {
-        room,
-        syncPlay: {
-          roundNumber: 1,
-          playStartTime: state.playStartTime,
-          previewUrl: firstTrack.previewUrl,
-          sourceType: firstTrack.sourceType,
-          durationMs: firstTrack.durationMs,
-          artworkUrl: firstTrack.artworkUrl,
-        },
-      };
+      return { room };
     } catch (error) {
       console.error('[MusicTriviaService] configureSource error:', error);
       state.phase = 'SETUP'; // Reset back on error
@@ -582,7 +626,6 @@ export class MusicTriviaService {
     for (const p of room.players) {
       p.score = state.scores[p.socketId] || 0;
     }
-
     return { room };
   }
 
@@ -752,24 +795,26 @@ export class MusicTriviaService {
   }
 
   /**
-   * Fuzzy match: returns true if similarity ratio ≥ 0.75 (75%).
-   * Normalises input: lowercase, trim, collapse whitespace.
+   * Fuzzy match: Strict matching to avoid accidental wins.
+   * Removes parentheticals from target (e.g. "Song (feat. Artist)" -> "Song").
    */
   fuzzyMatch(input: string, target: string): boolean {
+    const cleanTarget = target.replace(/\s*\(.*?\)\s*/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
     const a = input.toLowerCase().trim().replace(/\s+/g, ' ');
-    const b = target.toLowerCase().trim().replace(/\s+/g, ' ');
 
-    if (a === b) return true;
-    if (a.length === 0 || b.length === 0) return false;
+    if (a === cleanTarget) return true;
+    if (a.length === 0 || cleanTarget.length === 0) return false;
 
-    // Also check if input is contained in target or vice versa (for partial matches)
-    if (b.includes(a) && a.length >= 3) return true;
-    if (a.includes(b) && b.length >= 3) return true;
-
-    const distance = this.levenshteinDistance(a, b);
-    const maxLen = Math.max(a.length, b.length);
+    // Check Levenshtein distance
+    const distance = this.levenshteinDistance(a, cleanTarget);
+    const maxLen = Math.max(a.length, cleanTarget.length);
     const similarity = 1 - distance / maxLen;
 
-    return similarity >= 0.75;
+    if (similarity >= 0.85) return true;
+
+    // Allow partial match if input is exactly a prefix of target and is at least 80% of it
+    if (cleanTarget.startsWith(a) && a.length >= cleanTarget.length * 0.8) return true;
+
+    return false;
   }
 }

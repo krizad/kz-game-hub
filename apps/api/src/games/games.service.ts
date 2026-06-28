@@ -794,4 +794,12 @@ export class GamesService {
     if (result) this.rooms.set(code, result.room);
     return result;
   }
+
+  musicTriviaFinalizeCountdown(code: string): MusicTriviaActionResult | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const result = this.musicTriviaService.finalizeCountdown(room);
+    if (result) this.rooms.set(code, result.room);
+    return result;
+  }
 }
