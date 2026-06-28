@@ -128,9 +128,12 @@ export interface RoomConfig {
   musicTriviaCountry?: string;
   musicTriviaAttribute?: string;
   musicTriviaRounds?: number;
+  musicTriviaYearStart?: number;
+  musicTriviaYearEnd?: number;
   musicTriviaHostPlays?: boolean;
   musicTriviaAnswerTimeoutMs?: number;
   musicTriviaAudioPlayback?: 'HOST_ONLY' | 'EVERYONE';
+  musicTriviaAnswerCriteria?: 'ANY' | 'TITLE' | 'ARTIST';
 }
 
 export interface RoomState {

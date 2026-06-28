@@ -1,79 +1,70 @@
 import { TrackResult, MusicSourceAdapter, MusicSourceSearchOptions } from '../music-source-adapter';
 import { MusicSourceType } from '@repo/types';
-
-export interface YouTubeItem {
-  id?: { videoId?: string };
-  snippet?: {
-    title?: string;
-    channelTitle?: string;
-    thumbnails?: {
-      high?: { url: string };
-      default?: { url: string };
-    };
-  };
-}
+const YTMusic = require('ytmusic-api');
 
 export class YouTubeAdapter implements MusicSourceAdapter {
   readonly sourceType: MusicSourceType = 'YOUTUBE';
+  private ytmusic: any;
+  private initialized = false;
+
+  constructor() {
+    this.ytmusic = new YTMusic();
+  }
+
+  async init() {
+    if (!this.initialized) {
+      await this.ytmusic.initialize();
+      this.initialized = true;
+    }
+  }
 
   async search(
     query: string,
     limit: number,
     options?: MusicSourceSearchOptions,
   ): Promise<TrackResult[]> {
+    await this.init();
     let searchQuery = query;
 
-    // Add negative keywords to avoid compilations (user requested to avoid compilations > 10 mins etc)
-    const negativeKeywords = '-compilation -"full album" -"1 hour" -"2 hours" -mix';
-
-    if (options?.attribute === 'artistTerm') {
-      searchQuery = `${query} official audio ${negativeKeywords}`;
-    } else if (options?.attribute === 'songTerm') {
-      searchQuery = `${query} official audio ${negativeKeywords}`;
-    } else if (options?.attribute === 'albumTerm') {
-      searchQuery = `${query} album`;
-    } else {
-      searchQuery = `${query} ${negativeKeywords}`;
+    if (options?.yearStart || options?.yearEnd) {
+      const start = options.yearStart || 1900;
+      const end = options.yearEnd || new Date().getFullYear();
+      searchQuery += ` ${start}-${end}`;
     }
 
-    console.log(`[YouTubeAdapter] Searching for: ${searchQuery} (Limit: ${limit})`);
-
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      console.warn('[YouTubeAdapter] Missing YOUTUBE_API_KEY in environment variables.');
-      return [];
-    }
+    console.log(`[YouTubeAdapter] Searching YT Music for: ${searchQuery} (Limit: ${limit})`);
 
     try {
-      // Use YouTube Data API v3 instead of youtube-sr
-      // videoCategoryId=10 ensures we get music content
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=${limit}&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      // Use searchSongs to ensure we only get songs (which inherently excludes shorts and most non-music videos)
+      const songs = await this.ytmusic.searchSongs(searchQuery);
 
-      if (!data.items || data.items.length === 0) {
-        console.error('[YouTubeAdapter] No items in response:', data);
+      if (!songs || songs.length === 0) {
+        console.warn('[YouTubeAdapter] No songs found in YouTube Music:', searchQuery);
         return [];
       }
 
-      console.log(`[YouTubeAdapter] Search completed. Found ${data.items.length} videos.`);
+      const results = songs.slice(0, limit);
+      console.log(`[YouTubeAdapter] Search completed. Returning ${results.length} songs.`);
 
-      return data.items.map((item: YouTubeItem) => {
-        // Decode HTML entities in title (YouTube API returns encoded titles like &#39;)
-        let title = item.snippet?.title || 'Unknown Title';
-        title = title.replaceAll('&quot;', '"').replaceAll('&#39;', "'").replaceAll('&amp;', '&');
-
-        const artist = item.snippet?.channelTitle || 'Unknown Artist';
-        const videoId = item.id?.videoId;
+      return results.map((item: any) => {
+        let title = item.name || 'Unknown Title';
+        const artist = item.artist?.name || 'Unknown Artist';
+        const videoId = item.videoId;
+        
+        let artworkUrl = '';
+        if (item.thumbnails && item.thumbnails.length > 0) {
+          // get highest res thumbnail
+          artworkUrl = item.thumbnails[item.thumbnails.length - 1].url;
+        }
 
         return {
           id: videoId || Math.random().toString(),
           title: title,
           artist: artist,
           previewUrl: videoId || '',
-          durationMs: 600000, // Default to a large duration since search endpoint doesn't return duration
-          artworkUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url,
-          trackViewUrl: `https://www.youtube.com/watch?v=${videoId}`,
+          durationMs: (item.duration || 180) * 1000, 
+          artworkUrl: artworkUrl,
+          trackViewUrl: `https://music.youtube.com/watch?v=${videoId}`,
           sourceType: this.sourceType,
         };
       });

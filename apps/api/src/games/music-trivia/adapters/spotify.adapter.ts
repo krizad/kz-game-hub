@@ -54,13 +54,20 @@ export class SpotifyAdapter implements MusicSourceAdapter {
     const fetchLimit = limit * 3;
 
     // Construct search URL
-    let searchQuery = encodeURIComponent(query);
+    let baseQuery = query;
+    if (options?.yearStart || options?.yearEnd) {
+      const start = options.yearStart || 1900;
+      const end = options.yearEnd || new Date().getFullYear();
+      baseQuery += ` year:${start}-${end}`;
+    }
+
+    let searchQuery = encodeURIComponent(baseQuery);
     if (options?.attribute === 'artistTerm') {
-      searchQuery = encodeURIComponent(`artist:${query}`);
+      searchQuery = encodeURIComponent(`artist:${baseQuery}`);
     } else if (options?.attribute === 'albumTerm') {
-      searchQuery = encodeURIComponent(`album:${query}`);
+      searchQuery = encodeURIComponent(`album:${baseQuery}`);
     } else if (options?.attribute === 'songTerm') {
-      searchQuery = encodeURIComponent(`track:${query}`);
+      searchQuery = encodeURIComponent(`track:${baseQuery}`);
     }
 
     const url = new URL('https://api.spotify.com/v1/search');

@@ -49,6 +49,9 @@ export interface MusicTriviaRoundHistory {
   artistName: string;
   artworkUrl?: string;
   trackViewUrl?: string;
+  album?: string;
+  releaseYear?: string;
+  successfulAnswerText?: string;
 }
 
 // Main game state (broadcast-safe — no answer spoilers in here)
@@ -70,6 +73,9 @@ export interface MusicTriviaState {
     artist: string;
     artworkUrl?: string;
     trackViewUrl?: string;
+    album?: string;
+    releaseYear?: string;
+    successfulAnswerText?: string;
   };
 }
 
@@ -78,6 +84,7 @@ export type MusicTriviaActionType =
   | 'CONFIGURE_SOURCE' // Host sets source + query and starts fetching
   | 'START_ROUND' // Host starts playing music (used internally after configure + next round)
   | 'PRESS_BUZZER' // Player presses buzzer
+  | 'GIVE_UP' // Player gives up without answering
   | 'SUBMIT_ANSWER' // Typing mode: buzzed player submits text
   | 'HOST_JUDGE' // GM mode: host approves/rejects
   | 'REVEAL_ANSWER' // Host reveals answer (skip / no winner)
@@ -91,6 +98,8 @@ export interface MusicTriviaAction {
   searchOptions?: {
     country?: string;
     attribute?: string;
+    yearStart?: number;
+    yearEnd?: number;
   };
   answer?: string; // SUBMIT_ANSWER
   correct?: boolean; // HOST_JUDGE
@@ -110,6 +119,8 @@ export interface MusicTriviaHostAnswerPayload {
   artist: string;
   artworkUrl?: string;
   trackViewUrl?: string;
+  album?: string;
+  releaseYear?: string;
 }
 
 // Broadcast payload for sync_play — clients use playStartTime to sync playback.

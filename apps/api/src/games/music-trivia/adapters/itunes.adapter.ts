@@ -16,6 +16,8 @@ export interface ItunesItem {
   artworkUrl100?: string;
   trackViewUrl?: string;
   kind?: string;
+  releaseDate?: string;
+  collectionName?: string;
 }
 
 export class ITunesAdapter implements MusicSourceAdapter {
@@ -49,7 +51,18 @@ export class ITunesAdapter implements MusicSourceAdapter {
     const data = await response.json();
 
     const tracks: TrackResult[] = (data.results || [])
-      .filter((item: ItunesItem) => item.previewUrl && item.kind === 'song')
+      .filter((item: ItunesItem) => {
+        if (!item.previewUrl || item.kind !== 'song') return false;
+
+        if (options?.yearStart || options?.yearEnd) {
+          if (!item.releaseDate) return false;
+          const year = new Date(item.releaseDate).getFullYear();
+          if (options.yearStart && year < options.yearStart) return false;
+          if (options.yearEnd && year > options.yearEnd) return false;
+        }
+
+        return true;
+      })
       .map((item: ItunesItem) => ({
         id: String(item.trackId),
         title: item.trackName || 'Unknown',
@@ -61,6 +74,8 @@ export class ITunesAdapter implements MusicSourceAdapter {
           : undefined,
         trackViewUrl: item.trackViewUrl,
         sourceType: 'ITUNES' as const,
+        album: item.collectionName,
+        releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear().toString() : undefined,
       }));
 
     // Randomize the tracks (Fisher-Yates shuffle)

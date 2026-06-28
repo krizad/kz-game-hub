@@ -17,6 +17,8 @@ interface TrackAnswer {
   title: string;
   artist: string;
   trackViewUrl?: string;
+  album?: string;
+  releaseYear?: string;
 }
 
 /**
@@ -99,6 +101,8 @@ export class MusicTriviaService {
         return this.startRound(room, clientId);
       case 'PRESS_BUZZER':
         return this.pressBuzzer(room, clientId);
+      case 'GIVE_UP':
+        return this.giveUp(room, clientId);
       case 'SUBMIT_ANSWER':
         return this.submitAnswer(room, clientId, action.answer || '');
       case 'HOST_JUDGE':
@@ -194,6 +198,7 @@ export class MusicTriviaService {
 
       if (rawTracks.length === 0) {
         state.phase = 'SETUP'; // Reset back — no results
+        state.errorMessage = 'No songs found for this search. Try a different artist or genre.';
         return { room };
       }
 
@@ -228,6 +233,8 @@ export class MusicTriviaService {
           title: t.title,
           artist: t.artist,
           trackViewUrl: t.trackViewUrl,
+          album: t.album,
+          releaseYear: t.releaseYear,
         })),
       );
 
@@ -310,10 +317,47 @@ export class MusicTriviaService {
 
     const result: MusicTriviaActionResult = { room };
 
-    // In typing mode, we don't reveal the answer to the buzzer — they must guess
     // The trackAnswerTo is intentionally NOT set for typing mode
 
     return result;
+  }
+
+  private giveUp(room: RoomState, clientId: string): MusicTriviaActionResult | null {
+    const state = room.musicTriviaState!;
+    if (state.phase !== 'PLAYING') return null;
+
+    const round = state.currentRound;
+    if (!round) return null;
+
+    const isPlayer = room.players.some((p) => p.socketId === clientId);
+    if (!isPlayer) return null;
+
+    const isHost = room.roomHostId === clientId;
+    if (isHost && !state.hostPlays) return null;
+
+    // Already struck out this round
+    if (round.struckOutIds.includes(clientId)) return null;
+
+    // Strike out immediately
+    round.struckOutIds.push(clientId);
+
+    if (this.allPlayersStruckOut(room)) {
+      state.phase = 'REVEAL';
+      const answers = this.trackAnswers.get(room.code);
+      const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
+
+      if (trackAnswer) {
+        state.revealedAnswer = {
+          title: trackAnswer.title,
+          artist: trackAnswer.artist,
+          artworkUrl: round.track.artworkUrl,
+          album: trackAnswer.album,
+          releaseYear: trackAnswer.releaseYear,
+        };
+      }
+    }
+
+    return { room };
   }
 
   private submitAnswer(
@@ -334,8 +378,18 @@ export class MusicTriviaService {
     const trackAnswer = answers[round.roundNumber - 1];
     if (!trackAnswer) return null;
 
-    const isCorrect =
-      this.fuzzyMatch(answer, trackAnswer.title) || this.fuzzyMatch(answer, trackAnswer.artist);
+    const criteria = room.config.musicTriviaAnswerCriteria || 'ANY';
+    const matchTitle = this.fuzzyMatch(answer, trackAnswer.title);
+    const matchArtist = this.fuzzyMatch(answer, trackAnswer.artist);
+
+    let isCorrect = false;
+    if (criteria === 'TITLE') {
+      isCorrect = matchTitle;
+    } else if (criteria === 'ARTIST') {
+      isCorrect = matchArtist;
+    } else {
+      isCorrect = matchTitle || matchArtist;
+    }
 
     if (isCorrect) {
       round.answeredCorrectly = true;
@@ -351,6 +405,9 @@ export class MusicTriviaService {
         title: trackAnswer.title,
         artist: trackAnswer.artist,
         artworkUrl: round.track.artworkUrl,
+        album: trackAnswer.album,
+        releaseYear: trackAnswer.releaseYear,
+        successfulAnswerText: answer.trim(),
       };
     } else {
       // Strike out — wrong answer
@@ -364,6 +421,8 @@ export class MusicTriviaService {
           title: trackAnswer.title,
           artist: trackAnswer.artist,
           artworkUrl: round.track.artworkUrl,
+          album: trackAnswer.album,
+          releaseYear: trackAnswer.releaseYear,
         };
       } else {
         // Resume music — others can buzz
@@ -425,6 +484,8 @@ export class MusicTriviaService {
           title: trackAnswer.title,
           artist: trackAnswer.artist,
           artworkUrl: round.track.artworkUrl,
+          album: trackAnswer.album,
+          releaseYear: trackAnswer.releaseYear,
         };
       }
     } else {
@@ -439,6 +500,8 @@ export class MusicTriviaService {
             title: trackAnswer.title,
             artist: trackAnswer.artist,
             artworkUrl: round.track.artworkUrl,
+            album: trackAnswer.album,
+            releaseYear: trackAnswer.releaseYear,
           };
         }
       } else {
@@ -487,6 +550,8 @@ export class MusicTriviaService {
         title: trackAnswer.title,
         artist: trackAnswer.artist,
         artworkUrl: round.track.artworkUrl,
+        album: trackAnswer.album,
+        releaseYear: trackAnswer.releaseYear,
       };
     }
 
@@ -541,6 +606,9 @@ export class MusicTriviaService {
         artistName: trackAnswer?.artist || 'Unknown',
         artworkUrl: round.track.artworkUrl,
         trackViewUrl: trackAnswer?.trackViewUrl,
+        album: trackAnswer?.album,
+        releaseYear: trackAnswer?.releaseYear,
+        successfulAnswerText: state.revealedAnswer?.successfulAnswerText,
       };
       state.roundHistory.push(historyEntry);
     }

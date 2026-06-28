@@ -13,11 +13,15 @@ export interface TrackResult {
   artworkUrl?: string;
   trackViewUrl?: string;
   sourceType: MusicSourceType;
+  album?: string;
+  releaseYear?: string;
 }
 
 export interface MusicSourceSearchOptions {
   country?: string;
   attribute?: string;
+  yearStart?: number;
+  yearEnd?: number;
 }
 
 /**

@@ -1,11 +1,17 @@
-'use client';
-
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function MusicTriviaSettings() {
   const { room } = useGameStore();
   const { t } = useTranslate();
+  const [localQuery, setLocalQuery] = useState(room?.config.musicTriviaQuery || '');
+
+  useEffect(() => {
+    if (room?.config.musicTriviaQuery !== undefined) {
+      setLocalQuery(room.config.musicTriviaQuery);
+    }
+  }, [room?.config.musicTriviaQuery]);
 
   if (room?.gameType !== 'MUSIC_TRIVIA') return null;
 
@@ -46,11 +52,15 @@ export function MusicTriviaSettings() {
           <input
             autoComplete="off"
             type="text"
-            value={room.config.musicTriviaQuery || ''}
-            onChange={(e) =>
-              useGameStore.getState().updateConfig({ musicTriviaQuery: e.target.value })
-            }
-            placeholder={t('gameMusicTrivia.lobby.queryPlaceholder')}
+            value={localQuery}
+            onChange={(e) => setLocalQuery(e.target.value)}
+            onBlur={() => useGameStore.getState().updateConfig({ musicTriviaQuery: localQuery })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                useGameStore.getState().updateConfig({ musicTriviaQuery: localQuery });
+              }
+            }}
+            placeholder={t('gameMusicTrivia.lobby.queryPlaceholder') || 'e.g. Thai Pop, 90s Hits'}
             className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         ) : (
@@ -70,11 +80,9 @@ export function MusicTriviaSettings() {
             aria-label="Music source"
             value={room.config.musicTriviaSource || 'ITUNES'}
             onChange={(e) =>
-              useGameStore
-                .getState()
-                .updateConfig({
-                  musicTriviaSource: e.target.value as 'ITUNES' | 'SPOTIFY' | 'YOUTUBE',
-                })
+              useGameStore.getState().updateConfig({
+                musicTriviaSource: e.target.value as 'ITUNES' | 'SPOTIFY' | 'YOUTUBE',
+              })
             }
             className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
@@ -137,6 +145,56 @@ export function MusicTriviaSettings() {
           ) : (
             <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200 truncate">
               {getAttributeLabel(room.config.musicTriviaAttribute)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+            {t('gameMusicTrivia.lobby.yearStart')}
+          </label>
+          {isHost ? (
+            <input
+              type="number"
+              min="1950"
+              max={new Date().getFullYear()}
+              placeholder="e.g. 1990"
+              value={room.config.musicTriviaYearStart || ''}
+              onChange={(e) => {
+                const val = e.target.value ? parseInt(e.target.value) : undefined;
+                useGameStore.getState().updateConfig({ musicTriviaYearStart: val });
+              }}
+              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          ) : (
+            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+              {room.config.musicTriviaYearStart || 'All'}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+            {t('gameMusicTrivia.lobby.yearEnd')}
+          </label>
+          {isHost ? (
+            <input
+              type="number"
+              min="1950"
+              max={new Date().getFullYear()}
+              placeholder={`e.g. ${new Date().getFullYear()}`}
+              value={room.config.musicTriviaYearEnd || ''}
+              onChange={(e) => {
+                const val = e.target.value ? parseInt(e.target.value) : undefined;
+                useGameStore.getState().updateConfig({ musicTriviaYearEnd: val });
+              }}
+              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          ) : (
+            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+              {room.config.musicTriviaYearEnd || 'All'}
             </div>
           )}
         </div>
@@ -206,6 +264,37 @@ export function MusicTriviaSettings() {
 
       <div>
         <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+          {t('gameMusicTrivia.lobby.answerTimeout')}
+        </label>
+        {isHost ? (
+          <select
+            id="musicTimeoutSelect"
+            name="musicTriviaAnswerTimeoutMs"
+            title="Answer Timeout"
+            aria-label="Answer Timeout"
+            value={room.config?.musicTriviaAnswerTimeoutMs || 15000}
+            onChange={(e) => {
+              useGameStore
+                .getState()
+                .updateConfig({ musicTriviaAnswerTimeoutMs: Number.parseInt(e.target.value, 10) });
+            }}
+            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+          >
+            <option value={5000}>5</option>
+            <option value={10000}>10</option>
+            <option value={15000}>15</option>
+            <option value={20000}>20</option>
+            <option value={30000}>30</option>
+          </select>
+        ) : (
+          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+            {(room.config?.musicTriviaAnswerTimeoutMs || 15000) / 1000}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
           {t('gameMusicTrivia.lobby.audioPlayback')}
         </label>
         {isHost ? (
@@ -216,11 +305,9 @@ export function MusicTriviaSettings() {
             aria-label="Audio Playback"
             value={room.config?.musicTriviaAudioPlayback || 'EVERYONE'}
             onChange={(e) => {
-              useGameStore
-                .getState()
-                .updateConfig({
-                  musicTriviaAudioPlayback: e.target.value as 'EVERYONE' | 'HOST_ONLY',
-                });
+              useGameStore.getState().updateConfig({
+                musicTriviaAudioPlayback: e.target.value as 'EVERYONE' | 'HOST_ONLY',
+              });
             }}
             className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
           >
@@ -232,6 +319,37 @@ export function MusicTriviaSettings() {
             {room.config?.musicTriviaAudioPlayback === 'HOST_ONLY'
               ? t('gameMusicTrivia.lobby.playbackHostOnly')
               : t('gameMusicTrivia.lobby.playbackEveryone')}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+          {t('gameMusicTrivia.lobby.answerType')}
+        </label>
+        {isHost ? (
+          <select
+            title="Answer Criteria"
+            aria-label="Answer Criteria"
+            value={room.config?.musicTriviaAnswerCriteria || 'ANY'}
+            onChange={(e) => {
+              useGameStore.getState().updateConfig({
+                musicTriviaAnswerCriteria: e.target.value as 'ANY' | 'TITLE' | 'ARTIST',
+              });
+            }}
+            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
+          >
+            <option value="ANY">{t('gameMusicTrivia.lobby.answerAny')}</option>
+            <option value="TITLE">{t('gameMusicTrivia.lobby.answerTitle')}</option>
+            <option value="ARTIST">{t('gameMusicTrivia.lobby.answerArtist')}</option>
+          </select>
+        ) : (
+          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+            {room.config?.musicTriviaAnswerCriteria === 'TITLE'
+              ? t('gameMusicTrivia.lobby.answerTitle')
+              : room.config?.musicTriviaAnswerCriteria === 'ARTIST'
+                ? t('gameMusicTrivia.lobby.answerArtist')
+                : t('gameMusicTrivia.lobby.answerAny')}
           </div>
         )}
       </div>

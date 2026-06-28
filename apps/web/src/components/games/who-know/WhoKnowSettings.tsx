@@ -37,11 +37,9 @@ export function WhoKnowSettings() {
             aria-label="Host Selection"
             value={room.config?.hostSelection || 'ROUND_ROBIN'}
             onChange={(e) =>
-              useGameStore
-                .getState()
-                .updateConfig({
-                  hostSelection: e.target.value as 'ROUND_ROBIN' | 'RANDOM' | 'FIXED',
-                })
+              useGameStore.getState().updateConfig({
+                hostSelection: e.target.value as 'ROUND_ROBIN' | 'RANDOM' | 'FIXED',
+              })
             }
             className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
           >

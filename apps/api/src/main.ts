@@ -22,7 +22,7 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
   }
 
-  await app.listen(3001);
+  await app.listen(3001, '0.0.0.0');
   console.log('API listening on http://localhost:3001');
   if (!isProduction) {
     console.log('Swagger docs at http://localhost:3001/api');
