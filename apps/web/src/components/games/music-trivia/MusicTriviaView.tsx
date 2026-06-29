@@ -397,7 +397,6 @@ export function MusicTriviaView() {
                     height="100%"
                     config={{
                       youtube: {
-                        // @ts-expect-error Youtube config type mismatch
                         playerVars: {
                           autoplay: 0,
                           controls: 1,
