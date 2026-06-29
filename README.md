@@ -14,6 +14,7 @@ Built as a modern web application within a Turborepo.
 - **Sounds Fishy:** A trivia bluffing game — one player knows the real answer, others make up convincing fakes. Can you spot the truth?
 - **Detective Club:** A social deduction card game — play cards to match a secret clue word, but one player is the spy who doesn't know it!
 - **Who Am I:** A classic guessing game — players write words about a category, then try to deduce each other's identity. Can you be the last one standing?
+- **Music Trivia:** A collaborative music guessing game — listen to YouTube music videos and guess the song and artist. See who's the ultimate music master!
 
 ## ✨ Core Features
 
@@ -29,6 +30,7 @@ Built as a modern web application within a Turborepo.
 - **Backend:** NestJS, Socket.io
 - **Database:** Prisma ORM, PostgreSQL
 - **AI:** Google Gemini (Who Am I word generation)
+- **Media:** YouTube Data API (Music Trivia video integration)
 - **Monorepo:** Turborepo, pnpm
 
 ## 📦 Project Structure

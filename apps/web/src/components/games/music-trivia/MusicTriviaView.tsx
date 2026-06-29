@@ -7,8 +7,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 
 export function MusicTriviaView() {
   const { t } = useTranslate();
-  const { room, myName, musicTriviaGameAction, musicTriviaSyncPlay, socketId, resetRoom } =
-    useGameStore();
+  const { room, musicTriviaGameAction, musicTriviaSyncPlay, socketId, resetRoom } = useGameStore();
   const hostAnswer = useGameStore((s) => s.musicTriviaHostAnswer);
   const state = room?.musicTriviaState;
 
@@ -22,6 +21,19 @@ export function MusicTriviaView() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reactPlayerRef = useRef<any>(null);
   const [forcePlayToggle, setForcePlayToggle] = useState(true);
+  const [hasTestedAudio, setHasTestedAudio] = useState(false);
+
+  // Auto-ready for subsequent rounds if audio was already unlocked
+  useEffect(() => {
+    if (
+      state?.phase === 'GET_READY' &&
+      hasTestedAudio &&
+      socketId &&
+      !state.readyPlayerIds?.includes(socketId)
+    ) {
+      musicTriviaGameAction({ type: 'PLAYER_READY' });
+    }
+  }, [state?.phase, hasTestedAudio, state?.readyPlayerIds, socketId, musicTriviaGameAction]);
 
   // Handle audio playback based on syncPlay and phase
   useEffect(() => {
@@ -299,9 +311,11 @@ export function MusicTriviaView() {
                 <span className="text-4xl">🎵</span>
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-800">{t('gameMusicTrivia.game.getReadyTitle')}</h3>
+                <h3 className="text-2xl font-bold text-slate-800">
+                  {t('gameMusicTrivia.game.getReadyTitle')}
+                </h3>
                 <p className="text-slate-500">
-                  {state.readyPlayerIds?.includes(socketId) 
+                  {state.readyPlayerIds?.includes(socketId)
                     ? t('gameMusicTrivia.game.getReadyHostWait')
                     : t('gameMusicTrivia.game.getReadyUnlock')}
                 </p>
@@ -312,10 +326,14 @@ export function MusicTriviaView() {
                   onClick={() => {
                     // Unlock audio element with a silent play/pause if not youtube
                     if (audioRef.current) {
-                      audioRef.current.play().catch(() => {}).finally(() => {
-                        audioRef.current?.pause();
-                      });
+                      audioRef.current
+                        .play()
+                        .catch(() => {})
+                        .finally(() => {
+                          audioRef.current?.pause();
+                        });
                     }
+                    setHasTestedAudio(true);
                     musicTriviaGameAction({ type: 'PLAYER_READY' });
                   }}
                   className="w-full max-w-xs mx-auto h-16 rounded-2xl text-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
@@ -328,7 +346,9 @@ export function MusicTriviaView() {
                 <div className="pt-6 border-t mt-6 space-y-4">
                   <div className="flex justify-between items-center text-sm font-medium text-slate-600 bg-slate-50 p-4 rounded-xl border">
                     <span>{t('gameMusicTrivia.game.getReadyPlayers')}</span>
-                    <span className="text-indigo-600 font-bold text-lg">{state.readyPlayerIds?.length || 0} / {room.players.length}</span>
+                    <span className="text-indigo-600 font-bold text-lg">
+                      {state.readyPlayerIds?.length || 0} / {room.players.length}
+                    </span>
                   </div>
                   <Button
                     onClick={() => musicTriviaGameAction({ type: 'START_COUNTDOWN' })}
@@ -344,7 +364,9 @@ export function MusicTriviaView() {
           {/* COUNTDOWN Phase */}
           {state.phase === 'COUNTDOWN' && (
             <div className="flex flex-col items-center justify-center py-20 space-y-8 animate-in fade-in">
-              <h3 className="text-2xl font-bold text-slate-500 uppercase tracking-widest animate-pulse">{t('gameMusicTrivia.game.countdownTitle')}</h3>
+              <h3 className="text-2xl font-bold text-slate-500 uppercase tracking-widest animate-pulse">
+                {t('gameMusicTrivia.game.countdownTitle')}
+              </h3>
               <div className="relative">
                 <div className="text-9xl font-black text-indigo-600 drop-shadow-xl animate-bounce">
                   {countdown}
@@ -377,7 +399,8 @@ export function MusicTriviaView() {
                           controls: 1,
                           showinfo: 0,
                           rel: 0,
-                          origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+                          origin:
+                            typeof window !== 'undefined' ? window.location.origin : undefined,
                         },
                       },
                     }}
@@ -415,7 +438,10 @@ export function MusicTriviaView() {
                     }
 
                     if (musicTriviaSyncPlay?.sourceType === 'YOUTUBE') {
-                      if (reactPlayerRef.current && typeof reactPlayerRef.current.getInternalPlayer === 'function') {
+                      if (
+                        reactPlayerRef.current &&
+                        typeof reactPlayerRef.current.getInternalPlayer === 'function'
+                      ) {
                         const internalPlayer = reactPlayerRef.current.getInternalPlayer();
                         if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
                           internalPlayer.playVideo();
@@ -530,7 +556,11 @@ export function MusicTriviaView() {
                       {hostAnswer && (
                         <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-left flex flex-col sm:flex-row gap-4 items-center sm:items-start">
                           {hostAnswer.artworkUrl && (
-                            <img src={hostAnswer.artworkUrl} alt="Album Art" className="w-24 h-24 rounded-lg shadow-md flex-shrink-0" />
+                            <img
+                              src={hostAnswer.artworkUrl}
+                              alt="Album Art"
+                              className="w-24 h-24 rounded-lg shadow-md flex-shrink-0"
+                            />
                           )}
                           <div className="flex-1 text-center sm:text-left">
                             <p className="text-sm text-indigo-500 font-bold uppercase mb-1">
@@ -606,7 +636,9 @@ export function MusicTriviaView() {
                         autoFocus
                       />
                       {answerTimeLeft !== null && (
-                        <p className={`text-xl font-black ${answerTimeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-indigo-600'}`}>
+                        <p
+                          className={`text-xl font-black ${answerTimeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-indigo-600'}`}
+                        >
                           ⏳ {answerTimeLeft}s
                         </p>
                       )}
@@ -679,7 +711,14 @@ export function MusicTriviaView() {
               {state.revealedAnswer && (
                 <div className="mt-6 p-6 bg-white/50 rounded-xl border border-slate-200 shadow-inner inline-block min-w-[250px]">
                   {state.revealedAnswer.artworkUrl && (
-                    <img src={state.revealedAnswer.artworkUrl.replace('100x100bb.jpg', '300x300bb.jpg')} alt="Album Art" className="w-32 h-32 mx-auto rounded-lg shadow-md mb-4" />
+                    <img
+                      src={state.revealedAnswer.artworkUrl.replace(
+                        '100x100bb.jpg',
+                        '300x300bb.jpg',
+                      )}
+                      alt="Album Art"
+                      className="w-32 h-32 mx-auto rounded-lg shadow-md mb-4"
+                    />
                   )}
                   <p className="text-sm text-slate-500 font-bold uppercase mb-1">
                     {t('gameMusicTrivia.game.theAnswerWas')}
@@ -741,7 +780,11 @@ export function MusicTriviaView() {
               </h3>
               <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
                 {state.revealedAnswer?.artworkUrl && (
-                  <img src={state.revealedAnswer.artworkUrl.replace('100x100bb.jpg', '400x400bb.jpg')} alt="Album Art" className="w-40 h-40 mx-auto rounded-xl shadow-lg mb-4" />
+                  <img
+                    src={state.revealedAnswer.artworkUrl.replace('100x100bb.jpg', '400x400bb.jpg')}
+                    alt="Album Art"
+                    className="w-40 h-40 mx-auto rounded-xl shadow-lg mb-4"
+                  />
                 )}
                 <p className="text-3xl font-black text-indigo-600 mb-2">
                   {state.revealedAnswer?.title}
@@ -837,6 +880,56 @@ export function MusicTriviaView() {
                     );
                   })}
               </div>
+
+              {state.roundHistory && state.roundHistory.length > 0 && (
+                <div className="mt-8 text-left max-w-2xl mx-auto">
+                  <h4 className="text-xl font-bold text-slate-800 mb-4">
+                    {t('gameMusicTrivia.game.playedSongs') || 'Played Songs'}
+                  </h4>
+                  <div className="space-y-3">
+                    {state.roundHistory.map((history) => {
+                      const winner = history.winnerId
+                        ? room?.players.find((p) => p.id === history.winnerId)
+                        : null;
+                      return (
+                        <div
+                          key={history.roundNumber}
+                          className="bg-slate-50 border p-4 rounded-xl flex items-center gap-4"
+                        >
+                          {history.artworkUrl ? (
+                            <img
+                              src={history.artworkUrl}
+                              alt={history.trackTitle}
+                              className="w-16 h-16 rounded-md object-cover"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-md bg-slate-200 flex items-center justify-center text-slate-400">
+                              🎵
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-slate-800 truncate">
+                              {history.trackTitle}
+                            </p>
+                            <p className="text-sm text-slate-500 truncate">{history.artistName}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            {winner ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium">
+                                <span className="text-xs">🏆</span> {winner.name}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 text-sm font-medium">
+                                ❌ {t('gameMusicTrivia.game.noWinner') || 'No winner'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {isHost && (
                 <div className="pt-6">

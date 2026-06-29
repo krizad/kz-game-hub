@@ -263,11 +263,11 @@ export const en: Dictionary = {
       rules: {
         sharedFeaturesTitle: '🌟 Shared Features (Both Modes)',
         sharedFeatures:
-          'Sync Play: The music starts playing simultaneously on all devices in real-time.||Fastest Finger: Only the first person to press the Buzzer gets to answer.||Global Pause: When someone buzzes, the music pauses for everyone.||Strike Out: 1 wrong answer = Struck out for the current song. The music resumes from the paused point for the rest to guess.',
+          "Audio Playback: Host can choose to play music on all devices, or only on the host's device.||Manual Start: The host manually starts each song, followed by a countdown before playback.||Audio Permission: If playing on all devices, players must ensure they have interacted with the page to allow audio playback.||Fastest Finger: Only the first person to press the Buzzer gets to answer.||Global Pause: When someone buzzes, the music pauses.||Strike Out: 1 wrong answer = Struck out for the current song. The music resumes for the rest to guess.",
         modeTypingTitle: '⌨️ Typing Mode',
         modeTypingDesc: 'Focus on precision. Everyone including the host can play.',
         modeTypingRules:
-          'The buzzed player must "type" the correct song title or artist before the time runs out.||Fuzzy Search Engine: Minor typos or missing spaces are forgiven!||Correct answers automatically earn 1 point.',
+          'The buzzed player must "type" the correct answer before the configured time runs out.||Answer Criteria: The host can configure whether you need to guess the Song Title, the Artist, or either one.||Fuzzy Search Engine: Minor typos or missing spaces are forgiven!||Correct answers automatically earn 1 point.',
         modeGmTitle: '👑 Game Master Mode',
         modeGmDesc: 'Fast-paced gameplay. No input box for players.',
         modeGmRules:
@@ -588,11 +588,11 @@ export const en: Dictionary = {
       on: 'on',
       getReadyTitle: 'Ready for the next song?',
       getReadyHostWait: "You're ready! Waiting for the host to start...",
-      getReadyUnlock: "Tap the button below to unlock audio and get ready!",
+      getReadyUnlock: 'Tap the button below to unlock audio and get ready!',
       getReadyBtn: "I'm Ready!",
-      getReadyPlayers: "Players Ready:",
-      getReadyStartBtn: "Start Song (Countdown)",
-      countdownTitle: "Get Ready!",
+      getReadyPlayers: 'Players Ready:',
+      getReadyStartBtn: 'Start Song (Countdown)',
+      countdownTitle: 'Get Ready!',
       nowPlaying: 'Now Playing...',
       listenCarefully: 'Listen carefully!',
       cantHearMusic: "🔊 Click here if you can't hear music",
@@ -625,6 +625,8 @@ export const en: Dictionary = {
       noOneGotItRight: 'No one got it right!',
       gameOver: 'Game Over!',
       returnToLobby: 'Return to Lobby',
+      playedSongs: 'Played Songs',
+      noWinner: 'No winner',
     },
   },
 };

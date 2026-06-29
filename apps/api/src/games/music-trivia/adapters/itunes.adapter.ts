@@ -75,7 +75,9 @@ export class ITunesAdapter implements MusicSourceAdapter {
         trackViewUrl: item.trackViewUrl,
         sourceType: 'ITUNES' as const,
         album: item.collectionName,
-        releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear().toString() : undefined,
+        releaseYear: item.releaseDate
+          ? new Date(item.releaseDate).getFullYear().toString()
+          : undefined,
       }));
 
     // Randomize the tracks (Fisher-Yates shuffle)

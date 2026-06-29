@@ -577,6 +577,8 @@ export interface Dictionary {
       noOneGotItRight: string;
       gameOver: string;
       returnToLobby: string;
+      playedSongs: string;
+      noWinner: string;
     };
   };
 }

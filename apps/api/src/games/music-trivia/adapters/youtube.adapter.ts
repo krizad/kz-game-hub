@@ -1,9 +1,20 @@
-import { TrackResult, MusicSourceAdapter, MusicSourceSearchOptions } from '../music-source-adapter';
 import { MusicSourceType } from '@repo/types';
-const YTMusic = require('ytmusic-api');
+import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../music-source-adapter';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import YTMusic from 'ytmusic-api';
+
+interface YTMusicSong {
+  name?: string;
+  artist?: { name?: string };
+  videoId?: string;
+  duration?: number;
+  thumbnails?: { url: string }[];
+}
 
 export class YouTubeAdapter implements MusicSourceAdapter {
   readonly sourceType: MusicSourceType = 'YOUTUBE';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private ytmusic: any;
   private initialized = false;
 
@@ -46,15 +57,15 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       const results = songs.slice(0, limit);
       console.log(`[YouTubeAdapter] Search completed. Returning ${results.length} songs.`);
 
-      return results.map((item: any) => {
-        let title = item.name || 'Unknown Title';
+      return results.map((item: YTMusicSong) => {
+        const title = item.name || 'Unknown Title';
         const artist = item.artist?.name || 'Unknown Artist';
         const videoId = item.videoId;
-        
+
         let artworkUrl = '';
         if (item.thumbnails && item.thumbnails.length > 0) {
           // get highest res thumbnail
-          artworkUrl = item.thumbnails[item.thumbnails.length - 1].url;
+          artworkUrl = item.thumbnails.at(-1)?.url || '';
         }
 
         return {
@@ -62,7 +73,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
           title: title,
           artist: artist,
           previewUrl: videoId || '',
-          durationMs: (item.duration || 180) * 1000, 
+          durationMs: (item.duration || 180) * 1000,
           artworkUrl: artworkUrl,
           trackViewUrl: `https://music.youtube.com/watch?v=${videoId}`,
           sourceType: this.sourceType,

@@ -75,7 +75,7 @@ Supports `th` (Thai, default) and `en` (English). Key files:
 
 ## Game module pattern
 
-Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`) follows:
+Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`) follows:
 
 - `apps/api/src/games/<game>/` — service class with init/handle/reset logic, plus `*.spec.ts`
 - `apps/web/src/components/games/<game>/` — view components + rules modal
@@ -88,6 +88,10 @@ Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detecti
 Who Am I uses a **generic `game_action` event** with a `GameActionType` discriminator (`SUBMIT_GUESS`, `VOTE_GUESS`, etc.), unlike other games which use per-action events (e.g., `ttt_make_move`). Two category events — `WHO_AM_I_GET_CATEGORIES` / `WHO_AM_I_CATEGORIES_LIST` — use a request-response pattern sent directly to the requesting socket.
 
 4 word modes via `RoomConfig.wordMode`: `HOST_INPUT`, `RANDOM`, `PLAYER_INPUT`, `AI_GENERATED`. The `AI_GENERATED` mode uses Google Gemini (`GEMINI_API_KEY` in `.env`, `@google/genai` package).
+
+### Music Trivia — special patterns
+
+Music Trivia integrates with the YouTube Data API to fetch music videos. It includes an adapter (`youtube.adapter.ts`) inside its module for external API communication.
 
 ## Tests
 

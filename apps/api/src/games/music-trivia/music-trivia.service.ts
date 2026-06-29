@@ -204,7 +204,7 @@ export class MusicTriviaService {
   public finalizeCountdown(room: RoomState): MusicTriviaActionResult | null {
     const state = room.musicTriviaState!;
     if (state.phase !== 'COUNTDOWN') return null;
-    
+
     // Jump to playing
     state.phase = 'PLAYING';
     state.playStartTime = Date.now();
@@ -799,7 +799,11 @@ export class MusicTriviaService {
    * Removes parentheticals from target (e.g. "Song (feat. Artist)" -> "Song").
    */
   fuzzyMatch(input: string, target: string): boolean {
-    const cleanTarget = target.replace(/\s*\(.*?\)\s*/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
+    const cleanTarget = target
+      .replace(/\s*\(.*?\)\s*/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ');
     const a = input.toLowerCase().trim().replace(/\s+/g, ' ');
 
     if (a === cleanTarget) return true;

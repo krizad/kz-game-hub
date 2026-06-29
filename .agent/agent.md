@@ -11,6 +11,7 @@
 - **Live Demo:** [kz-game-hub.vercel.app](https://kz-game-hub.vercel.app/)
 - **Repository:** Turborepo Monorepo
 - **AI Features:** Google Gemini สำหรับสร้างคำใน Who Am I (`GEMINI_API_KEY`)
+- **Media Integration:** YouTube Data API สำหรับดึงวิดีโอเพลงใน Music Trivia
 
 ## Available Games
 
@@ -23,6 +24,7 @@
 | **Sounds Fishy**        | Trivia / Bluffing | 3+          | ตอบคำถาม แยกคำตอบจริง/ปลอม |
 | **Detective Club**      | Social Deduction  | 4+          | วางการ์ดตามคำใบ้ ล่าสายลับ |
 | **Who Am I**            | Word Guessing     | 3+          | ทายเอกลักษณ์ผู้เล่นจากคำ   |
+| **Music Trivia**        | Music Guessing    | 2+          | ฟังเพลงทายชื่อเพลง/ศิลปิน  |
 
 ## Behavior Guidelines
 

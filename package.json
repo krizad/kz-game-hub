@@ -7,6 +7,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
+    "lint:fix:web": "pnpm -F web lint:fix",
+    "lint:fix:api": "pnpm -F api lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "db:generate": "pnpm -F @repo/database db:generate",
     "db:migrate": "pnpm -F @repo/database db:migrate",
