@@ -1,9 +1,7 @@
 import { MusicSourceType } from '@repo/types';
 import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../music-source-adapter';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import YTMusic from 'ytmusic-api';
-
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const YTMusic = require('ytmusic-api');
 interface YTMusicSong {
   name?: string;
   artist?: { name?: string };
