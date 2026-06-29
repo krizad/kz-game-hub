@@ -20,7 +20,6 @@ export function MusicTriviaView() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reactPlayerRef = useRef<any>(null);
-  const [forcePlayToggle, setForcePlayToggle] = useState(true);
   const [hasTestedAudio, setHasTestedAudio] = useState(false);
 
   // Auto-ready for subsequent rounds if audio was already unlocked
@@ -43,6 +42,13 @@ export function MusicTriviaView() {
       const now = Date.now();
       const elapsed = (now - musicTriviaSyncPlay.playStartTime) / 1000;
       const shouldPlay = room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true;
+
+      // When syncing starts, if it's YOUTUBE, seek to elapsed time.
+      if (musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && reactPlayerRef.current) {
+        if (typeof reactPlayerRef.current.seekTo === 'function') {
+          reactPlayerRef.current.seekTo(elapsed, 'seconds');
+        }
+      }
 
       // Handle HTML5 Audio (iTunes, Spotify)
       if (musicTriviaSyncPlay.sourceType !== 'YOUTUBE') {
@@ -384,31 +390,30 @@ export function MusicTriviaView() {
                   <ReactPlayer
                     ref={reactPlayerRef}
                     url={`https://www.youtube.com/watch?v=${musicTriviaSyncPlay.previewUrl}`}
-                    playing={
-                      forcePlayToggle &&
-                      (room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true)
-                    }
+                    playing={room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true}
                     volume={volume}
+                    controls={true}
                     width="100%"
                     height="100%"
                     config={{
                       youtube: {
                         // @ts-expect-error Youtube config type mismatch
                         playerVars: {
-                          autoplay: 1,
+                          autoplay: 0,
                           controls: 1,
                           showinfo: 0,
                           rel: 0,
+                          playsinline: 1,
                           origin:
                             typeof window !== 'undefined' ? window.location.origin : undefined,
                         },
                       },
                     }}
                     onReady={() => {
-                      if (reactPlayerRef.current && musicTriviaSyncPlay?.playStartTime) {
-                        const elapsed = (Date.now() - musicTriviaSyncPlay.playStartTime) / 1000;
-                        if (elapsed > 0) reactPlayerRef.current.seekTo(elapsed, 'seconds');
-                      }
+                      // Player is ready. Start parameter removed to prevent synchronization seek issues that push the video past its duration.
+                    }}
+                    onError={(e) => {
+                      console.error('ReactPlayer error:', e);
                     }}
                   />
                 </div>
@@ -431,35 +436,21 @@ export function MusicTriviaView() {
                   {t('gameMusicTrivia.game.nowPlaying')}
                 </h3>
                 <p className="text-slate-500 mt-2">{t('gameMusicTrivia.game.listenCarefully')}</p>
-                <button
-                  onClick={() => {
-                    if (musicTriviaSyncPlay?.sourceType !== 'YOUTUBE') {
+                {musicTriviaSyncPlay?.sourceType === 'YOUTUBE' ? (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl shadow-sm max-w-sm mx-auto text-sm font-medium">
+                    <p>⚠️ หากวิดีโอไม่เล่นอัตโนมัติ (If video is paused)</p>
+                    <p className="mt-1 font-bold">👉 ให้กดปุ่ม Play ในตัววิดีโอด้านบน</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
                       if (audioRef.current) audioRef.current.play().catch((e) => console.error(e));
-                    }
-
-                    if (musicTriviaSyncPlay?.sourceType === 'YOUTUBE') {
-                      if (
-                        reactPlayerRef.current &&
-                        typeof reactPlayerRef.current.getInternalPlayer === 'function'
-                      ) {
-                        const internalPlayer = reactPlayerRef.current.getInternalPlayer();
-                        if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
-                          internalPlayer.playVideo();
-                        }
-                        if (internalPlayer && typeof internalPlayer.unMute === 'function') {
-                          internalPlayer.unMute();
-                        }
-                      }
-
-                      // Toggle playing state quickly to force ReactPlayer to send a new play command
-                      setForcePlayToggle(false);
-                      setTimeout(() => setForcePlayToggle(true), 50);
-                    }
-                  }}
-                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
-                >
-                  {t('gameMusicTrivia.game.cantHearMusic')}
-                </button>
+                    }}
+                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
+                  >
+                    {t('gameMusicTrivia.game.cantHearMusic')}
+                  </button>
+                )}
               </div>
 
               {/* Volume Control */}
