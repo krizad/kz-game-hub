@@ -693,21 +693,13 @@ export class MusicTriviaService {
 
     const nextTrack = fullTracks[nextRoundNumber - 1];
     state.currentRound = this.createRound(nextRoundNumber, nextTrack);
-    state.phase = 'PLAYING';
-    state.playStartTime = Date.now();
+    state.phase = 'COUNTDOWN';
+    state.countdownEndsAt = Date.now() + 3000;
     state.revealedAnswer = undefined;
 
     const trackAnswer = answers[nextRoundNumber - 1];
     const result: MusicTriviaActionResult = {
       room,
-      syncPlay: {
-        roundNumber: nextRoundNumber,
-        playStartTime: state.playStartTime,
-        previewUrl: nextTrack.previewUrl,
-        sourceType: nextTrack.sourceType,
-        durationMs: nextTrack.durationMs,
-        artworkUrl: nextTrack.artworkUrl,
-      },
     };
 
     if (state.mode === 'GAME_MASTER' && !state.hostPlays) {

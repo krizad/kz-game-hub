@@ -17,10 +17,16 @@ export function MusicTriviaView() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [answerTimeLeft, setAnswerTimeLeft] = useState<number | null>(null);
   const [volume, setVolume] = useState(0.5);
+  const [isLocalPaused, setIsLocalPaused] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reactPlayerRef = useRef<any>(null);
   const [hasTestedAudio, setHasTestedAudio] = useState(false);
+
+  // Reset local pause when round changes
+  useEffect(() => {
+    setIsLocalPaused(false);
+  }, [state?.currentRound?.roundNumber]);
 
   // Auto-ready for subsequent rounds if audio was already unlocked
   useEffect(() => {
@@ -39,16 +45,7 @@ export function MusicTriviaView() {
     if (!state || !musicTriviaSyncPlay) return;
 
     if (state.phase === 'PLAYING') {
-      const now = Date.now();
-      const elapsed = (now - musicTriviaSyncPlay.playStartTime) / 1000;
       const shouldPlay = room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true;
-
-      // When syncing starts, if it's YOUTUBE, seek to elapsed time.
-      if (musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && reactPlayerRef.current) {
-        if (typeof reactPlayerRef.current.seekTo === 'function') {
-          reactPlayerRef.current.seekTo(elapsed, 'seconds');
-        }
-      }
 
       // Handle HTML5 Audio (iTunes, Spotify)
       if (musicTriviaSyncPlay.sourceType !== 'YOUTUBE') {
@@ -56,22 +53,24 @@ export function MusicTriviaView() {
           audioRef.current = new Audio(musicTriviaSyncPlay.previewUrl);
         } else if (audioRef.current.src !== musicTriviaSyncPlay.previewUrl) {
           audioRef.current.src = musicTriviaSyncPlay.previewUrl;
+          // Only seek to elapsed time when track changes
+          const now = Date.now();
+          const elapsed = (now - musicTriviaSyncPlay.playStartTime) / 1000;
+          if (elapsed > 0 && elapsed < musicTriviaSyncPlay.durationMs / 1000) {
+            audioRef.current.currentTime = elapsed;
+          }
         }
         audioRef.current.volume = volume;
 
-        if (elapsed > 0 && elapsed < musicTriviaSyncPlay.durationMs / 1000) {
-          audioRef.current.currentTime = elapsed;
-          if (shouldPlay) {
-            audioRef.current.play().catch((e) => {
-              console.error('Audio playback failed:', e);
-            });
-          } else {
-            audioRef.current.pause();
-          }
+        if (shouldPlay && !isLocalPaused) {
+          audioRef.current.play().catch((e) => {
+            console.error('Audio playback failed:', e);
+          });
+        } else {
+          audioRef.current.pause();
         }
       } else {
-        // Handle YouTube via ReactPlayer (seek on start if needed)
-        // We do not manage the raw audioRef here.
+        // Handle YouTube via ReactPlayer
         if (audioRef.current) {
           audioRef.current.pause();
         }
@@ -81,13 +80,7 @@ export function MusicTriviaView() {
         audioRef.current.pause();
       }
     }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-  }, [state?.phase, musicTriviaSyncPlay, room?.config.musicTriviaAudioPlayback, isHost, volume]);
+  }, [state?.phase, musicTriviaSyncPlay, room?.config.musicTriviaAudioPlayback, isHost, volume, isLocalPaused]);
 
   // Handle countdown calculation for COUNTDOWN phase
   useEffect(() => {
@@ -132,7 +125,7 @@ export function MusicTriviaView() {
       state?.phase === 'REVEAL' ||
       state?.phase === 'ROUND_RESULT'
     ) {
-      setCountdown(15);
+      setCountdown(10);
 
       const interval = setInterval(() => {
         setCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
@@ -142,7 +135,7 @@ export function MusicTriviaView() {
       if (isHost) {
         timer = setTimeout(() => {
           handleAction('NEXT_ROUND');
-        }, 15000); // 15 seconds delay before auto-proceeding
+        }, 10000); // 10 seconds delay before auto-proceeding
       }
 
       return () => {
@@ -390,7 +383,7 @@ export function MusicTriviaView() {
                   <ReactPlayer
                     ref={reactPlayerRef}
                     url={`https://www.youtube.com/watch?v=${musicTriviaSyncPlay.previewUrl}`}
-                    playing={room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true}
+                    playing={room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? (isHost && !isLocalPaused) : !isLocalPaused}
                     volume={volume}
                     controls={true}
                     width="100%"
@@ -398,7 +391,7 @@ export function MusicTriviaView() {
                     config={{
                       youtube: {
                         playerVars: {
-                          autoplay: 0,
+                          autoplay: 1,
                           controls: 1,
                           showinfo: 0,
                           rel: 0,
@@ -452,20 +445,53 @@ export function MusicTriviaView() {
                 )}
               </div>
 
-              {/* Volume Control */}
-              <div className="w-full max-w-xs flex items-center space-x-4 bg-slate-50 p-4 rounded-2xl border">
-                <span className="text-slate-400 text-xl">🔉</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                  aria-label="Volume control"
-                />
-                <span className="text-slate-500 text-xl">🔊</span>
+              {/* Enhanced Audio Controls */}
+              <div className="w-full max-w-sm flex flex-col gap-3 bg-white p-5 rounded-3xl border shadow-lg border-indigo-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsLocalPaused(!isLocalPaused)}
+                      className={`h-10 w-10 rounded-full ${isLocalPaused ? 'text-amber-500 border-amber-200 bg-amber-50' : 'text-indigo-600 border-indigo-200'}`}
+                      title={isLocalPaused ? 'Play' : 'Pause'}
+                    >
+                      {isLocalPaused ? '▶️' : '⏸️'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        if (musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && reactPlayerRef.current) {
+                          reactPlayerRef.current.seekTo(0, 'seconds');
+                          setIsLocalPaused(false);
+                        } else if (audioRef.current) {
+                          audioRef.current.currentTime = 0;
+                          audioRef.current.play();
+                          setIsLocalPaused(false);
+                        }
+                      }}
+                      className="h-10 w-10 rounded-full text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                      title="Listen Again"
+                    >
+                      🔄
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-3 flex-1 ml-4">
+                    <span className="text-slate-400 text-sm">🔉</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={volume}
+                      onChange={(e) => setVolume(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      aria-label="Volume control"
+                    />
+                    <span className="text-slate-500 text-sm">🔊</span>
+                  </div>
+                </div>
               </div>
 
               {!isHost || state.hostPlays ? (

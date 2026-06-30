@@ -732,7 +732,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Handle countdown trigger
         const actionData = data.action as { type: string };
-        if (actionData.type === 'START_COUNTDOWN') {
+        if (
+          actionData.type === 'START_COUNTDOWN' ||
+          (actionData.type === 'NEXT_ROUND' && result.room.musicTriviaState?.phase === 'COUNTDOWN')
+        ) {
           setTimeout(() => {
             const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
             if (finalResult) {
