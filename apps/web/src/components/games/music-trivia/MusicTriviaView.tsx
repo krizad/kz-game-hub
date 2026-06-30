@@ -878,7 +878,7 @@ export function MusicTriviaView() {
                 {Object.entries(state.scores)
                   .sort(([, a], [, b]) => b - a)
                   .map(([playerId, score], index) => {
-                    const p = room?.players.find((p) => p.id === playerId);
+                    const p = room?.players.find((p) => p.socketId === playerId);
                     if (!p) return null;
                     return (
                       <div
@@ -905,7 +905,7 @@ export function MusicTriviaView() {
                   <div className="space-y-3">
                     {state.roundHistory.map((history) => {
                       const winner = history.winnerId
-                        ? room?.players.find((p) => p.id === history.winnerId)
+                        ? room?.players.find((p) => p.socketId === history.winnerId)
                         : null;
                       return (
                         <div

@@ -791,25 +791,42 @@ export class MusicTriviaService {
    * Removes parentheticals from target (e.g. "Song (feat. Artist)" -> "Song").
    */
   fuzzyMatch(input: string, target: string): boolean {
-    const cleanTarget = target
-      .replace(/\s*\(.*?\)\s*/g, '')
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, ' ');
     const a = input.toLowerCase().trim().replace(/\s+/g, ' ');
+    if (a.length === 0) return false;
 
-    if (a === cleanTarget) return true;
-    if (a.length === 0 || cleanTarget.length === 0) return false;
+    const variations = new Set<string>();
+    
+    // 1. Original without parentheticals
+    variations.add(target.replace(/\s*\(.*?\)\s*/g, ''));
+    
+    // 2. Content inside parentheticals
+    const parenMatches = target.match(/\((.*?)\)/g);
+    if (parenMatches) {
+      parenMatches.forEach((m) => variations.add(m.replace(/[()]/g, '')));
+    }
 
-    // Check Levenshtein distance
-    const distance = this.levenshteinDistance(a, cleanTarget);
-    const maxLen = Math.max(a.length, cleanTarget.length);
-    const similarity = 1 - distance / maxLen;
+    // 3. Content split by common separators
+    const separators = /\||-|\/|:/;
+    target.split(separators).forEach((part) => {
+      variations.add(part.replace(/\s*\(.*?\)\s*/g, ''));
+    });
 
-    if (similarity >= 0.85) return true;
+    for (const v of variations) {
+      const cleanTarget = v.toLowerCase().trim().replace(/\s+/g, ' ');
+      if (cleanTarget.length === 0) continue;
 
-    // Allow partial match if input is exactly a prefix of target and is at least 80% of it
-    if (cleanTarget.startsWith(a) && a.length >= cleanTarget.length * 0.8) return true;
+      if (a === cleanTarget) return true;
+
+      // Check Levenshtein distance
+      const distance = this.levenshteinDistance(a, cleanTarget);
+      const maxLen = Math.max(a.length, cleanTarget.length);
+      const similarity = 1 - distance / maxLen;
+
+      if (similarity >= 0.85) return true;
+
+      // Allow partial match if input is included in target and is at least 70% of it
+      if (cleanTarget.includes(a) && a.length >= cleanTarget.length * 0.7 && a.length >= 3) return true;
+    }
 
     return false;
   }
