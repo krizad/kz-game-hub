@@ -11,6 +11,8 @@ import {
 import { ITunesAdapter } from './adapters/itunes.adapter';
 import { SpotifyAdapter } from './adapters/spotify.adapter';
 import { YouTubeAdapter } from './adapters/youtube.adapter';
+import { DeezerAdapter } from './adapters/deezer.adapter';
+import { SoundcloudAdapter } from './adapters/soundcloud.adapter';
 import { MusicSourceFactory, TrackResult } from './music-source-adapter';
 interface TrackAnswer {
   id: string;
@@ -54,6 +56,8 @@ export class MusicTriviaService {
     this.sourceFactory.register(new ITunesAdapter());
     this.sourceFactory.register(new SpotifyAdapter());
     this.sourceFactory.register(new YouTubeAdapter());
+    this.sourceFactory.register(new DeezerAdapter());
+    this.sourceFactory.register(new SoundcloudAdapter());
   }
 
   // ------------------------------------------------------------------

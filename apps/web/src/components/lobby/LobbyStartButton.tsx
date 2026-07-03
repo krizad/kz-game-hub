@@ -31,7 +31,7 @@ export function LobbyStartButton() {
       case GameType.DETECTIVE_CLUB:
         return 3;
       case GameType.MUSIC_TRIVIA:
-        return 1;
+        return 2;
       case GameType.WHO_AM_I:
       default:
         return 2;

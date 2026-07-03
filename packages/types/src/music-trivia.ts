@@ -13,7 +13,7 @@ export type MusicTriviaPhase =
   | 'ROUND_RESULT' // Showing round scores
   | 'FINISHED'; // Game over
 
-export type MusicSourceType = 'ITUNES' | 'SPOTIFY' | 'YOUTUBE';
+export type MusicSourceType = 'ITUNES' | 'SPOTIFY' | 'YOUTUBE' | 'DEEZER' | 'SOUNDCLOUD';
 
 export type MusicTriviaMode = 'TYPING' | 'GAME_MASTER';
 

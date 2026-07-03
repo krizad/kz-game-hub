@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 
 export async function waitForConnection(page: Page) {
   await page.waitForFunction(
@@ -29,9 +29,34 @@ export async function goToLobbyInEnglish(page: Page) {
 }
 
 export async function extractRoomCode(page: Page): Promise<string> {
-  const text = await page.$eval('body', (el) => el.innerText);
-  const match = text.match(/\b[A-Z0-9]{6}\b/);
-  return match?.[0] ?? '';
+  // The room code is displayed in a specific element with indigo-400 color and tracking-widest
+  const code = await page.$eval(
+    'span.text-indigo-400.tracking-widest',
+    (el) => el.textContent?.trim() ?? '',
+  );
+  // Validate it's a 6-char alphanumeric code
+  if (/^[A-Z0-9]{6}$/.test(code)) return code;
+  // Fallback: scan body text and find code after the game name
+  const bodyText = await page.$eval('body', (el) => el.innerText);
+  // Look for room code pattern preceded by a known game name pattern
+  const knownNames = ['Music Trivia', 'Who Know', 'Tic Tac Toe', 'Hand Duel', 'Sounds Fishy',
+    'Detective Club', 'Who Am I', 'Who First', 'Gobbler'];
+  for (const name of knownNames) {
+    const idx = bodyText.indexOf(name);
+    if (idx >= 0) {
+      const after = bodyText.substring(idx + name.length);
+      const match = after.match(/^[\s]*([A-Z0-9]{6})\b/);
+      if (match) return match[1];
+    }
+  }
+  // Last resort: find any 6-char alphanumeric word not part of a known game name
+  const matches = bodyText.match(/\b[A-Z0-9]{6}\b/g);
+  if (matches) {
+    const gameWords = new Set(['TRIVIA', 'FISHY', 'GOBBLE']);
+    const filtered = matches.filter((m) => !gameWords.has(m));
+    if (filtered.length > 0) return filtered[0];
+  }
+  return '';
 }
 
 export async function createRoom(
@@ -54,14 +79,13 @@ export async function createRoom(
 export async function joinRoom(page: Page, origin: string, roomCode: string, name: string) {
   const joinUrl = `${origin}/?room=${roomCode}`;
   await page.goto(joinUrl);
-  await switchToEnglish(page);
   await page.locator('#inviteNameInput').waitFor({ state: 'visible', timeout: 15000 });
+  await switchToEnglish(page);
   await page.locator('#inviteNameInput').fill(name);
-  await page
-    .locator('button')
-    .filter({ hasText: /Enter Game|เข้าสู่เกม/ })
-    .click();
-  await page.waitForTimeout(2000);
+  await expect(page.locator('#inviteNameInput')).toHaveValue(name);
+  // Press Enter to submit via the onKeyDown handler
+  await page.locator('#inviteNameInput').press('Enter');
+  await page.locator('#inviteNameInput').waitFor({ state: 'hidden', timeout: 20000 });
 }
 
 export async function getOrigin(page: Page): Promise<string> {

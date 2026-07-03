@@ -505,6 +505,8 @@ export interface Dictionary {
       musicSource: string;
       sourceItunes: string;
       sourceYoutube: string;
+      sourceDeezer: string;
+      sourceSoundcloud: string;
       sourceSpotify: string;
       gameMode: string;
       modeTyping: string;

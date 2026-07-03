@@ -47,8 +47,8 @@ export function MusicTriviaView() {
     if (state.phase === 'PLAYING') {
       const shouldPlay = room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true;
 
-      // Handle HTML5 Audio (iTunes, Spotify)
-      if (musicTriviaSyncPlay.sourceType !== 'YOUTUBE') {
+      // Handle HTML5 Audio (iTunes, Spotify, Deezer)
+      if (musicTriviaSyncPlay.sourceType !== 'YOUTUBE' && musicTriviaSyncPlay.sourceType !== 'SOUNDCLOUD') {
         if (!audioRef.current) {
           audioRef.current = new Audio(musicTriviaSyncPlay.previewUrl);
         } else if (audioRef.current.src !== musicTriviaSyncPlay.previewUrl) {
@@ -113,8 +113,11 @@ export function MusicTriviaView() {
     isHost,
     state?.phase,
     room?.config.musicTriviaQuery,
+    room?.config.musicTriviaSource,
     room?.config.musicTriviaCountry,
     room?.config.musicTriviaAttribute,
+    room?.config.musicTriviaYearStart,
+    room?.config.musicTriviaYearEnd,
     state?.errorMessage,
   ]);
 
@@ -255,7 +258,9 @@ export function MusicTriviaView() {
                 ? t('gameMusicTrivia.lobby.searchSong')
                 : room.config.musicTriviaAttribute === 'albumTerm'
                   ? t('gameMusicTrivia.lobby.searchAlbum')
-                  : t('gameMusicTrivia.lobby.searchAnything')}
+                  : ['YOUTUBE', 'SOUNDCLOUD'].includes(room.config.musicTriviaSource || '')
+                    ? t('gameMusicTrivia.lobby.sourceProvidesVideo')
+                    : t('gameMusicTrivia.lobby.sourceProvidesPreview')}
           </span>
         </span>
         <span className="opacity-30">|</span>
@@ -378,66 +383,64 @@ export function MusicTriviaView() {
           {/* PLAYING Phase */}
           {state.phase === 'PLAYING' && (
             <div className="flex flex-col items-center justify-center py-10 space-y-8">
-              {musicTriviaSyncPlay?.sourceType === 'YOUTUBE' ? (
-                <div className="w-full max-w-sm aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-100 bg-black">
-                  <ReactPlayer
-                    ref={reactPlayerRef}
-                    url={`https://www.youtube.com/watch?v=${musicTriviaSyncPlay.previewUrl}`}
-                    playing={room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? (isHost && !isLocalPaused) : !isLocalPaused}
-                    volume={volume}
-                    controls={true}
-                    width="100%"
-                    height="100%"
-                    config={{
-                      youtube: {
-                        playerVars: {
-                          autoplay: 1,
-                          controls: 1,
-                          showinfo: 0,
-                          rel: 0,
-                          playsinline: 1,
-                          origin:
-                            typeof window !== 'undefined' ? window.location.origin : undefined,
-                        },
-                      },
-                    }}
-                    onReady={() => {
-                      // Player is ready. Start parameter removed to prevent synchronization seek issues that push the video past its duration.
-                    }}
-                    onError={(e) => {
-                      console.error('ReactPlayer error:', e);
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 animate-spin-slow shadow-lg shadow-indigo-200 flex items-center justify-center">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                      <div className="flex items-end space-x-1 h-4">
-                        <div className="w-1 bg-indigo-500 animate-[bounce_1s_infinite] h-full"></div>
-                        <div className="w-1 bg-purple-500 animate-[bounce_0.8s_infinite] h-3/4"></div>
-                        <div className="w-1 bg-indigo-400 animate-[bounce_1.2s_infinite] h-full"></div>
-                      </div>
+              <div className="relative">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 animate-spin-slow shadow-lg shadow-indigo-200 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                    <div className="flex items-end space-x-1 h-4">
+                      <div className="w-1 bg-indigo-500 animate-[bounce_1s_infinite] h-full"></div>
+                      <div className="w-1 bg-purple-500 animate-[bounce_0.8s_infinite] h-3/4"></div>
+                      <div className="w-1 bg-indigo-400 animate-[bounce_1.2s_infinite] h-full"></div>
                     </div>
                   </div>
-                  <div className="absolute inset-0 border-4 border-white/20 rounded-full animate-ping"></div>
                 </div>
-              )}
+                <div className="absolute inset-0 border-4 border-white/20 rounded-full animate-ping"></div>
+                {['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '') && (
+                  <div className="hidden">
+                    <ReactPlayer
+                      ref={reactPlayerRef}
+                      url={
+                        musicTriviaSyncPlay?.sourceType === 'YOUTUBE'
+                          ? `https://www.youtube.com/watch?v=${musicTriviaSyncPlay.previewUrl}`
+                          : musicTriviaSyncPlay?.previewUrl
+                      }
+                      playing={room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? (isHost && !isLocalPaused) : !isLocalPaused}
+                      volume={volume}
+                      width="0"
+                      height="0"
+                      config={{
+                        youtube: {
+                          playerVars: { autoplay: 1, origin: typeof window !== 'undefined' ? window.location.origin : undefined },
+                        },
+                        soundcloud: { options: { auto_play: true } },
+                      }}
+                      onError={(e) => console.error(`ReactPlayer error (${musicTriviaSyncPlay?.sourceType}):`, e)}
+                    />
+                  </div>
+                )}
+              </div>
               <div className="text-center space-y-4">
                 <h3 className="text-2xl font-bold text-slate-800 animate-pulse">
                   {t('gameMusicTrivia.game.nowPlaying')}
                 </h3>
                 <p className="text-slate-500 mt-2">{t('gameMusicTrivia.game.listenCarefully')}</p>
-                {musicTriviaSyncPlay?.sourceType === 'YOUTUBE' ? (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl shadow-sm max-w-sm mx-auto text-sm font-medium">
-                    <p>⚠️ หากวิดีโอไม่เล่นอัตโนมัติ (If video is paused)</p>
-                    <p className="mt-1 font-bold">👉 ให้กดปุ่ม Play ในตัววิดีโอด้านบน</p>
+                {musicTriviaSyncPlay?.sourceType === 'SOUNDCLOUD' && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl shadow-sm max-w-sm mx-auto text-sm font-medium mb-4">
+                    <p>⚠️ SoundCloud กำลังโหลด (Loading SoundCloud)</p>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      if (audioRef.current) audioRef.current.play().catch((e) => console.error(e));
-                    }}
+                )}
+                {musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl shadow-sm max-w-sm mx-auto text-sm font-medium mb-4">
+                    <p>⚠️ YouTube กำลังโหลด (Loading YouTube)</p>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    if (['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '')) {
+                      setIsLocalPaused(false);
+                    } else if (audioRef.current) {
+                      audioRef.current.play().catch((e) => console.error(e));
+                    }
+                  }}
                     className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
                   >
                     {t('gameMusicTrivia.game.cantHearMusic')}
@@ -462,7 +465,7 @@ export function MusicTriviaView() {
                       variant="outline"
                       size="icon"
                       onClick={() => {
-                        if (musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && reactPlayerRef.current) {
+                        if (['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '') && reactPlayerRef.current) {
                           reactPlayerRef.current.seekTo(0, 'seconds');
                           setIsLocalPaused(false);
                         } else if (audioRef.current) {

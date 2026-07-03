@@ -532,3 +532,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ leaderboard: data });
   },
 }));
+
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as any).__useGameStore = useGameStore;
+}

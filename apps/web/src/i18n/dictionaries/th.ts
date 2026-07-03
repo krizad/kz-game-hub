@@ -538,6 +538,8 @@ export const th: Dictionary = {
       musicSource: 'แหล่งเพลง',
       sourceItunes: 'Apple Music (iTunes)',
       sourceYoutube: 'YouTube',
+      sourceDeezer: 'Deezer',
+      sourceSoundcloud: 'SoundCloud',
       sourceSpotify: 'Spotify',
       gameMode: 'โหมดเกม',
       modeTyping: '⌨️ พิมพ์คำตอบ (ระบบตรวจ)',

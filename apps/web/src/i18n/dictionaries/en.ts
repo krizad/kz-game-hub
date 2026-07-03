@@ -553,6 +553,8 @@ export const en: Dictionary = {
       musicSource: 'Music Source',
       sourceItunes: 'Apple Music (iTunes)',
       sourceYoutube: 'YouTube',
+      sourceDeezer: 'Deezer',
+      sourceSoundcloud: 'SoundCloud',
       sourceSpotify: 'Spotify',
       gameMode: 'Game Mode',
       modeTyping: '⌨️ Typing (Auto Judge)',

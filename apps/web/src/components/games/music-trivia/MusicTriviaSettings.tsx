@@ -23,6 +23,10 @@ export function MusicTriviaSettings() {
         return t('gameMusicTrivia.lobby.sourceSpotify');
       case 'YOUTUBE':
         return t('gameMusicTrivia.lobby.sourceYoutube');
+      case 'DEEZER':
+        return t('gameMusicTrivia.lobby.sourceDeezer');
+      case 'SOUNDCLOUD':
+        return t('gameMusicTrivia.lobby.sourceSoundcloud');
       case 'ITUNES':
       default:
         return t('gameMusicTrivia.lobby.sourceItunes');
@@ -81,13 +85,16 @@ export function MusicTriviaSettings() {
             value={room.config.musicTriviaSource || 'ITUNES'}
             onChange={(e) =>
               useGameStore.getState().updateConfig({
-                musicTriviaSource: e.target.value as 'ITUNES' | 'SPOTIFY' | 'YOUTUBE',
+                musicTriviaSource: e.target.value as 'ITUNES' | 'SPOTIFY' | 'YOUTUBE' | 'DEEZER' | 'SOUNDCLOUD',
               })
             }
             className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ITUNES">{t('gameMusicTrivia.lobby.sourceItunes')}</option>
+            <option value="SPOTIFY">{t('gameMusicTrivia.lobby.sourceSpotify')}</option>
             <option value="YOUTUBE">{t('gameMusicTrivia.lobby.sourceYoutube')}</option>
+            <option value="DEEZER">{t('gameMusicTrivia.lobby.sourceDeezer')}</option>
+            <option value="SOUNDCLOUD">{t('gameMusicTrivia.lobby.sourceSoundcloud')}</option>
           </select>
         ) : (
           <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">

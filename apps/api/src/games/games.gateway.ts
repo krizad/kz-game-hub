@@ -175,9 +175,17 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(host[0]).emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role: Role.Host });
       }
     } else {
-      client.emit(SOCKET_EVENTS.ERROR, {
-        message: 'Cannot start game. Need at least 4 players (1 Host + 3 Players).',
-      });
+      const roomInfo = this.gamesService.getRoom(data.code);
+      const gameType = roomInfo?.gameType;
+      let msg = 'Cannot start game.';
+      if (gameType === GameType.WHO_KNOW || gameType === GameType.SOUNDS_FISHY) {
+        msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
+      } else if (gameType === GameType.MUSIC_TRIVIA) {
+        msg = 'Cannot start game. Need at least 2 players and a music query.';
+      } else if (gameType === GameType.DETECTIVE_CLUB) {
+        msg = 'Cannot start game. Need at least 3 players.';
+      }
+      client.emit(SOCKET_EVENTS.ERROR, { message: msg });
     }
   }
 
@@ -755,6 +763,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
       }
+    } else if (!roomInfo) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Game action not supported for this game type' });
     }
   }
 
