@@ -445,7 +445,7 @@ export function MusicTriviaView() {
                   >
                     {t('gameMusicTrivia.game.cantHearMusic')}
                   </button>
-                )}
+
               </div>
 
               {/* Enhanced Audio Controls */}
