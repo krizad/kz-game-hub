@@ -660,6 +660,8 @@ export const en: Dictionary = {
       playedBy: 'Played by: {name}',
       playedCardsLog: 'Played Cards Log',
       agree: 'Agree',
+      mistakeBy: 'Mistake by {name} who played',
+      remainingCards: 'Remaining Cards in Hand',
       disagree: 'Disagree',
       votedAgree: 'You agreed to use the Shuriken',
       votedDisagree: 'You disagreed. Shuriken will not be used.',

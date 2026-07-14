@@ -643,6 +643,8 @@ export const th: Dictionary = {
       playedBy: 'ลงโดย: {name}',
       playedCardsLog: 'ประวัติการลงไพ่',
       agree: 'เห็นด้วย',
+      mistakeBy: 'ผิดพลาดโดย {name} ที่ลงไพ่',
+      remainingCards: 'ไพ่ที่เหลืออยู่ในมือ',
       disagree: 'ไม่เห็นด้วย',
       votedAgree: 'คุณเห็นด้วยที่จะใช้ดาวกระจาย',
       votedDisagree: 'คุณไม่เห็นด้วย ดาวกระจายจะไม่ถูกใช้',

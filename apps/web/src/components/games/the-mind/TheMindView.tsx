@@ -22,6 +22,31 @@ export function TheMindView() {
   } = useGameStore();
   const { t } = useTranslate();
 
+  const [displayPhase, setDisplayPhase] = React.useState<TheMindPhase | null>(null);
+  const previousPhaseRef = React.useRef<TheMindPhase | null>(null);
+
+  React.useEffect(() => {
+    if (!room?.theMindState) return;
+    const current = room.theMindState.phase;
+    const prev = previousPhaseRef.current;
+
+    if (
+      prev === TheMindPhase.PLAYING &&
+      (current === TheMindPhase.LEVEL_RESULT ||
+        current === TheMindPhase.SHURIKEN_RESULT ||
+        current === TheMindPhase.GAME_OVER)
+    ) {
+      const timer = setTimeout(() => {
+        setDisplayPhase(current);
+      }, 2000);
+      previousPhaseRef.current = current;
+      return () => clearTimeout(timer);
+    } else {
+      setDisplayPhase(current);
+      previousPhaseRef.current = current;
+    }
+  }, [room?.theMindState?.phase]);
+
   if (!room || room.gameType !== GameType.THE_MIND) return null;
 
   const isHost = room.roomHostId === socketId;
@@ -139,8 +164,8 @@ export function TheMindView() {
   );
 
   const renderPlaying = () => (
-    <div className="flex-1 flex flex-col space-y-6 w-full max-w-2xl mx-auto p-4">
-      <div className="flex items-center justify-between bg-white border border-amber-200 rounded-2xl p-4 shadow-sm">
+    <div className="flex-1 flex flex-col space-y-3 w-full max-w-2xl mx-auto p-2 sm:p-4">
+      <div className="flex items-center justify-between bg-white border border-amber-200 rounded-2xl p-3 shadow-sm">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-500 uppercase">
             {t('gameTheMind.game.level')} {state.level}/{state.maxLevel}
@@ -158,11 +183,30 @@ export function TheMindView() {
         </div>
       </div>
 
-      <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-6 text-center">
-        <p className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-2">
+      <div className="flex flex-wrap gap-2 justify-center">
+        {room.players
+          .filter((p) => p.connected && p.socketId !== socketId)
+          .map((p) => {
+            const handCount = state.playerHands[p.socketId]?.length || 0;
+            return (
+              <div
+                key={p.socketId}
+                className="bg-white border border-slate-200 rounded-lg px-3 py-1 flex items-center gap-2 text-xs shadow-sm"
+              >
+                <span className="font-bold text-slate-600">{p.name}</span>
+                <span className="bg-indigo-100 text-indigo-700 rounded-full px-2 py-0.5 font-black">
+                  {handCount}
+                </span>
+              </div>
+            );
+          })}
+      </div>
+
+      <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 text-center">
+        <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
           {t('gameTheMind.game.pileTop')}
         </p>
-        <span className="text-5xl font-black text-indigo-600">{state.pileTop}</span>
+        <span className="text-5xl font-black text-indigo-600 leading-none">{state.pileTop}</span>
         {state.pileTopPlayerId && (
           <p className="mt-2 text-sm text-indigo-500 font-medium">
             {t('gameTheMind.game.playedBy', {
@@ -173,11 +217,11 @@ export function TheMindView() {
       </div>
 
       {state.playedCards && state.playedCards.length > 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
             {t('gameTheMind.game.playedCardsLog')}
           </h3>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {state.playedCards.map((pc, idx) => {
               const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
               return (
@@ -191,11 +235,11 @@ export function TheMindView() {
         </div>
       )}
 
-      <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">
+      <div className="bg-white border border-amber-200 rounded-2xl p-3 shadow-sm flex-1 flex flex-col min-h-0">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
           {t('gameTheMind.game.yourHand')} ({myHand.length})
         </h3>
-        <div className="flex flex-wrap gap-2 max-h-[40vh] overflow-y-auto justify-center">
+        <div className="flex flex-wrap gap-2 overflow-y-auto justify-center p-1">
           {myHand.map((card) => {
             const isLowest = card === myHand[0];
             return (
@@ -371,10 +415,21 @@ export function TheMindView() {
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           {state.result && !state.result.success && (
-            <div className="space-y-3">
-              <p className="text-center text-slate-600 font-medium">
-                {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
-              </p>
+            <div className="space-y-4">
+              <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center">
+                <p className="text-sm font-bold text-rose-700 mb-1">
+                  {t('gameTheMind.game.mistakeBy', {
+                    name:
+                      room.players.find((p) => p.socketId === state.result?.failedPlayerId)
+                        ?.name || 'Unknown',
+                  })}
+                </p>
+                <p className="text-4xl font-black text-rose-800 leading-none my-2">{state.pileTop}</p>
+                <p className="text-sm font-medium text-rose-600">
+                  {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+                </p>
+              </div>
+
               {Object.keys(state.discardedCards).length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <p className="text-sm font-bold text-amber-700 mb-2">
@@ -387,12 +442,30 @@ export function TheMindView() {
                         <span className="font-medium text-slate-700">
                           {player?.name || 'Unknown'}:
                         </span>
-                        <span className="text-slate-500">[{cards.join(', ')}]</span>
+                        <span className="text-slate-500 font-bold">[{cards.join(', ')}]</span>
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <p className="text-sm font-bold text-slate-700 mb-2">
+                  {t('gameTheMind.game.remainingCards')}:
+                </p>
+                {Object.entries(state.playerHands).map(([pid, cards]) => {
+                  if (cards.length === 0) return null;
+                  const player = room.players.find((p) => p.socketId === pid);
+                  return (
+                    <div key={pid} className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-slate-700">
+                        {player?.name || 'Unknown'}:
+                      </span>
+                      <span className="text-indigo-600 font-bold">[{cards.join(', ')}]</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
           {state.result?.success && (
@@ -487,7 +560,9 @@ export function TheMindView() {
     </div>
   );
 
-  switch (state.phase) {
+  const phaseToRender = displayPhase || state.phase;
+
+  switch (phaseToRender) {
     case TheMindPhase.LOBBY:
     case TheMindPhase.SETUP:
       return state.level === 1 && state.phase === TheMindPhase.LOBBY

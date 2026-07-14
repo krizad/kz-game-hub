@@ -609,6 +609,8 @@ export interface Dictionary {
       playedBy: string;
       playedCardsLog: string;
       agree: string;
+      mistakeBy: string;
+      remainingCards: string;
       disagree: string;
       votedAgree: string;
       votedDisagree: string;
