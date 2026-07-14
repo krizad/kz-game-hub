@@ -667,6 +667,7 @@ export const en: Dictionary = {
       livesRemaining: 'Lives Remaining: {lives}',
       discardedCards: 'Discarded cards (lower than played card)',
       nextLevel: 'Next Level',
+      resumeLevel: 'Continue',
       youWin: 'You Win!',
       gameOver: 'Game Over',
       levelReached: 'Reached Level {level}/{max}',

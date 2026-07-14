@@ -130,11 +130,14 @@ export class TheMindService {
       state.pileTop = card;
       state.playerHands[clientId] = hand.filter((c) => c !== card);
 
+      const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
+
       state.result = {
         success: false,
-        failedPlayerId: failedPlayers[0].playerId,
+        failedPlayerId: clientId,
         discardedCards: discarded,
         livesLost: 1,
+        levelCleared: allEmpty,
       };
 
       state.failedPlayerId = clientId;
@@ -154,13 +157,13 @@ export class TheMindService {
         if (state.level >= state.maxLevel) {
           state.phase = TheMindPhase.GAME_OVER;
           room.status = RoomStatus.RESULT;
-          state.result = { success: true, discardedCards: {}, livesLost: 0 };
+          state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
 
           room.players.forEach((p) => {
             p.score += state.level;
           });
         } else {
-          state.result = { success: true, discardedCards: {}, livesLost: 0 };
+          state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
           state.phase = TheMindPhase.LEVEL_RESULT;
         }
       }
@@ -175,6 +178,14 @@ export class TheMindService {
     if (room.roomHostId !== clientId) return null;
     if (state.phase !== TheMindPhase.LEVEL_RESULT && state.phase !== TheMindPhase.SETUP)
       return null;
+
+    if (state.phase === TheMindPhase.LEVEL_RESULT && state.result && !state.result.success && !state.result.levelCleared) {
+      state.phase = TheMindPhase.PLAYING;
+      state.result = null;
+      state.discardedCards = {};
+      state.failedPlayerId = null;
+      return room;
+    }
 
     if (state.level < state.maxLevel) {
       state.level += 1;

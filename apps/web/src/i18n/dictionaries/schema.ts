@@ -616,6 +616,7 @@ export interface Dictionary {
       livesRemaining: string;
       discardedCards: string;
       nextLevel: string;
+      resumeLevel: string;
       youWin: string;
       gameOver: string;
       levelReached: string;

@@ -650,6 +650,7 @@ export const th: Dictionary = {
       livesRemaining: 'หัวใจที่เหลือ: {lives}',
       discardedCards: 'การ์ดที่ถูกทิ้ง (น้อยกว่าการ์ดที่เล่น)',
       nextLevel: 'เลเวลถัดไป',
+      resumeLevel: 'เล่นต่อ',
       youWin: 'คุณชนะ!',
       gameOver: 'จบเกม',
       levelReached: 'ไปถึงเลเวล {level}/{max}',

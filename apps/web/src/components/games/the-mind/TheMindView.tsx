@@ -24,16 +24,7 @@ export function TheMindView() {
 
   if (!room || room.gameType !== GameType.THE_MIND) return null;
 
-  const state = room.theMindState;
-  if (!state) return null;
-
   const isHost = room.roomHostId === socketId;
-  const myHand = state.playerHands[socketId] || [];
-  const canPlay = state.phase === TheMindPhase.PLAYING;
-  const hasPlayed = state.failedPlayerId === socketId && state.phase === TheMindPhase.LEVEL_RESULT;
-  const allReady = state.readyPlayers.length >= room.players.filter((p) => p.connected).length;
-  const shurikenVote = state.shurikenVotes[socketId];
-  const isShurikenProposer = state.shurikenProposerId === socketId;
 
   const renderLobby = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
@@ -94,6 +85,16 @@ export function TheMindView() {
       </Card>
     </div>
   );
+
+  if (!room.theMindState) {
+    return room.status === 'LOBBY' ? renderLobby() : null;
+  }
+
+  const state = room.theMindState;
+  const myHand = state.playerHands[socketId] || [];
+  const canPlay = state.phase === TheMindPhase.PLAYING;
+  const shurikenVote = state.shurikenVotes[socketId];
+  const isShurikenProposer = state.shurikenProposerId === socketId;
 
   const renderSetup = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-8 w-full max-w-lg mx-auto p-4">
@@ -341,7 +342,9 @@ export function TheMindView() {
               size="lg"
             >
               <Play className="w-6 h-6 mr-2" />
-              {t('gameTheMind.game.nextLevel')} {state.level + 1}
+              {state.result?.levelCleared
+                ? `${t('gameTheMind.game.nextLevel')} ${state.level + 1}`
+                : t('gameTheMind.game.resumeLevel')}
             </Button>
           )}
         </CardContent>

@@ -29,4 +29,5 @@ export interface TheMindLevelResult {
   failedPlayerId?: string;
   discardedCards: Record<string, number[]>;
   livesLost: number;
+  levelCleared?: boolean;
 }
