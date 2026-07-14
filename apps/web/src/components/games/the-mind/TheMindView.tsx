@@ -3,6 +3,7 @@
 import React from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { toast } from 'react-hot-toast';
 import { GameType, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,13 @@ export function TheMindView() {
 
   const [displayPhase, setDisplayPhase] = React.useState<TheMindPhase | null>(null);
   const previousPhaseRef = React.useRef<TheMindPhase | null>(null);
+  const playedCardsContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (playedCardsContainerRef.current) {
+      playedCardsContainerRef.current.scrollLeft = playedCardsContainerRef.current.scrollWidth;
+    }
+  }, [room?.theMindState?.playedCards?.length]);
 
   React.useEffect(() => {
     if (!room?.theMindState) return;
@@ -36,6 +44,20 @@ export function TheMindView() {
         current === TheMindPhase.SHURIKEN_RESULT ||
         current === TheMindPhase.GAME_OVER)
     ) {
+      if (current === TheMindPhase.LEVEL_RESULT || current === TheMindPhase.GAME_OVER) {
+        if (room.theMindState.result?.success) {
+          toast.success(t('gameTheMind.game.levelCleared'), {
+            duration: 3000,
+            position: 'top-center',
+          });
+        } else {
+          toast.error(t('gameTheMind.game.mistake'), {
+            duration: 3000,
+            position: 'top-center',
+          });
+        }
+      }
+
       const timer = setTimeout(() => {
         setDisplayPhase(current);
       }, 2000);
@@ -265,7 +287,7 @@ export function TheMindView() {
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
             {t('gameTheMind.game.playedCardsLog')}
           </h3>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div ref={playedCardsContainerRef} className="flex gap-2 overflow-x-auto pb-1 scroll-smooth">
             {state.playedCards.map((pc, idx) => {
               const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
               return (
