@@ -42,7 +42,6 @@ export function LobbyStartButton() {
   const notEnoughPlayers = room.players.length < minPlayers;
 
   const isDisabled =
-    (room.gameType === GameType.WHO_KNOW && !secretWord) ||
     notEnoughPlayers ||
     (room.gameType === GameType.MUSIC_TRIVIA && !room.config?.musicTriviaQuery?.trim()) ||
     (room.gameType === GameType.WHO_AM_I &&
@@ -50,9 +49,6 @@ export function LobbyStartButton() {
       !room.config?.wordCategory);
 
   const getButtonText = () => {
-    if (room.gameType === GameType.WHO_KNOW && !secretWord) {
-      return t('lobby.waitingForSecretWord');
-    }
     if (notEnoughPlayers) {
       return t('lobby.waitingMin', { count: minPlayers });
     }
