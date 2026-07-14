@@ -655,6 +655,10 @@ export const en: Dictionary = {
       shurikenProposedBy:
         '{name} proposed using a Shuriken. Each player will discard their lowest card.',
       shurikenVoteDesc: 'Everyone must agree for the Shuriken to be used.',
+      shurikenResultTitle: 'Shuriken Result',
+      shurikenResultDesc: 'Cards discarded by the Shuriken',
+      playedBy: 'Played by: {name}',
+      playedCardsLog: 'Played Cards Log',
       agree: 'Agree',
       disagree: 'Disagree',
       votedAgree: 'You agreed to use the Shuriken',

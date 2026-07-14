@@ -41,6 +41,8 @@ export class TheMindService {
       lives: playerCount,
       shuriken: 1,
       pileTop: 0,
+      pileTopPlayerId: null,
+      playedCards: [],
       playerHands,
       readyPlayers: [],
       failedPlayerId: null,
@@ -68,6 +70,8 @@ export class TheMindService {
     });
 
     state.pileTop = 0;
+    state.pileTopPlayerId = null;
+    state.playedCards = [];
     state.readyPlayers = [];
     state.failedPlayerId = null;
     state.discardedCards = {};
@@ -128,6 +132,8 @@ export class TheMindService {
       }
 
       state.pileTop = card;
+      state.pileTopPlayerId = clientId;
+      state.playedCards.push({ card, playerId: clientId });
       state.playerHands[clientId] = hand.filter((c) => c !== card);
 
       const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
@@ -150,6 +156,8 @@ export class TheMindService {
       }
     } else {
       state.pileTop = card;
+      state.pileTopPlayerId = clientId;
+      state.playedCards.push({ card, playerId: clientId });
       state.playerHands[clientId] = hand.filter((c) => c !== card);
 
       const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
@@ -176,8 +184,14 @@ export class TheMindService {
     const state = room.theMindState;
     if (!state) return null;
     if (room.roomHostId !== clientId) return null;
-    if (state.phase !== TheMindPhase.LEVEL_RESULT && state.phase !== TheMindPhase.SETUP)
+    if (state.phase !== TheMindPhase.LEVEL_RESULT && state.phase !== TheMindPhase.SETUP && state.phase !== TheMindPhase.SHURIKEN_RESULT)
       return null;
+
+    if (state.phase === TheMindPhase.SHURIKEN_RESULT) {
+      state.phase = TheMindPhase.PLAYING;
+      state.discardedCards = {};
+      return room;
+    }
 
     if (state.phase === TheMindPhase.LEVEL_RESULT && state.result && !state.result.success && !state.result.levelCleared) {
       state.phase = TheMindPhase.PLAYING;
@@ -227,17 +241,20 @@ export class TheMindService {
 
     if (voteCount >= playerCount) {
       const allAgree = Object.values(state.shurikenVotes).every((v) => v);
-      state.phase = TheMindPhase.PLAYING;
       state.shurikenProposerId = null;
       state.shurikenVotes = {};
 
       if (allAgree) {
         state.shuriken -= 1;
+        const discarded: Record<string, number[]> = {};
         for (const [pid, hand] of Object.entries(state.playerHands)) {
           if (hand.length > 0) {
+            discarded[pid] = [hand[0]];
             state.playerHands[pid] = hand.slice(1);
           }
         }
+        state.discardedCards = discarded;
+        state.phase = TheMindPhase.SHURIKEN_RESULT;
 
         const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
         if (allEmpty) {

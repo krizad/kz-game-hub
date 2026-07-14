@@ -604,6 +604,10 @@ export interface Dictionary {
       youProposedShuriken: string;
       shurikenProposedBy: string;
       shurikenVoteDesc: string;
+      shurikenResultTitle: string;
+      shurikenResultDesc: string;
+      playedBy: string;
+      playedCardsLog: string;
       agree: string;
       disagree: string;
       votedAgree: string;

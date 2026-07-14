@@ -4,6 +4,7 @@ export enum TheMindPhase {
   PLAYING = 'PLAYING',
   LEVEL_RESULT = 'LEVEL_RESULT',
   SHURIKEN_VOTE = 'SHURIKEN_VOTE',
+  SHURIKEN_RESULT = 'SHURIKEN_RESULT',
   GAME_OVER = 'GAME_OVER',
 }
 
@@ -15,6 +16,8 @@ export interface TheMindState {
   lives: number;
   shuriken: number;
   pileTop: number;
+  pileTopPlayerId: string | null;
+  playedCards: { card: number; playerId: string }[];
   playerHands: Record<string, number[]>;
   readyPlayers: string[];
   failedPlayerId: string | null;

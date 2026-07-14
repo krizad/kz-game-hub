@@ -163,7 +163,33 @@ export function TheMindView() {
           {t('gameTheMind.game.pileTop')}
         </p>
         <span className="text-5xl font-black text-indigo-600">{state.pileTop}</span>
+        {state.pileTopPlayerId && (
+          <p className="mt-2 text-sm text-indigo-500 font-medium">
+            {t('gameTheMind.game.playedBy', {
+              name: room.players.find((p) => p.socketId === state.pileTopPlayerId)?.name || 'Unknown',
+            })}
+          </p>
+        )}
       </div>
+
+      {state.playedCards && state.playedCards.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">
+            {t('gameTheMind.game.playedCardsLog')}
+          </h3>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {state.playedCards.map((pc, idx) => {
+              const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
+              return (
+                <div key={idx} className="flex-shrink-0 bg-white border border-slate-200 rounded-lg p-2 text-center min-w-[60px]">
+                  <div className="text-xs text-slate-400 truncate w-16" title={playerName}>{playerName}</div>
+                  <div className="font-bold text-indigo-600">{pc.card}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm">
         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">
@@ -283,6 +309,45 @@ export function TheMindView() {
               className="w-full border-amber-200 text-amber-600 hover:bg-amber-50 font-bold"
             >
               {t('gameTheMind.game.cancelProposal')}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderShurikenResult = () => (
+    <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
+      <Card className="w-full bg-white border shadow-xl rounded-2xl overflow-hidden">
+        <CardHeader className="bg-indigo-50 border-b border-indigo-200 pb-4 pt-6">
+          <CardTitle className="text-2xl font-black text-center text-indigo-600 uppercase tracking-widest">
+            <Zap className="w-6 h-6 inline-block mr-2" />
+            {t('gameTheMind.game.shurikenResultTitle')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <p className="text-center text-slate-600 font-medium">
+            {t('gameTheMind.game.shurikenResultDesc')}
+          </p>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+            {Object.entries(state.discardedCards || {}).map(([pid, cards]) => {
+              const player = room.players.find((p) => p.socketId === pid);
+              return (
+                <div key={pid} className="flex items-center justify-between text-sm">
+                  <span className="font-bold text-slate-700">{player?.name || 'Unknown'}</span>
+                  <span className="text-indigo-600 font-black">[{cards.join(', ')}]</span>
+                </div>
+              );
+            })}
+          </div>
+          {isHost && (
+            <Button
+              onClick={() => theMindNextLevel()}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+              size="lg"
+            >
+              <Play className="w-6 h-6 mr-2" />
+              {t('gameTheMind.game.resumeLevel')}
             </Button>
           )}
         </CardContent>
@@ -432,6 +497,8 @@ export function TheMindView() {
       return renderPlaying();
     case TheMindPhase.SHURIKEN_VOTE:
       return renderShurikenVote();
+    case TheMindPhase.SHURIKEN_RESULT:
+      return renderShurikenResult();
     case TheMindPhase.LEVEL_RESULT:
       return renderLevelResult();
     case TheMindPhase.GAME_OVER:
