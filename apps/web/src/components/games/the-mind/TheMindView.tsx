@@ -3,11 +3,12 @@
 import React from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { getAvatarEmoji } from '@/components/core/utils';
 import { toast } from 'react-hot-toast';
 import { GameType, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Heart, Star, Users, RotateCcw, Zap, Check, X } from 'lucide-react';
+import { Play, Heart, Star, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
 
 export function TheMindView() {
   const {
@@ -26,6 +27,8 @@ export function TheMindView() {
   const [displayPhase, setDisplayPhase] = React.useState<TheMindPhase | null>(null);
   const previousPhaseRef = React.useRef<TheMindPhase | null>(null);
   const playedCardsContainerRef = React.useRef<HTMLDivElement>(null);
+  const resultCardsContainerRef = React.useRef<HTMLDivElement>(null);
+  const [revealedCount, setRevealedCount] = React.useState(0);
 
   React.useEffect(() => {
     if (playedCardsContainerRef.current) {
@@ -68,6 +71,28 @@ export function TheMindView() {
       previousPhaseRef.current = current;
     }
   }, [room?.theMindState?.phase]);
+
+  React.useEffect(() => {
+    if (displayPhase === TheMindPhase.LEVEL_RESULT && room?.config?.theMindBlindMode && room?.theMindState?.playedCards) {
+      setRevealedCount(0);
+      const timer = setInterval(() => {
+        setRevealedCount((prev) => {
+          if (prev < (room.theMindState?.playedCards?.length || 0)) {
+            return prev + 1;
+          }
+          clearInterval(timer);
+          return prev;
+        });
+      }, 800);
+      return () => clearInterval(timer);
+    }
+  }, [displayPhase, room?.config?.theMindBlindMode, room?.theMindState?.playedCards?.length]);
+
+  React.useEffect(() => {
+    if (resultCardsContainerRef.current) {
+      resultCardsContainerRef.current.scrollLeft = resultCardsContainerRef.current.scrollWidth;
+    }
+  }, [revealedCount]);
 
   if (!room || room.gameType !== GameType.THE_MIND) return null;
 
@@ -126,6 +151,26 @@ export function TheMindView() {
                     min={0}
                   />
                 </div>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-slate-700 font-bold">
+                    <EyeOff className="w-5 h-5 text-slate-600" />
+                    {t('gameTheMind.lobby.blindMode')}
+                  </label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={room.config?.theMindBlindMode ?? false}
+                      onChange={(e) =>
+                        socket?.emit('update_config', {
+                          code: room.code,
+                          config: { theMindBlindMode: e.target.checked },
+                        })
+                      }
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
               </div>
 
               <p className="text-slate-600 text-center font-medium mt-2">
@@ -162,10 +207,20 @@ export function TheMindView() {
                     key={player.socketId}
                     className="flex items-center gap-2 bg-slate-50 rounded-lg p-2 border border-slate-100"
                   >
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
-                      {player.name.charAt(0)}
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-inner flex-shrink-0 border"
+                      style={{ 
+                        backgroundColor: player.color ? `${player.color}22` : '#e0e7ff',
+                        borderColor: player.color || '#c7d2fe'
+                      }}
+                      title={player.name}
+                    >
+                      {player.avatar || getAvatarEmoji(player.id)}
                     </div>
-                    <span className="text-sm font-medium text-slate-700 truncate">
+                    <span 
+                      className="text-sm font-medium truncate"
+                      style={{ color: player.color || '#334155', fontWeight: player.color ? 800 : 500 }}
+                    >
                       {player.name} {player.socketId === room.roomHostId && '👑'}
                     </span>
                   </div>
@@ -257,10 +312,18 @@ export function TheMindView() {
             return (
               <div
                 key={p.socketId}
-                className="bg-white border border-slate-200 rounded-lg px-3 py-1 flex items-center gap-2 text-xs shadow-sm"
+                className="bg-white border rounded-lg px-2 py-1 flex items-center gap-1.5 text-xs shadow-sm"
+                style={{ borderColor: p.color ? `${p.color}44` : '#e2e8f0' }}
               >
-                <span className="font-bold text-slate-600">{p.name}</span>
-                <span className="bg-indigo-100 text-indigo-700 rounded-full px-2 py-0.5 font-black">
+                <span>{p.avatar || getAvatarEmoji(p.id)}</span>
+                <span className="font-bold" style={{ color: p.color || '#475569' }}>{p.name}</span>
+                <span 
+                  className="rounded-full px-2 py-0.5 font-black text-[10px]"
+                  style={{ 
+                    backgroundColor: p.color ? `${p.color}11` : '#e0e7ff',
+                    color: p.color || '#4338ca' 
+                  }}
+                >
                   {handCount}
                 </span>
               </div>
@@ -272,8 +335,10 @@ export function TheMindView() {
         <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
           {t('gameTheMind.game.pileTop')}
         </p>
-        <span className="text-5xl font-black text-indigo-600 leading-none">{state.pileTop}</span>
-        {state.pileTopPlayerId && (
+        <span className="text-5xl font-black text-indigo-600 leading-none">
+          {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
+        </span>
+        {state.pileTopPlayerId && !room.config?.theMindBlindMode && (
           <p className="mt-2 text-sm text-indigo-500 font-medium">
             {t('gameTheMind.game.playedBy', {
               name: room.players.find((p) => p.socketId === state.pileTopPlayerId)?.name || 'Unknown',
@@ -291,9 +356,9 @@ export function TheMindView() {
             {state.playedCards.map((pc, idx) => {
               const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
               return (
-                <div key={idx} className="flex-shrink-0 bg-white border border-slate-200 rounded-lg p-2 text-center min-w-[60px]">
-                  <div className="text-xs text-slate-400 truncate w-16" title={playerName}>{playerName}</div>
-                  <div className="font-bold text-indigo-600">{pc.card}</div>
+                <div key={idx} className={`flex-shrink-0 border rounded-lg p-2 text-center min-w-[60px] ${room.config?.theMindBlindMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  {!room.config?.theMindBlindMode && <div className="text-xs text-slate-400 truncate w-16" title={playerName}>{playerName}</div>}
+                  <div className={`font-bold ${room.config?.theMindBlindMode ? 'text-slate-500' : 'text-indigo-600'}`}>{room.config?.theMindBlindMode ? '?' : pc.card}</div>
                 </div>
               );
             })}
@@ -480,7 +545,7 @@ export function TheMindView() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
-          {state.result && !state.result.success && (
+          {state.result && !state.result.success && !room.config?.theMindBlindMode && (
             <div className="space-y-4">
               <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center">
                 <p className="text-sm font-bold text-rose-700 mb-1">
@@ -536,8 +601,80 @@ export function TheMindView() {
               )}
             </div>
           )}
-          {state.result?.success && (
-            <p className="text-center text-slate-600 font-medium text-lg">
+
+          {room.config?.theMindBlindMode && (
+            <div className="space-y-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+                <p className="text-sm font-bold text-slate-300 mb-2 uppercase tracking-widest text-center">
+                  {t('gameTheMind.game.playedCardsLog')}
+                </p>
+                <div ref={resultCardsContainerRef} className="flex gap-2 overflow-x-auto pb-2 scroll-smooth items-center">
+                  {state.playedCards.map((pc, idx) => {
+                    const isRevealed = idx < revealedCount;
+                    const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
+                    let isMistake = false;
+                    if (isRevealed && !state.result?.success) {
+                      const prevCard = idx > 0 ? state.playedCards[idx - 1].card : -1;
+                      if (pc.card < prevCard) {
+                        isMistake = true;
+                      }
+                    }
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex-shrink-0 border-2 rounded-lg p-2 text-center min-w-[70px] transition-all duration-500 transform ${
+                          isRevealed
+                            ? isMistake
+                              ? 'bg-rose-100 border-rose-500 scale-110 shadow-lg rotate-3'
+                              : 'bg-white border-slate-200'
+                            : 'bg-slate-700 border-slate-600 scale-95'
+                        }`}
+                        style={{
+                          transformStyle: 'preserve-3d',
+                          perspective: '1000px',
+                        }}
+                      >
+                        <div
+                          className="w-full h-full transition-transform duration-500"
+                          style={{
+                            transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)',
+                          }}
+                        >
+                          {isRevealed ? (
+                            <>
+                              <div className={`text-[10px] truncate w-16 mb-1 ${isMistake ? 'text-rose-600 font-bold' : 'text-slate-400'}`} title={playerName}>
+                                {playerName}
+                              </div>
+                              <div className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}>
+                                {pc.card}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-slate-400 font-black text-xl">
+                              ?
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {revealedCount === state.playedCards.length && state.result && !state.result.success && (
+                <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center animate-in fade-in zoom-in duration-500">
+                   <p className="text-xl font-black text-rose-700 mb-1">{t('gameTheMind.game.mistake')}</p>
+                   <p className="text-sm font-medium text-rose-600">
+                    {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {state.result?.success && (!room.config?.theMindBlindMode || revealedCount === state.playedCards.length) && (
+            <p className="text-center text-slate-600 font-medium text-lg animate-in fade-in duration-500">
               {t('gameTheMind.game.levelCleared')}
             </p>
           )}

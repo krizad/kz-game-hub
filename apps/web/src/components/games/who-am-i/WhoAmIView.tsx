@@ -249,8 +249,14 @@ export function WhoAmIView() {
                           )
                         )}
 
-                        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-3xl shadow-inner border border-amber-300 mb-3 relative overflow-hidden">
-                          {getAvatarEmoji(player.id)}
+                        <div 
+                          className="w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-inner border mb-3 relative overflow-hidden"
+                          style={{ 
+                            backgroundColor: player.color ? `${player.color}22` : '#fef3c7',
+                            borderColor: player.color || '#fcd34d'
+                          }}
+                        >
+                          {player.avatar || getAvatarEmoji(player.id)}
                           {isMe && (
                             <div className="absolute inset-0 bg-indigo-500/10 rounded-full"></div>
                           )}
@@ -620,13 +626,23 @@ export function WhoAmIView() {
                 {Object.entries(gameState.playerWords).map(([pId, word]) => {
                   const player = room.players.find((p) => p.socketId === pId);
                   const isWinner = gameState.winner === pId;
+                  const pColor = player?.color;
+                  const pAvatar = player?.avatar;
                   return (
                     <div
                       key={pId}
                       className={`flex justify-between items-center p-2 rounded-lg border ${isWinner ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
                     >
                       <span className="flex items-center gap-2">
-                        <span>{getAvatarEmoji(pId)}</span>
+                        <span 
+                          className="px-2 py-0.5 rounded text-xs border"
+                          style={{
+                            backgroundColor: pColor ? `${pColor}22` : '#fef3c7',
+                            borderColor: pColor || '#fcd34d'
+                          }}
+                        >
+                          {pAvatar || getAvatarEmoji(pId)}
+                        </span>
                         <span>{player?.name}</span>
                       </span>
                       <span className="px-2 py-0.5 bg-white rounded shadow-sm text-sm font-bold border border-slate-100">

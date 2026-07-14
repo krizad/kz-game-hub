@@ -20,6 +20,27 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 
+const PLAYER_COLORS = [
+  '#ef4444', // red
+  '#3b82f6', // blue
+  '#10b981', // green
+  '#f59e0b', // yellow/amber
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f97316', // orange
+  '#64748b', // slate
+  '#0ea5e9', // sky
+];
+
+const ANIMAL_EMOJIS = [
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', 
+  '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦉',
+  '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞',
+  '🐜', '🦟', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐',
+  '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈'
+];
+
 @Injectable()
 export class GamesService {
   private rooms: Map<string, RoomState> = new Map();
@@ -289,11 +310,25 @@ export class GamesService {
         this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
       }
     } else {
+      const usedColors = new Set(room.players.map((p) => p.color));
+      const availableColors = PLAYER_COLORS.filter((c) => !usedColors.has(c));
+      const color = availableColors.length > 0 
+        ? availableColors[Math.floor(Math.random() * availableColors.length)] 
+        : PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+
+      const usedAvatars = new Set(room.players.map((p) => p.avatar));
+      const availableAvatars = ANIMAL_EMOJIS.filter((a) => !usedAvatars.has(a));
+      const avatar = availableAvatars.length > 0
+        ? availableAvatars[Math.floor(Math.random() * availableAvatars.length)]
+        : ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+
       room.players.push({
         ...user,
         score: 0,
         roomId: room.id,
         connected: true,
+        color,
+        avatar,
       });
     }
 

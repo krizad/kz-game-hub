@@ -586,10 +586,12 @@ export interface Dictionary {
     };
   };
   gameTheMind: {
+
     lobby: {
       title: string;
       startingLives: string;
       startingShurikens: string;
+      blindMode: string;
       readyToStart: string;
     };
     game: {
@@ -600,6 +602,7 @@ export interface Dictionary {
       waitingForOthers: string;
       pileTop: string;
       yourHand: string;
+      blindModeActive: string;
       useShuriken: string;
       exitGame: string;
       shurikenVoteTitle: string;

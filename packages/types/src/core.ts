@@ -110,6 +110,8 @@ export interface UserState {
   roomId: string;
   hasBeenHost?: boolean;
   connected?: boolean;
+  color?: string;
+  avatar?: string;
 }
 
 export interface RoomConfig {
@@ -146,6 +148,7 @@ export interface RoomConfig {
   // The Mind config
   theMindStartingLives?: number;
   theMindStartingShurikens?: number;
+  theMindBlindMode?: boolean;
 }
 
 export interface RoomState {

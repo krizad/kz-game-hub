@@ -110,6 +110,58 @@ export class TheMindService {
     if (!hand || !hand.includes(card)) return null;
     if (hand.length > 0 && card !== hand[0]) return null;
 
+    if (room.config?.theMindBlindMode) {
+      state.pileTop = card;
+      state.pileTopPlayerId = clientId;
+      state.playedCards.push({ card, playerId: clientId });
+      state.playerHands[clientId] = hand.filter((c) => c !== card);
+
+      const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
+      
+      if (allEmpty) {
+        let isSuccess = true;
+        let lastCard = -1;
+        for (const pc of state.playedCards) {
+          if (pc.card < lastCard) {
+            isSuccess = false;
+            break;
+          }
+          lastCard = pc.card;
+        }
+
+        if (isSuccess) {
+          if (state.level >= state.maxLevel) {
+            state.phase = TheMindPhase.GAME_OVER;
+            room.status = RoomStatus.RESULT;
+            state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
+
+            room.players.forEach((p) => {
+              p.score += state.level;
+            });
+          } else {
+            state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
+            state.phase = TheMindPhase.LEVEL_RESULT;
+          }
+        } else {
+          state.lives -= 1;
+          state.result = {
+            success: false,
+            failedPlayerId: undefined, // no single person to blame in blind mode
+            discardedCards: {},
+            livesLost: 1,
+            levelCleared: false,
+          };
+          state.phase = TheMindPhase.LEVEL_RESULT;
+
+          if (state.lives <= 0) {
+            state.phase = TheMindPhase.GAME_OVER;
+            room.status = RoomStatus.RESULT;
+          }
+        }
+      }
+      return room;
+    }
+
     const playerCount = room.players.filter((p) => p.connected).length;
 
     const minCards: { playerId: string; card: number }[] = [];
@@ -197,11 +249,31 @@ export class TheMindService {
     }
 
     if (state.phase === TheMindPhase.LEVEL_RESULT && state.result && !state.result.success && !state.result.levelCleared) {
-      state.phase = TheMindPhase.PLAYING;
-      state.result = null;
-      state.discardedCards = {};
-      state.failedPlayerId = null;
-      return room;
+      if (room.config?.theMindBlindMode) {
+        state.phase = TheMindPhase.SETUP;
+        state.result = null;
+        state.discardedCards = {};
+        state.failedPlayerId = null;
+        
+        state.deck = this.shuffleArray(
+          state.deck.length > 0 ? state.deck : Array.from({ length: 100 }, (_, i) => i + 1),
+        );
+        if (state.deck.length < state.level * room.players.filter((p) => p.connected).length) {
+          state.deck = this.shuffleArray(Array.from({ length: 100 }, (_, i) => i + 1));
+        }
+        
+        state.playedCards = [];
+        state.pileTop = 0;
+        state.pileTopPlayerId = null;
+        this.dealCards(room);
+        return room;
+      } else {
+        state.phase = TheMindPhase.PLAYING;
+        state.result = null;
+        state.discardedCards = {};
+        state.failedPlayerId = null;
+        return room;
+      }
     }
 
     if (state.level < state.maxLevel) {
@@ -261,15 +333,44 @@ export class TheMindService {
 
         const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
         if (allEmpty) {
-          if (state.level >= state.maxLevel) {
-            state.phase = TheMindPhase.GAME_OVER;
-            room.status = RoomStatus.RESULT;
-            state.result = { success: true, discardedCards: {}, livesLost: 0 };
-            room.players.forEach((p) => {
-              p.score += state.level;
-            });
+          let isSuccess = true;
+          if (room.config?.theMindBlindMode) {
+            let lastCard = -1;
+            for (const pc of state.playedCards) {
+              if (pc.card < lastCard) {
+                isSuccess = false;
+                break;
+              }
+              lastCard = pc.card;
+            }
+          }
+
+          if (isSuccess) {
+            if (state.level >= state.maxLevel) {
+              state.phase = TheMindPhase.GAME_OVER;
+              room.status = RoomStatus.RESULT;
+              state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
+              room.players.forEach((p) => {
+                p.score += state.level;
+              });
+            } else {
+              state.phase = TheMindPhase.LEVEL_RESULT;
+              state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
+            }
           } else {
+            state.lives -= 1;
+            state.result = {
+              success: false,
+              discardedCards: {},
+              livesLost: 1,
+              levelCleared: false,
+            };
             state.phase = TheMindPhase.LEVEL_RESULT;
+
+            if (state.lives <= 0) {
+              state.phase = TheMindPhase.GAME_OVER;
+              room.status = RoomStatus.RESULT;
+            }
           }
         }
       }

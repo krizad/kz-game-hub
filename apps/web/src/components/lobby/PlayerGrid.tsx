@@ -35,12 +35,19 @@ export function PlayerGrid() {
               <tr key={p.id} className="bg-amber-100/10 hover:bg-amber-100/40 transition-colors">
                 <td className="px-3 py-2 font-medium flex items-center gap-2.5">
                   <span
-                    className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-sm shadow-inner flex-shrink-0 border border-amber-300"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-inner flex-shrink-0 border"
+                    style={{ 
+                      backgroundColor: p.color ? `${p.color}22` : '#fef3c7',
+                      borderColor: p.color || '#fcd34d'
+                    }}
                     title={p.name}
                   >
-                    {getAvatarEmoji(p.id)}
+                    {p.avatar || getAvatarEmoji(p.id)}
                   </span>
-                  <span className="truncate max-w-[120px] sm:max-w-[200px] text-slate-700">
+                  <span 
+                    className="truncate max-w-[120px] sm:max-w-[200px]"
+                    style={{ color: p.color || '#334155', fontWeight: p.color ? 800 : 500 }}
+                  >
                     {p.name}
                     {p.connected === false && (
                       <span className="text-[9px] font-bold text-slate-500 ml-1.5 align-middle border border-amber-300 bg-amber-100/50 px-1 py-0.5 rounded leading-none inline-flex">

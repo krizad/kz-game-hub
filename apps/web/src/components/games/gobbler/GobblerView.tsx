@@ -265,8 +265,9 @@ export function GobblerView() {
               ? 'bg-cyan-950/50 border-cyan-500/30 text-cyan-200'
               : 'bg-pink-950/50 border-pink-500/30 text-pink-200',
           )}
+          style={details?.color ? { backgroundColor: `${details.color}33`, borderColor: details.color } : undefined}
         >
-          {details ? getAvatarEmoji(details.id) : '👤'}
+          {details ? details.avatar || getAvatarEmoji(details.id) : '👤'}
         </div>
         <div className="flex flex-col">
           <div className="text-sm sm:text-lg font-black text-white">
