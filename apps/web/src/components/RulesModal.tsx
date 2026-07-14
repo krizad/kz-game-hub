@@ -10,6 +10,7 @@ import { DetectiveClubRules } from './games/detective-club/DetectiveClubRules';
 import { WhoAmIRules } from './games/who-am-i/WhoAmIRules';
 import { WhoFirstRules } from './games/who-first/WhoFirstRules';
 import { MusicTriviaRules } from './games/music-trivia/MusicTriviaRules';
+import { TheMindRules } from './games/the-mind/TheMindRules';
 import { useTranslate } from '@/hooks/useTranslate';
 
 interface RulesModalProps {
@@ -59,6 +60,8 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
         return <WhoFirstRules />;
       case GameType.MUSIC_TRIVIA:
         return <MusicTriviaRules />;
+      case GameType.THE_MIND:
+        return <TheMindRules />;
       default:
         return null;
     }
@@ -189,6 +192,18 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
                     className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_FIRST ? 'bg-red-500/20 text-red-500 shadow-inner border border-red-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
                   >
                     {t('rules.modal.tabs.whoFirst')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab(GameType.MUSIC_TRIVIA)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.MUSIC_TRIVIA ? 'bg-orange-500/20 text-orange-500 shadow-inner border border-orange-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                  >
+                    {t('rules.modal.tabs.musicTrivia')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab(GameType.THE_MIND)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-500/20 text-cyan-500 shadow-inner border border-cyan-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                  >
+                    The Mind
                   </button>
                 </div>
               </div>

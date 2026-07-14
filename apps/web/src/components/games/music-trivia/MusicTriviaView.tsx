@@ -48,7 +48,10 @@ export function MusicTriviaView() {
       const shouldPlay = room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true;
 
       // Handle HTML5 Audio (iTunes, Spotify, Deezer)
-      if (musicTriviaSyncPlay.sourceType !== 'YOUTUBE' && musicTriviaSyncPlay.sourceType !== 'SOUNDCLOUD') {
+      if (
+        musicTriviaSyncPlay.sourceType !== 'YOUTUBE' &&
+        musicTriviaSyncPlay.sourceType !== 'SOUNDCLOUD'
+      ) {
         if (!audioRef.current) {
           audioRef.current = new Audio(musicTriviaSyncPlay.previewUrl);
         } else if (audioRef.current.src !== musicTriviaSyncPlay.previewUrl) {
@@ -80,7 +83,14 @@ export function MusicTriviaView() {
         audioRef.current.pause();
       }
     }
-  }, [state?.phase, musicTriviaSyncPlay, room?.config.musicTriviaAudioPlayback, isHost, volume, isLocalPaused]);
+  }, [
+    state?.phase,
+    musicTriviaSyncPlay,
+    room?.config.musicTriviaAudioPlayback,
+    isHost,
+    volume,
+    isLocalPaused,
+  ]);
 
   // Handle countdown calculation for COUNTDOWN phase
   useEffect(() => {
@@ -403,17 +413,27 @@ export function MusicTriviaView() {
                           ? `https://www.youtube.com/watch?v=${musicTriviaSyncPlay.previewUrl}`
                           : musicTriviaSyncPlay?.previewUrl
                       }
-                      playing={room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? (isHost && !isLocalPaused) : !isLocalPaused}
+                      playing={
+                        room?.config.musicTriviaAudioPlayback === 'HOST_ONLY'
+                          ? isHost && !isLocalPaused
+                          : !isLocalPaused
+                      }
                       volume={volume}
                       width="0"
                       height="0"
                       config={{
                         youtube: {
-                          playerVars: { autoplay: 1, origin: typeof window !== 'undefined' ? window.location.origin : undefined },
+                          playerVars: {
+                            autoplay: 1,
+                            origin:
+                              typeof window !== 'undefined' ? window.location.origin : undefined,
+                          },
                         },
                         soundcloud: { options: { auto_play: true } },
                       }}
-                      onError={(e) => console.error(`ReactPlayer error (${musicTriviaSyncPlay?.sourceType}):`, e)}
+                      onError={(e) =>
+                        console.error(`ReactPlayer error (${musicTriviaSyncPlay?.sourceType}):`, e)
+                      }
                     />
                   </div>
                 )}
@@ -441,11 +461,10 @@ export function MusicTriviaView() {
                       audioRef.current.play().catch((e) => console.error(e));
                     }
                   }}
-                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
-                  >
-                    {t('gameMusicTrivia.game.cantHearMusic')}
-                  </button>
-
+                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
+                >
+                  {t('gameMusicTrivia.game.cantHearMusic')}
+                </button>
               </div>
 
               {/* Enhanced Audio Controls */}
@@ -465,7 +484,12 @@ export function MusicTriviaView() {
                       variant="outline"
                       size="icon"
                       onClick={() => {
-                        if (['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '') && reactPlayerRef.current) {
+                        if (
+                          ['YOUTUBE', 'SOUNDCLOUD'].includes(
+                            musicTriviaSyncPlay?.sourceType || '',
+                          ) &&
+                          reactPlayerRef.current
+                        ) {
                           reactPlayerRef.current.seekTo(0, 'seconds');
                           setIsLocalPaused(false);
                         } else if (audioRef.current) {

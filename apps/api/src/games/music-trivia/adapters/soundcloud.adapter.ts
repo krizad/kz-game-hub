@@ -28,7 +28,7 @@ export class SoundcloudAdapter implements MusicSourceAdapter {
           id: String(item.id),
           title: item.title || 'Unknown',
           artist: item.user?.username || 'Unknown',
-          previewUrl: item.permalink_url, 
+          previewUrl: item.permalink_url,
           durationMs: item.duration || 30000,
           artworkUrl: item.artwork_url ? item.artwork_url.replace('large', 't500x500') : undefined,
           trackViewUrl: item.permalink_url,

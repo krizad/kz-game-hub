@@ -37,6 +37,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return 'WHO AM I';
     case GameType.WHO_FIRST:
       return 'WHO FIRST';
+    case GameType.THE_MIND:
+      return 'THE MIND';
     default:
       return t('lobby.gameNames.whoKnow').toUpperCase();
   }
@@ -236,6 +238,14 @@ export function HomeView() {
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🎵</span>
               <span className="text-xs tracking-wider text-center px-1">Music Trivia</span>
+            </button>
+            <button
+              onClick={() => createRoom(GameType.THE_MIND)}
+              disabled={!connected || !myName}
+              className="w-full bg-cyan-600/80 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-cyan-500/50 flex flex-col items-center justify-center gap-1 group"
+            >
+              <span className="text-xl group-hover:scale-110 transition-transform">🧠</span>
+              <span className="text-xs tracking-wider text-center px-1">The Mind</span>
             </button>
           </div>
 

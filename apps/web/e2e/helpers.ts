@@ -39,8 +39,17 @@ export async function extractRoomCode(page: Page): Promise<string> {
   // Fallback: scan body text and find code after the game name
   const bodyText = await page.$eval('body', (el) => el.innerText);
   // Look for room code pattern preceded by a known game name pattern
-  const knownNames = ['Music Trivia', 'Who Know', 'Tic Tac Toe', 'Hand Duel', 'Sounds Fishy',
-    'Detective Club', 'Who Am I', 'Who First', 'Gobbler'];
+  const knownNames = [
+    'Music Trivia',
+    'Who Know',
+    'Tic Tac Toe',
+    'Hand Duel',
+    'Sounds Fishy',
+    'Detective Club',
+    'Who Am I',
+    'Who First',
+    'Gobbler',
+  ];
   for (const name of knownNames) {
     const idx = bodyText.indexOf(name);
     if (idx >= 0) {

@@ -85,7 +85,12 @@ export function MusicTriviaSettings() {
             value={room.config.musicTriviaSource || 'ITUNES'}
             onChange={(e) =>
               useGameStore.getState().updateConfig({
-                musicTriviaSource: e.target.value as 'ITUNES' | 'SPOTIFY' | 'YOUTUBE' | 'DEEZER' | 'SOUNDCLOUD',
+                musicTriviaSource: e.target.value as
+                  | 'ITUNES'
+                  | 'SPOTIFY'
+                  | 'YOUTUBE'
+                  | 'DEEZER'
+                  | 'SOUNDCLOUD',
               })
             }
             className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"

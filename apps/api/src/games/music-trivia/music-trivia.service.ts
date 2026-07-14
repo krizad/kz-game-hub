@@ -799,10 +799,10 @@ export class MusicTriviaService {
     if (a.length === 0) return false;
 
     const variations = new Set<string>();
-    
+
     // 1. Original without parentheticals
     variations.add(target.replace(/\s*\(.*?\)\s*/g, ''));
-    
+
     // 2. Content inside parentheticals
     const parenMatches = target.match(/\((.*?)\)/g);
     if (parenMatches) {
@@ -829,7 +829,8 @@ export class MusicTriviaService {
       if (similarity >= 0.85) return true;
 
       // Allow partial match if input is included in target and is at least 70% of it
-      if (cleanTarget.includes(a) && a.length >= cleanTarget.length * 0.7 && a.length >= 3) return true;
+      if (cleanTarget.includes(a) && a.length >= cleanTarget.length * 0.7 && a.length >= 3)
+        return true;
     }
 
     return false;

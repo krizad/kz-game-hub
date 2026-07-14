@@ -49,7 +49,9 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
                             ? 'Who Am I'
                             : room.gameType === GameType.WHO_FIRST
                               ? 'Who First'
-                              : t('lobby.gameNames.whoKnow')}
+                              : room.gameType === GameType.THE_MIND
+                                ? 'The Mind'
+                                : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

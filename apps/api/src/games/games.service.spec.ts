@@ -8,6 +8,9 @@ import { GobblerService } from './gobbler/gobbler.service';
 import { SoundsFishyService } from './sounds-fishy/sounds-fishy.service';
 import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
+import { WhoFirstService } from './who-first/who-first.service';
+import { MusicTriviaService } from './music-trivia/music-trivia.service';
+import { TheMindService } from './the-mind/the-mind.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 
 describe('GamesService', () => {
@@ -77,6 +80,28 @@ describe('GamesService', () => {
       handleGameAction: jest.fn(),
       resetGame: jest.fn(),
     },
+    whoFirst: {
+      startGame: jest.fn(),
+      handleGameAction: jest.fn(),
+      resetGame: jest.fn(),
+    },
+    musicTrivia: {
+      startGame: jest.fn(),
+      handleGameAction: jest.fn(),
+      finalizeCountdown: jest.fn(),
+      resetGame: jest.fn(),
+      remapSocketId: jest.fn(),
+    },
+    theMind: {
+      startGame: jest.fn(),
+      ready: jest.fn(),
+      playCard: jest.fn(),
+      nextLevel: jest.fn(),
+      proposeShuriken: jest.fn(),
+      voteShuriken: jest.fn(),
+      cancelShurikenProposal: jest.fn(),
+      resetGame: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -92,6 +117,9 @@ describe('GamesService', () => {
         { provide: SoundsFishyService, useValue: mockGameServices.soundsFishy },
         { provide: DetectiveClubService, useValue: mockGameServices.detectiveClub },
         { provide: WhoAmIService, useValue: mockGameServices.whoAmI },
+        { provide: WhoFirstService, useValue: mockGameServices.whoFirst },
+        { provide: MusicTriviaService, useValue: mockGameServices.musicTrivia },
+        { provide: TheMindService, useValue: mockGameServices.theMind },
       ],
     }).compile();
 

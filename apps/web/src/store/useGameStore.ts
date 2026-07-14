@@ -69,6 +69,12 @@ interface GameState {
   getCategoriesWhoAmI: (lang?: string) => void;
   gameActionWhoAmI: (action: any) => void;
   musicTriviaGameAction: (action: any) => void;
+  theMindReady: () => void;
+  theMindPlayCard: (card: number) => void;
+  theMindNextLevel: () => void;
+  theMindProposeShuriken: () => void;
+  theMindVoteShuriken: (agree: boolean) => void;
+  theMindCancelShuriken: () => void;
   spectateJoin: (code: string) => void;
   getLeaderboard: (gameType?: string) => void;
   leaderboard: any[];
@@ -510,6 +516,54 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (socket && room && !actionLoading) {
       set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
+    }
+  },
+
+  theMindReady: () => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.THE_MIND_READY, { code: room.code });
+    }
+  },
+
+  theMindPlayCard: (card: number) => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.THE_MIND_PLAY_CARD, { code: room.code, card });
+    }
+  },
+
+  theMindNextLevel: () => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.THE_MIND_NEXT_LEVEL, { code: room.code });
+    }
+  },
+
+  theMindProposeShuriken: () => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.THE_MIND_PROPOSE_SHURIKEN, { code: room.code });
+    }
+  },
+
+  theMindVoteShuriken: (agree: boolean) => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.THE_MIND_VOTE_SHURIKEN, { code: room.code, agree });
+    }
+  },
+
+  theMindCancelShuriken: () => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN, { code: room.code });
     }
   },
 

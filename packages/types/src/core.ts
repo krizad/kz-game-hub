@@ -7,6 +7,7 @@ import { DetectiveClubState } from './detective-club';
 import { WhoAmIGameState } from './who-am-i';
 import { WhoFirstState } from './who-first';
 import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-trivia';
+import { TheMindState } from './the-mind';
 
 export enum RoomStatus {
   LOBBY = 'LOBBY',
@@ -27,6 +28,7 @@ export enum GameType {
   WHO_AM_I = 'WHO_AM_I',
   WHO_FIRST = 'WHO_FIRST',
   MUSIC_TRIVIA = 'MUSIC_TRIVIA',
+  THE_MIND = 'THE_MIND',
 }
 
 // Socket Constants
@@ -90,6 +92,13 @@ export const SOCKET_EVENTS = {
   MUSIC_TRIVIA_SYNC_PLAY: 'music_trivia_sync_play',
   MUSIC_TRIVIA_TRACK_ANSWER: 'music_trivia_track_answer',
   MUSIC_TRIVIA_HOST_ANSWER: 'music_trivia_host_answer',
+  // The Mind specific events
+  THE_MIND_READY: 'the_mind_ready',
+  THE_MIND_PLAY_CARD: 'the_mind_play_card',
+  THE_MIND_NEXT_LEVEL: 'the_mind_next_level',
+  THE_MIND_PROPOSE_SHURIKEN: 'the_mind_propose_shuriken',
+  THE_MIND_VOTE_SHURIKEN: 'the_mind_vote_shuriken',
+  THE_MIND_CANCEL_SHURIKEN: 'the_mind_cancel_shuriken',
 } as const;
 
 export interface UserState {
@@ -156,6 +165,7 @@ export interface RoomState {
   whoAmIState?: WhoAmIGameState;
   whoFirstState?: WhoFirstState;
   musicTriviaState?: MusicTriviaState;
+  theMindState?: TheMindState;
 }
 
 export interface AvailableRoom {

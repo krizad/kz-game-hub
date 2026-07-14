@@ -32,6 +32,8 @@ export function LobbyStartButton() {
         return 3;
       case GameType.MUSIC_TRIVIA:
         return 2;
+      case GameType.THE_MIND:
+        return 2;
       case GameType.WHO_AM_I:
       default:
         return 2;

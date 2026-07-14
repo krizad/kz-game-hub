@@ -19,6 +19,7 @@ export interface Dictionary {
       whoAmI: string;
       detectiveClub: string;
       whoFirst: string;
+      theMind: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -91,6 +92,7 @@ export interface Dictionary {
         detectiveClub: string;
         whoFirst: string;
         musicTrivia: string;
+        theMind: string;
       };
       closeBtn: string;
     };
@@ -581,6 +583,60 @@ export interface Dictionary {
       returnToLobby: string;
       playedSongs: string;
       noWinner: string;
+    };
+  };
+  gameTheMind: {
+    lobby: {
+      title: string;
+      readyToStart: string;
+    };
+    game: {
+      level: string;
+      cardsDealt: string;
+      readyBtn: string;
+      ready: string;
+      waitingForOthers: string;
+      pileTop: string;
+      yourHand: string;
+      useShuriken: string;
+      exitGame: string;
+      shurikenVoteTitle: string;
+      youProposedShuriken: string;
+      shurikenProposedBy: string;
+      shurikenVoteDesc: string;
+      agree: string;
+      disagree: string;
+      votedAgree: string;
+      votedDisagree: string;
+      waitingForVotes: string;
+      cancelProposal: string;
+      levelComplete: string;
+      levelCleared: string;
+      mistake: string;
+      livesRemaining: string;
+      discardedCards: string;
+      nextLevel: string;
+      youWin: string;
+      gameOver: string;
+      levelReached: string;
+      finalScores: string;
+    };
+    rules: {
+      overviewTitle: string;
+      overviewDesc: string;
+      objectiveTitle: string;
+      objectiveDesc: string;
+      gameplayTitle: string;
+      gameplay1: string;
+      gameplay2: string;
+      gameplay3: string;
+      gameplay4: string;
+      livesTitle: string;
+      livesDesc: string;
+      shurikenTitle: string;
+      shurikenDesc: string;
+      winTitle: string;
+      winDesc: string;
     };
   };
 }

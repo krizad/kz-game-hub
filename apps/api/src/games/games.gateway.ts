@@ -770,6 +770,82 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // --- The Mind Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_READY)
+  handleTheMindReady(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.theMindReady(data.code, client.id);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot ready for game.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_PLAY_CARD)
+  handleTheMindPlayCard(
+    @MessageBody() data: { code: string; card: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.theMindPlayCard(data.code, client.id, data.card);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid card or game state.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_NEXT_LEVEL)
+  handleTheMindNextLevel(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.theMindNextLevel(data.code, client.id);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot advance to next level.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_PROPOSE_SHURIKEN)
+  handleTheMindProposeShuriken(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.theMindProposeShuriken(data.code, client.id);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot propose shuriken.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_VOTE_SHURIKEN)
+  handleTheMindVoteShuriken(
+    @MessageBody() data: { code: string; agree: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.theMindVoteShuriken(data.code, client.id, data.agree);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot vote on shuriken.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN)
+  handleTheMindCancelShuriken(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.theMindCancelShuriken(data.code, client.id);
+    if (room) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot cancel shuriken proposal.' });
+    }
+  }
+
   // --- Leaderboard ---
 
   @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)

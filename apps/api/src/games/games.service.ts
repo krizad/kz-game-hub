@@ -18,6 +18,7 @@ import { DetectiveClubService } from './detective-club/detective-club.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
+import { TheMindService } from './the-mind/the-mind.service';
 
 @Injectable()
 export class GamesService {
@@ -34,6 +35,7 @@ export class GamesService {
     private readonly whoAmIService: WhoAmIService,
     private readonly whoFirstService: WhoFirstService,
     private readonly musicTriviaService: MusicTriviaService,
+    private readonly theMindService: TheMindService,
   ) {}
 
   findRoomCodeBySocketId(socketId: string): string | null {
@@ -123,6 +125,8 @@ export class GamesService {
       room.config.musicTriviaRounds = 10;
       room.config.musicTriviaHostPlays = true;
       room.config.musicTriviaAnswerTimeoutMs = 15000;
+    } else if (gameType === GameType.THE_MIND) {
+      // TheMindState is initialized when the game starts via assignRoles
     }
 
     this.rooms.set(code, room);
@@ -426,6 +430,12 @@ export class GamesService {
       return updatedRoom ? { room: updatedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.THE_MIND) {
+      const updatedRoom = this.theMindService.startGame(room, requesterId);
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+    }
+
     // Default to WHO_KNOW
     const result = this.whoKnowService.assignRoles(room, requesterId);
     if (result) this.rooms.set(code, result.room);
@@ -486,6 +496,12 @@ export class GamesService {
 
     if (room.gameType === GameType.MUSIC_TRIVIA) {
       const updatedRoom = this.musicTriviaService.resetGame(room, requesterId);
+      if (updatedRoom) this.rooms.set(code, updatedRoom);
+      return updatedRoom;
+    }
+
+    if (room.gameType === GameType.THE_MIND) {
+      const updatedRoom = this.theMindService.resetGame(room, requesterId);
       if (updatedRoom) this.rooms.set(code, updatedRoom);
       return updatedRoom;
     }
@@ -801,5 +817,55 @@ export class GamesService {
     const result = this.musicTriviaService.finalizeCountdown(room);
     if (result) this.rooms.set(code, result.room);
     return result;
+  }
+
+  // --- The Mind Logic ---
+
+  theMindReady(code: string, clientId: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.theMindService.ready(room, clientId);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  theMindPlayCard(code: string, clientId: string, card: number): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.theMindService.playCard(room, clientId, card);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  theMindNextLevel(code: string, clientId: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.theMindService.nextLevel(room, clientId);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  theMindProposeShuriken(code: string, clientId: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.theMindService.proposeShuriken(room, clientId);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  theMindVoteShuriken(code: string, clientId: string, agree: boolean): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.theMindService.voteShuriken(room, clientId, agree);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  theMindCancelShuriken(code: string, clientId: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.theMindService.cancelShurikenProposal(room, clientId);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
   }
 }

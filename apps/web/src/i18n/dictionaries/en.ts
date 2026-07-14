@@ -21,6 +21,7 @@ export const en: Dictionary = {
       whoAmI: 'Who Am I',
       detectiveClub: 'Detective Club',
       whoFirst: 'Who First',
+      theMind: 'The Mind',
     },
     or: 'OR',
     roomCodePlaceholder: 'ROOM CODE',
@@ -94,6 +95,7 @@ export const en: Dictionary = {
         detectiveClub: 'Detective Club',
         whoFirst: 'Who First',
         musicTrivia: 'Music Trivia',
+        theMind: 'The Mind',
       },
       closeBtn: "Got it, let's play!",
     },
@@ -629,6 +631,72 @@ export const en: Dictionary = {
       returnToLobby: 'Return to Lobby',
       playedSongs: 'Played Songs',
       noWinner: 'No winner',
+    },
+  },
+  gameTheMind: {
+    lobby: {
+      title: 'The Mind',
+      readyToStart:
+        'Ready to begin The Mind? Players must stay silent and play cards in ascending order using only their intuition!',
+    },
+    game: {
+      level: 'Level',
+      cardsDealt: '{count} cards dealt to each player',
+      readyBtn: 'Ready',
+      ready: 'ready',
+      waitingForOthers: 'Waiting for others...',
+      pileTop: 'Top of Pile',
+      yourHand: 'Your Hand',
+      useShuriken: 'Use Shuriken',
+      exitGame: 'Exit Game',
+      shurikenVoteTitle: 'Shuriken Proposal',
+      youProposedShuriken:
+        'You proposed using a Shuriken to discard the lowest card from each player.',
+      shurikenProposedBy:
+        '{name} proposed using a Shuriken. Each player will discard their lowest card.',
+      shurikenVoteDesc: 'Everyone must agree for the Shuriken to be used.',
+      agree: 'Agree',
+      disagree: 'Disagree',
+      votedAgree: 'You agreed to use the Shuriken',
+      votedDisagree: 'You disagreed. Shuriken will not be used.',
+      waitingForVotes: 'Waiting for all votes...',
+      cancelProposal: 'Cancel Proposal',
+      levelComplete: 'Level Complete!',
+      levelCleared: 'All cards have been played! Moving to the next level.',
+      mistake: 'Mistake!',
+      livesRemaining: 'Lives Remaining: {lives}',
+      discardedCards: 'Discarded cards (lower than played card)',
+      nextLevel: 'Next Level',
+      youWin: 'You Win!',
+      gameOver: 'Game Over',
+      levelReached: 'Reached Level {level}/{max}',
+      finalScores: 'Final Scores',
+    },
+    rules: {
+      overviewTitle: 'What is The Mind?',
+      overviewDesc:
+        'The Mind is a cooperative card game where players must play numbered cards in ascending order to the center pile — without any communication. You win by clearing all levels together.',
+      objectiveTitle: 'Objective',
+      objectiveDesc:
+        "Work together silently to play all cards from everyone's hand in ascending order across multiple levels. Clear all levels to win!",
+      gameplayTitle: 'How to Play',
+      gameplay1:
+        'Each level, everyone receives cards equal to the level number (Level 1 = 1 card each, Level 5 = 5 cards each).',
+      gameplay2:
+        'Cards are sorted in your hand from lowest to highest. You may only play your lowest card.',
+      gameplay3:
+        'There are NO turns — anyone can play their lowest card at any time when they feel the timing is right.',
+      gameplay4:
+        'If someone plays a card and another player has a LOWER card in their hand, the team loses a life and all lower cards are discarded.',
+      livesTitle: 'Lives',
+      livesDesc:
+        'The team starts with lives equal to the number of players. Each mistake costs 1 life. If lives reach 0, the game is over.',
+      shurikenTitle: 'Shuriken (Throwing Stars)',
+      shurikenDesc:
+        'The team starts with 1 Shuriken. Any player can propose using it, and if all agree, everyone discards their lowest card. Use it wisely!',
+      winTitle: 'Winning',
+      winDesc:
+        'Clear all levels to win! The number of levels depends on player count: 2 players = 12 levels, 3 = 10 levels, 4+ = 8 levels.',
     },
   },
 };
