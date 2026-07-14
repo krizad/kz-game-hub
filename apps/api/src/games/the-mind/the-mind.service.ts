@@ -33,13 +33,16 @@ export class TheMindService {
       playerHands[id] = [];
     });
 
+    const startingLives = room.config?.theMindStartingLives ?? playerCount;
+    const startingShurikens = room.config?.theMindStartingShurikens ?? 1;
+
     room.theMindState = {
       phase: TheMindPhase.SETUP,
       deck,
       level: 1,
       maxLevel: this.getMaxLevel(playerCount),
-      lives: playerCount,
-      shuriken: 1,
+      lives: startingLives,
+      shuriken: startingShurikens,
       pileTop: 0,
       pileTopPlayerId: null,
       playedCards: [],

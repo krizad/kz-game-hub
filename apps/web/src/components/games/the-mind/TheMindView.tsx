@@ -62,7 +62,51 @@ export function TheMindView() {
         <CardContent className="space-y-6 pt-6">
           {isHost ? (
             <div className="flex flex-col items-center gap-4">
-              <p className="text-slate-600 text-center font-medium">
+              <div className="w-full space-y-4 max-h-[40vh] overflow-y-auto pr-2 pb-2">
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-slate-700 font-bold">
+                    <Heart className="w-5 h-5 text-rose-500" />
+                    {t('gameTheMind.lobby.startingLives')}
+                  </label>
+                  <input
+                    aria-label={t('gameTheMind.lobby.startingLives')}
+                    type="number"
+                    className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
+                    value={
+                      room.config?.theMindStartingLives ??
+                      room.players.filter((p) => p.connected).length
+                    }
+                    onChange={(e) =>
+                      socket?.emit('update_config', {
+                        code: room.code,
+                        config: { theMindStartingLives: parseInt(e.target.value) },
+                      })
+                    }
+                    min={1}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-slate-700 font-bold">
+                    <Star className="w-5 h-5 text-indigo-500" />
+                    {t('gameTheMind.lobby.startingShurikens')}
+                  </label>
+                  <input
+                    aria-label={t('gameTheMind.lobby.startingShurikens')}
+                    type="number"
+                    className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
+                    value={room.config?.theMindStartingShurikens ?? 1}
+                    onChange={(e) =>
+                      socket?.emit('update_config', {
+                        code: room.code,
+                        config: { theMindStartingShurikens: parseInt(e.target.value) },
+                      })
+                    }
+                    min={0}
+                  />
+                </div>
+              </div>
+
+              <p className="text-slate-600 text-center font-medium mt-2">
                 {t('gameTheMind.lobby.readyToStart')}
               </p>
               <Button
@@ -449,23 +493,25 @@ export function TheMindView() {
                 </div>
               )}
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p className="text-sm font-bold text-slate-700 mb-2">
-                  {t('gameTheMind.game.remainingCards')}:
-                </p>
-                {Object.entries(state.playerHands).map(([pid, cards]) => {
-                  if (cards.length === 0) return null;
-                  const player = room.players.find((p) => p.socketId === pid);
-                  return (
-                    <div key={pid} className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-slate-700">
-                        {player?.name || 'Unknown'}:
-                      </span>
-                      <span className="text-indigo-600 font-bold">[{cards.join(', ')}]</span>
-                    </div>
-                  );
-                })}
-              </div>
+              {state.lives === 0 && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                  <p className="text-sm font-bold text-slate-700 mb-2">
+                    {t('gameTheMind.game.remainingCards')}:
+                  </p>
+                  {Object.entries(state.playerHands).map(([pid, cards]) => {
+                    if (cards.length === 0) return null;
+                    const player = room.players.find((p) => p.socketId === pid);
+                    return (
+                      <div key={pid} className="flex items-center gap-2 text-sm">
+                        <span className="font-medium text-slate-700">
+                          {player?.name || 'Unknown'}:
+                        </span>
+                        <span className="text-indigo-600 font-bold">[{cards.join(', ')}]</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
           {state.result?.success && (

@@ -588,6 +588,8 @@ export interface Dictionary {
   gameTheMind: {
     lobby: {
       title: string;
+      startingLives: string;
+      startingShurikens: string;
       readyToStart: string;
     };
     game: {

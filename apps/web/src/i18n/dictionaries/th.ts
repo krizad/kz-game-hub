@@ -620,9 +620,10 @@ export const th: Dictionary = {
   },
   gameTheMind: {
     lobby: {
-      title: 'เดอะมายด์ (The Mind)',
-      readyToStart:
-        'พร้อมที่จะเล่น The Mind หรือยัง? ผู้เล่นจะต้องเงียบและเล่นการ์ดตามลำดับจากน้อยไปมากโดยใช้จิตสัมผัสเท่านั้น!',
+      title: 'The Mind - เตรียมพร้อมเชื่อมจิต?',
+      startingLives: 'จำนวนชีวิตเริ่มต้น',
+      startingShurikens: 'ดาวกระจายเริ่มต้น',
+      readyToStart: 'พร้อมเริ่มเกมหรือยัง?',
     },
     game: {
       level: 'เลเวล',

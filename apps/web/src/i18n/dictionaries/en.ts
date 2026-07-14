@@ -635,9 +635,10 @@ export const en: Dictionary = {
   },
   gameTheMind: {
     lobby: {
-      title: 'The Mind',
-      readyToStart:
-        'Ready to begin The Mind? Players must stay silent and play cards in ascending order using only their intuition!',
+      title: 'The Mind - Ready to Sync?',
+      startingLives: 'Starting Lives',
+      startingShurikens: 'Starting Shurikens',
+      readyToStart: 'Ready to start game?',
     },
     game: {
       level: 'Level',

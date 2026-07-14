@@ -143,6 +143,9 @@ export interface RoomConfig {
   musicTriviaAnswerTimeoutMs?: number;
   musicTriviaAudioPlayback?: 'HOST_ONLY' | 'EVERYONE';
   musicTriviaAnswerCriteria?: 'ANY' | 'TITLE' | 'ARTIST';
+  // The Mind config
+  theMindStartingLives?: number;
+  theMindStartingShurikens?: number;
 }
 
 export interface RoomState {
