@@ -7,6 +7,8 @@ import {
   GameType,
   RPSChoice,
   WordCategory,
+  PLAYER_COLORS,
+  ANIMAL_EMOJIS,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -20,26 +22,6 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 
-const PLAYER_COLORS = [
-  '#ef4444', // red
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // yellow/amber
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f97316', // orange
-  '#64748b', // slate
-  '#0ea5e9', // sky
-];
-
-const ANIMAL_EMOJIS = [
-  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', 
-  '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦉',
-  '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞',
-  '🐜', '🦟', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐',
-  '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈'
-];
 
 @Injectable()
 export class GamesService {

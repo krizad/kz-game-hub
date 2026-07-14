@@ -9,3 +9,4 @@ export * from './who-am-i';
 export * from './who-first';
 export * from './music-trivia';
 export * from './the-mind';
+export * from './utils';
