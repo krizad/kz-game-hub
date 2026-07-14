@@ -70,11 +70,12 @@ interface GameState {
   gameActionWhoAmI: (action: any) => void;
   musicTriviaGameAction: (action: any) => void;
   theMindReady: () => void;
-  theMindPlayCard: (card: number) => void;
+  theMindPlayCard: (card: number, pile?: 'UP' | 'DOWN') => void;
   theMindNextLevel: () => void;
   theMindProposeShuriken: () => void;
   theMindVoteShuriken: (agree: boolean) => void;
   theMindCancelShuriken: () => void;
+  theMindTimeout: () => void;
   spectateJoin: (code: string) => void;
   getLeaderboard: (gameType?: string) => void;
   leaderboard: any[];
@@ -384,6 +385,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+
+
   soundsFishySubmitAnswer: (answer: string) => {
     const { socket, room, actionLoading } = get();
     if (socket && room && !actionLoading) {
@@ -527,11 +530,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  theMindPlayCard: (card: number) => {
+  theMindPlayCard: (card: number, pile?: 'UP' | 'DOWN') => {
     const { socket, room, actionLoading } = get();
     if (socket && room && !actionLoading) {
       set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_PLAY_CARD, { code: room.code, card });
+      socket.emit(SOCKET_EVENTS.THE_MIND_PLAY_CARD, { code: room.code, card, pile });
     }
   },
 
@@ -564,6 +567,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (socket && room && !actionLoading) {
       set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN, { code: room.code });
+    }
+  },
+
+  theMindTimeout: () => {
+    const { socket, room } = get();
+    if (socket && room?.code) {
+      socket.emit(SOCKET_EVENTS.THE_MIND_TIMEOUT, { code: room.code });
     }
   },
 

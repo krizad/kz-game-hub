@@ -21,10 +21,12 @@ export function TheMindView() {
     theMindProposeShuriken,
     theMindVoteShuriken,
     theMindCancelShuriken,
+    theMindTimeout,
   } = useGameStore();
   const { t } = useTranslate();
 
   const [displayPhase, setDisplayPhase] = React.useState<TheMindPhase | null>(null);
+  const [remainingTime, setRemainingTime] = React.useState<number | null>(null);
   const previousPhaseRef = React.useRef<TheMindPhase | null>(null);
   const playedCardsContainerRef = React.useRef<HTMLDivElement>(null);
   const resultCardsContainerRef = React.useRef<HTMLDivElement>(null);
@@ -87,6 +89,26 @@ export function TheMindView() {
       return () => clearInterval(timer);
     }
   }, [displayPhase, room?.config?.theMindBlindMode, room?.theMindState?.playedCards?.length]);
+
+  React.useEffect(() => {
+    if (room?.theMindState?.levelEndTime && room?.theMindState?.phase === TheMindPhase.PLAYING) {
+      const timer = setInterval(() => {
+        const remaining = room.theMindState!.levelEndTime! - Date.now();
+        if (remaining <= 0) {
+          setRemainingTime(0);
+          clearInterval(timer);
+          if (room.roomHostId === socketId) {
+            theMindTimeout();
+          }
+        } else {
+          setRemainingTime(Math.ceil(remaining / 1000));
+        }
+      }, 200);
+      return () => clearInterval(timer);
+    } else {
+      setRemainingTime(null);
+    }
+  }, [room?.theMindState?.levelEndTime, room?.theMindState?.phase, socketId, room?.roomHostId, theMindTimeout]);
 
   React.useEffect(() => {
     if (resultCardsContainerRef.current) {
@@ -169,6 +191,45 @@ export function TheMindView() {
                       }
                     />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-slate-700 font-bold">
+                    <span className="text-xl">🔥</span>
+                    {t('gameTheMind.lobby.gameMode')}
+                  </label>
+                  <select
+                    className="bg-white border border-slate-300 rounded-lg p-1 text-sm font-bold text-slate-700"
+                    value={room.config?.theMindMode ?? 'NORMAL'}
+                    onChange={(e) =>
+                      socket?.emit('update_config', {
+                        code: room.code,
+                        config: { theMindMode: e.target.value },
+                      })
+                    }
+                  >
+                    <option value="NORMAL">{t('gameTheMind.lobby.modeNormal') || 'Normal'}</option>
+                    <option value="EXTREME">{t('gameTheMind.lobby.modeExtreme') || 'Extreme'}</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-slate-700 font-bold">
+                    <span className="text-xl">⏱️</span>
+                    {t('gameTheMind.lobby.timeAttack')}
+                  </label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={room.config?.theMindTimeAttack ?? false}
+                      onChange={(e) =>
+                        socket?.emit('update_config', {
+                          code: room.code,
+                          config: { theMindTimeAttack: e.target.checked },
+                        })
+                      }
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
                   </label>
                 </div>
               </div>
@@ -331,21 +392,76 @@ export function TheMindView() {
           })}
       </div>
 
-      <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 text-center">
-        <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
-          {t('gameTheMind.game.pileTop')}
-        </p>
-        <span className="text-5xl font-black text-indigo-600 leading-none">
-          {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
-        </span>
-        {state.pileTopPlayerId && !room.config?.theMindBlindMode && (
-          <p className="mt-2 text-sm text-indigo-500 font-medium">
-            {t('gameTheMind.game.playedBy', {
-              name: room.players.find((p) => p.socketId === state.pileTopPlayerId)?.name || 'Unknown',
-            })}
+      {remainingTime !== null && (
+        <div className={`flex items-center justify-center p-3 rounded-2xl border-2 font-black text-3xl shadow-sm transition-colors duration-300 ${remainingTime <= 10 ? 'bg-rose-100 text-rose-600 border-rose-300 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+          ⏱️ {remainingTime}s
+        </div>
+      )}
+
+      {room.config?.theMindMode === 'EXTREME' ? (
+        <div className="flex gap-4">
+          <button 
+            disabled={!canPlay || myHand.length === 0}
+            onClick={() => {
+              if (canPlay && myHand.length > 0) {
+                const minCard = Math.min(...myHand);
+                theMindPlayCard(minCard, 'UP');
+              }
+            }}
+            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && myHand.length > 0 ? 'bg-indigo-50 border-indigo-400 hover:bg-indigo-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
+          >
+            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">
+              White Pile (UP)
+            </p>
+            <span className="text-4xl sm:text-5xl font-black text-indigo-600 leading-none">
+              {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
+            </span>
+            {canPlay && myHand.length > 0 && (
+              <div className="mt-2 text-xs text-indigo-500 font-bold bg-indigo-100 rounded-full px-2 py-1 mx-auto w-fit">
+                Play {Math.min(...myHand)}
+              </div>
+            )}
+          </button>
+          <button 
+            disabled={!canPlay || myHand.length === 0}
+            onClick={() => {
+              if (canPlay && myHand.length > 0) {
+                const maxCard = Math.max(...myHand);
+                theMindPlayCard(maxCard, 'DOWN');
+              }
+            }}
+            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && myHand.length > 0 ? 'bg-rose-50 border-rose-400 hover:bg-rose-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
+          >
+            <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-1">
+              Red Pile (DOWN)
+            </p>
+            <span className="text-4xl sm:text-5xl font-black text-rose-600 leading-none">
+              {room.config?.theMindBlindMode ? '?' : (state.pileTopDOWN ?? 101)}
+            </span>
+            {canPlay && myHand.length > 0 && (
+              <div className="mt-2 text-xs text-rose-500 font-bold bg-rose-100 rounded-full px-2 py-1 mx-auto w-fit">
+                Play {Math.max(...myHand)}
+              </div>
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 text-center shadow-sm">
+          <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
+            {t('gameTheMind.game.pileTop')}
           </p>
-        )}
-      </div>
+          <span className="text-5xl font-black text-indigo-600 leading-none">
+            {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
+          </span>
+          {state.pileTopPlayerId && !room.config?.theMindBlindMode && (
+            <p className="mt-2 text-sm text-indigo-500 font-medium">
+              {t('gameTheMind.game.playedBy', {
+                name: room.players.find((p) => p.socketId === state.pileTopPlayerId)?.name || 'Unknown',
+              })}
+            </p>
+          )}
+        </div>
+      )}
 
       {state.playedCards && state.playedCards.length > 0 && (
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-sm">
@@ -355,10 +471,11 @@ export function TheMindView() {
           <div ref={playedCardsContainerRef} className="flex gap-2 overflow-x-auto pb-1 scroll-smooth">
             {state.playedCards.map((pc, idx) => {
               const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
+              const isDown = pc.pile === 'DOWN';
               return (
-                <div key={idx} className={`flex-shrink-0 border rounded-lg p-2 text-center min-w-[60px] ${room.config?.theMindBlindMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <div key={idx} className={`flex-shrink-0 border rounded-lg p-2 text-center min-w-[60px] ${room.config?.theMindBlindMode ? 'bg-slate-800 border-slate-700' : isDown ? 'bg-rose-50 border-rose-200' : 'bg-white border-indigo-200'}`}>
                   {!room.config?.theMindBlindMode && <div className="text-xs text-slate-400 truncate w-16" title={playerName}>{playerName}</div>}
-                  <div className={`font-bold ${room.config?.theMindBlindMode ? 'text-slate-500' : 'text-indigo-600'}`}>{room.config?.theMindBlindMode ? '?' : pc.card}</div>
+                  <div className={`font-bold ${room.config?.theMindBlindMode ? 'text-slate-500' : isDown ? 'text-rose-600' : 'text-indigo-600'}`}>{room.config?.theMindBlindMode ? '?' : Math.abs(pc.card)}</div>
                 </div>
               );
             })}
@@ -372,25 +489,33 @@ export function TheMindView() {
         </h3>
         <div className="flex flex-wrap gap-2 overflow-y-auto justify-center p-1">
           {myHand.map((card) => {
-            const isLowest = card === myHand[0];
+            const isExtreme = room.config?.theMindMode === 'EXTREME';
+            const isPlayable = isExtreme ? false : card === myHand[0];
+            const displayCard = Math.abs(card);
+            
+            let buttonClass = '';
+            if (isExtreme) {
+              buttonClass = 'bg-indigo-600 text-white border-indigo-700 cursor-default opacity-80';
+            } else if (isPlayable && canPlay) {
+              buttonClass = 'bg-indigo-600 text-white border-indigo-700 shadow-lg hover:bg-indigo-500 hover:scale-105 cursor-pointer';
+            } else if (isPlayable && !canPlay) {
+              buttonClass = 'bg-indigo-200 text-indigo-400 border-indigo-300 cursor-not-allowed';
+            } else {
+              buttonClass = 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60';
+            }
+
             return (
               <button
                 key={card}
                 onClick={() => {
-                  if (canPlay && isLowest) {
-                    theMindPlayCard(card);
+                  if (canPlay && isPlayable && room.config?.theMindMode !== 'EXTREME') {
+                    theMindPlayCard(card, 'UP');
                   }
                 }}
-                disabled={!canPlay || !isLowest}
-                className={`w-16 h-20 rounded-xl font-black text-xl transition-all duration-200 border-2 ${
-                  isLowest && canPlay
-                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-lg hover:bg-indigo-500 hover:scale-105 cursor-pointer'
-                    : isLowest && !canPlay
-                      ? 'bg-indigo-200 text-indigo-400 border-indigo-300 cursor-not-allowed'
-                      : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
-                }`}
+                disabled={!canPlay || !isPlayable || room.config?.theMindMode === 'EXTREME'}
+                className={`w-16 h-20 rounded-xl font-black text-xl transition-all duration-200 border-2 ${buttonClass}`}
               >
-                {card}
+                {displayCard}
               </button>
             );
           })}
@@ -541,7 +666,9 @@ export function TheMindView() {
           >
             {state.result?.success
               ? t('gameTheMind.game.levelComplete')
-              : t('gameTheMind.game.mistake')}
+              : state.result?.isTimeOut 
+                ? "TIME'S UP!" 
+                : t('gameTheMind.game.mistake')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
@@ -573,7 +700,7 @@ export function TheMindView() {
                         <span className="font-medium text-slate-700">
                           {player?.name || 'Unknown'}:
                         </span>
-                        <span className="text-slate-500 font-bold">[{cards.join(', ')}]</span>
+                        <span className="text-slate-500 font-bold">[{cards.map(c => Math.abs(c)).join(', ')}]</span>
                       </div>
                     );
                   })}

@@ -846,10 +846,10 @@ export class GamesService {
     return updatedRoom;
   }
 
-  theMindPlayCard(code: string, clientId: string, card: number): RoomState | null {
+  theMindPlayCard(code: string, clientId: string, card: number, pile?: 'UP' | 'DOWN'): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.theMindService.playCard(room, clientId, card);
+    const updatedRoom = this.theMindService.playCard(room, clientId, card, pile);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -880,8 +880,16 @@ export class GamesService {
 
   theMindCancelShuriken(code: string, clientId: string): RoomState | null {
     const room = this.rooms.get(code);
-    if (!room) return null;
+    if (!room || room.gameType !== GameType.THE_MIND) return null;
     const updatedRoom = this.theMindService.cancelShurikenProposal(room, clientId);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  theMindTimeout(code: string, clientId: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room || room.gameType !== GameType.THE_MIND) return null;
+    const updatedRoom = this.theMindService.handleTimeout(room);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }

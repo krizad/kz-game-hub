@@ -16,8 +16,9 @@ export interface TheMindState {
   lives: number;
   shuriken: number;
   pileTop: number;
+  pileTopDOWN?: number | null;
   pileTopPlayerId: string | null;
-  playedCards: { card: number; playerId: string }[];
+  playedCards: { card: number; playerId: string; pile?: 'UP' | 'DOWN' }[];
   playerHands: Record<string, number[]>;
   readyPlayers: string[];
   failedPlayerId: string | null;
@@ -25,6 +26,7 @@ export interface TheMindState {
   shurikenProposerId: string | null;
   shurikenVotes: Record<string, boolean>;
   result: TheMindLevelResult | null;
+  levelEndTime?: number;
 }
 
 export interface TheMindLevelResult {
@@ -33,4 +35,5 @@ export interface TheMindLevelResult {
   discardedCards: Record<string, number[]>;
   livesLost: number;
   levelCleared?: boolean;
+  isTimeOut?: boolean;
 }

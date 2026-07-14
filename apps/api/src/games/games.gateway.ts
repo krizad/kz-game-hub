@@ -784,15 +784,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(SOCKET_EVENTS.THE_MIND_PLAY_CARD)
   handleTheMindPlayCard(
-    @MessageBody() data: { code: string; card: number },
+    @MessageBody() data: { code: string; card: number; pile?: 'UP' | 'DOWN' },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.theMindPlayCard(data.code, client.id, data.card);
+    const room = this.gamesService.theMindPlayCard(data.code, client.id, data.card, data.pile);
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
       this.maybeRecordGameResult(room);
     } else {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid card or game state.' });
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot play card right now.' });
     }
   }
 
@@ -834,15 +834,20 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN)
-  handleTheMindCancelShuriken(
-    @MessageBody() data: { code: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const room = this.gamesService.theMindCancelShuriken(data.code, client.id);
-    if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+  handleTheMindCancelShuriken(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const updatedRoom = this.gamesService.theMindCancelShuriken(data.code, client.id);
+    if (updatedRoom) {
+      this.server.to(data.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot cancel shuriken proposal.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_TIMEOUT)
+  handleTheMindTimeout(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const updatedRoom = this.gamesService.theMindTimeout(data.code, client.id);
+    if (updatedRoom) {
+      this.server.to(data.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
     }
   }
 
