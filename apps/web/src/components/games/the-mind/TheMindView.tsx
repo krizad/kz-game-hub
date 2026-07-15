@@ -50,16 +50,18 @@ export function TheMindView() {
         current === TheMindPhase.GAME_OVER)
     ) {
       if (current === TheMindPhase.LEVEL_RESULT || current === TheMindPhase.GAME_OVER) {
-        if (room.theMindState.result?.success) {
-          toast.success(t('gameTheMind.game.levelCleared'), {
-            duration: 3000,
-            position: 'top-center',
-          });
-        } else {
-          toast.error(t('gameTheMind.game.mistake'), {
-            duration: 3000,
-            position: 'top-center',
-          });
+        if (!room.config?.theMindBlindMode) {
+          if (room.theMindState.result?.success) {
+            toast.success(t('gameTheMind.game.levelCleared'), {
+              duration: 3000,
+              position: 'top-center',
+            });
+          } else {
+            toast.error(t('gameTheMind.game.mistake'), {
+              duration: 3000,
+              position: 'top-center',
+            });
+          }
         }
       }
 
@@ -75,20 +77,38 @@ export function TheMindView() {
   }, [room?.theMindState?.phase]);
 
   React.useEffect(() => {
-    if (displayPhase === TheMindPhase.LEVEL_RESULT && room?.config?.theMindBlindMode && room?.theMindState?.playedCards) {
+    if ((displayPhase === TheMindPhase.LEVEL_RESULT || displayPhase === TheMindPhase.GAME_OVER) && room?.config?.theMindBlindMode && room?.theMindState?.playedCards) {
       setRevealedCount(0);
+      const maxCount = room.theMindState.playedCards.length;
+      if (maxCount === 0) {
+        if (room.theMindState.result?.success) {
+          toast.success(t('gameTheMind.game.levelCleared'), { duration: 3000, position: 'top-center' });
+        } else {
+          toast.error(t('gameTheMind.game.mistake'), { duration: 3000, position: 'top-center' });
+        }
+        return;
+      }
+      
+      let count = 0;
       const timer = setInterval(() => {
-        setRevealedCount((prev) => {
-          if (prev < (room.theMindState?.playedCards?.length || 0)) {
-            return prev + 1;
+        if (count < maxCount) {
+          count++;
+          setRevealedCount(count);
+          if (count === maxCount) {
+            clearInterval(timer);
+            if (room.theMindState?.result?.success) {
+              toast.success(t('gameTheMind.game.levelCleared'), { duration: 3000, position: 'top-center' });
+            } else {
+              toast.error(t('gameTheMind.game.mistake'), { duration: 3000, position: 'top-center' });
+            }
           }
+        } else {
           clearInterval(timer);
-          return prev;
-        });
+        }
       }, 800);
       return () => clearInterval(timer);
     }
-  }, [displayPhase, room?.config?.theMindBlindMode, room?.theMindState?.playedCards?.length]);
+  }, [displayPhase, room?.config?.theMindBlindMode, room?.theMindState?.playedCards?.length, room?.theMindState?.result?.success, t]);
 
   React.useEffect(() => {
     if (room?.theMindState?.levelEndTime && room?.theMindState?.phase === TheMindPhase.PLAYING) {
@@ -111,8 +131,12 @@ export function TheMindView() {
   }, [room?.theMindState?.levelEndTime, room?.theMindState?.phase, socketId, room?.roomHostId, theMindTimeout]);
 
   React.useEffect(() => {
-    if (resultCardsContainerRef.current) {
-      resultCardsContainerRef.current.scrollLeft = resultCardsContainerRef.current.scrollWidth;
+    if (resultCardsContainerRef.current && revealedCount > 0) {
+      const container = resultCardsContainerRef.current;
+      const child = container.children[revealedCount - 1] as HTMLElement;
+      if (child) {
+        child.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
     }
   }, [revealedCount]);
 
@@ -878,6 +902,44 @@ export function TheMindView() {
               </div>
             </div>
           </div>
+
+          {state.result && !state.result.success && !room.config?.theMindBlindMode && (
+            <div className="space-y-4">
+              <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center">
+                <p className="text-sm font-bold text-rose-700 mb-1">
+                  {t('gameTheMind.game.mistakeBy', {
+                    name:
+                      room.players.find((p) => p.socketId === state.result?.failedPlayerId)
+                        ?.name || 'Unknown',
+                  })}
+                </p>
+                <p className="text-4xl font-black text-rose-800 leading-none my-2">{state.pileTop}</p>
+                <p className="text-sm font-medium text-rose-600">
+                  {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+                </p>
+              </div>
+
+              {Object.keys(state.discardedCards).length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <p className="text-sm font-bold text-amber-700 mb-2">
+                    {t('gameTheMind.game.discardedCards')}:
+                  </p>
+                  {Object.entries(state.discardedCards).map(([pid, cards]) => {
+                    const player = room.players.find((p) => p.socketId === pid);
+                    return (
+                      <div key={pid} className="flex items-center gap-2 text-sm">
+                        <span className="font-medium text-slate-700">
+                          {player?.name || 'Unknown'}:
+                        </span>
+                        <span className="text-slate-500 font-bold">[{cards.map(c => Math.abs(c)).join(', ')}]</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="border-t border-slate-100 pt-4">
             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">
               {t('gameTheMind.game.finalScores')}
