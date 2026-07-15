@@ -592,6 +592,11 @@ export interface Dictionary {
       startingLives: string;
       startingShurikens: string;
       blindMode: string;
+      gameMode: string;
+      modeNormal: string;
+      modeExtreme: string;
+      timeAttack: string;
+      maxLevel: string;
       readyToStart: string;
     };
     game: {
@@ -649,6 +654,10 @@ export interface Dictionary {
       shurikenDesc: string;
       winTitle: string;
       winDesc: string;
+      extremeTitle: string;
+      extremeDesc: string;
+      timeAttackTitle: string;
+      timeAttackDesc: string;
     };
   };
 }

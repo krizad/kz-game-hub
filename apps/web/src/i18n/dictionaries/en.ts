@@ -639,6 +639,11 @@ export const en: Dictionary = {
       startingLives: 'Starting Lives',
       startingShurikens: 'Starting Shurikens',
       blindMode: 'Blind Mode',
+      gameMode: 'Game Mode',
+      modeNormal: 'Normal (Classic)',
+      modeExtreme: 'Extreme (2 Piles)',
+      timeAttack: 'Time Attack',
+      maxLevel: 'Max Level (Rounds)',
       readyToStart: 'Ready to start game?',
     },
     game: {
@@ -707,6 +712,10 @@ export const en: Dictionary = {
       winTitle: 'Winning',
       winDesc:
         'Clear all levels to win! The number of levels depends on player count: 2 players = 12 levels, 3 = 10 levels, 4+ = 8 levels.',
+      extremeTitle: 'Extreme Mode (2 Piles)',
+      extremeDesc: 'You must manage cards 1-100 on two piles: a White Pile (ascending) and a Red Pile (descending). You can jump backwards exactly 10 points (e.g. playing a 40 on a 50 White Pile)!',
+      timeAttackTitle: 'Time Attack Mode',
+      timeAttackDesc: 'Adds a time limit to each level. If the timer runs out before you finish, you lose 1 life immediately!',
     },
   },
 };

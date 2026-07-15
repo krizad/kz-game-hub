@@ -41,6 +41,18 @@ export function TheMindRules() {
       </div>
       <div>
         <h3 className="text-purple-400 font-black uppercase tracking-wider text-sm mb-2">
+          {t('gameTheMind.rules.extremeTitle')}
+        </h3>
+        <p className="leading-relaxed">{t('gameTheMind.rules.extremeDesc')}</p>
+      </div>
+      <div>
+        <h3 className="text-purple-400 font-black uppercase tracking-wider text-sm mb-2">
+          {t('gameTheMind.rules.timeAttackTitle')}
+        </h3>
+        <p className="leading-relaxed">{t('gameTheMind.rules.timeAttackDesc')}</p>
+      </div>
+      <div>
+        <h3 className="text-purple-400 font-black uppercase tracking-wider text-sm mb-2">
           {t('gameTheMind.rules.winTitle')}
         </h3>
         <p className="leading-relaxed">{t('gameTheMind.rules.winDesc')}</p>

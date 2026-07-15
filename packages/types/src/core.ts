@@ -152,6 +152,7 @@ export interface RoomConfig {
   theMindBlindMode?: boolean;
   theMindMode?: 'NORMAL' | 'EXTREME';
   theMindTimeAttack?: boolean;
+  theMindMaxLevel?: number;
 }
 
 export interface RoomState {

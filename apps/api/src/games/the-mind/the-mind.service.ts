@@ -40,7 +40,7 @@ export class TheMindService {
       phase: TheMindPhase.SETUP,
       deck,
       level: 1,
-      maxLevel: this.getMaxLevel(playerCount),
+      maxLevel: room.config?.theMindMaxLevel ?? this.getMaxLevel(playerCount),
       lives: startingLives,
       shuriken: startingShurikens,
       pileTop: 0,

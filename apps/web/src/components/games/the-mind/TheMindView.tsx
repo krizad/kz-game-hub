@@ -232,6 +232,28 @@ export function TheMindView() {
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
                   </label>
                 </div>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-slate-700 font-bold">
+                    <span className="text-xl">🏆</span>
+                    {t('gameTheMind.lobby.maxLevel')}
+                  </label>
+                  <select
+                    className="bg-white border border-slate-300 rounded-lg p-1 text-sm font-bold text-slate-700 w-20 text-center"
+                    value={room.config?.theMindMaxLevel ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value);
+                      socket?.emit('update_config', {
+                        code: room.code,
+                        config: { theMindMaxLevel: val },
+                      });
+                    }}
+                  >
+                    <option value="">Auto</option>
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lv) => (
+                      <option key={lv} value={lv}>{lv}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <p className="text-slate-600 text-center font-medium mt-2">
