@@ -22,10 +22,11 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
   }
 
-  await app.listen(3001, '0.0.0.0');
-  console.log('API listening on http://localhost:3001');
+  const port = Number.parseInt(process.env.PORT || '3001', 10);
+  await app.listen(port, '0.0.0.0');
+  console.log(`API listening on http://localhost:${port}`);
   if (!isProduction) {
-    console.log('Swagger docs at http://localhost:3001/api');
+    console.log(`Swagger docs at http://localhost:${port}/api`);
   }
 }
 bootstrap();

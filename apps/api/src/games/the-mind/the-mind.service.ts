@@ -27,7 +27,7 @@ export class TheMindService {
     const deck = this.shuffleArray(Array.from({ length: 100 }, (_, i) => i + 1));
 
     const playerHands: Record<string, number[]> = {};
-    const playerIds = room.players.filter((p) => p.connected).map((p) => p.socketId);
+    const playerIds = room.players.filter((p) => p.connected).map((p) => p.id);
 
     playerIds.forEach((id) => {
       playerHands[id] = [];
@@ -65,7 +65,7 @@ export class TheMindService {
     const state = room.theMindState;
     if (!state) return;
 
-    const playerIds = room.players.filter((p) => p.connected).map((p) => p.socketId);
+    const playerIds = room.players.filter((p) => p.connected).map((p) => p.id);
     const cardsPerPlayer = state.level;
 
     playerIds.forEach((id) => {
@@ -100,21 +100,26 @@ export class TheMindService {
     if (state.readyPlayers.length >= playerCount) {
       state.phase = TheMindPhase.PLAYING;
       if (room.config?.theMindTimeAttack) {
-        state.levelEndTime = Date.now() + (state.level * 30000) + 10000;
+        state.levelEndTime = Date.now() + state.level * 30000 + 10000;
       }
     }
 
     return room;
   }
 
-  playCard(room: RoomState, clientId: string, card: number, pile?: 'UP' | 'DOWN'): RoomState | null {
+  playCard(
+    room: RoomState,
+    clientId: string,
+    card: number,
+    pile?: 'UP' | 'DOWN',
+  ): RoomState | null {
     const state = room.theMindState;
     if (!state) return null;
     if (state.phase !== TheMindPhase.PLAYING) return null;
 
     const hand = state.playerHands[clientId];
     if (!hand || !hand.includes(card)) return null;
-    
+
     // In Extreme mode (1-100), the player can choose to play any card they want to any pile.
     // They are not forced to play the lowest card in their hand because they might want to play a higher card to the DOWN pile.
     // However, if it's NORMAL mode, we enforce playing the lowest card.
@@ -133,11 +138,11 @@ export class TheMindService {
       state.playerHands[clientId] = hand.filter((c) => c !== card);
 
       const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
-      
+
       if (allEmpty) {
         let isSuccess = true;
         let lastUP = -1;
-        let lastDOWN = 101; 
+        let lastDOWN = 101;
         for (const pc of state.playedCards) {
           if (pc.pile === 'DOWN') {
             if (pc.card > lastDOWN) {
@@ -204,19 +209,19 @@ export class TheMindService {
     const nextDOWN = pile === 'DOWN' ? card : currentDOWN;
 
     const deadCards: { playerId: string; card: number }[] = [];
-    
+
     // Check if this play causes any unplayed cards to become dead
     for (const [pid, h] of Object.entries(state.playerHands)) {
       for (const c of h) {
         if (pid === clientId && c === card) continue;
-        
+
         let isDead = false;
         if (isExtreme) {
           isDead = c <= nextUP && c >= nextDOWN;
         } else {
           isDead = c <= nextUP;
         }
-        
+
         if (isDead) {
           deadCards.push({ playerId: pid, card: c });
         }
@@ -237,7 +242,7 @@ export class TheMindService {
 
       // Remove discarded cards from hands
       for (const [pid, dCards] of Object.entries(discarded)) {
-        state.playerHands[pid] = state.playerHands[pid].filter(c => !dCards.includes(c));
+        state.playerHands[pid] = state.playerHands[pid].filter((c) => !dCards.includes(c));
       }
 
       if (pile === 'DOWN') {
@@ -300,7 +305,11 @@ export class TheMindService {
     const state = room.theMindState;
     if (!state) return null;
     if (room.roomHostId !== clientId) return null;
-    if (state.phase !== TheMindPhase.LEVEL_RESULT && state.phase !== TheMindPhase.SETUP && state.phase !== TheMindPhase.SHURIKEN_RESULT)
+    if (
+      state.phase !== TheMindPhase.LEVEL_RESULT &&
+      state.phase !== TheMindPhase.SETUP &&
+      state.phase !== TheMindPhase.SHURIKEN_RESULT
+    )
       return null;
 
     if (state.phase === TheMindPhase.SHURIKEN_RESULT) {
@@ -309,22 +318,27 @@ export class TheMindService {
       return room;
     }
 
-    if (state.phase === TheMindPhase.LEVEL_RESULT && state.result && !state.result.success && !state.result.levelCleared) {
+    if (
+      state.phase === TheMindPhase.LEVEL_RESULT &&
+      state.result &&
+      !state.result.success &&
+      !state.result.levelCleared
+    ) {
       if (room.config?.theMindBlindMode) {
         state.phase = TheMindPhase.SETUP;
         state.result = null;
         state.discardedCards = {};
         state.failedPlayerId = null;
-        
+
         const getNewDeck = () => {
           return this.shuffleArray(Array.from({ length: 100 }, (_, i) => i + 1));
         };
-        
+
         state.deck = state.deck.length > 0 ? this.shuffleArray(state.deck) : getNewDeck();
         if (state.deck.length < state.level * room.players.filter((p) => p.connected).length) {
           state.deck = getNewDeck();
         }
-        
+
         state.playedCards = [];
         state.pileTop = 0;
         state.pileTopPlayerId = null;
@@ -342,17 +356,17 @@ export class TheMindService {
     if (state.level < state.maxLevel) {
       state.level += 1;
       state.phase = TheMindPhase.SETUP;
-      
+
       const getNewDeck = () => {
         if (room.config?.theMindMode === 'EXTREME') {
           return this.shuffleArray([
             ...Array.from({ length: 50 }, (_, i) => i + 1),
-            ...Array.from({ length: 50 }, (_, i) => -(i + 1))
+            ...Array.from({ length: 50 }, (_, i) => -(i + 1)),
           ]);
         }
         return this.shuffleArray(Array.from({ length: 100 }, (_, i) => i + 1));
       };
-      
+
       state.deck = state.deck.length > 0 ? this.shuffleArray(state.deck) : getNewDeck();
       if (state.deck.length < state.level * room.players.filter((p) => p.connected).length) {
         state.deck = getNewDeck();
@@ -408,7 +422,7 @@ export class TheMindService {
           let isSuccess = true;
           if (room.config?.theMindBlindMode) {
             let lastWhite = -1;
-            let lastRed = -51; 
+            let lastRed = -51;
             for (const pc of state.playedCards) {
               if (pc.card > 0) {
                 if (pc.card < lastWhite) {
@@ -430,13 +444,23 @@ export class TheMindService {
             if (state.level >= state.maxLevel) {
               state.phase = TheMindPhase.GAME_OVER;
               room.status = RoomStatus.RESULT;
-              state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
+              state.result = {
+                success: true,
+                discardedCards: {},
+                livesLost: 0,
+                levelCleared: true,
+              };
               room.players.forEach((p) => {
                 p.score += state.level;
               });
             } else {
               state.phase = TheMindPhase.LEVEL_RESULT;
-              state.result = { success: true, discardedCards: {}, livesLost: 0, levelCleared: true };
+              state.result = {
+                success: true,
+                discardedCards: {},
+                livesLost: 0,
+                levelCleared: true,
+              };
             }
           } else {
             state.lives -= 1;
@@ -492,7 +516,7 @@ export class TheMindService {
       discardedCards: {},
       livesLost: 1,
       levelCleared: false,
-      isTimeOut: true
+      isTimeOut: true,
     };
     state.phase = TheMindPhase.LEVEL_RESULT;
 

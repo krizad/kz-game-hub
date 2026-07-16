@@ -15,13 +15,13 @@ export function TheMindView() {
     room,
     socket,
     socketId,
+    playerId,
     theMindReady,
     theMindPlayCard,
     theMindNextLevel,
     theMindProposeShuriken,
     theMindVoteShuriken,
     theMindCancelShuriken,
-    theMindTimeout,
   } = useGameStore();
   const { t } = useTranslate();
 
@@ -77,18 +77,25 @@ export function TheMindView() {
   }, [room?.theMindState?.phase]);
 
   React.useEffect(() => {
-    if ((displayPhase === TheMindPhase.LEVEL_RESULT || displayPhase === TheMindPhase.GAME_OVER) && room?.config?.theMindBlindMode && room?.theMindState?.playedCards) {
+    if (
+      (displayPhase === TheMindPhase.LEVEL_RESULT || displayPhase === TheMindPhase.GAME_OVER) &&
+      room?.config?.theMindBlindMode &&
+      room?.theMindState?.playedCards
+    ) {
       setRevealedCount(0);
       const maxCount = room.theMindState.playedCards.length;
       if (maxCount === 0) {
         if (room.theMindState.result?.success) {
-          toast.success(t('gameTheMind.game.levelCleared'), { duration: 3000, position: 'top-center' });
+          toast.success(t('gameTheMind.game.levelCleared'), {
+            duration: 3000,
+            position: 'top-center',
+          });
         } else {
           toast.error(t('gameTheMind.game.mistake'), { duration: 3000, position: 'top-center' });
         }
         return;
       }
-      
+
       let count = 0;
       const timer = setInterval(() => {
         if (count < maxCount) {
@@ -97,9 +104,15 @@ export function TheMindView() {
           if (count === maxCount) {
             clearInterval(timer);
             if (room.theMindState?.result?.success) {
-              toast.success(t('gameTheMind.game.levelCleared'), { duration: 3000, position: 'top-center' });
+              toast.success(t('gameTheMind.game.levelCleared'), {
+                duration: 3000,
+                position: 'top-center',
+              });
             } else {
-              toast.error(t('gameTheMind.game.mistake'), { duration: 3000, position: 'top-center' });
+              toast.error(t('gameTheMind.game.mistake'), {
+                duration: 3000,
+                position: 'top-center',
+              });
             }
           }
         } else {
@@ -108,7 +121,13 @@ export function TheMindView() {
       }, 800);
       return () => clearInterval(timer);
     }
-  }, [displayPhase, room?.config?.theMindBlindMode, room?.theMindState?.playedCards?.length, room?.theMindState?.result?.success, t]);
+  }, [
+    displayPhase,
+    room?.config?.theMindBlindMode,
+    room?.theMindState?.playedCards?.length,
+    room?.theMindState?.result?.success,
+    t,
+  ]);
 
   React.useEffect(() => {
     if (room?.theMindState?.levelEndTime && room?.theMindState?.phase === TheMindPhase.PLAYING) {
@@ -117,9 +136,6 @@ export function TheMindView() {
         if (remaining <= 0) {
           setRemainingTime(0);
           clearInterval(timer);
-          if (room.roomHostId === socketId) {
-            theMindTimeout();
-          }
         } else {
           setRemainingTime(Math.ceil(remaining / 1000));
         }
@@ -128,7 +144,7 @@ export function TheMindView() {
     } else {
       setRemainingTime(null);
     }
-  }, [room?.theMindState?.levelEndTime, room?.theMindState?.phase, socketId, room?.roomHostId, theMindTimeout]);
+  }, [room?.theMindState?.levelEndTime, room?.theMindState?.phase]);
 
   React.useEffect(() => {
     if (resultCardsContainerRef.current && revealedCount > 0) {
@@ -233,7 +249,9 @@ export function TheMindView() {
                     }
                   >
                     <option value="NORMAL">{t('gameTheMind.lobby.modeNormal') || 'Normal'}</option>
-                    <option value="EXTREME">{t('gameTheMind.lobby.modeExtreme') || 'Extreme'}</option>
+                    <option value="EXTREME">
+                      {t('gameTheMind.lobby.modeExtreme') || 'Extreme'}
+                    </option>
                   </select>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -274,7 +292,9 @@ export function TheMindView() {
                   >
                     <option value="">Auto</option>
                     {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lv) => (
-                      <option key={lv} value={lv}>{lv}</option>
+                      <option key={lv} value={lv}>
+                        {lv}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -314,19 +334,22 @@ export function TheMindView() {
                     key={player.socketId}
                     className="flex items-center gap-2 bg-slate-50 rounded-lg p-2 border border-slate-100"
                   >
-                    <div 
+                    <div
                       className="w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-inner flex-shrink-0 border"
-                      style={{ 
+                      style={{
                         backgroundColor: player.color ? `${player.color}22` : '#e0e7ff',
-                        borderColor: player.color || '#c7d2fe'
+                        borderColor: player.color || '#c7d2fe',
                       }}
                       title={player.name}
                     >
                       {player.avatar || getAvatarEmoji(player.id)}
                     </div>
-                    <span 
+                    <span
                       className="text-sm font-medium truncate"
-                      style={{ color: player.color || '#334155', fontWeight: player.color ? 800 : 500 }}
+                      style={{
+                        color: player.color || '#334155',
+                        fontWeight: player.color ? 800 : 500,
+                      }}
                     >
                       {player.name} {player.socketId === room.roomHostId && '👑'}
                     </span>
@@ -344,10 +367,10 @@ export function TheMindView() {
   }
 
   const state = room.theMindState;
-  const myHand = state.playerHands[socketId] || [];
+  const myHand = state.playerHands[playerId] || [];
   const canPlay = state.phase === TheMindPhase.PLAYING;
-  const shurikenVote = state.shurikenVotes[socketId];
-  const isShurikenProposer = state.shurikenProposerId === socketId;
+  const shurikenVote = state.shurikenVotes[playerId];
+  const isShurikenProposer = state.shurikenProposerId === playerId;
 
   const renderSetup = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-8 w-full max-w-lg mx-auto p-4">
@@ -368,7 +391,7 @@ export function TheMindView() {
         <p className="text-slate-500 font-medium text-lg">
           {t('gameTheMind.game.cardsDealt', { count: state.level })}
         </p>
-        {!state.readyPlayers.includes(socketId) ? (
+        {!state.readyPlayers.includes(playerId) ? (
           <Button
             onClick={() => theMindReady()}
             className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg active:scale-95 text-lg"
@@ -413,9 +436,9 @@ export function TheMindView() {
 
       <div className="flex flex-wrap gap-2 justify-center">
         {room.players
-          .filter((p) => p.connected && p.socketId !== socketId)
+          .filter((p) => p.connected && p.id !== playerId)
           .map((p) => {
-            const handCount = state.playerHands[p.socketId]?.length || 0;
+            const handCount = state.playerHands[p.id]?.length || 0;
             return (
               <div
                 key={p.socketId}
@@ -423,12 +446,14 @@ export function TheMindView() {
                 style={{ borderColor: p.color ? `${p.color}44` : '#e2e8f0' }}
               >
                 <span>{p.avatar || getAvatarEmoji(p.id)}</span>
-                <span className="font-bold" style={{ color: p.color || '#475569' }}>{p.name}</span>
-                <span 
+                <span className="font-bold" style={{ color: p.color || '#475569' }}>
+                  {p.name}
+                </span>
+                <span
                   className="rounded-full px-2 py-0.5 font-black text-[10px]"
-                  style={{ 
+                  style={{
                     backgroundColor: p.color ? `${p.color}11` : '#e0e7ff',
-                    color: p.color || '#4338ca' 
+                    color: p.color || '#4338ca',
                   }}
                 >
                   {handCount}
@@ -439,14 +464,16 @@ export function TheMindView() {
       </div>
 
       {remainingTime !== null && (
-        <div className={`flex items-center justify-center p-3 rounded-2xl border-2 font-black text-3xl shadow-sm transition-colors duration-300 ${remainingTime <= 10 ? 'bg-rose-100 text-rose-600 border-rose-300 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+        <div
+          className={`flex items-center justify-center p-3 rounded-2xl border-2 font-black text-3xl shadow-sm transition-colors duration-300 ${remainingTime <= 10 ? 'bg-rose-100 text-rose-600 border-rose-300 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}`}
+        >
           ⏱️ {remainingTime}s
         </div>
       )}
 
       {room.config?.theMindMode === 'EXTREME' ? (
         <div className="flex gap-4">
-          <button 
+          <button
             disabled={!canPlay || myHand.length === 0}
             onClick={() => {
               if (canPlay && myHand.length > 0) {
@@ -468,7 +495,7 @@ export function TheMindView() {
               </div>
             )}
           </button>
-          <button 
+          <button
             disabled={!canPlay || myHand.length === 0}
             onClick={() => {
               if (canPlay && myHand.length > 0) {
@@ -502,7 +529,7 @@ export function TheMindView() {
           {state.pileTopPlayerId && !room.config?.theMindBlindMode && (
             <p className="mt-2 text-sm text-indigo-500 font-medium">
               {t('gameTheMind.game.playedBy', {
-                name: room.players.find((p) => p.socketId === state.pileTopPlayerId)?.name || 'Unknown',
+                name: room.players.find((p) => p.id === state.pileTopPlayerId)?.name || 'Unknown',
               })}
             </p>
           )}
@@ -514,14 +541,28 @@ export function TheMindView() {
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
             {t('gameTheMind.game.playedCardsLog')}
           </h3>
-          <div ref={playedCardsContainerRef} className="flex gap-2 overflow-x-auto pb-1 scroll-smooth">
+          <div
+            ref={playedCardsContainerRef}
+            className="flex gap-2 overflow-x-auto pb-1 scroll-smooth"
+          >
             {state.playedCards.map((pc, idx) => {
-              const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
+              const playerName = room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
               const isDown = pc.pile === 'DOWN';
               return (
-                <div key={idx} className={`flex-shrink-0 border rounded-lg p-2 text-center min-w-[60px] ${room.config?.theMindBlindMode ? 'bg-slate-800 border-slate-700' : isDown ? 'bg-rose-50 border-rose-200' : 'bg-white border-indigo-200'}`}>
-                  {!room.config?.theMindBlindMode && <div className="text-xs text-slate-400 truncate w-16" title={playerName}>{playerName}</div>}
-                  <div className={`font-bold ${room.config?.theMindBlindMode ? 'text-slate-500' : isDown ? 'text-rose-600' : 'text-indigo-600'}`}>{room.config?.theMindBlindMode ? '?' : Math.abs(pc.card)}</div>
+                <div
+                  key={idx}
+                  className={`flex-shrink-0 border rounded-lg p-2 text-center min-w-[60px] ${room.config?.theMindBlindMode ? 'bg-slate-800 border-slate-700' : isDown ? 'bg-rose-50 border-rose-200' : 'bg-white border-indigo-200'}`}
+                >
+                  {!room.config?.theMindBlindMode && (
+                    <div className="text-xs text-slate-400 truncate w-16" title={playerName}>
+                      {playerName}
+                    </div>
+                  )}
+                  <div
+                    className={`font-bold ${room.config?.theMindBlindMode ? 'text-slate-500' : isDown ? 'text-rose-600' : 'text-indigo-600'}`}
+                  >
+                    {room.config?.theMindBlindMode ? '?' : Math.abs(pc.card)}
+                  </div>
                 </div>
               );
             })}
@@ -538,16 +579,18 @@ export function TheMindView() {
             const isExtreme = room.config?.theMindMode === 'EXTREME';
             const isPlayable = isExtreme ? false : card === myHand[0];
             const displayCard = Math.abs(card);
-            
+
             let buttonClass = '';
             if (isExtreme) {
               buttonClass = 'bg-indigo-600 text-white border-indigo-700 cursor-default opacity-80';
             } else if (isPlayable && canPlay) {
-              buttonClass = 'bg-indigo-600 text-white border-indigo-700 shadow-lg hover:bg-indigo-500 hover:scale-105 cursor-pointer';
+              buttonClass =
+                'bg-indigo-600 text-white border-indigo-700 shadow-lg hover:bg-indigo-500 hover:scale-105 cursor-pointer';
             } else if (isPlayable && !canPlay) {
               buttonClass = 'bg-indigo-200 text-indigo-400 border-indigo-300 cursor-not-allowed';
             } else {
-              buttonClass = 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60';
+              buttonClass =
+                'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60';
             }
 
             return (
@@ -608,8 +651,7 @@ export function TheMindView() {
               ? t('gameTheMind.game.youProposedShuriken')
               : t('gameTheMind.game.shurikenProposedBy', {
                   name:
-                    room.players.find((p) => p.socketId === state.shurikenProposerId)?.name ||
-                    'Unknown',
+                    room.players.find((p) => p.id === state.shurikenProposerId)?.name || 'Unknown',
                 })}
           </p>
           <p className="text-center text-sm text-slate-400">
@@ -677,7 +719,7 @@ export function TheMindView() {
           </p>
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
             {Object.entries(state.discardedCards || {}).map(([pid, cards]) => {
-              const player = room.players.find((p) => p.socketId === pid);
+              const player = room.players.find((p) => p.id === pid);
               return (
                 <div key={pid} className="flex items-center justify-between text-sm">
                   <span className="font-bold text-slate-700">{player?.name || 'Unknown'}</span>
@@ -712,8 +754,8 @@ export function TheMindView() {
           >
             {state.result?.success
               ? t('gameTheMind.game.levelComplete')
-              : state.result?.isTimeOut 
-                ? "TIME'S UP!" 
+              : state.result?.isTimeOut
+                ? "TIME'S UP!"
                 : t('gameTheMind.game.mistake')}
           </CardTitle>
         </CardHeader>
@@ -724,11 +766,13 @@ export function TheMindView() {
                 <p className="text-sm font-bold text-rose-700 mb-1">
                   {t('gameTheMind.game.mistakeBy', {
                     name:
-                      room.players.find((p) => p.socketId === state.result?.failedPlayerId)
-                        ?.name || 'Unknown',
+                      room.players.find((p) => p.id === state.result?.failedPlayerId)?.name ||
+                      'Unknown',
                   })}
                 </p>
-                <p className="text-4xl font-black text-rose-800 leading-none my-2">{state.pileTop}</p>
+                <p className="text-4xl font-black text-rose-800 leading-none my-2">
+                  {state.pileTop}
+                </p>
                 <p className="text-sm font-medium text-rose-600">
                   {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
                 </p>
@@ -740,13 +784,15 @@ export function TheMindView() {
                     {t('gameTheMind.game.discardedCards')}:
                   </p>
                   {Object.entries(state.discardedCards).map(([pid, cards]) => {
-                    const player = room.players.find((p) => p.socketId === pid);
+                    const player = room.players.find((p) => p.id === pid);
                     return (
                       <div key={pid} className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-slate-700">
                           {player?.name || 'Unknown'}:
                         </span>
-                        <span className="text-slate-500 font-bold">[{cards.map(c => Math.abs(c)).join(', ')}]</span>
+                        <span className="text-slate-500 font-bold">
+                          [{cards.map((c) => Math.abs(c)).join(', ')}]
+                        </span>
                       </div>
                     );
                   })}
@@ -760,7 +806,7 @@ export function TheMindView() {
                   </p>
                   {Object.entries(state.playerHands).map(([pid, cards]) => {
                     if (cards.length === 0) return null;
-                    const player = room.players.find((p) => p.socketId === pid);
+                    const player = room.players.find((p) => p.id === pid);
                     return (
                       <div key={pid} className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-slate-700">
@@ -781,10 +827,14 @@ export function TheMindView() {
                 <p className="text-sm font-bold text-slate-300 mb-2 uppercase tracking-widest text-center">
                   {t('gameTheMind.game.playedCardsLog')}
                 </p>
-                <div ref={resultCardsContainerRef} className="flex gap-2 overflow-x-auto pb-2 scroll-smooth items-center">
+                <div
+                  ref={resultCardsContainerRef}
+                  className="flex gap-2 overflow-x-auto pb-2 scroll-smooth items-center"
+                >
                   {state.playedCards.map((pc, idx) => {
                     const isRevealed = idx < revealedCount;
-                    const playerName = room.players.find((p) => p.socketId === pc.playerId)?.name || 'Unknown';
+                    const playerName =
+                      room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
                     let isMistake = false;
                     if (isRevealed && !state.result?.success) {
                       const prevCard = idx > 0 ? state.playedCards[idx - 1].card : -1;
@@ -816,10 +866,15 @@ export function TheMindView() {
                         >
                           {isRevealed ? (
                             <>
-                              <div className={`text-[10px] truncate w-16 mb-1 ${isMistake ? 'text-rose-600 font-bold' : 'text-slate-400'}`} title={playerName}>
+                              <div
+                                className={`text-[10px] truncate w-16 mb-1 ${isMistake ? 'text-rose-600 font-bold' : 'text-slate-400'}`}
+                                title={playerName}
+                              >
                                 {playerName}
                               </div>
-                              <div className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}>
+                              <div
+                                className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}
+                              >
                                 {pc.card}
                               </div>
                             </>
@@ -834,23 +889,28 @@ export function TheMindView() {
                   })}
                 </div>
               </div>
-              
-              {revealedCount === state.playedCards.length && state.result && !state.result.success && (
-                <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center animate-in fade-in zoom-in duration-500">
-                   <p className="text-xl font-black text-rose-700 mb-1">{t('gameTheMind.game.mistake')}</p>
-                   <p className="text-sm font-medium text-rose-600">
-                    {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
-                  </p>
-                </div>
-              )}
+
+              {revealedCount === state.playedCards.length &&
+                state.result &&
+                !state.result.success && (
+                  <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center animate-in fade-in zoom-in duration-500">
+                    <p className="text-xl font-black text-rose-700 mb-1">
+                      {t('gameTheMind.game.mistake')}
+                    </p>
+                    <p className="text-sm font-medium text-rose-600">
+                      {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+                    </p>
+                  </div>
+                )}
             </div>
           )}
 
-          {state.result?.success && (!room.config?.theMindBlindMode || revealedCount === state.playedCards.length) && (
-            <p className="text-center text-slate-600 font-medium text-lg animate-in fade-in duration-500">
-              {t('gameTheMind.game.levelCleared')}
-            </p>
-          )}
+          {state.result?.success &&
+            (!room.config?.theMindBlindMode || revealedCount === state.playedCards.length) && (
+              <p className="text-center text-slate-600 font-medium text-lg animate-in fade-in duration-500">
+                {t('gameTheMind.game.levelCleared')}
+              </p>
+            )}
           {isHost && (
             <Button
               onClick={() => theMindNextLevel()}
@@ -909,11 +969,13 @@ export function TheMindView() {
                 <p className="text-sm font-bold text-rose-700 mb-1">
                   {t('gameTheMind.game.mistakeBy', {
                     name:
-                      room.players.find((p) => p.socketId === state.result?.failedPlayerId)
-                        ?.name || 'Unknown',
+                      room.players.find((p) => p.id === state.result?.failedPlayerId)?.name ||
+                      'Unknown',
                   })}
                 </p>
-                <p className="text-4xl font-black text-rose-800 leading-none my-2">{state.pileTop}</p>
+                <p className="text-4xl font-black text-rose-800 leading-none my-2">
+                  {state.pileTop}
+                </p>
                 <p className="text-sm font-medium text-rose-600">
                   {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
                 </p>
@@ -925,13 +987,15 @@ export function TheMindView() {
                     {t('gameTheMind.game.discardedCards')}:
                   </p>
                   {Object.entries(state.discardedCards).map(([pid, cards]) => {
-                    const player = room.players.find((p) => p.socketId === pid);
+                    const player = room.players.find((p) => p.id === pid);
                     return (
                       <div key={pid} className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-slate-700">
                           {player?.name || 'Unknown'}:
                         </span>
-                        <span className="text-slate-500 font-bold">[{cards.map(c => Math.abs(c)).join(', ')}]</span>
+                        <span className="text-slate-500 font-bold">
+                          [{cards.map((c) => Math.abs(c)).join(', ')}]
+                        </span>
                       </div>
                     );
                   })}
@@ -954,7 +1018,7 @@ export function TheMindView() {
                   >
                     <span className="font-medium text-slate-700">
                       {player.name}
-                      {player.socketId === socketId && ` (${t('lobby.you')})`}
+                      {player.id === playerId && ` (${t('lobby.you')})`}
                     </span>
                     <span className="font-black text-indigo-600">{player.score}</span>
                   </div>

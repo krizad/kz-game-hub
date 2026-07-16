@@ -27,8 +27,8 @@ test.describe('Lobby Page', () => {
 
   test('language switcher has EN and TH buttons', async ({ page }) => {
     await goToLobby(page);
-    await expect(page.getByText('EN')).toBeVisible();
-    await expect(page.getByText('TH')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'EN', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'TH', exact: true })).toBeVisible();
   });
 
   test('has leaderboard button', async ({ page }) => {

@@ -12,6 +12,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
+import { PlayerSessionService } from './player-session.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -22,6 +23,7 @@ describe('GamesService', () => {
   let soundsFishyService: jest.Mocked<SoundsFishyService>;
   let detectiveClubService: jest.Mocked<DetectiveClubService>;
   let whoAmIService: jest.Mocked<WhoAmIService>;
+  let playerSessionService: PlayerSessionService;
 
   const mockGameServices = {
     whoKnow: {
@@ -122,6 +124,7 @@ describe('GamesService', () => {
         { provide: WhoFirstService, useValue: mockGameServices.whoFirst },
         { provide: MusicTriviaService, useValue: mockGameServices.musicTrivia },
         { provide: TheMindService, useValue: mockGameServices.theMind },
+        PlayerSessionService,
       ],
     }).compile();
 
@@ -133,9 +136,10 @@ describe('GamesService', () => {
     soundsFishyService = module.get(SoundsFishyService) as jest.Mocked<SoundsFishyService>;
     detectiveClubService = module.get(DetectiveClubService) as jest.Mocked<DetectiveClubService>;
     whoAmIService = module.get(WhoAmIService) as jest.Mocked<WhoAmIService>;
+    playerSessionService = module.get(PlayerSessionService);
     (service as any).rooms.clear();
     (service as any).secretWords.clear();
-    (service as any).reconnectTokens.clear();
+    playerSessionService.clearAll();
   });
 
   it('should be defined', () => {
@@ -918,14 +922,11 @@ describe('GamesService', () => {
   });
 
   describe('authorization and cleanup', () => {
-    it('should only allow the host to trigger The Mind timeout', () => {
+    it('should let the server trigger The Mind timeout', () => {
       const room = service.createRoom('host1', GameType.THE_MIND);
       mockGameServices.theMind.handleTimeout.mockReturnValue(room);
 
-      expect(service.theMindTimeout(room.code, 'attacker')).toBeNull();
-      expect(mockGameServices.theMind.handleTimeout).not.toHaveBeenCalled();
-
-      expect(service.theMindTimeout(room.code, 'host1')).toBe(room);
+      expect(service.theMindServerTimeout(room.code)).toBe(room);
       expect(mockGameServices.theMind.handleTimeout).toHaveBeenCalledWith(room);
     });
 

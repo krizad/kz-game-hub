@@ -53,10 +53,7 @@ test.describe('Room Creation & Join Flow', () => {
     await expect(page.getByText('Leave Room?').or(page.getByText('ออกจากห้อง?'))).toBeVisible({
       timeout: 5000,
     });
-    await page
-      .locator('button')
-      .filter({ hasText: /Leave Room|ออกจากห้อง/ })
-      .click();
+    await page.getByRole('button', { name: /Confirm Leave|ยืนยันการออก/ }).click();
     await expect(page.locator('h1')).toContainText(/LOBBY/i, { timeout: 15000 });
   });
 });

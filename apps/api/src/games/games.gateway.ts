@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
+import { RoomTimerService } from './room-timer.service';
 import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice } from '@repo/types';
 
 @WebSocketGateway({
@@ -24,6 +25,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly gamesService: GamesService,
     private readonly leaderboardService: LeaderboardService,
+    private readonly roomTimerService: RoomTimerService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -44,6 +46,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (result && 'code' in result && result.code === null) {
       // Room was deleted because the host left, notify everyone in that room
       if (currentRoomCode) {
+        this.roomTimerService.clearRoom(currentRoomCode);
         this.server.to(currentRoomCode).emit(SOCKET_EVENTS.ROOM_DELETED);
       }
       this.server.emit(
@@ -73,6 +76,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const result = this.gamesService.leaveRoom(client.id, true);
     if (result && 'code' in result && result.code === null) {
       if (currentRoomCode) {
+        this.roomTimerService.clearRoom(currentRoomCode);
         this.server.to(currentRoomCode).emit(SOCKET_EVENTS.ROOM_DELETED);
       }
       this.server.emit(
@@ -179,6 +183,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (result) {
       // Broadcast updated room state
       this.server.to(result.room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+      this.syncTheMindTimer(result.room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -792,6 +797,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.theMindReady(data.code, client.id);
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.syncTheMindTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot ready for game.' });
     }
@@ -805,6 +811,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.theMindPlayCard(data.code, client.id, data.card, data.pile);
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.syncTheMindTimer(room);
       this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot play card right now.' });
@@ -816,6 +823,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.theMindNextLevel(data.code, client.id);
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.syncTheMindTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot advance to next level.' });
     }
@@ -829,6 +837,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.theMindProposeShuriken(data.code, client.id);
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.syncTheMindTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot propose shuriken.' });
     }
@@ -842,6 +851,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.theMindVoteShuriken(data.code, client.id, data.agree);
     if (room) {
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.syncTheMindTimer(room);
       this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot vote on shuriken.' });
@@ -856,16 +866,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const updatedRoom = this.gamesService.theMindCancelShuriken(data.code, client.id);
     if (updatedRoom) {
       this.server.to(data.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+      this.syncTheMindTimer(updatedRoom);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot cancel shuriken proposal.' });
-    }
-  }
-
-  @SubscribeMessage(SOCKET_EVENTS.THE_MIND_TIMEOUT)
-  handleTheMindTimeout(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
-    const updatedRoom = this.gamesService.theMindTimeout(data.code, client.id);
-    if (updatedRoom) {
-      this.server.to(data.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
     }
   }
 
@@ -902,9 +905,36 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private emitSessionToken(client: Socket, code: string): void {
     const reconnectToken = this.gamesService.getReconnectToken(code, client.id);
-    if (reconnectToken) {
-      client.emit(SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken });
+    const playerId = this.gamesService
+      .getRoom(code)
+      ?.players.find((player) => player.socketId === client.id)?.id;
+    if (reconnectToken && playerId) {
+      client.emit(SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken, playerId });
     }
+  }
+
+  private syncTheMindTimer(room: RoomState): void {
+    const deadline = room.theMindState?.levelEndTime;
+    if (room.theMindState?.phase !== 'PLAYING' || !deadline) {
+      this.roomTimerService.cancel(room.code, 'the-mind');
+      return;
+    }
+
+    this.roomTimerService.schedule(room.code, 'the-mind', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (
+        currentRoom?.theMindState?.phase !== 'PLAYING' ||
+        currentRoom.theMindState.levelEndTime !== deadline
+      ) {
+        return;
+      }
+
+      const updatedRoom = this.gamesService.theMindServerTimeout(room.code);
+      if (updatedRoom) {
+        this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+        this.maybeRecordGameResult(updatedRoom);
+      }
+    });
   }
 
   private isValidPayload(event: string, payload: unknown): boolean {

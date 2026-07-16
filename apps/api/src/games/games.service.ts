@@ -22,12 +22,12 @@ import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
+import { PlayerSessionService } from './player-session.service';
 
 @Injectable()
 export class GamesService {
   private rooms: Map<string, RoomState> = new Map();
   private readonly secretWords: Map<string, string> = new Map();
-  private readonly reconnectTokens = new Map<string, Map<string, string>>();
 
   constructor(
     private readonly whoKnowService: WhoKnowService,
@@ -40,6 +40,7 @@ export class GamesService {
     private readonly whoFirstService: WhoFirstService,
     private readonly musicTriviaService: MusicTriviaService,
     private readonly theMindService: TheMindService,
+    private readonly playerSessionService: PlayerSessionService,
   ) {}
 
   findRoomCodeBySocketId(socketId: string): string | null {
@@ -60,10 +61,7 @@ export class GamesService {
     const player = room?.players.find((candidate) => candidate.socketId === socketId);
     if (!player) return null;
 
-    const tokenEntry = [...(this.reconnectTokens.get(code)?.entries() ?? [])].find(
-      ([, playerId]) => playerId === player.id,
-    );
-    return tokenEntry?.[0] ?? null;
+    return this.playerSessionService.takePendingToken(socketId);
   }
 
   createRoom(hostId: string, gameType: GameType = GameType.WHO_KNOW): RoomState {
@@ -160,7 +158,7 @@ export class GamesService {
     if (!room) return null;
 
     const playerId = reconnectToken
-      ? this.reconnectTokens.get(code)?.get(reconnectToken)
+      ? this.playerSessionService.consume(code, reconnectToken)
       : undefined;
     const existingPlayer = playerId
       ? room.players.find((player) => player.id === playerId && player.name === user.name)
@@ -318,6 +316,7 @@ export class GamesService {
       if (room.musicTriviaState) {
         this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
       }
+      this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
     } else {
       const usedColors = new Set(room.players.map((p) => p.color));
       const availableColors = PLAYER_COLORS.filter((c) => !usedColors.has(c));
@@ -344,10 +343,7 @@ export class GamesService {
       });
 
       const newPlayer = room.players[room.players.length - 1];
-      const token = uuidv4();
-      const roomTokens = this.reconnectTokens.get(code) ?? new Map<string, string>();
-      roomTokens.set(token, newPlayer.id);
-      this.reconnectTokens.set(code, roomTokens);
+      this.playerSessionService.issue(code, newPlayer.id, user.socketId);
     }
 
     this.rooms.set(code, room);
@@ -366,7 +362,7 @@ export class GamesService {
         }
 
         if (explicitLeave || room.status === RoomStatus.LOBBY) {
-          this.revokeReconnectToken(code, room.players[playerIndex].id);
+          this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
           room.players.splice(playerIndex, 1);
         } else {
           room.players[playerIndex].connected = false;
@@ -392,19 +388,10 @@ export class GamesService {
     return null;
   }
 
-  private revokeReconnectToken(code: string, playerId: string): void {
-    const roomTokens = this.reconnectTokens.get(code);
-    if (!roomTokens) return;
-
-    for (const [token, tokenPlayerId] of roomTokens.entries()) {
-      if (tokenPlayerId === playerId) roomTokens.delete(token);
-    }
-  }
-
   private deleteRoomData(code: string): void {
     this.rooms.delete(code);
     this.secretWords.delete(code);
-    this.reconnectTokens.delete(code);
+    this.playerSessionService.clearRoom(code);
     this.musicTriviaService.deleteRoomData(code);
   }
 
@@ -960,7 +947,9 @@ export class GamesService {
   theMindReady(code: string, clientId: string): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.theMindService.ready(room, clientId);
+    const playerId = this.getPlayerId(room, clientId);
+    if (!playerId) return null;
+    const updatedRoom = this.theMindService.ready(room, playerId);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -973,7 +962,9 @@ export class GamesService {
   ): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.theMindService.playCard(room, clientId, card, pile);
+    const playerId = this.getPlayerId(room, clientId);
+    if (!playerId) return null;
+    const updatedRoom = this.theMindService.playCard(room, playerId, card, pile);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -989,7 +980,9 @@ export class GamesService {
   theMindProposeShuriken(code: string, clientId: string): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.theMindService.proposeShuriken(room, clientId);
+    const playerId = this.getPlayerId(room, clientId);
+    if (!playerId) return null;
+    const updatedRoom = this.theMindService.proposeShuriken(room, playerId);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -997,7 +990,9 @@ export class GamesService {
   theMindVoteShuriken(code: string, clientId: string, agree: boolean): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
-    const updatedRoom = this.theMindService.voteShuriken(room, clientId, agree);
+    const playerId = this.getPlayerId(room, clientId);
+    if (!playerId) return null;
+    const updatedRoom = this.theMindService.voteShuriken(room, playerId, agree);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
@@ -1005,17 +1000,22 @@ export class GamesService {
   theMindCancelShuriken(code: string, clientId: string): RoomState | null {
     const room = this.rooms.get(code);
     if (!room || room.gameType !== GameType.THE_MIND) return null;
-    const updatedRoom = this.theMindService.cancelShurikenProposal(room, clientId);
+    const playerId = this.getPlayerId(room, clientId);
+    if (!playerId) return null;
+    const updatedRoom = this.theMindService.cancelShurikenProposal(room, playerId);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
 
-  theMindTimeout(code: string, clientId: string): RoomState | null {
+  theMindServerTimeout(code: string): RoomState | null {
     const room = this.rooms.get(code);
     if (!room || room.gameType !== GameType.THE_MIND) return null;
-    if (room.roomHostId !== clientId) return null;
     const updatedRoom = this.theMindService.handleTimeout(room);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
+  }
+
+  private getPlayerId(room: RoomState, socketId: string): string | null {
+    return room.players.find((player) => player.socketId === socketId)?.id ?? null;
   }
 }

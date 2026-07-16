@@ -1,0 +1,26 @@
+diff --git a/lib/common/index.js b/lib/common/index.js
+index 6fe3c1a..271367b 100644
+--- a/lib/common/index.js
++++ b/lib/common/index.js
+@@ -869,7 +869,7 @@ function resolve(specifier, context, nextResolve) {
+     const filename = import_url.default.fileURLToPath(context.parentURL);
+     const resolved = resolveHook(filename, specifier);
+     if (resolved !== void 0) {
+-      specifier = context.conditions?.includes("import") ? import_url.default.pathToFileURL(resolved).toString() : resolved;
++      specifier = (Array.isArray(context.conditions) ? context.conditions.includes("import") : context.conditions?.has?.("import")) ? import_url.default.pathToFileURL(resolved).toString() : resolved;
+     }
+   }
+   const result2 = nextResolve(specifier, context);
+diff --git a/lib/transform/esmLoader.js b/lib/transform/esmLoader.js
+index 21b584c..cfaf3d0 100644
+--- a/lib/transform/esmLoader.js
++++ b/lib/transform/esmLoader.js
+@@ -5629,7 +5629,7 @@ function resolve(specifier, context, nextResolve) {
+     const filename = import_url.default.fileURLToPath(context.parentURL);
+     const resolved = resolveHook(filename, specifier);
+     if (resolved !== void 0) {
+-      specifier = context.conditions?.includes("import") ? import_url.default.pathToFileURL(resolved).toString() : resolved;
++      specifier = (Array.isArray(context.conditions) ? context.conditions.includes("import") : context.conditions?.has?.("import")) ? import_url.default.pathToFileURL(resolved).toString() : resolved;
+     }
+   }
+   const result2 = nextResolve(specifier, context);

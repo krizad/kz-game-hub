@@ -14,8 +14,24 @@ export default defineConfig({
   timeout: 60000,
   expect: { timeout: 10000 },
 
+  webServer: [
+    {
+      command:
+        'pnpm -F @repo/database build && pnpm -F @repo/types build && PORT=3101 pnpm -F api dev',
+      url: 'http://127.0.0.1:3101/health',
+      reuseExistingServer: false,
+      timeout: 120000,
+    },
+    {
+      command: 'NEXT_PUBLIC_API_URL=http://127.0.0.1:3101 pnpm exec next dev -p 3100',
+      url: 'http://127.0.0.1:3100',
+      reuseExistingServer: false,
+      timeout: 120000,
+    },
+  ],
+
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:3100',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

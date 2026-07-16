@@ -100,7 +100,6 @@ export const SOCKET_EVENTS = {
   THE_MIND_PROPOSE_SHURIKEN: 'the_mind_propose_shuriken',
   THE_MIND_VOTE_SHURIKEN: 'the_mind_vote_shuriken',
   THE_MIND_CANCEL_SHURIKEN: 'the_mind_cancel_shuriken',
-  THE_MIND_TIMEOUT: 'the_mind_timeout',
 } as const;
 
 export interface UserState {

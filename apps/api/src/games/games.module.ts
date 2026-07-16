@@ -12,6 +12,8 @@ import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
+import { PlayerSessionService } from './player-session.service';
+import { RoomTimerService } from './room-timer.service';
 
 @Module({
   providers: [
@@ -28,6 +30,8 @@ import { TheMindService } from './the-mind/the-mind.service';
     WhoFirstService,
     MusicTriviaService,
     TheMindService,
+    PlayerSessionService,
+    RoomTimerService,
   ],
 })
 export class GamesModule {}

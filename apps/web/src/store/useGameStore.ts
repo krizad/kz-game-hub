@@ -19,6 +19,7 @@ interface GameState {
   myRole: Role | null;
   myName: string;
   socketId: string;
+  playerId: string;
   secretWord: string | null;
   availableRooms: AvailableRoom[];
   categories: WordCategory[];
@@ -76,7 +77,6 @@ interface GameState {
   theMindProposeShuriken: () => void;
   theMindVoteShuriken: (agree: boolean) => void;
   theMindCancelShuriken: () => void;
-  theMindTimeout: () => void;
   spectateJoin: (code: string) => void;
   getLeaderboard: (gameType?: string) => void;
   leaderboard: any[];
@@ -100,6 +100,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   myRole: null,
   myName: '',
   socketId: '',
+  playerId: '',
   secretWord: null,
   availableRooms: [],
   categories: [],
@@ -181,17 +182,25 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     socket.on(
       SOCKET_EVENTS.SESSION_ASSIGNED,
-      ({ code, reconnectToken }: { code: string; reconnectToken: string }) => {
+      ({
+        code,
+        reconnectToken,
+        playerId,
+      }: {
+        code: string;
+        reconnectToken: string;
+        playerId: string;
+      }) => {
         localStorage.setItem('who-know-roomCode', code);
         localStorage.setItem('who-know-reconnectToken', reconnectToken);
-        set({ isSpectator: false });
+        set({ isSpectator: false, playerId });
       },
     );
 
     socket.on(SOCKET_EVENTS.ROOM_DELETED, () => {
       localStorage.removeItem('who-know-roomCode');
       localStorage.removeItem('who-know-reconnectToken');
-      set({ room: null, myRole: null, secretWord: null, isSpectator: false });
+      set({ room: null, myRole: null, secretWord: null, isSpectator: false, playerId: '' });
       toast.error('The Room Host has left. Room has been closed.');
     });
 
@@ -215,7 +224,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (message.startsWith('Room not found')) {
         localStorage.removeItem('who-know-roomCode');
         localStorage.removeItem('who-know-reconnectToken');
-        set({ room: null, isSpectator: false });
+        set({ room: null, isSpectator: false, playerId: '' });
       }
       set({ isLoading: false, actionLoading: false });
       toast.error(message);
@@ -306,7 +315,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       socket.emit('leave_room');
       localStorage.removeItem('who-know-roomCode');
       localStorage.removeItem('who-know-reconnectToken');
-      set({ room: null, myRole: null, secretWord: null, isSpectator: false });
+      set({ room: null, myRole: null, secretWord: null, isSpectator: false, playerId: '' });
     }
   },
 
@@ -585,13 +594,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (socket && room && !actionLoading) {
       set({ actionLoading: true });
       socket.emit(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN, { code: room.code });
-    }
-  },
-
-  theMindTimeout: () => {
-    const { socket, room } = get();
-    if (socket && room?.code) {
-      socket.emit(SOCKET_EVENTS.THE_MIND_TIMEOUT, { code: room.code });
     }
   },
 
