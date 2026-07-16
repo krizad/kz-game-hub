@@ -28,12 +28,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
+    client.use(([event, payload], next) => {
+      if (this.isValidPayload(event, payload)) return next();
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+      next(new Error('Invalid request payload'));
+    });
   }
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
 
-    const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? '';
+    const currentRoomCode =
+      this.gamesService.findRoomCodeBySocketId(client.id) ?? client.data.spectatingRoomCode ?? '';
     const result = this.gamesService.leaveRoom(client.id, false);
     if (result && 'code' in result && result.code === null) {
       // Room was deleted because the host left, notify everyone in that room
@@ -89,6 +95,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (currentRoomCode) {
       client.leave(currentRoomCode);
     }
+    client.data.spectatingRoomCode = undefined;
   }
 
   @SubscribeMessage(SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
@@ -104,12 +111,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.createRoom(client.id, data.gameType);
     const updatedRoom = this.gamesService.joinRoom(room.code, {
       id: client.id,
-      name: data.name,
+      name: data.name.trim(),
       socketId: client.id,
     });
 
     if (updatedRoom) {
       client.join(updatedRoom.code);
+      this.emitSessionToken(client, updatedRoom.code);
       client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
@@ -120,17 +128,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(SOCKET_EVENTS.JOIN_ROOM)
   handleJoinRoom(
-    @MessageBody() data: { code: string; name: string },
+    @MessageBody() data: { code: string; name: string; reconnectToken?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.joinRoom(data.code.toUpperCase(), {
-      id: client.id, // using socketId as temp ID
-      name: data.name,
-      socketId: client.id,
-    });
+    const room = this.gamesService.joinRoom(
+      data.code.toUpperCase(),
+      {
+        id: client.id, // using socketId as temp ID
+        name: data.name.trim(),
+        socketId: client.id,
+      },
+      data.reconnectToken,
+    );
 
     if (room) {
       client.join(room.code);
+      this.emitSessionToken(client, room.code);
       this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
@@ -153,7 +166,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     } else {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
+      client.emit(SOCKET_EVENTS.ERROR, {
+        message: 'Room not found or player name is already in use',
+      });
     }
   }
 
@@ -834,7 +849,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN)
-  handleTheMindCancelShuriken(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+  handleTheMindCancelShuriken(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
     const updatedRoom = this.gamesService.theMindCancelShuriken(data.code, client.id);
     if (updatedRoom) {
       this.server.to(data.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
@@ -869,34 +887,79 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { code: string; name: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.getRoom(data.code);
+    const room = this.gamesService.getRoom(data.code.toUpperCase());
     if (!room) {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
       return;
     }
 
-    // Spectators join as a non-playing observer
-    const existing = room.players.find((p) => p.name === data.name);
-    if (existing) {
-      existing.socketId = client.id;
-      existing.connected = true;
-    } else {
-      room.players.push({
-        id: client.id,
-        name: data.name,
-        socketId: client.id,
-        score: 0,
-        roomId: room.id,
-        connected: true,
-      });
-    }
-
     client.join(room.code);
-    this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
-    this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+    client.data.spectatingRoomCode = room.code;
+    client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
   }
 
   // --- Private helpers ---
+
+  private emitSessionToken(client: Socket, code: string): void {
+    const reconnectToken = this.gamesService.getReconnectToken(code, client.id);
+    if (reconnectToken) {
+      client.emit(SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken });
+    }
+  }
+
+  private isValidPayload(event: string, payload: unknown): boolean {
+    if (event === 'leave_room' || event === SOCKET_EVENTS.GET_AVAILABLE_ROOMS) return true;
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+
+    const data = payload as Record<string, unknown>;
+    if (!this.hasSafeValues(data)) return false;
+    if (event === 'create_room') {
+      return (
+        this.isValidName(data.name) &&
+        (data.gameType === undefined || Object.values(GameType).includes(data.gameType as GameType))
+      );
+    }
+    if (event === SOCKET_EVENTS.LEADERBOARD_GET) {
+      return data.gameType === undefined || typeof data.gameType === 'string';
+    }
+    if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code)) return false;
+    if (event === SOCKET_EVENTS.JOIN_ROOM || event === SOCKET_EVENTS.SPECTATE_JOIN) {
+      return (
+        this.isValidName(data.name) &&
+        (data.reconnectToken === undefined ||
+          (typeof data.reconnectToken === 'string' && data.reconnectToken.length <= 100))
+      );
+    }
+    if (event === SOCKET_EVENTS.UPDATE_CONFIG) {
+      return !!data.config && typeof data.config === 'object' && !Array.isArray(data.config);
+    }
+    if (event === SOCKET_EVENTS.GAME_ACTION) {
+      return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
+    }
+    return true;
+  }
+
+  private isValidName(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 40;
+  }
+
+  private hasSafeValues(value: unknown, depth = 0): boolean {
+    if (depth > 4) return false;
+    if (typeof value === 'string') return value.length <= 500;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'boolean' || value === null || value === undefined) return true;
+    if (Array.isArray(value)) {
+      return value.length <= 100 && value.every((item) => this.hasSafeValues(item, depth + 1));
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value);
+      return (
+        entries.length <= 50 &&
+        entries.every(([key, item]) => key.length <= 100 && this.hasSafeValues(item, depth + 1))
+      );
+    }
+    return false;
+  }
 
   private maybeRecordGameResult(room: RoomState) {
     if (room.status !== RoomStatus.RESULT) return;

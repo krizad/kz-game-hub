@@ -14,6 +14,7 @@ import { toast } from 'react-hot-toast';
 interface GameState {
   socket: Socket | null;
   connected: boolean;
+  isSpectator: boolean;
   room: RoomState | null;
   myRole: Role | null;
   myName: string;
@@ -94,6 +95,7 @@ interface GameState {
 export const useGameStore = create<GameState>((set, get) => ({
   socket: null,
   connected: false,
+  isSpectator: false,
   room: null,
   myRole: null,
   myName: '',
@@ -125,9 +127,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Auto-reconnect if session exists
       const savedCode = localStorage.getItem('who-know-roomCode');
       const savedName = localStorage.getItem('who-know-name');
+      const reconnectToken = localStorage.getItem('who-know-reconnectToken');
       if (savedCode && savedName) {
         set({ myName: savedName });
-        socket.emit(SOCKET_EVENTS.JOIN_ROOM, { code: savedCode, name: savedName });
+        socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
+          code: savedCode,
+          name: savedName,
+          ...(reconnectToken ? { reconnectToken } : {}),
+        });
       }
 
       // Request active rooms lobby
@@ -145,7 +152,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       // If we're not in the room's player list, ignore this update
       // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
-      if (!isMe) return;
+      if (!isMe && !get().isSpectator) return;
 
       if (room.status === RoomStatus.LOBBY) {
         set({ room, myRole: null, secretWord: null, isLoading: false, actionLoading: false });
@@ -162,18 +169,29 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({ room, isLoading: false, actionLoading: false });
       }
 
-      // Save session
-      localStorage.setItem('who-know-roomCode', room.code);
-      localStorage.setItem('who-know-name', currentName);
+      if (!get().isSpectator) {
+        localStorage.setItem('who-know-roomCode', room.code);
+        localStorage.setItem('who-know-name', currentName);
+      }
     });
 
     socket.on(SOCKET_EVENTS.ROLE_ASSIGNED, ({ role }: { role: Role }) => {
       set({ myRole: role });
     });
 
+    socket.on(
+      SOCKET_EVENTS.SESSION_ASSIGNED,
+      ({ code, reconnectToken }: { code: string; reconnectToken: string }) => {
+        localStorage.setItem('who-know-roomCode', code);
+        localStorage.setItem('who-know-reconnectToken', reconnectToken);
+        set({ isSpectator: false });
+      },
+    );
+
     socket.on(SOCKET_EVENTS.ROOM_DELETED, () => {
       localStorage.removeItem('who-know-roomCode');
-      set({ room: null, myRole: null, secretWord: null });
+      localStorage.removeItem('who-know-reconnectToken');
+      set({ room: null, myRole: null, secretWord: null, isSpectator: false });
       toast.error('The Room Host has left. Room has been closed.');
     });
 
@@ -194,9 +212,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
-      if (message === 'Room not found') {
+      if (message.startsWith('Room not found')) {
         localStorage.removeItem('who-know-roomCode');
-        set({ room: null });
+        localStorage.removeItem('who-know-reconnectToken');
+        set({ room: null, isSpectator: false });
       }
       set({ isLoading: false, actionLoading: false });
       toast.error(message);
@@ -286,7 +305,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (socket) {
       socket.emit('leave_room');
       localStorage.removeItem('who-know-roomCode');
-      set({ room: null, myRole: null, secretWord: null });
+      localStorage.removeItem('who-know-reconnectToken');
+      set({ room: null, myRole: null, secretWord: null, isSpectator: false });
     }
   },
 
@@ -384,8 +404,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_TYPE_ANSWER, { code: room.code, answer });
     }
   },
-
-
 
   soundsFishySubmitAnswer: (answer: string) => {
     const { socket, room, actionLoading } = get();
@@ -580,7 +598,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   spectateJoin: (code: string) => {
     const { socket, myName } = get();
     if (socket && myName) {
-      set({ isLoading: true });
+      set({ isLoading: true, isSpectator: true });
       socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: code.toUpperCase(), name: myName });
     }
   },

@@ -34,6 +34,7 @@ export enum GameType {
 // Socket Constants
 export const SOCKET_EVENTS = {
   JOIN_ROOM: 'join_room',
+  SESSION_ASSIGNED: 'session_assigned',
   ROOM_STATE_UPDATED: 'room_state_updated',
   ROOM_DELETED: 'room_deleted',
   START_GAME: 'start_game',

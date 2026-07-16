@@ -1,4 +1,4 @@
-import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../music-source-adapter';
+import { MusicSourceAdapter, TrackResult } from '../music-source-adapter';
 
 /**
  * Deezer Search API adapter.
@@ -22,11 +22,7 @@ export interface DeezerTrack {
 export class DeezerAdapter implements MusicSourceAdapter {
   readonly sourceType = 'DEEZER' as const;
 
-  async search(
-    query: string,
-    limit: number,
-    options?: MusicSourceSearchOptions,
-  ): Promise<TrackResult[]> {
+  async search(query: string, limit: number): Promise<TrackResult[]> {
     const params = new URLSearchParams({
       q: query,
       limit: '50', // fetch more to allow randomization

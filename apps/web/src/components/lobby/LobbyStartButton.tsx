@@ -6,7 +6,7 @@ import { GameType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function LobbyStartButton() {
-  const { room, startGame, secretWord, submitWordsWhoAmI, isLoading } = useGameStore();
+  const { room, startGame, submitWordsWhoAmI, isLoading } = useGameStore();
   const { t } = useTranslate();
   const [showHostWordModal, setShowHostWordModal] = useState(false);
   const [hostWordInputs, setHostWordInputs] = useState<Record<string, string>>({});

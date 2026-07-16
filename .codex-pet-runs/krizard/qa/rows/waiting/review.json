@@ -1,0 +1,116 @@
+{
+  "ok": true,
+  "frames_root": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames",
+  "states": [
+    "waiting"
+  ],
+  "errors": [],
+  "warnings": [
+    "waiting used extraction method stable-slots; confirm motion playback remains stable and unclipped"
+  ],
+  "rows": [
+    {
+      "state": "waiting",
+      "expected_frames": 6,
+      "actual_frames": 6,
+      "extraction_method": "stable-slots",
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "waiting used extraction method stable-slots; confirm motion playback remains stable and unclipped"
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames/waiting/00.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 15147,
+          "bbox": [
+            32,
+            5,
+            159,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 375
+        },
+        {
+          "index": 1,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames/waiting/01.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 13839,
+          "bbox": [
+            39,
+            10,
+            152,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 352
+        },
+        {
+          "index": 2,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames/waiting/02.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 14310,
+          "bbox": [
+            35,
+            5,
+            156,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 370
+        },
+        {
+          "index": 3,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames/waiting/03.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 13852,
+          "bbox": [
+            41,
+            9,
+            150,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 331
+        },
+        {
+          "index": 4,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames/waiting/04.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 13586,
+          "bbox": [
+            39,
+            10,
+            151,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 311
+        },
+        {
+          "index": 5,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/waiting/frames/waiting/05.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 14637,
+          "bbox": [
+            33,
+            7,
+            158,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 335
+        }
+      ]
+    }
+  ]
+}

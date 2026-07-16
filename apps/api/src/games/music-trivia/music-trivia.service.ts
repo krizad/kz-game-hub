@@ -143,6 +143,11 @@ export class MusicTriviaService {
     return room;
   }
 
+  deleteRoomData(roomCode: string): void {
+    this.trackAnswers.delete(roomCode);
+    this.fullTracks.delete(roomCode);
+  }
+
   /**
    * Remap socketIds on reconnection.
    */
@@ -188,6 +193,11 @@ export class MusicTriviaService {
   private playerReady(room: RoomState, clientId: string): MusicTriviaActionResult | null {
     const state = room.musicTriviaState!;
     if (state.phase !== 'GET_READY') return null;
+    if (
+      !room.players.some((player) => player.socketId === clientId && player.connected !== false)
+    ) {
+      return null;
+    }
 
     if (!state.readyPlayerIds.includes(clientId)) {
       state.readyPlayerIds.push(clientId);

@@ -3,6 +3,15 @@ import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../mu
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YouTube = require('youtube-sr').default;
 
+interface YouTubeVideo {
+  id?: string;
+  title?: string;
+  duration?: number;
+  url?: string;
+  channel?: { name?: string };
+  thumbnail?: { url?: string };
+}
+
 export class YouTubeAdapter implements MusicSourceAdapter {
   readonly sourceType: MusicSourceType = 'YOUTUBE';
 
@@ -28,7 +37,10 @@ export class YouTubeAdapter implements MusicSourceAdapter {
     try {
       // Search for videos. We append 'official audio' or 'lyrics' optionally but just query is fine
       // youtube-sr handles normal youtube search which yields highly embeddable videos
-      const videos = await YouTube.search(searchQuery, { type: 'video', limit: limit + 5 });
+      const videos: YouTubeVideo[] = await YouTube.search(searchQuery, {
+        type: 'video',
+        limit: limit + 5,
+      });
 
       if (!videos || videos.length === 0) {
         console.warn('[YouTubeAdapter] No videos found on YouTube:', searchQuery);
@@ -36,7 +48,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       }
 
       // Filter out overly long videos (mixes, full albums) - keep it under 10 minutes
-      let results = videos.filter((v: any) => v.duration && v.duration < 600000);
+      let results = videos.filter((video) => video.duration && video.duration < 600000);
 
       // If filtering removed everything, just fallback to whatever we found
       if (results.length === 0) {
@@ -46,7 +58,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       results = results.slice(0, limit);
       console.log(`[YouTubeAdapter] Search completed. Returning ${results.length} videos.`);
 
-      return results.map((item: any) => {
+      return results.map((item) => {
         const title = item.title || 'Unknown Title';
         const artist = item.channel?.name || 'Unknown Artist';
         const videoId = item.id;

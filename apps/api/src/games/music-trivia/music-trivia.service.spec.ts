@@ -152,6 +152,29 @@ describe('MusicTriviaService', () => {
     });
   });
 
+  it('should reject PLAYER_READY from a socket that is not an active player', async () => {
+    const room: RoomState = {
+      id: 'room-1',
+      gameType: GameType.MUSIC_TRIVIA,
+      code: 'ABCDEF',
+      status: RoomStatus.LOBBY,
+      roomHostId: 'host-1',
+      players: [
+        { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' },
+        { id: '2', socketId: 'player-2', name: 'Player', score: 0, roomId: 'room-1' },
+      ],
+      createdAt: new Date(),
+      config: { hostSelection: 'FIXED', timerMin: 5 },
+    };
+    service.startGame(room, 'host-1');
+    room.musicTriviaState!.phase = 'GET_READY';
+
+    const result = await service.handleGameAction(room, 'attacker', { type: 'PLAYER_READY' });
+
+    expect(result).toBeNull();
+    expect(room.musicTriviaState!.readyPlayerIds).toEqual([]);
+  });
+
   // More tests would be written to cover configureSource (mocking adapter),
   // pressBuzzer, submitAnswer, etc. but basic coverage is here for the core logic.
 });

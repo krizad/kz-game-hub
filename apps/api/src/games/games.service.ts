@@ -4,6 +4,7 @@ import {
   RoomStatus,
   Role,
   UserState,
+  RoomConfig,
   GameType,
   RPSChoice,
   WordCategory,
@@ -22,11 +23,11 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 
-
 @Injectable()
 export class GamesService {
   private rooms: Map<string, RoomState> = new Map();
   private readonly secretWords: Map<string, string> = new Map();
+  private readonly reconnectTokens = new Map<string, Map<string, string>>();
 
   constructor(
     private readonly whoKnowService: WhoKnowService,
@@ -54,8 +55,22 @@ export class GamesService {
     return this.rooms.get(code);
   }
 
+  getReconnectToken(code: string, socketId: string): string | null {
+    const room = this.rooms.get(code);
+    const player = room?.players.find((candidate) => candidate.socketId === socketId);
+    if (!player) return null;
+
+    const tokenEntry = [...(this.reconnectTokens.get(code)?.entries() ?? [])].find(
+      ([, playerId]) => playerId === player.id,
+    );
+    return tokenEntry?.[0] ?? null;
+  }
+
   createRoom(hostId: string, gameType: GameType = GameType.WHO_KNOW): RoomState {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    let code: string;
+    do {
+      code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    } while (this.rooms.has(code));
     const room: RoomState = {
       id: uuidv4(),
       gameType,
@@ -136,11 +151,23 @@ export class GamesService {
     return room;
   }
 
-  joinRoom(code: string, user: Omit<UserState, 'score' | 'roomId' | 'role'>): RoomState | null {
+  joinRoom(
+    code: string,
+    user: Omit<UserState, 'score' | 'roomId' | 'role'>,
+    reconnectToken?: string,
+  ): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
 
-    const existingPlayer = room.players.find((p) => p.name === user.name);
+    const playerId = reconnectToken
+      ? this.reconnectTokens.get(code)?.get(reconnectToken)
+      : undefined;
+    const existingPlayer = playerId
+      ? room.players.find((player) => player.id === playerId && player.name === user.name)
+      : undefined;
+    const duplicateName = room.players.some((player) => player.name === user.name);
+
+    if (!existingPlayer && duplicateName) return null;
 
     if (existingPlayer) {
       const oldSocketId = existingPlayer.socketId;
@@ -294,24 +321,33 @@ export class GamesService {
     } else {
       const usedColors = new Set(room.players.map((p) => p.color));
       const availableColors = PLAYER_COLORS.filter((c) => !usedColors.has(c));
-      const color = availableColors.length > 0 
-        ? availableColors[Math.floor(Math.random() * availableColors.length)] 
-        : PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+      const color =
+        availableColors.length > 0
+          ? availableColors[Math.floor(Math.random() * availableColors.length)]
+          : PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
 
       const usedAvatars = new Set(room.players.map((p) => p.avatar));
       const availableAvatars = ANIMAL_EMOJIS.filter((a) => !usedAvatars.has(a));
-      const avatar = availableAvatars.length > 0
-        ? availableAvatars[Math.floor(Math.random() * availableAvatars.length)]
-        : ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+      const avatar =
+        availableAvatars.length > 0
+          ? availableAvatars[Math.floor(Math.random() * availableAvatars.length)]
+          : ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
 
       room.players.push({
         ...user,
+        id: uuidv4(),
         score: 0,
         roomId: room.id,
         connected: true,
         color,
         avatar,
       });
+
+      const newPlayer = room.players[room.players.length - 1];
+      const token = uuidv4();
+      const roomTokens = this.reconnectTokens.get(code) ?? new Map<string, string>();
+      roomTokens.set(token, newPlayer.id);
+      this.reconnectTokens.set(code, roomTokens);
     }
 
     this.rooms.set(code, room);
@@ -324,13 +360,13 @@ export class GamesService {
       if (playerIndex !== -1) {
         if (room.roomHostId === clientId) {
           if (explicitLeave || room.status === RoomStatus.LOBBY) {
-            this.rooms.delete(code);
-            this.secretWords.delete(code);
+            this.deleteRoomData(code);
             return { code: null };
           }
         }
 
         if (explicitLeave || room.status === RoomStatus.LOBBY) {
+          this.revokeReconnectToken(code, room.players[playerIndex].id);
           room.players.splice(playerIndex, 1);
         } else {
           room.players[playerIndex].connected = false;
@@ -345,8 +381,7 @@ export class GamesService {
 
         const activePlayers = room.players.filter((p) => p.connected !== false).length;
         if (activePlayers === 0) {
-          this.rooms.delete(code);
-          this.secretWords.delete(code);
+          this.deleteRoomData(code);
           return null;
         }
 
@@ -355,6 +390,22 @@ export class GamesService {
       }
     }
     return null;
+  }
+
+  private revokeReconnectToken(code: string, playerId: string): void {
+    const roomTokens = this.reconnectTokens.get(code);
+    if (!roomTokens) return;
+
+    for (const [token, tokenPlayerId] of roomTokens.entries()) {
+      if (tokenPlayerId === playerId) roomTokens.delete(token);
+    }
+  }
+
+  private deleteRoomData(code: string): void {
+    this.rooms.delete(code);
+    this.secretWords.delete(code);
+    this.reconnectTokens.delete(code);
+    this.musicTriviaService.deleteRoomData(code);
   }
 
   getAvailableRooms(): {
@@ -387,9 +438,77 @@ export class GamesService {
 
     if (room.roomHostId !== requesterId) return null;
 
-    room.config = { ...room.config, ...config };
+    const safeConfig = this.sanitizeRoomConfig(config);
+    room.config = { ...room.config, ...safeConfig };
     this.rooms.set(code, room);
     return room;
+  }
+
+  private sanitizeRoomConfig(config: Partial<RoomConfig>): Partial<RoomConfig> {
+    const result: Partial<RoomConfig> = {};
+    const isIntegerInRange = (value: unknown, min: number, max: number): value is number =>
+      Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
+    const copyEnum = <K extends keyof RoomConfig>(key: K, allowed: readonly unknown[]) => {
+      if (allowed.includes(config[key])) result[key] = config[key];
+    };
+    const copyBoolean = <K extends keyof RoomConfig>(key: K) => {
+      if (typeof config[key] === 'boolean') result[key] = config[key];
+    };
+    const copyInteger = <K extends keyof RoomConfig>(key: K, min: number, max: number) => {
+      if (isIntegerInRange(config[key], min, max)) {
+        result[key] = config[key];
+      }
+    };
+
+    copyEnum('hostSelection', ['ROUND_ROBIN', 'RANDOM', 'FIXED']);
+    copyInteger('timerMin', 1, 60);
+    copyInteger('rpsBestOf', 1, 9);
+    copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
+    copyEnum('language', ['en', 'th']);
+    copyInteger('maxRounds', 1, 100);
+    copyEnum('wordMode', ['HOST_INPUT', 'RANDOM', 'PLAYER_INPUT', 'AI_GENERATED']);
+    if (typeof config.wordCategory === 'string' && config.wordCategory.length <= 100) {
+      result.wordCategory = config.wordCategory;
+    }
+    copyBoolean('whoFirstPenalty');
+    copyInteger('whoFirstCooldownMs', 100, 60_000);
+    copyBoolean('whoFirstHostPlays');
+    copyInteger('whoFirstMinCountdownMs', 100, 60_000);
+    copyInteger('whoFirstMaxCountdownMs', 100, 60_000);
+    copyBoolean('whoFirstInfiniteRounds');
+    copyBoolean('whoFirstShowCounter');
+    copyEnum('musicTriviaMode', ['TYPING', 'GAME_MASTER']);
+    copyEnum('musicTriviaSource', ['ITUNES', 'SPOTIFY', 'YOUTUBE', 'DEEZER', 'SOUNDCLOUD']);
+    if (typeof config.musicTriviaQuery === 'string' && config.musicTriviaQuery.length <= 200) {
+      result.musicTriviaQuery = config.musicTriviaQuery;
+    }
+    if (
+      typeof config.musicTriviaCountry === 'string' &&
+      /^[A-Z]{2}$/.test(config.musicTriviaCountry)
+    ) {
+      result.musicTriviaCountry = config.musicTriviaCountry;
+    }
+    if (
+      typeof config.musicTriviaAttribute === 'string' &&
+      config.musicTriviaAttribute.length <= 30
+    ) {
+      result.musicTriviaAttribute = config.musicTriviaAttribute;
+    }
+    copyInteger('musicTriviaRounds', 1, 50);
+    copyInteger('musicTriviaYearStart', 1900, new Date().getFullYear() + 1);
+    copyInteger('musicTriviaYearEnd', 1900, new Date().getFullYear() + 1);
+    copyBoolean('musicTriviaHostPlays');
+    copyInteger('musicTriviaAnswerTimeoutMs', 1_000, 120_000);
+    copyEnum('musicTriviaAudioPlayback', ['HOST_ONLY', 'EVERYONE']);
+    copyEnum('musicTriviaAnswerCriteria', ['ANY', 'TITLE', 'ARTIST']);
+    copyInteger('theMindStartingLives', 1, 10);
+    copyInteger('theMindStartingShurikens', 0, 10);
+    copyBoolean('theMindBlindMode');
+    copyEnum('theMindMode', ['NORMAL', 'EXTREME']);
+    copyBoolean('theMindTimeAttack');
+    copyInteger('theMindMaxLevel', 1, 20);
+
+    return result;
   }
 
   // --- Delegation to Game Services ---
@@ -846,7 +965,12 @@ export class GamesService {
     return updatedRoom;
   }
 
-  theMindPlayCard(code: string, clientId: string, card: number, pile?: 'UP' | 'DOWN'): RoomState | null {
+  theMindPlayCard(
+    code: string,
+    clientId: string,
+    card: number,
+    pile?: 'UP' | 'DOWN',
+  ): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
     const updatedRoom = this.theMindService.playCard(room, clientId, card, pile);
@@ -889,6 +1013,7 @@ export class GamesService {
   theMindTimeout(code: string, clientId: string): RoomState | null {
     const room = this.rooms.get(code);
     if (!room || room.gameType !== GameType.THE_MIND) return null;
+    if (room.roomHostId !== clientId) return null;
     const updatedRoom = this.theMindService.handleTimeout(room);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;

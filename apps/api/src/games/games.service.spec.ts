@@ -91,6 +91,7 @@ describe('GamesService', () => {
       finalizeCountdown: jest.fn(),
       resetGame: jest.fn(),
       remapSocketId: jest.fn(),
+      deleteRoomData: jest.fn(),
     },
     theMind: {
       startGame: jest.fn(),
@@ -101,6 +102,7 @@ describe('GamesService', () => {
       voteShuriken: jest.fn(),
       cancelShurikenProposal: jest.fn(),
       resetGame: jest.fn(),
+      handleTimeout: jest.fn(),
     },
   };
 
@@ -133,6 +135,7 @@ describe('GamesService', () => {
     whoAmIService = module.get(WhoAmIService) as jest.Mocked<WhoAmIService>;
     (service as any).rooms.clear();
     (service as any).secretWords.clear();
+    (service as any).reconnectTokens.clear();
   });
 
   it('should be defined', () => {
@@ -261,15 +264,20 @@ describe('GamesService', () => {
       expect(updatedRoom!.players[0].connected).toBe(true);
     });
 
-    it('should reconnect with new socketId if player name matches', () => {
+    it('should reconnect with a valid server-issued token', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'oldSock', name: 'Player1', socketId: 'oldSock' });
+      const reconnectToken = service.getReconnectToken(room.code, 'oldSock')!;
 
-      const updatedRoom = service.joinRoom(room.code, {
-        id: 'newSock',
-        name: 'Player1',
-        socketId: 'newSock',
-      });
+      const updatedRoom = service.joinRoom(
+        room.code,
+        {
+          id: 'newSock',
+          name: 'Player1',
+          socketId: 'newSock',
+        },
+        reconnectToken,
+      );
 
       expect(updatedRoom).not.toBeNull();
       expect(updatedRoom!.players).toHaveLength(1);
@@ -280,12 +288,17 @@ describe('GamesService', () => {
     it('should update host socketId on reconnection if player was host', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      const reconnectToken = service.getReconnectToken(room.code, 'host1')!;
 
-      const updatedRoom = service.joinRoom(room.code, {
-        id: 'newHostSock',
-        name: 'Host',
-        socketId: 'newHostSock',
-      });
+      const updatedRoom = service.joinRoom(
+        room.code,
+        {
+          id: 'newHostSock',
+          name: 'Host',
+          socketId: 'newHostSock',
+        },
+        reconnectToken,
+      );
 
       expect(updatedRoom!.roomHostId).toBe('newHostSock');
     });
@@ -294,19 +307,38 @@ describe('GamesService', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
       service.joinRoom(room.code, { id: 'p2', name: 'Player2', socketId: 'p2' });
+      const reconnectToken = service.getReconnectToken(room.code, 'p1')!;
 
       room.votes = { p1: 'p2', p2: 'p1' };
       (service as any).rooms.set(room.code, room);
 
-      const updatedRoom = service.joinRoom(room.code, {
-        id: 'p1New',
-        name: 'Player1',
-        socketId: 'p1New',
-      });
+      const updatedRoom = service.joinRoom(
+        room.code,
+        {
+          id: 'p1New',
+          name: 'Player1',
+          socketId: 'p1New',
+        },
+        reconnectToken,
+      );
 
       expect(updatedRoom!.votes!['p1New']).toBe('p2');
       expect(updatedRoom!.votes!['p1']).toBeUndefined();
       expect(updatedRoom!.votes!['p2']).toBe('p1New');
+    });
+
+    it('should reject reconnect attempts that only reuse an existing player name', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+
+      const hijackAttempt = service.joinRoom(room.code, {
+        id: 'attacker',
+        name: 'Host',
+        socketId: 'attacker',
+      });
+
+      expect(hijackAttempt).toBeNull();
+      expect(room.roomHostId).toBe('host1');
     });
 
     it('should persist room in the store', () => {
@@ -882,6 +914,43 @@ describe('GamesService', () => {
       const result = service.whoAmIStartHostInput(room.code, 'host1', playerWords);
       expect(whoAmIService.startGameHostInput).toHaveBeenCalledWith(room, 'host1', playerWords);
       expect(result).not.toBeNull();
+    });
+  });
+
+  describe('authorization and cleanup', () => {
+    it('should only allow the host to trigger The Mind timeout', () => {
+      const room = service.createRoom('host1', GameType.THE_MIND);
+      mockGameServices.theMind.handleTimeout.mockReturnValue(room);
+
+      expect(service.theMindTimeout(room.code, 'attacker')).toBeNull();
+      expect(mockGameServices.theMind.handleTimeout).not.toHaveBeenCalled();
+
+      expect(service.theMindTimeout(room.code, 'host1')).toBe(room);
+      expect(mockGameServices.theMind.handleTimeout).toHaveBeenCalledWith(room);
+    });
+
+    it('should remove Music Trivia private data when deleting a room', () => {
+      const room = service.createRoom('host1', GameType.MUSIC_TRIVIA);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+
+      service.leaveRoom('host1', true);
+
+      expect(mockGameServices.musicTrivia.deleteRoomData).toHaveBeenCalledWith(room.code);
+    });
+
+    it('should discard unknown and out-of-range room config values', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+
+      const result = service.updateConfig(room.code, 'host1', {
+        timerMin: 999,
+        language: 'en',
+        unknown: 'value',
+      } as Partial<RoomState['config']> & { unknown: string });
+
+      expect(result?.config.timerMin).toBe(5);
+      expect(result?.config.language).toBe('en');
+      expect(result?.config).not.toHaveProperty('unknown');
     });
   });
 });

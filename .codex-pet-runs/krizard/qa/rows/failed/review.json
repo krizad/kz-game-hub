@@ -1,0 +1,146 @@
+{
+  "ok": true,
+  "frames_root": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames",
+  "states": [
+    "failed"
+  ],
+  "errors": [],
+  "warnings": [
+    "failed used extraction method stable-slots; confirm motion playback remains stable and unclipped"
+  ],
+  "rows": [
+    {
+      "state": "failed",
+      "expected_frames": 8,
+      "actual_frames": 8,
+      "extraction_method": "stable-slots",
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "failed used extraction method stable-slots; confirm motion playback remains stable and unclipped"
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/00.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 15644,
+          "bbox": [
+            32,
+            5,
+            160,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 357
+        },
+        {
+          "index": 1,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/01.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 14145,
+          "bbox": [
+            35,
+            10,
+            157,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 381
+        },
+        {
+          "index": 2,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/02.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 12636,
+          "bbox": [
+            38,
+            23,
+            154,
+            202
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 351
+        },
+        {
+          "index": 3,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/03.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 11338,
+          "bbox": [
+            39,
+            38,
+            153,
+            201
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 325
+        },
+        {
+          "index": 4,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/04.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 9277,
+          "bbox": [
+            42,
+            66,
+            150,
+            200
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 266
+        },
+        {
+          "index": 5,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/05.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 10794,
+          "bbox": [
+            38,
+            51,
+            154,
+            200
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 322
+        },
+        {
+          "index": 6,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/06.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 10838,
+          "bbox": [
+            41,
+            44,
+            151,
+            200
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 295
+        },
+        {
+          "index": 7,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/failed/frames/failed/07.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 14720,
+          "bbox": [
+            36,
+            6,
+            156,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 353
+        }
+      ]
+    }
+  ]
+}

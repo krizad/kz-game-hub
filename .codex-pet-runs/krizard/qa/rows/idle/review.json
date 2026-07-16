@@ -1,0 +1,116 @@
+{
+  "ok": true,
+  "frames_root": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames",
+  "states": [
+    "idle"
+  ],
+  "errors": [],
+  "warnings": [
+    "idle used extraction method stable-slots; confirm motion playback remains stable and unclipped"
+  ],
+  "rows": [
+    {
+      "state": "idle",
+      "expected_frames": 6,
+      "actual_frames": 6,
+      "extraction_method": "stable-slots",
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "idle used extraction method stable-slots; confirm motion playback remains stable and unclipped"
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames/idle/00.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 14351,
+          "bbox": [
+            60,
+            5,
+            160,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 237
+        },
+        {
+          "index": 1,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames/idle/01.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 16184,
+          "bbox": [
+            31,
+            5,
+            160,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 276
+        },
+        {
+          "index": 2,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames/idle/02.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 15797,
+          "bbox": [
+            31,
+            7,
+            160,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 275
+        },
+        {
+          "index": 3,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames/idle/03.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 15623,
+          "bbox": [
+            31,
+            7,
+            160,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 310
+        },
+        {
+          "index": 4,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames/idle/04.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 15670,
+          "bbox": [
+            31,
+            7,
+            160,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 296
+        },
+        {
+          "index": 5,
+          "file": "/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub/.codex-pet-runs/krizard/qa/rows/idle/frames/idle/05.png",
+          "width": 192,
+          "height": 208,
+          "nontransparent_pixels": 14544,
+          "bbox": [
+            31,
+            10,
+            150,
+            203
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 256
+        }
+      ]
+    }
+  ]
+}
