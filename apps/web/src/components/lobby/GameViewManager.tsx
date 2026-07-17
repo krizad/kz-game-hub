@@ -10,7 +10,7 @@ import { DetectiveClubView } from '@/components/games/detective-club/DetectiveCl
 import { WhoAmIView } from '@/components/games/who-am-i/WhoAmIView';
 import { MusicTriviaView } from '@/components/games/music-trivia/MusicTriviaView';
 import { WhoFirstView } from '@/components/games/who-first/WhoFirstView';
-import { TheMindView } from '@/components/games/the-mind/TheMindView';
+import { TheMindGameView } from '@/components/games/the-mind/TheMindGameView';
 import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
@@ -36,7 +36,7 @@ export function GameViewManager() {
     if (room.gameType === GameType.MUSIC_TRIVIA && room.status !== RoomStatus.LOBBY)
       return <MusicTriviaView />;
     if (room.gameType === GameType.WHO_FIRST) return <WhoFirstView />;
-    if (room.gameType === GameType.THE_MIND) return <TheMindView />;
+    if (room.gameType === GameType.THE_MIND) return <TheMindGameView />;
 
     return (
       <div className="flex-1 flex flex-col bg-white/80 border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-xl min-h-[300px]">
