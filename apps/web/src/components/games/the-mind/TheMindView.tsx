@@ -196,7 +196,19 @@ export function TheMindView() {
       const container = resultCardsContainerRef.current;
       const child = container.children[revealedCount - 1] as HTMLElement;
       if (child) {
-        child.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const containerRect = container.getBoundingClientRect();
+        const childRect = child.getBoundingClientRect();
+        const centeredScrollLeft =
+          container.scrollLeft +
+          childRect.left -
+          containerRect.left -
+          (container.clientWidth - childRect.width) / 2;
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+        container.scrollTo({
+          left: Math.max(0, Math.min(centeredScrollLeft, maxScrollLeft)),
+          behavior: 'smooth',
+        });
       }
     }
   }, [revealedCount]);
@@ -798,6 +810,92 @@ export function TheMindView() {
     </div>
   );
 
+  const renderBlindReveal = () => {
+    if (!room.config?.theMindBlindMode || !state.result) return null;
+
+    const revealFinished = revealedCount === state.playedCards.length;
+
+    return (
+      <div className="space-y-4 text-left">
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <p className="text-sm font-bold text-slate-300 mb-2 uppercase tracking-widest text-center">
+            {t('gameTheMind.game.playedCardsLog')}
+          </p>
+          <div
+            ref={resultCardsContainerRef}
+            className="flex gap-2 overflow-x-auto pb-2 scroll-smooth items-center"
+          >
+            {state.playedCards.map((pc, idx) => {
+              const isRevealed = idx < revealedCount;
+              const playerName = room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
+              const isMistake =
+                isRevealed && !state.result?.success && blindMistakeIndexes.has(idx);
+
+              return (
+                <div
+                  key={idx}
+                  className={`flex-shrink-0 border-2 rounded-lg p-2 text-center min-w-[70px] transition-all duration-500 transform ${
+                    isRevealed
+                      ? isMistake
+                        ? 'bg-rose-100 border-rose-500 scale-110 shadow-lg rotate-3'
+                        : 'bg-white border-slate-200'
+                      : 'bg-slate-700 border-slate-600 scale-95'
+                  }`}
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    perspective: '1000px',
+                  }}
+                >
+                  <div
+                    className="w-full h-full transition-transform duration-500"
+                    style={{
+                      transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)',
+                    }}
+                  >
+                    {isRevealed ? (
+                      <>
+                        <div
+                          className={`text-[10px] truncate w-16 mb-1 ${isMistake ? 'text-rose-600 font-bold' : 'text-slate-400'}`}
+                          title={playerName}
+                        >
+                          {playerName}
+                        </div>
+                        <div
+                          className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}
+                        >
+                          {Math.abs(pc.card)}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-slate-400 font-black text-xl">
+                        ?
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {revealFinished && !state.result.success && (
+          <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center animate-in fade-in zoom-in duration-500">
+            <p className="text-xl font-black text-rose-700 mb-1">{t('gameTheMind.game.mistake')}</p>
+            <p className="text-sm font-medium text-rose-600">
+              {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+            </p>
+          </div>
+        )}
+
+        {revealFinished && state.result.success && (
+          <p className="text-center text-slate-600 font-medium text-lg animate-in fade-in duration-500">
+            {t('gameTheMind.game.levelCleared')}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const renderLevelResult = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
       <Card className="w-full bg-white border shadow-xl rounded-2xl overflow-hidden">
@@ -876,91 +974,13 @@ export function TheMindView() {
             </div>
           )}
 
-          {room.config?.theMindBlindMode && (
-            <div className="space-y-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-                <p className="text-sm font-bold text-slate-300 mb-2 uppercase tracking-widest text-center">
-                  {t('gameTheMind.game.playedCardsLog')}
-                </p>
-                <div
-                  ref={resultCardsContainerRef}
-                  className="flex gap-2 overflow-x-auto pb-2 scroll-smooth items-center"
-                >
-                  {state.playedCards.map((pc, idx) => {
-                    const isRevealed = idx < revealedCount;
-                    const playerName =
-                      room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
-                    const isMistake =
-                      isRevealed && !state.result?.success && blindMistakeIndexes.has(idx);
+          {renderBlindReveal()}
 
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex-shrink-0 border-2 rounded-lg p-2 text-center min-w-[70px] transition-all duration-500 transform ${
-                          isRevealed
-                            ? isMistake
-                              ? 'bg-rose-100 border-rose-500 scale-110 shadow-lg rotate-3'
-                              : 'bg-white border-slate-200'
-                            : 'bg-slate-700 border-slate-600 scale-95'
-                        }`}
-                        style={{
-                          transformStyle: 'preserve-3d',
-                          perspective: '1000px',
-                        }}
-                      >
-                        <div
-                          className="w-full h-full transition-transform duration-500"
-                          style={{
-                            transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)',
-                          }}
-                        >
-                          {isRevealed ? (
-                            <>
-                              <div
-                                className={`text-[10px] truncate w-16 mb-1 ${isMistake ? 'text-rose-600 font-bold' : 'text-slate-400'}`}
-                                title={playerName}
-                              >
-                                {playerName}
-                              </div>
-                              <div
-                                className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}
-                              >
-                                {Math.abs(pc.card)}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-slate-400 font-black text-xl">
-                              ?
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {revealedCount === state.playedCards.length &&
-                state.result &&
-                !state.result.success && (
-                  <div className="bg-rose-100 border border-rose-300 rounded-xl p-4 text-center animate-in fade-in zoom-in duration-500">
-                    <p className="text-xl font-black text-rose-700 mb-1">
-                      {t('gameTheMind.game.mistake')}
-                    </p>
-                    <p className="text-sm font-medium text-rose-600">
-                      {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
-                    </p>
-                  </div>
-                )}
-            </div>
+          {state.result?.success && !room.config?.theMindBlindMode && (
+            <p className="text-center text-slate-600 font-medium text-lg animate-in fade-in duration-500">
+              {t('gameTheMind.game.levelCleared')}
+            </p>
           )}
-
-          {state.result?.success &&
-            (!room.config?.theMindBlindMode || revealedCount === state.playedCards.length) && (
-              <p className="text-center text-slate-600 font-medium text-lg animate-in fade-in duration-500">
-                {t('gameTheMind.game.levelCleared')}
-              </p>
-            )}
           {isHost && (
             <Button
               onClick={() => theMindNextLevel()}
@@ -1053,6 +1073,8 @@ export function TheMindView() {
               )}
             </div>
           )}
+
+          {renderBlindReveal()}
 
           <div className="border-t border-slate-100 pt-4">
             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">
