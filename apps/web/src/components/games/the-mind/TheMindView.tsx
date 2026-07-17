@@ -5,7 +5,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { toast } from 'react-hot-toast';
-import { GameType, TheMindPhase } from '@repo/types';
+import { GameType, getTheMindInvalidPlayIndexes, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Heart, Star, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
@@ -15,7 +15,8 @@ export function TheMindView() {
     room,
     socket,
     socketId,
-    playerId,
+    playerId: storedPlayerId,
+    myName,
     theMindReady,
     theMindPlayCard,
     theMindNextLevel,
@@ -31,6 +32,31 @@ export function TheMindView() {
   const playedCardsContainerRef = React.useRef<HTMLDivElement>(null);
   const resultCardsContainerRef = React.useRef<HTMLDivElement>(null);
   const [revealedCount, setRevealedCount] = React.useState(0);
+  const [selectedExtremeCard, setSelectedExtremeCard] = React.useState<number | null>(null);
+
+  const playerId = React.useMemo(() => {
+    if (!room) return storedPlayerId;
+
+    const currentPlayer = room.players.find(
+      (player) =>
+        player.id === storedPlayerId || player.socketId === socketId || player.name === myName,
+    );
+
+    return currentPlayer?.id ?? storedPlayerId;
+  }, [room, storedPlayerId, socketId, myName]);
+
+  React.useEffect(() => {
+    if (playerId && playerId !== storedPlayerId) {
+      useGameStore.setState({ playerId });
+    }
+  }, [playerId, storedPlayerId]);
+
+  React.useEffect(() => {
+    const currentHand = room?.theMindState?.playerHands[playerId] ?? [];
+    if (selectedExtremeCard !== null && !currentHand.includes(selectedExtremeCard)) {
+      setSelectedExtremeCard(null);
+    }
+  }, [room?.theMindState?.playerHands, playerId, selectedExtremeCard]);
 
   React.useEffect(() => {
     if (playedCardsContainerRef.current) {
@@ -371,6 +397,12 @@ export function TheMindView() {
   const canPlay = state.phase === TheMindPhase.PLAYING;
   const shurikenVote = state.shurikenVotes[playerId];
   const isShurikenProposer = state.shurikenProposerId === playerId;
+  const blindMistakeIndexes = new Set(
+    getTheMindInvalidPlayIndexes(
+      state.playedCards,
+      room.config?.theMindMode === 'EXTREME' ? 'EXTREME' : 'NORMAL',
+    ),
+  );
 
   const renderSetup = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-8 w-full max-w-lg mx-auto p-4">
@@ -474,14 +506,13 @@ export function TheMindView() {
       {room.config?.theMindMode === 'EXTREME' ? (
         <div className="flex gap-4">
           <button
-            disabled={!canPlay || myHand.length === 0}
+            disabled={!canPlay || selectedExtremeCard === null}
             onClick={() => {
-              if (canPlay && myHand.length > 0) {
-                const minCard = Math.min(...myHand);
-                theMindPlayCard(minCard, 'UP');
+              if (canPlay && selectedExtremeCard !== null) {
+                theMindPlayCard(selectedExtremeCard, 'UP');
               }
             }}
-            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && myHand.length > 0 ? 'bg-indigo-50 border-indigo-400 hover:bg-indigo-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-indigo-50 border-indigo-400 hover:bg-indigo-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">
               White Pile (UP)
@@ -489,21 +520,20 @@ export function TheMindView() {
             <span className="text-4xl sm:text-5xl font-black text-indigo-600 leading-none">
               {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
             </span>
-            {canPlay && myHand.length > 0 && (
+            {canPlay && selectedExtremeCard !== null && (
               <div className="mt-2 text-xs text-indigo-500 font-bold bg-indigo-100 rounded-full px-2 py-1 mx-auto w-fit">
-                Play {Math.min(...myHand)}
+                Play {Math.abs(selectedExtremeCard)}
               </div>
             )}
           </button>
           <button
-            disabled={!canPlay || myHand.length === 0}
+            disabled={!canPlay || selectedExtremeCard === null}
             onClick={() => {
-              if (canPlay && myHand.length > 0) {
-                const maxCard = Math.max(...myHand);
-                theMindPlayCard(maxCard, 'DOWN');
+              if (canPlay && selectedExtremeCard !== null) {
+                theMindPlayCard(selectedExtremeCard, 'DOWN');
               }
             }}
-            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && myHand.length > 0 ? 'bg-rose-50 border-rose-400 hover:bg-rose-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-rose-50 border-rose-400 hover:bg-rose-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-1">
               Red Pile (DOWN)
@@ -511,9 +541,9 @@ export function TheMindView() {
             <span className="text-4xl sm:text-5xl font-black text-rose-600 leading-none">
               {room.config?.theMindBlindMode ? '?' : (state.pileTopDOWN ?? 101)}
             </span>
-            {canPlay && myHand.length > 0 && (
+            {canPlay && selectedExtremeCard !== null && (
               <div className="mt-2 text-xs text-rose-500 font-bold bg-rose-100 rounded-full px-2 py-1 mx-auto w-fit">
-                Play {Math.max(...myHand)}
+                Play {Math.abs(selectedExtremeCard)}
               </div>
             )}
           </button>
@@ -577,12 +607,15 @@ export function TheMindView() {
         <div className="flex flex-wrap gap-2 overflow-y-auto justify-center p-1">
           {myHand.map((card) => {
             const isExtreme = room.config?.theMindMode === 'EXTREME';
-            const isPlayable = isExtreme ? false : card === myHand[0];
+            const isPlayable = isExtreme || card === myHand[0];
+            const isSelected = isExtreme && selectedExtremeCard === card;
             const displayCard = Math.abs(card);
 
             let buttonClass = '';
             if (isExtreme) {
-              buttonClass = 'bg-indigo-600 text-white border-indigo-700 cursor-default opacity-80';
+              buttonClass = isSelected
+                ? 'bg-amber-300 text-slate-900 border-amber-500 shadow-lg scale-105 cursor-pointer'
+                : 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-500 cursor-pointer';
             } else if (isPlayable && canPlay) {
               buttonClass =
                 'bg-indigo-600 text-white border-indigo-700 shadow-lg hover:bg-indigo-500 hover:scale-105 cursor-pointer';
@@ -597,11 +630,14 @@ export function TheMindView() {
               <button
                 key={card}
                 onClick={() => {
-                  if (canPlay && isPlayable && room.config?.theMindMode !== 'EXTREME') {
+                  if (canPlay && isExtreme) {
+                    setSelectedExtremeCard(card);
+                  } else if (canPlay && isPlayable) {
                     theMindPlayCard(card, 'UP');
                   }
                 }}
-                disabled={!canPlay || !isPlayable || room.config?.theMindMode === 'EXTREME'}
+                disabled={!canPlay || !isPlayable}
+                aria-pressed={isExtreme ? isSelected : undefined}
                 className={`w-16 h-20 rounded-xl font-black text-xl transition-all duration-200 border-2 ${buttonClass}`}
               >
                 {displayCard}
@@ -835,13 +871,8 @@ export function TheMindView() {
                     const isRevealed = idx < revealedCount;
                     const playerName =
                       room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
-                    let isMistake = false;
-                    if (isRevealed && !state.result?.success) {
-                      const prevCard = idx > 0 ? state.playedCards[idx - 1].card : -1;
-                      if (pc.card < prevCard) {
-                        isMistake = true;
-                      }
-                    }
+                    const isMistake =
+                      isRevealed && !state.result?.success && blindMistakeIndexes.has(idx);
 
                     return (
                       <div
@@ -875,7 +906,7 @@ export function TheMindView() {
                               <div
                                 className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}
                               >
-                                {pc.card}
+                                {Math.abs(pc.card)}
                               </div>
                             </>
                           ) : (

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomState, RoomStatus, TheMindPhase } from '@repo/types';
+import { getTheMindInvalidPlayIndexes, RoomState, RoomStatus, TheMindPhase } from '@repo/types';
 
 @Injectable()
 export class TheMindService {
@@ -125,6 +125,7 @@ export class TheMindService {
     // However, if it's NORMAL mode, we enforce playing the lowest card.
     const isExtreme = room.config?.theMindMode === 'EXTREME';
     if (!isExtreme && hand.length > 0 && card !== hand[0]) return null;
+    if (!isExtreme && pile === 'DOWN') return null;
     if (isExtreme && !pile) return null; // Must specify pile in extreme mode
 
     if (room.config?.theMindBlindMode) {
@@ -140,24 +141,9 @@ export class TheMindService {
       const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
 
       if (allEmpty) {
-        let isSuccess = true;
-        let lastUP = -1;
-        let lastDOWN = 101;
-        for (const pc of state.playedCards) {
-          if (pc.pile === 'DOWN') {
-            if (pc.card > lastDOWN) {
-              isSuccess = false;
-              break;
-            }
-            lastDOWN = pc.card;
-          } else {
-            if (pc.card < lastUP) {
-              isSuccess = false;
-              break;
-            }
-            lastUP = pc.card;
-          }
-        }
+        const isSuccess =
+          getTheMindInvalidPlayIndexes(state.playedCards, isExtreme ? 'EXTREME' : 'NORMAL')
+            .length === 0;
 
         if (isSuccess) {
           if (state.level >= state.maxLevel) {
@@ -419,26 +405,12 @@ export class TheMindService {
 
         const allEmpty = Object.values(state.playerHands).every((h) => h.length === 0);
         if (allEmpty) {
-          let isSuccess = true;
-          if (room.config?.theMindBlindMode) {
-            let lastWhite = -1;
-            let lastRed = -51;
-            for (const pc of state.playedCards) {
-              if (pc.card > 0) {
-                if (pc.card < lastWhite) {
-                  isSuccess = false;
-                  break;
-                }
-                lastWhite = pc.card;
-              } else {
-                if (pc.card < lastRed) {
-                  isSuccess = false;
-                  break;
-                }
-                lastRed = pc.card;
-              }
-            }
-          }
+          const isSuccess =
+            !room.config?.theMindBlindMode ||
+            getTheMindInvalidPlayIndexes(
+              state.playedCards,
+              room.config?.theMindMode === 'EXTREME' ? 'EXTREME' : 'NORMAL',
+            ).length === 0;
 
           if (isSuccess) {
             if (state.level >= state.maxLevel) {
