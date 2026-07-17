@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Heart, Star, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
 
+const THE_MIND_RESULT_TOAST_ID = 'the-mind-result';
+
 export function TheMindView() {
   const {
     room,
@@ -45,6 +47,23 @@ export function TheMindView() {
     return currentPlayer?.id ?? storedPlayerId;
   }, [room, storedPlayerId, socketId, myName]);
 
+  const showResultToast = React.useCallback(
+    (success: boolean) => {
+      const options = {
+        id: THE_MIND_RESULT_TOAST_ID,
+        duration: 3000,
+        position: 'top-center' as const,
+      };
+
+      if (success) {
+        toast.success(t('gameTheMind.game.levelCleared'), options);
+      } else {
+        toast.error(t('gameTheMind.game.mistake'), options);
+      }
+    },
+    [t],
+  );
+
   React.useEffect(() => {
     if (playerId && playerId !== storedPlayerId) {
       useGameStore.setState({ playerId });
@@ -65,6 +84,18 @@ export function TheMindView() {
   }, [room?.theMindState?.playedCards?.length]);
 
   React.useEffect(() => {
+    const currentPhase = room?.theMindState?.phase;
+    if (
+      !currentPhase ||
+      currentPhase === TheMindPhase.LOBBY ||
+      currentPhase === TheMindPhase.SETUP ||
+      currentPhase === TheMindPhase.PLAYING
+    ) {
+      toast.remove(THE_MIND_RESULT_TOAST_ID);
+    }
+  }, [room?.theMindState?.phase]);
+
+  React.useEffect(() => {
     if (!room?.theMindState) return;
     const current = room.theMindState.phase;
     const prev = previousPhaseRef.current;
@@ -76,18 +107,9 @@ export function TheMindView() {
         current === TheMindPhase.GAME_OVER)
     ) {
       if (current === TheMindPhase.LEVEL_RESULT || current === TheMindPhase.GAME_OVER) {
-        if (!room.config?.theMindBlindMode) {
-          if (room.theMindState.result?.success) {
-            toast.success(t('gameTheMind.game.levelCleared'), {
-              duration: 3000,
-              position: 'top-center',
-            });
-          } else {
-            toast.error(t('gameTheMind.game.mistake'), {
-              duration: 3000,
-              position: 'top-center',
-            });
-          }
+        const result = room.theMindState.result;
+        if (!room.config?.theMindBlindMode && result) {
+          showResultToast(result.success);
         }
       }
 
@@ -100,46 +122,42 @@ export function TheMindView() {
       setDisplayPhase(current);
       previousPhaseRef.current = current;
     }
-  }, [room?.theMindState?.phase]);
+  }, [
+    room?.config?.theMindBlindMode,
+    room?.theMindState?.phase,
+    room?.theMindState?.result,
+    showResultToast,
+  ]);
 
   React.useEffect(() => {
+    const actualPhase = room?.theMindState?.phase;
+    const result = room?.theMindState?.result;
+    const isActualResultPhase =
+      actualPhase === TheMindPhase.LEVEL_RESULT || actualPhase === TheMindPhase.GAME_OVER;
+
     if (
       (displayPhase === TheMindPhase.LEVEL_RESULT || displayPhase === TheMindPhase.GAME_OVER) &&
+      isActualResultPhase &&
       room?.config?.theMindBlindMode &&
-      room?.theMindState?.playedCards
+      room?.theMindState?.playedCards &&
+      result
     ) {
       setRevealedCount(0);
       const maxCount = room.theMindState.playedCards.length;
       if (maxCount === 0) {
-        if (room.theMindState.result?.success) {
-          toast.success(t('gameTheMind.game.levelCleared'), {
-            duration: 3000,
-            position: 'top-center',
-          });
-        } else {
-          toast.error(t('gameTheMind.game.mistake'), { duration: 3000, position: 'top-center' });
-        }
+        showResultToast(result.success);
         return;
       }
 
       let count = 0;
+      const wasSuccessful = result.success;
       const timer = setInterval(() => {
         if (count < maxCount) {
           count++;
           setRevealedCount(count);
           if (count === maxCount) {
             clearInterval(timer);
-            if (room.theMindState?.result?.success) {
-              toast.success(t('gameTheMind.game.levelCleared'), {
-                duration: 3000,
-                position: 'top-center',
-              });
-            } else {
-              toast.error(t('gameTheMind.game.mistake'), {
-                duration: 3000,
-                position: 'top-center',
-              });
-            }
+            showResultToast(wasSuccessful);
           }
         } else {
           clearInterval(timer);
@@ -150,9 +168,10 @@ export function TheMindView() {
   }, [
     displayPhase,
     room?.config?.theMindBlindMode,
+    room?.theMindState?.phase,
     room?.theMindState?.playedCards?.length,
     room?.theMindState?.result?.success,
-    t,
+    showResultToast,
   ]);
 
   React.useEffect(() => {
