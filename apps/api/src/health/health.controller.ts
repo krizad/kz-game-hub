@@ -12,15 +12,23 @@ export class HealthController {
   async check() {
     const databaseStartedAt = Date.now();
     let database: { status: 'connected' | 'disconnected'; latencyMs?: number };
+    let timeout: NodeJS.Timeout | undefined;
 
     try {
-      await prisma.$connect();
+      await Promise.race([
+        prisma.$connect(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('database connection timeout')), 3000);
+        }),
+      ]);
       database = {
         status: 'connected',
         latencyMs: Date.now() - databaseStartedAt,
       };
     } catch {
       database = { status: 'disconnected' };
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
 
     const memory = process.memoryUsage();

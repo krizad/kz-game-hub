@@ -44,5 +44,6 @@ graphify-out/
 
 # API FTP deploy artifacts
 deploy-api/
+logs/
 kz-api.zip
 kz-api-*.zip
