@@ -41,3 +41,8 @@ yarn-error.log*
 
 # graphify
 graphify-out/
+
+# API FTP deploy artifacts
+deploy-api/
+kz-api.zip
+kz-api-*.zip

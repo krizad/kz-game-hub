@@ -26,25 +26,19 @@ export class LeaderboardService {
 
   async getLeaderboard(gameType?: string, limit: number = 20): Promise<LeaderboardEntry[]> {
     try {
-      const whereClause = gameType ? 'WHERE "gameType" = $1' : '';
-      const params = gameType ? [gameType, limit] : [limit];
-
-      const results = await prisma.$queryRawUnsafe<
-        { playerName: string; totalScore: bigint; gamesPlayed: bigint }[]
-      >(
-        `SELECT "playerName", SUM("score") as "totalScore", COUNT(*) as "gamesPlayed"
-         FROM "GameResult"
-         ${whereClause}
-         GROUP BY "playerName"
-         ORDER BY "totalScore" DESC
-         LIMIT $${gameType ? 2 : 1}`,
-        ...params,
-      );
+      const results = await prisma.gameResult.groupBy({
+        by: ['playerName'],
+        where: gameType ? { gameType } : undefined,
+        _sum: { score: true },
+        _count: { _all: true },
+        orderBy: { _sum: { score: 'desc' } },
+        take: limit,
+      });
 
       return results.map((r, idx) => ({
         playerName: r.playerName,
-        totalScore: Number(r.totalScore),
-        gamesPlayed: Number(r.gamesPlayed),
+        totalScore: r._sum.score ?? 0,
+        gamesPlayed: r._count._all,
         rank: idx + 1,
       }));
     } catch (error) {
@@ -60,17 +54,17 @@ export class LeaderboardService {
     recentGames: GameResultRecord[];
   } | null> {
     try {
-      const stats = await prisma.$queryRawUnsafe<
-        { totalScore: bigint; gamesPlayed: bigint; wins: bigint }[]
-      >(
-        `SELECT
-           COALESCE(SUM("score"), 0) as "totalScore",
-           COUNT(*) as "gamesPlayed",
-           COALESCE(SUM(CASE WHEN "rank" = 1 THEN 1 ELSE 0 END), 0) as "wins"
-         FROM "GameResult"
-         WHERE "playerName" = $1`,
-        playerName,
-      );
+      const stats = await prisma.gameResult.aggregate({
+        where: { playerName },
+        _sum: { score: true },
+        _count: { _all: true },
+      });
+
+      if (stats._count._all === 0) return null;
+
+      const wins = await prisma.gameResult.count({
+        where: { playerName, rank: 1 },
+      });
 
       const recentGames = await prisma.gameResult.findMany({
         where: { playerName },
@@ -83,12 +77,10 @@ export class LeaderboardService {
         },
       });
 
-      if (stats.length === 0) return null;
-
       return {
-        totalScore: Number(stats[0].totalScore),
-        gamesPlayed: Number(stats[0].gamesPlayed),
-        wins: Number(stats[0].wins),
+        totalScore: stats._sum.score ?? 0,
+        gamesPlayed: stats._count._all,
+        wins,
         recentGames: recentGames.map((g) => ({
           gameType: g.gameType,
           playerName,

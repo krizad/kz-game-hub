@@ -1,14 +1,13 @@
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 import * as fs from 'fs';
 import * as path from 'path';
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+config({ path: resolve(__dirname, '../../.env') });
+
+// Loaded after env config so the adapter detects the correct protocol
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { prisma } = require('../src/index');
 
 async function main() {
   console.log('Seeding Sounds Fishy questions...');

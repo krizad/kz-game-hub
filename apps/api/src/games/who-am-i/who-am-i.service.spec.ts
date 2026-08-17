@@ -6,8 +6,8 @@ jest.mock('@repo/database', () => ({
   prisma: {
     word: {
       groupBy: jest.fn(),
+      findMany: jest.fn(),
     },
-    $queryRawUnsafe: jest.fn(),
   },
 }));
 
@@ -130,7 +130,7 @@ describe('WhoAmIService', () => {
         config: { wordMode: 'RANDOM', wordCategory: 'Food', maxRounds: 3 },
       } as unknown as RoomState;
 
-      (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([
+      (prisma.word.findMany as jest.Mock).mockResolvedValue([
         { word: 'Pizza', emoji: '🍕' },
         { word: 'Sushi', emoji: '🍣' },
         { word: 'Taco', emoji: '🌮' },
@@ -143,7 +143,10 @@ describe('WhoAmIService', () => {
       expect(result!.whoAmIState).toBeDefined();
       expect(result!.whoAmIState!.phase).toBe('ASKING');
       expect(result!.whoAmIState!.maxRounds).toBe(3);
-      expect(prisma.$queryRawUnsafe).toHaveBeenCalled();
+      expect(prisma.word.findMany).toHaveBeenCalledWith({
+        where: { category: 'Food', lang: 'en' },
+        select: { word: true, emoji: true },
+      });
     });
 
     it('should return null if requester is not host', async () => {
@@ -193,7 +196,7 @@ describe('WhoAmIService', () => {
         players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
       } as unknown as RoomState;
 
-      (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([{ word: 'Pizza', emoji: '🍕' }]);
+      (prisma.word.findMany as jest.Mock).mockResolvedValue([{ word: 'Pizza', emoji: '🍕' }]);
 
       expect(await service.startGameRandom(room, 'host1')).toBeNull();
     });
@@ -206,7 +209,7 @@ describe('WhoAmIService', () => {
         config: { wordMode: 'RANDOM', wordCategory: 'Food' },
       } as unknown as RoomState;
 
-      (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([
+      (prisma.word.findMany as jest.Mock).mockResolvedValue([
         { word: 'Pizza', emoji: '🍕' },
         { word: 'Sushi', emoji: null },
       ]);

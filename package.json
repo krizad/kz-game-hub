@@ -11,6 +11,8 @@
     "lint:fix:api": "pnpm -F api lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "db:generate": "pnpm -F @repo/database db:generate",
+    "db:use:mysql": "pnpm -F @repo/database db:use:mysql",
+    "db:use:pg": "pnpm -F @repo/database db:use:pg",
     "db:migrate": "pnpm -F @repo/database db:migrate",
     "db:reset": "pnpm -F @repo/database db:reset",
     "db:push": "pnpm -F @repo/database db:push",
@@ -18,11 +20,14 @@
     "db:seed": "pnpm -F @repo/database db:seed",
     "start": "turbo run start",
     "test:e2e": "pnpm -F web test:e2e",
-    "test:e2e:ui": "pnpm -F web test:e2e:ui"
+    "test:e2e:ui": "pnpm -F web test:e2e:ui",
+    "deploy:ftp": "node scripts/deploy-api-ftp.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.61.0",
+    "basic-ftp": "^6.2.0",
+    "dotenv": "^17.3.1",
     "dotenv-cli": "^11.0.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",

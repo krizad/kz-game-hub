@@ -1,0 +1,76 @@
+name: Deploy API to Plesk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'scripts/deploy-api-ftp.mjs'
+      - 'scripts/diag-server.js'
+      - '.github/workflows/deploy.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.npmrc'
+  workflow_dispatch:
+
+concurrency:
+  group: plesk-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Capture source commit
+        id: meta
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build flat bundle
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/deploy-api-ftp.mjs --skip-upload
+
+      - name: Push bundle to dist-plesk branch
+        run: |
+          set -e
+          bundle_dir="$(mktemp -d)"
+          cp -a deploy-api/. "$bundle_dir/"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin dist-plesk || true
+          if git rev-parse --verify origin/dist-plesk >/dev/null 2>&1; then
+            git checkout -B dist-plesk origin/dist-plesk
+          else
+            git checkout --orphan dist-plesk
+          fi
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
+          cp -a "$bundle_dir"/. .
+          rm -rf "$bundle_dir"
+          git add -A -f
+          if ! git diff --cached --quiet; then
+            git commit -m "deploy: ${{ steps.meta.outputs.sha }} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
+          git push origin dist-plesk

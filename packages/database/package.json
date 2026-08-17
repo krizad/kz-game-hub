@@ -9,16 +9,22 @@
     "dev": "tsc --watch",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "db:push": "prisma db push",
+    "db:switch": "ts-node scripts/sync-schema.ts",
+    "db:use:mysql": "ts-node scripts/sync-schema.ts mysql && prisma generate",
+    "db:use:pg": "ts-node scripts/sync-schema.ts postgresql && prisma generate",
+    "db:push": "ts-node scripts/sync-schema.ts && prisma db push",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:generate": "ts-node scripts/sync-schema.ts && prisma generate",
+    "db:migrate": "ts-node scripts/sync-schema.ts && prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed"
   },
   "dependencies": {
+    "@prisma/adapter-mariadb": "^7.4.1",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
+    "dotenv": "^17.3.1",
+    "mariadb": "^3.5.3",
     "pg": "^8.18.0"
   },
   "devDependencies": {

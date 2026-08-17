@@ -6,8 +6,7 @@ import { GoogleGenAI } from '@google/genai';
 @Injectable()
 export class WhoAmIService {
   // ─── Categories from DB ────────────────────────────────────────────
-  async getCategories(lang?: string): Promise<WordCategory[]> {
-    if (lang) {
+  async getCategories(lang?: string): Promise<WordCategory[]> {    if (lang) {
       const results = await prisma.word.groupBy({
         by: ['category'],
         _count: { id: true },
@@ -20,6 +19,19 @@ export class WhoAmIService {
       _count: { id: true },
     });
     return results.map((r) => ({ name: r.category, count: r._count.id }));
+  }
+
+  // ─── Random words from DB (database-agnostic) ──────────────────────
+  private async fetchRandomWords(
+    category: string,
+    lang: string,
+    count: number,
+  ): Promise<{ word: string; emoji: string | null }[]> {
+    const words = await prisma.word.findMany({
+      where: { category, lang },
+      select: { word: true, emoji: true },
+    });
+    return [...words].sort(() => Math.random() - 0.5).slice(0, count);
   }
 
   // ─── Start Game (HOST_INPUT mode) ─────────────────────────────────
@@ -193,12 +205,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       const category =
         room.config.wordCategory || (lang === 'th' ? 'สิ่งของรอบตัว' : 'Random things');
 
-      const dbWords = await prisma.$queryRawUnsafe<{ word: string; emoji: string | null }[]>(
-        `SELECT word, emoji FROM "Word" WHERE category = $1 AND lang = $2 ORDER BY RANDOM() LIMIT $3`,
-        category,
-        lang,
-        room.players.length,
-      );
+      const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
 
       if (dbWords.length < room.players.length) return null; // not enough words in DB
 
@@ -240,12 +247,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     const lang = room.config.language || 'en';
 
-    const words = await prisma.$queryRawUnsafe<{ word: string; emoji: string | null }[]>(
-      `SELECT word, emoji FROM "Word" WHERE category = $1 AND lang = $2 ORDER BY RANDOM() LIMIT $3`,
-      category,
-      lang,
-      room.players.length,
-    );
+    const words = await this.fetchRandomWords(category, lang, room.players.length);
 
     if (words.length < room.players.length) return null; // not enough words in DB
 
