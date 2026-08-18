@@ -1,34 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { RoomState, RoomStatus, RPSChoice, GameType, Role } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
+
+const RPS_CHOICE_KEY = 'rpsChoice';
+const VALID_CHOICES: RPSChoice[] = ['ROCK', 'PAPER', 'SCISSORS'];
 
 @Injectable()
 export class RPSService {
+  constructor(private readonly privateState: PrivateStateService) {}
+
   assignRoles(
     room: RoomState,
     requesterId: string,
   ): { room: RoomState; roles: Record<string, Role> } | null {
-    if (room.players.length < 2) return null;
+    if (room.gameType !== GameType.RPS) return null;
+    if (room.status !== RoomStatus.LOBBY && room.status !== RoomStatus.RESULT) return null;
     if (room.roomHostId !== requesterId) return null;
 
     if (!room.rpsState) return null;
 
+    const connectedIds = room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+    if (connectedIds.length < 2) return null;
+
     room.status = RoomStatus.PLAYING;
 
-    const allPlayerIds = room.players.map((p) => p.socketId);
-
     if (room.config.rpsMode === 'ALL_AT_ONCE') {
-      room.rpsState.activePlayers = [...allPlayerIds];
+      room.rpsState.activePlayers = [...connectedIds];
       room.rpsState.queue = [];
     } else {
-      room.rpsState.activePlayers = allPlayerIds.slice(0, 2);
-      room.rpsState.queue = allPlayerIds.slice(2);
+      room.rpsState.activePlayers = connectedIds.slice(0, 2);
+      room.rpsState.queue = connectedIds.slice(2);
     }
 
     room.rpsState.choices = {};
+    room.rpsState.choicesMade = [];
     room.rpsState.scores = {};
-    allPlayerIds.forEach((id) => (room.rpsState!.scores[id] = 0));
+    connectedIds.forEach((id) => (room.rpsState!.scores[id] = 0));
     room.rpsState.gameWinner = undefined;
     room.rpsState.roundWinner = undefined;
+
+    for (const id of connectedIds) {
+      this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
+    }
 
     return { room, roles: {} };
   }
@@ -38,20 +51,28 @@ export class RPSService {
 
     const rps = room.rpsState;
     if (!rps || rps.gameWinner) return null;
+    if (!VALID_CHOICES.includes(choice)) return null;
     if (!rps.activePlayers.includes(clientId)) return null;
+    if (this.privateState.has(room.code, clientId, RPS_CHOICE_KEY)) return null; // Choice locked
 
-    rps.choices[clientId] = choice;
+    this.privateState.set(room.code, clientId, RPS_CHOICE_KEY, choice);
+    if (!rps.choicesMade.includes(clientId)) {
+      rps.choicesMade.push(clientId);
+    }
 
     const activeAndConnectedIds = rps.activePlayers.filter((id) =>
       room.players.find((p) => p.socketId === id && p.connected !== false),
     );
-    const allChosen = activeAndConnectedIds.every((id) => !!rps.choices[id]);
+    const allChosen = activeAndConnectedIds.every((id) =>
+      this.privateState.has(room.code, id, RPS_CHOICE_KEY),
+    );
 
     if (allChosen && activeAndConnectedIds.length > 0) {
+      const revealed = this.revealChoices(room);
       if (room.config.rpsMode === 'ALL_AT_ONCE') {
-        this.resolveAllAtOnceRound(room);
+        this.resolveAllAtOnceRound(room, revealed);
       } else {
-        this.resolve1v1Round(room);
+        this.resolve1v1Round(room, revealed);
       }
 
       const bestOf = room.config.rpsBestOf || 3;
@@ -66,27 +87,48 @@ export class RPSService {
       }
 
       room.status = RoomStatus.RESULT;
+    } else if (activeAndConnectedIds.length === 0) {
+      // Everyone left — resolve as a draw so the room is not stuck forever
+      rps.roundWinner = 'DRAW';
+      room.status = RoomStatus.RESULT;
     }
 
     return room;
   }
 
-  private resolve1v1Round(room: RoomState) {
+  private revealChoices(room: RoomState): Record<string, RPSChoice> {
+    const taken = this.privateState.takeRoomData<RPSChoice>(room.code, RPS_CHOICE_KEY);
+    const revealed: Record<string, RPSChoice> = {};
+    for (const [socketId, choice] of taken.entries()) {
+      revealed[socketId] = choice;
+    }
+    room.rpsState!.choices = revealed;
+    return revealed;
+  }
+
+  private addScore(room: RoomState, socketId: string, amount: number): void {
+    const rps = room.rpsState!;
+    rps.scores[socketId] = (rps.scores[socketId] || 0) + amount;
+    const player = room.players.find((p) => p.socketId === socketId);
+    if (player) player.score += amount;
+  }
+
+  private resolve1v1Round(room: RoomState, revealed: Record<string, RPSChoice>) {
     const rps = room.rpsState!;
     const [p1, p2] = rps.activePlayers;
-    const c1 = rps.choices[p1];
-    const c2 = rps.choices[p2];
+    const c1 = revealed[p1];
+    const c2 = revealed[p2];
 
     if (!c1 || !c2) {
       rps.roundWinner = c1 ? p1 : c2 ? p2 : 'DRAW';
       if (c1 && !c2) {
-        rps.scores[p1] = (rps.scores[p1] || 0) + 1;
+        this.addScore(room, p1, 1);
         if (rps.queue.length > 0) {
           rps.queue.push(p2);
           rps.activePlayers[1] = rps.queue.shift()!;
         }
       } else if (c2 && !c1) {
-        rps.scores[p2] = (rps.scores[p2] || 0) + 1;
+        this.addScore(room, p2, 1);
         if (rps.queue.length > 0) {
           rps.queue.push(p1);
           rps.activePlayers[0] = rps.queue.shift()!;
@@ -100,7 +142,7 @@ export class RPSService {
       (c1 === 'SCISSORS' && c2 === 'PAPER')
     ) {
       rps.roundWinner = p1;
-      rps.scores[p1] = (rps.scores[p1] || 0) + 1;
+      this.addScore(room, p1, 1);
 
       if (rps.queue.length > 0) {
         rps.queue.push(p2);
@@ -108,7 +150,7 @@ export class RPSService {
       }
     } else {
       rps.roundWinner = p2;
-      rps.scores[p2] = (rps.scores[p2] || 0) + 1;
+      this.addScore(room, p2, 1);
 
       if (rps.queue.length > 0) {
         rps.queue.push(p1);
@@ -117,9 +159,9 @@ export class RPSService {
     }
   }
 
-  private resolveAllAtOnceRound(room: RoomState) {
+  private resolveAllAtOnceRound(room: RoomState, revealed: Record<string, RPSChoice>) {
     const rps = room.rpsState!;
-    const choicesList = Object.values(rps.choices);
+    const choicesList = Object.values(revealed);
 
     const hasRock = choicesList.includes('ROCK');
     const hasPaper = choicesList.includes('PAPER');
@@ -141,10 +183,10 @@ export class RPSService {
     else winningSymbol = 'PAPER';
 
     const winners: string[] = [];
-    Object.entries(rps.choices).forEach(([id, choice]) => {
+    Object.entries(revealed).forEach(([id, choice]) => {
       if (choice === winningSymbol) {
         winners.push(id);
-        rps.scores[id] = (rps.scores[id] || 0) + 1;
+        this.addScore(room, id, 1);
       }
     });
 
@@ -164,6 +206,10 @@ export class RPSService {
     }
 
     room.rpsState.choices = {};
+    room.rpsState.choicesMade = [];
+    for (const id of room.rpsState.activePlayers) {
+      this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
+    }
     room.status = RoomStatus.PLAYING;
     return room;
   }
@@ -180,10 +226,14 @@ export class RPSService {
       activePlayers: [],
       queue: [],
       choices: {},
+      choicesMade: [],
       scores: {},
       gameWinner: undefined,
       roundWinner: undefined,
     };
+    for (const p of room.players) {
+      this.privateState.delete(room.code, p.socketId, RPS_CHOICE_KEY);
+    }
 
     room.players.forEach((p) => (p.score = 0));
 

@@ -6,7 +6,8 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function RPSView() {
-  const { room, socketId, rpsMakeChoice, rpsNextRound, actionLoading } = useGameStore();
+  const { room, socketId, privateState, rpsMakeChoice, rpsNextRound, actionLoading } =
+    useGameStore();
   const { t } = useTranslate();
 
   if (!room || !room.rpsState) return null;
@@ -14,6 +15,8 @@ export function RPSView() {
 
   const isMyTurn = rps.activePlayers.includes(socketId);
   const mySideIndex = rps.activePlayers.indexOf(socketId);
+  const myChoice = privateState.rpsChoice as string | undefined;
+  const isHost = room.roomHostId === socketId;
 
   const bestOf = room.config.rpsBestOf || 3;
   const targetScore = Math.floor(bestOf / 2) + 1;
@@ -23,6 +26,12 @@ export function RPSView() {
     if (choice === 'PAPER') return '✋';
     if (choice === 'SCISSORS') return '✌️';
     return '?';
+  };
+
+  const isWinnerId = (winner: string | string[] | undefined, playerId: string): boolean => {
+    if (!winner) return false;
+    if (Array.isArray(winner)) return winner.includes(playerId);
+    return winner === playerId;
   };
 
   const getWinnerNames = (winnerIds: string | string[] | undefined): string => {
@@ -45,7 +54,7 @@ export function RPSView() {
     const score = rps.scores[playerId] || 0;
     const isWinner =
       room.status === RoomStatus.RESULT &&
-      (rps.gameWinner?.includes(playerId) || rps.roundWinner?.includes(playerId));
+      (isWinnerId(rps.gameWinner, playerId) || isWinnerId(rps.roundWinner, playerId));
 
     return (
       <div
@@ -123,7 +132,7 @@ export function RPSView() {
               <div className="text-2xl font-black text-slate-500 uppercase tracking-widest bg-amber-50 px-8 py-4 rounded-2xl border border-amber-200">
                 {t('gameRps.spectating')}
               </div>
-            ) : rps.choices[socketId] ? (
+            ) : myChoice ? (
               <div className="text-2xl font-black text-amber-500 animate-pulse text-center bg-amber-950/30 px-8 py-4 rounded-2xl border border-amber-900/50">
                 {t('gameRps.choiceLocked')}
                 <br />
@@ -165,7 +174,7 @@ export function RPSView() {
               </div>
             )}
 
-            {(room.roomHostId === socketId || isMyTurn) && (
+            {isHost && (
               <button
                 onClick={rpsNextRound}
                 disabled={actionLoading}

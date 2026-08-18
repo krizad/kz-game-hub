@@ -107,6 +107,7 @@ export class GamesService {
         activePlayers: [],
         queue: [],
         choices: {},
+        choicesMade: [],
         scores: {},
       };
     } else if (gameType === GameType.GOBBLER_TIC_TAC_TOE) {

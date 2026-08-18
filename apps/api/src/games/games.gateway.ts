@@ -388,6 +388,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.rpsNextRound(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized or slot already taken.' });
     }
@@ -401,6 +402,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
     if (room) {
       this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid choice or not your turn.' });
     }
