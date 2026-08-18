@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
 const sounds_fishy_service_1 = require("./sounds-fishy.service");
+const private_state_service_1 = require("../private-state.service");
 const types_1 = require("@repo/types");
 jest.mock('@repo/database', () => ({
     prisma: {
@@ -15,23 +16,41 @@ jest.mock('@repo/database', () => ({
 const database_1 = require("@repo/database");
 describe('SoundsFishyService', () => {
     let service;
+    let privateState;
     beforeEach(async () => {
+        privateState = new private_state_service_1.PrivateStateService();
         const module = await testing_1.Test.createTestingModule({
-            providers: [sounds_fishy_service_1.SoundsFishyService],
+            providers: [sounds_fishy_service_1.SoundsFishyService, { provide: private_state_service_1.PrivateStateService, useValue: privateState }],
         }).compile();
         service = module.get(sounds_fishy_service_1.SoundsFishyService);
         jest.clearAllMocks();
     });
+    function createRoom(players) {
+        return {
+            id: 'room-id',
+            code: 'ABC123',
+            gameType: 'SOUNDS_FISHY',
+            status: types_1.RoomStatus.QUESTIONING,
+            roomHostId: 'p1',
+            createdAt: new Date(),
+            config: { hostSelection: 'FIXED', timerMin: 1, language: 'th' },
+            players: players.map((p, i) => ({
+                id: p.socketId,
+                socketId: p.socketId,
+                name: `P${i}`,
+                score: 0,
+                roomId: 'room-id',
+                connected: true,
+                ...p,
+            })),
+        };
+    }
     it('should be defined', () => {
         expect(service).toBeDefined();
     });
     describe('assignRoles', () => {
-        it('should assign roles and fetch question correctly', async () => {
-            const room = {
-                players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
-                roomHostId: 'p1',
-                config: { language: 'th' },
-            };
+        it('should assign roles, fetch a question, and keep secrets out of public state', async () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
             database_1.prisma.soundsFishyQuestion.aggregate.mockResolvedValue({
                 _min: { query_count: 0 },
             });
@@ -41,101 +60,153 @@ describe('SoundsFishyService', () => {
             database_1.prisma.soundsFishyQuestion.update.mockResolvedValue({});
             const result = await service.assignRoles(room, 'p1');
             expect(result).not.toBeNull();
-            expect(database_1.prisma.soundsFishyQuestion.aggregate).toHaveBeenCalled();
-            expect(database_1.prisma.soundsFishyQuestion.findMany).toHaveBeenCalled();
-            expect(database_1.prisma.soundsFishyQuestion.update).toHaveBeenCalled();
             expect(result.room.status).toBe(types_1.RoomStatus.QUESTIONING);
             expect(result.room.soundsFishyState).toBeDefined();
             expect(result.room.soundsFishyState.question.question).toBe('Q?');
+            const state = result.room.soundsFishyState;
+            expect(state.question.answer).toBeUndefined();
+            expect(state.blueFishId).toBeNull();
+            expect(state.redHerringIds).toEqual([]);
+            const serialized = JSON.stringify(result.room);
+            expect(serialized).not.toContain('A!');
+            expect(serialized).not.toContain('BLUE_FISH');
+            const nonPicker = room.players.find((p) => p.socketId !== state.pickerId);
+            expect(privateState.get(room.code, nonPicker.socketId, 'sfTrueAnswer')).toBe('A!');
         });
-        it('should return null if not enough players', async () => {
-            const room = {
-                players: [{ socketId: 'p1' }, { socketId: 'p2' }],
-                roomHostId: 'p1',
-            };
+        it('should return null if not enough connected players', async () => {
+            const room = createRoom([
+                { socketId: 'p1' },
+                { socketId: 'p2' },
+                { socketId: 'p3', connected: false },
+            ]);
             const result = await service.assignRoles(room, 'p1');
             expect(result).toBeNull();
         });
     });
     describe('submitAnswer', () => {
-        it('should allow answers and check resolution', () => {
-            const room = {
-                players: [
-                    { socketId: 'p1', connected: true },
-                    { socketId: 'p2', connected: true },
-                    { socketId: 'p3', connected: true },
-                ],
-                soundsFishyState: {
-                    currentPhase: types_1.SoundsFishyPhase.SETUP,
-                    pickerId: 'p1',
-                    redHerringIds: ['p2', 'p3'],
-                    question: { answer: 'Truth' },
-                    playerAnswers: {},
-                },
+        function seedPrivate(room) {
+            privateState.set(room.code, '__room__', 'sfRoomTrueAnswer', 'Truth');
+            privateState.set(room.code, '__room__', 'sfRoomBlueFish', 'p2');
+            privateState.set(room.code, '__room__', 'sfRoomRedHerrings', ['p3']);
+            for (const p of room.players) {
+                const role = p.socketId === 'p1' ? 'PICKER' : p.socketId === 'p2' ? 'BLUE_FISH' : 'RED_HERRING';
+                privateState.set(room.code, p.socketId, 'sfRole', role);
+                if (role !== 'PICKER')
+                    privateState.set(room.code, p.socketId, 'sfTrueAnswer', 'Truth');
+            }
+        }
+        it('rejects the red herring copying the truth and stores answers privately', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            seedPrivate(room);
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.SETUP,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {},
+                answeredPlayerIds: [],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingAnswers: {},
             };
-            let result = service.submitAnswer(room, 'p2', 'truth ');
-            expect(result).toBeNull();
-            result = service.submitAnswer(room, 'p2', 'Fake');
+            expect(service.submitAnswer(room, 'p3', 'truth ')).toBeNull();
+            const result = service.submitAnswer(room, 'p3', 'Fake');
             expect(result).not.toBeNull();
-            expect(result.soundsFishyState.playerAnswers['p2'].answer).toBe('Fake');
-            result = service.submitAnswer(room, 'p3', 'Another Fake');
+            expect(result.soundsFishyState.playerAnswers['p3']).toBeUndefined();
+            expect(privateState.get(room.code, 'p3', 'sfMyAnswer')).toMatchObject({ answer: 'Fake' });
+            expect(JSON.stringify(result)).not.toContain('Fake');
+        });
+        it('rejects the blue fish entering a wrong answer and blocks resubmission', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            seedPrivate(room);
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.SETUP,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {},
+                answeredPlayerIds: [],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingAnswers: {},
+            };
+            expect(service.submitAnswer(room, 'p2', 'Wrong')).toBeNull();
+            expect(service.submitAnswer(room, 'p2', 'Truth')).not.toBeNull();
+            expect(service.submitAnswer(room, 'p2', 'Changed')).toBeNull();
+        });
+        it('transitions to THE_PITCH when all connected non-pickers answered', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            seedPrivate(room);
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.SETUP,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {},
+                answeredPlayerIds: [],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingAnswers: {},
+            };
+            service.submitAnswer(room, 'p2', 'Truth');
+            const result = service.submitAnswer(room, 'p3', 'Fake');
             expect(result.soundsFishyState.currentPhase).toBe(types_1.SoundsFishyPhase.THE_PITCH);
         });
     });
     describe('eliminatePlayer', () => {
-        it('should correctly handle eliminating a Red Herring', () => {
-            const room = {
-                players: [
-                    { socketId: 'p1', score: 0 },
-                    { socketId: 'p2', score: 0 },
-                    { socketId: 'p3', score: 0 },
-                ],
-                soundsFishyState: {
-                    currentPhase: types_1.SoundsFishyPhase.THE_HUNT,
-                    pickerId: 'p1',
-                    blueFishId: 'p2',
-                    redHerringIds: ['p3'],
-                    eliminatedPlayers: [],
-                    playerAnswers: {
-                        p2: { isRevealed: true },
-                        p3: { isRevealed: true },
-                    },
-                    roundScorePool: 0,
-                    roundPoints: {},
+        function setupHunt(room) {
+            privateState.set(room.code, '__room__', 'sfRoomBlueFish', 'p2');
+            privateState.set(room.code, '__room__', 'sfRoomRedHerrings', ['p3']);
+            privateState.set(room.code, '__room__', 'sfRoomTrueAnswer', 'Truth');
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.THE_HUNT,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {
+                    p2: { playerId: 'p2', answer: 'Truth', isRevealed: true },
+                    p3: { playerId: 'p3', answer: 'Fake', isRevealed: true },
                 },
+                answeredPlayerIds: ['p2', 'p3'],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingAnswers: {},
             };
+        }
+        it('should correctly handle eliminating a Red Herring', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            setupHunt(room);
             const result = service.eliminatePlayer(room, 'p1', 'p3');
             expect(result.soundsFishyState.eliminatedPlayers).toContain('p3');
-            expect(result.soundsFishyState.roundScorePool).toBe(1);
             expect(result.status).toBe(types_1.RoomStatus.RESULT);
             expect(result.players[0].score).toBe(1);
+            expect(result.soundsFishyState.blueFishId).toBe('p2');
+            expect(result.soundsFishyState.question.answer).toBe('Truth');
         });
         it('should correctly handle eliminating the Blue Fish', () => {
-            const room = {
-                players: [
-                    { socketId: 'p1', score: 0 },
-                    { socketId: 'p2', score: 0 },
-                    { socketId: 'p3', score: 0 },
-                ],
-                soundsFishyState: {
-                    currentPhase: types_1.SoundsFishyPhase.THE_HUNT,
-                    pickerId: 'p1',
-                    blueFishId: 'p2',
-                    redHerringIds: ['p3'],
-                    eliminatedPlayers: [],
-                    playerAnswers: {
-                        p2: { isRevealed: true },
-                        p3: { isRevealed: true },
-                    },
-                    roundScorePool: 0,
-                    roundPoints: {},
-                },
-            };
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            setupHunt(room);
             const result = service.eliminatePlayer(room, 'p1', 'p2');
             expect(result.soundsFishyState.eliminatedPlayers).toContain('p2');
             expect(result.status).toBe(types_1.RoomStatus.RESULT);
             expect(result.players[1].score).toBe(1);
             expect(result.players[2].score).toBe(1);
+        });
+        it('blocks elimination when a connected player has not been revealed', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            setupHunt(room);
+            room.soundsFishyState.playerAnswers = {
+                p2: { playerId: 'p2', answer: 'Truth', isRevealed: true },
+            };
+            expect(service.eliminatePlayer(room, 'p1', 'p3')).toBeNull();
         });
     });
 });

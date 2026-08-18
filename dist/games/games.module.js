@@ -23,6 +23,7 @@ const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const player_session_service_1 = require("./player-session.service");
 const room_timer_service_1 = require("./room-timer.service");
+const private_state_service_1 = require("./private-state.service");
 let GamesModule = class GamesModule {
 };
 exports.GamesModule = GamesModule;
@@ -44,6 +45,7 @@ exports.GamesModule = GamesModule = __decorate([
             the_mind_service_1.TheMindService,
             player_session_service_1.PlayerSessionService,
             room_timer_service_1.RoomTimerService,
+            private_state_service_1.PrivateStateService,
         ],
     })
 ], GamesModule);

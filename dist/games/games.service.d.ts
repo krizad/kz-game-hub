@@ -10,6 +10,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { PlayerSessionService } from './player-session.service';
+import { PrivateStateService } from './private-state.service';
 export declare class GamesService {
     private readonly whoKnowService;
     private readonly ticTacToeService;
@@ -22,9 +23,12 @@ export declare class GamesService {
     private readonly musicTriviaService;
     private readonly theMindService;
     private readonly playerSessionService;
+    private readonly privateStateService;
     private rooms;
     private readonly secretWords;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, playerSessionService: PlayerSessionService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService);
+    isRoomMember(code: string, socketId: string): boolean;
+    getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
     getRoom(code: string): RoomState | undefined;
     getReconnectToken(code: string, socketId: string): string | null;
@@ -52,6 +56,8 @@ export declare class GamesService {
     submitVote(code: string, voterId: string, targetId: string): RoomState | null;
     resetGame(code: string, requesterId: string): RoomState | null;
     getSecretWord(code: string): string | undefined;
+    getPlayerRole(code: string, socketId: string): Role | undefined;
+    whoKnowServerTimeout(code: string): RoomState | null;
     tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
     tttMakeMove(code: string, clientId: string, index: number): RoomState | null;
     tttReset(code: string, clientId: string): RoomState | null;
@@ -84,12 +90,14 @@ export declare class GamesService {
         type: string;
         payload?: unknown;
     }): RoomState | null;
+    whoFirstSetActive(code: string): RoomState | null;
     whoAmICategoriesList(lang?: string): Promise<WordCategory[]>;
     whoAmIStartHostInput(code: string, clientId: string, playerWords: Record<string, string>): RoomState | null;
     musicTriviaGameAction(code: string, clientId: string, action: {
         type: string;
         payload?: unknown;
     }): Promise<MusicTriviaActionResult | null>;
+    musicTriviaFinalizeAnswerTimeout(code: string): MusicTriviaActionResult | null;
     musicTriviaFinalizeCountdown(code: string): MusicTriviaActionResult | null;
     theMindReady(code: string, clientId: string): RoomState | null;
     theMindPlayCard(code: string, clientId: string, card: number, pile?: 'UP' | 'DOWN'): RoomState | null;

@@ -9,23 +9,83 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhoFirstService = void 0;
 const common_1 = require("@nestjs/common");
 const types_1 = require("@repo/types");
+const VALID_ACTIONS = [
+    'START_COUNTDOWN',
+    'PRESS_BUTTON',
+    'NEXT_ROUND',
+    'END_GAME',
+];
 let WhoFirstService = class WhoFirstService {
+    getCountdownRange(room) {
+        const minConfig = room.config.whoFirstMinCountdownMs ?? 2000;
+        const maxConfig = room.config.whoFirstMaxCountdownMs ?? 5000;
+        return { min: Math.min(minConfig, maxConfig), max: Math.max(minConfig, maxConfig) };
+    }
+    startCountdown(room) {
+        const state = room.whoFirstState;
+        if (!state)
+            return;
+        state.phase = 'COUNTDOWN';
+        state.presses = [];
+        state.roundWinnerId = undefined;
+        const { min, max } = this.getCountdownRange(room);
+        state.countdownDurationMs = Math.floor(Math.random() * (max - min + 1) + min);
+        state.countdownStartTime = Date.now();
+        state.countdownEndTime = state.countdownStartTime + state.countdownDurationMs;
+    }
+    getExpectedCount(room) {
+        const hostPlays = room.config.whoFirstHostPlays ?? false;
+        return room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+    }
+    resolveRoundWinner(room) {
+        const state = room.whoFirstState;
+        if (!state)
+            return;
+        const validPresses = state.presses
+            .filter((p) => !p.isPenalty)
+            .sort((a, b) => a.timestamp - b.timestamp);
+        if (validPresses.length === 0)
+            return;
+        const winnerId = validPresses[0].socketId;
+        state.roundWinnerId = winnerId;
+        const winner = room.players.find((p) => p.socketId === winnerId);
+        if (winner)
+            winner.score += 1;
+    }
     startGame(room, requesterId) {
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return null;
         if (room.roomHostId !== requesterId)
             return null;
-        const maxRounds = room.config.whoFirstInfiniteRounds ? 0 : room.config.maxRounds || 3;
+        const connectedCount = room.players.filter((p) => p.connected !== false).length;
+        if (connectedCount < 2)
+            return null;
+        const maxRounds = room.config.whoFirstInfiniteRounds
+            ? 0
+            : (room.config.whoFirstMaxRounds ?? room.config.maxRounds ?? 3);
         room.whoFirstState = {
-            phase: 'LOBBY',
+            phase: 'COUNTDOWN',
             presses: [],
             currentRound: 1,
             maxRounds,
         };
         room.status = types_1.RoomStatus.PLAYING;
+        this.startCountdown(room);
+        return room;
+    }
+    setActive(room) {
+        const state = room.whoFirstState;
+        if (!state || state.phase !== 'COUNTDOWN')
+            return null;
+        state.phase = 'ACTIVE';
+        state.activeStartTime = Date.now();
         return room;
     }
     handleGameAction(room, clientId, action) {
         const state = room.whoFirstState;
         if (!state)
+            return null;
+        if (!VALID_ACTIONS.includes(action.type))
             return null;
         const isHost = room.roomHostId === clientId;
         const isPlayer = room.players.some((p) => p.socketId === clientId);
@@ -34,20 +94,18 @@ let WhoFirstService = class WhoFirstService {
         const canPlay = isPlayer && (!isHost || hostPlays);
         switch (action.type) {
             case 'START_COUNTDOWN':
-                if (isHost && (state.phase === 'LOBBY' || state.phase === 'ROUND_RESULT')) {
-                    state.phase = 'COUNTDOWN';
-                    state.presses = [];
-                    const min = room.config.whoFirstMinCountdownMs || 2000;
-                    const max = room.config.whoFirstMaxCountdownMs || 5000;
-                    state.countdownDurationMs = Math.floor(Math.random() * (max - min + 1) + min);
-                    state.countdownStartTime = Date.now();
+                if (isHost && state.phase === 'ROUND_RESULT') {
+                    this.startCountdown(room);
+                }
+                else {
+                    return null;
                 }
                 break;
             case 'PRESS_BUTTON': {
                 if (!canPlay)
-                    return room;
+                    return null;
                 if (state.presses.some((p) => p.socketId === clientId)) {
-                    return room;
+                    return null;
                 }
                 const pressTime = Date.now();
                 if (state.phase === 'COUNTDOWN') {
@@ -57,7 +115,7 @@ let WhoFirstService = class WhoFirstService {
                             timestamp: pressTime,
                             isPenalty: true,
                         });
-                        const expectedCount = room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+                        const expectedCount = this.getExpectedCount(room);
                         if (state.presses.length >= expectedCount && expectedCount > 0) {
                             state.phase = 'ROUND_RESULT';
                         }
@@ -71,12 +129,16 @@ let WhoFirstService = class WhoFirstService {
                         reactionTimeMs,
                         isPenalty: false,
                     });
-                    const expectedCount = room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+                    const expectedCount = this.getExpectedCount(room);
                     const activePresses = state.presses.filter((p) => !p.isPenalty).length;
                     const foulCount = state.presses.filter((p) => p.isPenalty).length;
                     if (activePresses + foulCount >= expectedCount && expectedCount > 0) {
                         state.phase = 'ROUND_RESULT';
+                        this.resolveRoundWinner(room);
                     }
+                }
+                else {
+                    return null;
                 }
                 break;
             }
@@ -84,17 +146,15 @@ let WhoFirstService = class WhoFirstService {
                 if (isHost && state.phase === 'ROUND_RESULT') {
                     if (state.maxRounds === 0 || state.currentRound < state.maxRounds) {
                         state.currentRound++;
-                        state.phase = 'COUNTDOWN';
-                        state.presses = [];
-                        const min = room.config.whoFirstMinCountdownMs || 2000;
-                        const max = room.config.whoFirstMaxCountdownMs || 5000;
-                        state.countdownDurationMs = Math.floor(Math.random() * (max - min + 1) + min);
-                        state.countdownStartTime = Date.now();
+                        this.startCountdown(room);
                     }
                     else {
                         state.phase = 'FINISHED';
                         room.status = types_1.RoomStatus.RESULT;
                     }
+                }
+                else {
+                    return null;
                 }
                 break;
             case 'END_GAME':
@@ -102,13 +162,12 @@ let WhoFirstService = class WhoFirstService {
                     state.phase = 'FINISHED';
                     room.status = types_1.RoomStatus.RESULT;
                 }
-                break;
-            default:
-                if (action.type === 'SET_ACTIVE' && isHost && state.phase === 'COUNTDOWN') {
-                    state.phase = 'ACTIVE';
-                    state.activeStartTime = Date.now();
+                else {
+                    return null;
                 }
                 break;
+            default:
+                return null;
         }
         return room;
     }
@@ -119,10 +178,12 @@ let WhoFirstService = class WhoFirstService {
             return null;
         room.status = types_1.RoomStatus.LOBBY;
         room.whoFirstState = {
-            phase: 'LOBBY',
+            phase: 'COUNTDOWN',
             presses: [],
             currentRound: 1,
-            maxRounds: room.config.whoFirstInfiniteRounds ? 0 : room.config.maxRounds || 3,
+            maxRounds: room.config.whoFirstInfiniteRounds
+                ? 0
+                : (room.config.whoFirstMaxRounds ?? room.config.maxRounds ?? 3),
         };
         return room;
     }

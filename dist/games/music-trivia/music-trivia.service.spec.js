@@ -2,12 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
 const music_trivia_service_1 = require("./music-trivia.service");
+const private_state_service_1 = require("../private-state.service");
 const types_1 = require("@repo/types");
 describe('MusicTriviaService', () => {
     let service;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
-            providers: [music_trivia_service_1.MusicTriviaService],
+            providers: [music_trivia_service_1.MusicTriviaService, private_state_service_1.PrivateStateService],
         }).compile();
         service = module.get(music_trivia_service_1.MusicTriviaService);
     });

@@ -1,5 +1,14 @@
 import { RoomState, WordCategory } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
 export declare class WhoAmIService {
+    private readonly privateState;
+    constructor(privateState: PrivateStateService);
+    private shuffleArray;
+    private setMyWord;
+    private clearRoomPrivateData;
+    private syncVisibleWords;
+    private finishGame;
+    private createGameState;
     getCategories(lang?: string): Promise<WordCategory[]>;
     private fetchRandomWords;
     startGameHostInput(room: RoomState, requesterId: string, playerWords: Record<string, string>): RoomState | null;

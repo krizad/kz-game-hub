@@ -1,3 +1,4 @@
+import { PrivateStateService } from '../private-state.service';
 import { MusicTriviaAction, MusicTriviaState, MusicTriviaSyncPlayPayload, RoomState } from '@repo/types';
 export interface MusicTriviaActionResult {
     room: RoomState;
@@ -15,9 +16,9 @@ export interface MusicTriviaActionResult {
     };
 }
 export declare class MusicTriviaService {
-    private trackAnswers;
+    private readonly privateState;
     private sourceFactory;
-    constructor();
+    constructor(privateState: PrivateStateService);
     startGame(room: RoomState, requesterId: string): RoomState | null;
     handleGameAction(room: RoomState, clientId: string, action: MusicTriviaAction): Promise<MusicTriviaActionResult | null>;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
@@ -29,6 +30,7 @@ export declare class MusicTriviaService {
     private configureSource;
     private startRound;
     private pressBuzzer;
+    answerTimeout(room: RoomState): MusicTriviaActionResult | null;
     private giveUp;
     private submitAnswer;
     private hostJudge;
@@ -38,7 +40,6 @@ export declare class MusicTriviaService {
     private advanceToNextRound;
     private createRound;
     private allPlayersStruckOut;
-    private fullTracks;
     private getFullTracks;
     private levenshteinDistance;
     fuzzyMatch(input: string, target: string): boolean;

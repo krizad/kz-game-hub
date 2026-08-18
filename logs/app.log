@@ -1,54 +1,54 @@
-[2026-08-18T03:26:21.015Z] [LOG] Starting Nest application... NestFactory
-[2026-08-18T03:26:21.023Z] [WARN] Detective club images directory not found at /home/runner/work/kz-game-hub/kz-game-hub/web/public/images/detective-club DetectiveClubService
-[2026-08-18T03:26:21.024Z] [LOG] AppModule dependencies initialized InstanceLoader
-[2026-08-18T03:26:21.024Z] [LOG] HealthModule dependencies initialized InstanceLoader
-[2026-08-18T03:26:21.024Z] [LOG] GamesModule dependencies initialized InstanceLoader
-[2026-08-18T03:26:21.042Z] [LOG] GamesGateway subscribed to the "leave_room" message WebSocketsController
-[2026-08-18T03:26:21.042Z] [LOG] GamesGateway subscribed to the "get_available_rooms" message WebSocketsController
-[2026-08-18T03:26:21.042Z] [LOG] GamesGateway subscribed to the "create_room" message WebSocketsController
-[2026-08-18T03:26:21.042Z] [LOG] GamesGateway subscribed to the "join_room" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "start_game" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "set_word" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "stop_timer" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "end_questioning" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "submit_vote" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "reset_game" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "update_config" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "ttt_join_side" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "ttt_make_move" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "ttt_reset" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "rps_next_round" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "rps_make_choice" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "rps_reset" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "gobbler_join_side" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "gobbler_place" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "gobbler_move" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "gobbler_reset" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_type_answer" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_submit_answer" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_reveal_answer" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_eliminate_player" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_bank_points" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_next_round" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "sounds_fishy_reset" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "detective_club_submit_word" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "detective_club_play_card" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "detective_club_next_phase" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "detective_club_vote" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "detective_club_next_round" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "detective_club_reset" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "who_am_i_submit_words" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "who_am_i_submit_player_word" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "who_am_i_get_categories" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "game_action" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "the_mind_ready" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "the_mind_play_card" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "the_mind_next_level" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "the_mind_propose_shuriken" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "the_mind_vote_shuriken" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "the_mind_cancel_shuriken" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "leaderboard_get" message WebSocketsController
-[2026-08-18T03:26:21.043Z] [LOG] GamesGateway subscribed to the "spectate_join" message WebSocketsController
-[2026-08-18T03:26:21.044Z] [LOG] HealthController {/health}: RoutesResolver
-[2026-08-18T03:26:21.045Z] [LOG] Mapped {/health, GET} route RouterExplorer
-[2026-08-18T03:26:21.046Z] [LOG] Nest application successfully started NestApplication
+[2026-08-18T09:53:12.185Z] [LOG] Starting Nest application... NestFactory
+[2026-08-18T09:53:12.198Z] [LOG] AppModule dependencies initialized InstanceLoader
+[2026-08-18T09:53:12.199Z] [WARN] Detective club images directory not found DetectiveClubService
+[2026-08-18T09:53:12.199Z] [LOG] HealthModule dependencies initialized InstanceLoader
+[2026-08-18T09:53:12.199Z] [LOG] GamesModule dependencies initialized InstanceLoader
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "leave_room" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "get_available_rooms" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "create_room" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "join_room" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "start_game" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "set_word" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "stop_timer" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "end_questioning" message WebSocketsController
+[2026-08-18T09:53:12.225Z] [LOG] GamesGateway subscribed to the "submit_vote" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "reset_game" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "update_config" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "ttt_join_side" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "ttt_make_move" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "ttt_reset" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "rps_next_round" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "rps_make_choice" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "rps_reset" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "gobbler_join_side" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "gobbler_place" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "gobbler_move" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "gobbler_reset" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_type_answer" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_submit_answer" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_reveal_answer" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_eliminate_player" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_bank_points" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_next_round" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "sounds_fishy_reset" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "detective_club_submit_word" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "detective_club_play_card" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "detective_club_next_phase" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "detective_club_vote" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "detective_club_next_round" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "detective_club_reset" message WebSocketsController
+[2026-08-18T09:53:12.226Z] [LOG] GamesGateway subscribed to the "who_am_i_submit_words" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "who_am_i_submit_player_word" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "who_am_i_get_categories" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "game_action" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "the_mind_ready" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "the_mind_play_card" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "the_mind_next_level" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "the_mind_propose_shuriken" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "the_mind_vote_shuriken" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "the_mind_cancel_shuriken" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "leaderboard_get" message WebSocketsController
+[2026-08-18T09:53:12.227Z] [LOG] GamesGateway subscribed to the "spectate_join" message WebSocketsController
+[2026-08-18T09:53:12.228Z] [LOG] HealthController {/health}: RoutesResolver
+[2026-08-18T09:53:12.229Z] [LOG] Mapped {/health, GET} route RouterExplorer
+[2026-08-18T09:53:12.231Z] [LOG] Nest application successfully started NestApplication

@@ -1,6 +1,8 @@
-import { RoomState, PlayerSide } from '@repo/types';
+import { RoomState, GobblerPiece, PlayerSide } from '@repo/types';
 export declare class GobblerService {
-    private createInitialInventory;
+    createInitialInventory(side: PlayerSide): GobblerPiece[];
+    private isMember;
+    private isValidIndex;
     joinSide(room: RoomState, clientId: string, side: PlayerSide): RoomState | null;
     private checkWin;
     private sizeValue;

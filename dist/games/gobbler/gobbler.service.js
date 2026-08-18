@@ -21,22 +21,45 @@ let GobblerService = class GobblerService {
             { id: (0, uuid_1.v4)(), side, size: 'LARGE' },
         ];
     }
+    isMember(room, clientId) {
+        return room.players.some((p) => p.socketId === clientId);
+    }
+    isValidIndex(index) {
+        return Number.isInteger(index) && index >= 0 && index < 9;
+    }
     joinSide(room, clientId, side) {
         if (room.gameType !== types_1.GameType.GOBBLER_TIC_TAC_TOE || room.status !== types_1.RoomStatus.LOBBY)
             return null;
         if (!room.gobblerState)
             return null;
-        if (room.gobblerState.playerXId === clientId)
-            room.gobblerState.playerXId = undefined;
-        if (room.gobblerState.playerOId === clientId)
-            room.gobblerState.playerOId = undefined;
-        if (side === 'X' && !room.gobblerState.playerXId) {
-            room.gobblerState.playerXId = clientId;
+        if (!this.isMember(room, clientId))
+            return null;
+        if (side !== 'X' && side !== 'O')
+            return null;
+        const gb = room.gobblerState;
+        const otherSide = side === 'X' ? 'O' : 'X';
+        const otherSideSeat = side === 'X' ? gb.playerOId : gb.playerXId;
+        const targetSeat = side === 'X' ? gb.playerXId : gb.playerOId;
+        if (targetSeat && targetSeat !== clientId)
+            return null;
+        let changed = false;
+        if (targetSeat !== clientId) {
+            if (side === 'X')
+                gb.playerXId = clientId;
+            else
+                gb.playerOId = clientId;
+            changed = true;
         }
-        else if (side === 'O' && !room.gobblerState.playerOId) {
-            room.gobblerState.playerOId = clientId;
+        if (otherSideSeat === clientId) {
+            if (otherSide === 'X')
+                gb.playerXId = undefined;
+            else
+                gb.playerOId = undefined;
+            changed = true;
         }
-        if (room.gobblerState.playerXId && room.gobblerState.playerOId) {
+        if (!changed)
+            return null;
+        if (gb.playerXId && gb.playerOId) {
             room.status = types_1.RoomStatus.PLAYING;
         }
         return room;
@@ -98,6 +121,10 @@ let GobblerService = class GobblerService {
         const gb = room.gobblerState;
         if (!gb || gb.winner)
             return null;
+        if (!this.isMember(room, clientId))
+            return null;
+        if (typeof pieceId !== 'string' || !this.isValidIndex(toIndex))
+            return null;
         let mySide = null;
         if (gb.playerXId === clientId)
             mySide = 'X';
@@ -121,6 +148,10 @@ let GobblerService = class GobblerService {
             return null;
         const gb = room.gobblerState;
         if (!gb || gb.winner)
+            return null;
+        if (!this.isMember(room, clientId))
+            return null;
+        if (!this.isValidIndex(fromIndex) || !this.isValidIndex(toIndex))
             return null;
         let mySide = null;
         if (gb.playerXId === clientId)
@@ -154,11 +185,11 @@ let GobblerService = class GobblerService {
                 const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
                 if (winnerPlayer)
                     winnerPlayer.score += 1;
-                if (winner === 'X')
-                    gb.scores.X += 1;
-                else if (winner === 'O')
-                    gb.scores.O += 1;
             }
+            const xPlayer = room.players.find((p) => p.socketId === gb.playerXId);
+            const oPlayer = room.players.find((p) => p.socketId === gb.playerOId);
+            gb.scores.X = xPlayer?.score ?? gb.scores.X;
+            gb.scores.O = oPlayer?.score ?? gb.scores.O;
         }
         else {
             gb.currentTurn = gb.currentTurn === 'X' ? 'O' : 'X';

@@ -12,11 +12,14 @@ jest.mock('@repo/database', () => ({
     },
 }));
 const database_1 = require("@repo/database");
+const private_state_service_1 = require("../private-state.service");
 describe('WhoAmIService', () => {
     let service;
+    let privateState;
     beforeEach(async () => {
+        privateState = new private_state_service_1.PrivateStateService();
         const module = await testing_1.Test.createTestingModule({
-            providers: [who_am_i_service_1.WhoAmIService],
+            providers: [who_am_i_service_1.WhoAmIService, { provide: private_state_service_1.PrivateStateService, useValue: privateState }],
         }).compile();
         service = module.get(who_am_i_service_1.WhoAmIService);
         jest.clearAllMocks();
@@ -34,6 +37,7 @@ describe('WhoAmIService', () => {
             expect(database_1.prisma.word.groupBy).toHaveBeenCalledWith({
                 by: ['category'],
                 _count: { id: true },
+                where: {},
             });
             expect(result).toEqual([
                 { name: 'Animals', count: 5 },
@@ -49,6 +53,7 @@ describe('WhoAmIService', () => {
     describe('startGameHostInput', () => {
         it('should start game in HOST_INPUT mode', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -60,7 +65,7 @@ describe('WhoAmIService', () => {
             expect(result.status).toBe(types_1.RoomStatus.PLAYING);
             expect(result.whoAmIState).toBeDefined();
             expect(result.whoAmIState.phase).toBe('ASKING');
-            expect(result.whoAmIState.playerWords).toEqual(playerWords);
+            expect(Object.fromEntries(privateState.getRoomData('test-room', 'waiMyWord'))).toEqual(playerWords);
             expect(result.whoAmIState.turnStatus).toBe('VOTING');
             expect(result.whoAmIState.currentRound).toBe(1);
             expect(result.whoAmIState.maxRounds).toBe(5);
@@ -70,6 +75,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if requester is not host', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'HOST_INPUT' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -78,6 +84,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if config wordMode is not HOST_INPUT', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'RANDOM' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -86,6 +93,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if fewer than 2 non-host players', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
                 config: { wordMode: 'HOST_INPUT' },
@@ -94,6 +102,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if a player word is missing or empty', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
                 config: { wordMode: 'HOST_INPUT' },
@@ -105,6 +114,7 @@ describe('WhoAmIService', () => {
     describe('startGameRandom', () => {
         it('should fetch random words from DB and start game', async () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -122,12 +132,13 @@ describe('WhoAmIService', () => {
             expect(result.whoAmIState.phase).toBe('ASKING');
             expect(result.whoAmIState.maxRounds).toBe(3);
             expect(database_1.prisma.word.findMany).toHaveBeenCalledWith({
-                where: { category: 'Food', lang: 'en' },
+                where: { category: 'Food', lang: 'th' },
                 select: { word: true, emoji: true },
             });
         });
         it('should return null if requester is not host', async () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'RANDOM', wordCategory: 'Food' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
@@ -136,6 +147,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if wordMode is not RANDOM', async () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'HOST_INPUT', wordCategory: 'Food' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
@@ -144,6 +156,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if fewer than 2 players', async () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'RANDOM', wordCategory: 'Food' },
                 players: [{ socketId: 'host1' }],
@@ -152,6 +165,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if no wordCategory configured', async () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'RANDOM' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
@@ -160,6 +174,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if not enough words in DB', async () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'RANDOM', wordCategory: 'Food' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -169,6 +184,7 @@ describe('WhoAmIService', () => {
         });
         it('should assign words with emoji prefix when present', async () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
@@ -180,7 +196,7 @@ describe('WhoAmIService', () => {
             ]);
             const result = await service.startGameRandom(room, 'host1');
             expect(result).not.toBeNull();
-            const words = result.whoAmIState.playerWords;
+            const words = Object.fromEntries(privateState.getRoomData('test-room', 'waiMyWord'));
             expect(Object.values(words)).toContain('🍕 Pizza');
             expect(Object.values(words)).toContain('Sushi');
         });
@@ -188,6 +204,7 @@ describe('WhoAmIService', () => {
     describe('startGamePlayerInput', () => {
         it('should enter COLLECTING_WORDS phase', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -197,13 +214,14 @@ describe('WhoAmIService', () => {
             expect(result).not.toBeNull();
             expect(result.status).toBe(types_1.RoomStatus.PLAYING);
             expect(result.whoAmIState.phase).toBe('COLLECTING_WORDS');
-            expect(result.whoAmIState.wordSubmissions).toEqual({});
+            expect(result.whoAmIState.wordSubmittedIds).toEqual([]);
             expect(result.whoAmIState.wordSubmissionCategory).toBe('Animals');
             expect(result.whoAmIState.currentRound).toBe(1);
             expect(result.whoAmIState.maxRounds).toBe(4);
         });
         it('should return null if requester is not host', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'PLAYER_INPUT' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
@@ -212,6 +230,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if wordMode is not PLAYER_INPUT', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 config: { wordMode: 'HOST_INPUT' },
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
@@ -220,6 +239,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if fewer than 2 players', () => {
             const room = {
+                code: 'test-room',
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }],
                 config: { wordMode: 'PLAYER_INPUT' },
@@ -228,6 +248,7 @@ describe('WhoAmIService', () => {
         });
         it('should default wordSubmissionCategory to empty string', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 roomHostId: 'host1',
                 players: [{ socketId: 'host1' }, { socketId: 'p1' }],
@@ -240,11 +261,11 @@ describe('WhoAmIService', () => {
     describe('submitPlayerWord', () => {
         function makeCollectingRoom() {
             return {
+                code: 'test-room',
                 status: types_1.RoomStatus.PLAYING,
                 players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
                 whoAmIState: {
                     currentTurn: '',
-                    playerWords: {},
                     currentGuess: null,
                     votes: {},
                     turnStatus: 'VOTING',
@@ -254,7 +275,7 @@ describe('WhoAmIService', () => {
                     eliminatedPlayers: [],
                     phase: 'COLLECTING_WORDS',
                     finalGuessUsed: [],
-                    wordSubmissions: {},
+                    wordSubmittedIds: [],
                 },
             };
         }
@@ -262,17 +283,18 @@ describe('WhoAmIService', () => {
             const room = makeCollectingRoom();
             const result = service.submitPlayerWord(room, 'p1', 'Elephant');
             expect(result).not.toBeNull();
-            expect(result.room.whoAmIState.wordSubmissions['p1']).toBe('Elephant');
+            expect(privateState.get('test-room', 'p1', 'waiSubmittedWord')).toBe('Elephant');
             expect(result.error).toBeUndefined();
         });
         it('should lowercase the word for duplicate checking but preserve original casing', () => {
             const room = makeCollectingRoom();
             const result = service.submitPlayerWord(room, 'p1', '  Elephant  ');
             expect(result).not.toBeNull();
-            expect(result.room.whoAmIState.wordSubmissions['p1']).toBe('Elephant');
+            expect(privateState.get('test-room', 'p1', 'waiSubmittedWord')).toBe('Elephant');
         });
         it('should return null if room is not PLAYING', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 whoAmIState: { phase: 'COLLECTING_WORDS', wordSubmissions: {} },
                 players: [{ socketId: 'p1' }],
@@ -281,6 +303,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if no gameState', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.PLAYING,
                 players: [{ socketId: 'p1' }],
             };
@@ -288,6 +311,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if not in COLLECTING_WORDS phase', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.PLAYING,
                 players: [{ socketId: 'p1' }],
                 whoAmIState: { phase: 'ASKING', wordSubmissions: {} },
@@ -296,6 +320,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if player is not in room', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.PLAYING,
                 players: [{ socketId: 'p1' }],
                 whoAmIState: { phase: 'COLLECTING_WORDS', wordSubmissions: {} },
@@ -307,14 +332,14 @@ describe('WhoAmIService', () => {
             expect(service.submitPlayerWord(room, 'p1', '')).toBeNull();
             expect(service.submitPlayerWord(room, 'p1', '   ')).toBeNull();
         });
-        it('should reject duplicate words and clear both submissions', () => {
+        it('should reject duplicate words', () => {
             const room = makeCollectingRoom();
-            room.whoAmIState.wordSubmissions = { p2: 'Apple' };
+            privateState.set('test-room', 'p2', 'waiSubmittedWord', 'Apple');
             const result = service.submitPlayerWord(room, 'p1', 'Apple');
             expect(result).not.toBeNull();
             expect(result.error).toContain('Duplicate');
-            expect(result.room.whoAmIState.wordSubmissions['p1']).toBeUndefined();
-            expect(result.room.whoAmIState.wordSubmissions['p2']).toBeUndefined();
+            expect(privateState.has('test-room', 'p1', 'waiSubmittedWord')).toBe(false);
+            expect(privateState.has('test-room', 'p2', 'waiSubmittedWord')).toBe(true);
         });
         it('should transition from COLLECTING_WORDS to ASKING when all players submit', () => {
             const room = makeCollectingRoom();
@@ -323,20 +348,21 @@ describe('WhoAmIService', () => {
             const result = service.submitPlayerWord(room, 'p3', 'Giraffe');
             expect(result).not.toBeNull();
             expect(result.room.whoAmIState.phase).toBe('ASKING');
-            expect(result.room.whoAmIState.playerWords).toBeDefined();
-            const assignedWords = result.room.whoAmIState.playerWords;
+            expect(privateState.getRoomData('test-room', 'waiMyWord').size).toBeGreaterThan(0);
+            const assignedWords = Object.fromEntries(privateState.getRoomData('test-room', 'waiMyWord'));
             expect(Object.keys(assignedWords).length).toBe(3);
             expect(Object.values(assignedWords)).toContain('Elephant');
             expect(Object.values(assignedWords)).toContain('Tiger');
             expect(Object.values(assignedWords)).toContain('Giraffe');
             room.players.forEach((p) => {
-                expect(assignedWords[p.socketId]).not.toBe(result.room.whoAmIState.wordSubmissions?.[p.socketId]);
+                expect(assignedWords[p.socketId]).not.toBe(privateState.get('test-room', p.socketId, 'waiSubmittedWord'));
             });
         });
     });
     describe('handleGameAction', () => {
         function makeAskingRoom(overrides = {}) {
             return {
+                code: 'test-room',
                 gameType: types_1.GameType.WHO_AM_I,
                 status: types_1.RoomStatus.PLAYING,
                 roomHostId: 'host1',
@@ -349,7 +375,6 @@ describe('WhoAmIService', () => {
                 config: { wordMode: 'PLAYER_INPUT', maxRounds: 3 },
                 whoAmIState: {
                     currentTurn: 'p1',
-                    playerWords: { p1: 'Apple', p2: 'Banana', p3: 'Cherry' },
                     currentGuess: null,
                     votes: {},
                     turnStatus: 'VOTING',
@@ -365,6 +390,7 @@ describe('WhoAmIService', () => {
         }
         it('should return null if room is not PLAYING', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.LOBBY,
                 whoAmIState: {},
             };
@@ -372,6 +398,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if no gameState', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.PLAYING,
             };
             expect(service.handleGameAction(room, 'p1', { type: 'SUBMIT_GUESS' })).toBeNull();
@@ -572,6 +599,7 @@ describe('WhoAmIService', () => {
         describe('END_MATCH', () => {
             it('should return null because handleGameAction requires PLAYING but resetGame requires RESULT', () => {
                 const room = {
+                    code: 'test-room',
                     status: types_1.RoomStatus.PLAYING,
                     roomHostId: 'host1',
                     whoAmIState: { winner: 'p1' },
@@ -634,6 +662,7 @@ describe('WhoAmIService', () => {
             });
             it('should end game when all players eliminated', () => {
                 const room = {
+                    code: 'test-room',
                     gameType: types_1.GameType.WHO_AM_I,
                     status: types_1.RoomStatus.PLAYING,
                     roomHostId: 'p1',
@@ -645,7 +674,6 @@ describe('WhoAmIService', () => {
                     config: { wordMode: 'PLAYER_INPUT', maxRounds: 3 },
                     whoAmIState: {
                         currentTurn: 'p1',
-                        playerWords: { p1: 'A', p2: 'B', p3: 'C' },
                         currentGuess: null,
                         votes: { p2: 'NO', p3: 'NO' },
                         turnStatus: 'RESULT',
@@ -696,6 +724,7 @@ describe('WhoAmIService', () => {
                 });
                 it('should end game when all players used final guess', () => {
                     const room = {
+                        code: 'test-room',
                         gameType: types_1.GameType.WHO_AM_I,
                         status: types_1.RoomStatus.PLAYING,
                         roomHostId: 'p1',
@@ -707,7 +736,6 @@ describe('WhoAmIService', () => {
                         config: { wordMode: 'PLAYER_INPUT', maxRounds: 3 },
                         whoAmIState: {
                             currentTurn: 'p1',
-                            playerWords: { p1: 'A', p2: 'B', p3: 'C' },
                             currentGuess: null,
                             votes: { p2: 'NO', p3: 'NO' },
                             turnStatus: 'RESULT',
@@ -730,6 +758,7 @@ describe('WhoAmIService', () => {
             describe('NEXT_TURN with HOST_INPUT mode', () => {
                 it('should exclude host from eliminated player checks on score', () => {
                     const room = {
+                        code: 'test-room',
                         gameType: types_1.GameType.WHO_AM_I,
                         status: types_1.RoomStatus.PLAYING,
                         roomHostId: 'host1',
@@ -741,7 +770,6 @@ describe('WhoAmIService', () => {
                         config: { wordMode: 'HOST_INPUT', maxRounds: 3 },
                         whoAmIState: {
                             currentTurn: 'p1',
-                            playerWords: { p1: 'Apple', p2: 'Banana' },
                             currentGuess: null,
                             votes: { p2: 'NO' },
                             turnStatus: 'RESULT',
@@ -766,9 +794,11 @@ describe('WhoAmIService', () => {
     describe('resetGame', () => {
         it('should reset game state to LOBBY', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.RESULT,
                 roomHostId: 'host1',
                 whoAmIState: { winner: 'p1' },
+                players: [{ socketId: 'p1' }, { socketId: 'p2' }],
             };
             const result = service.resetGame(room, 'host1');
             expect(result).not.toBeNull();
@@ -777,6 +807,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if status is not RESULT', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.PLAYING,
                 roomHostId: 'host1',
             };
@@ -784,6 +815,7 @@ describe('WhoAmIService', () => {
         });
         it('should return null if requester is not host', () => {
             const room = {
+                code: 'test-room',
                 status: types_1.RoomStatus.RESULT,
                 roomHostId: 'host1',
             };

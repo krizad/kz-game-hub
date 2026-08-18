@@ -24,8 +24,9 @@ const who_first_service_1 = require("./who-first/who-first.service");
 const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const player_session_service_1 = require("./player-session.service");
+const private_state_service_1 = require("./private-state.service");
 let GamesService = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, playerSessionService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, playerSessionService, privateStateService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -37,8 +38,16 @@ let GamesService = class GamesService {
         this.musicTriviaService = musicTriviaService;
         this.theMindService = theMindService;
         this.playerSessionService = playerSessionService;
+        this.privateStateService = privateStateService;
         this.rooms = new Map();
         this.secretWords = new Map();
+    }
+    isRoomMember(code, socketId) {
+        const room = this.rooms.get(code);
+        return !!room?.players.some((p) => p.socketId === socketId);
+    }
+    getPrivateSocketData(code, socketId) {
+        return this.privateStateService.getSocketData(code, socketId);
     }
     findRoomCodeBySocketId(socketId) {
         for (const [code, room] of this.rooms.entries()) {
@@ -90,6 +99,7 @@ let GamesService = class GamesService {
                 activePlayers: [],
                 queue: [],
                 choices: {},
+                choicesMade: [],
                 scores: {},
             };
         }
@@ -98,22 +108,8 @@ let GamesService = class GamesService {
                 board: Array.from({ length: 9 }, () => []),
                 currentTurn: 'X',
                 inventory: {
-                    X: [
-                        { id: (0, uuid_1.v4)(), side: 'X', size: 'SMALL' },
-                        { id: (0, uuid_1.v4)(), side: 'X', size: 'SMALL' },
-                        { id: (0, uuid_1.v4)(), side: 'X', size: 'MEDIUM' },
-                        { id: (0, uuid_1.v4)(), side: 'X', size: 'MEDIUM' },
-                        { id: (0, uuid_1.v4)(), side: 'X', size: 'LARGE' },
-                        { id: (0, uuid_1.v4)(), side: 'X', size: 'LARGE' },
-                    ],
-                    O: [
-                        { id: (0, uuid_1.v4)(), side: 'O', size: 'SMALL' },
-                        { id: (0, uuid_1.v4)(), side: 'O', size: 'SMALL' },
-                        { id: (0, uuid_1.v4)(), side: 'O', size: 'MEDIUM' },
-                        { id: (0, uuid_1.v4)(), side: 'O', size: 'MEDIUM' },
-                        { id: (0, uuid_1.v4)(), side: 'O', size: 'LARGE' },
-                        { id: (0, uuid_1.v4)(), side: 'O', size: 'LARGE' },
-                    ],
+                    X: this.gobblerService.createInitialInventory('X'),
+                    O: this.gobblerService.createInitialInventory('O'),
                 },
                 scores: { X: 0, O: 0 },
             };
@@ -125,7 +121,7 @@ let GamesService = class GamesService {
         else if (gameType === types_1.GameType.WHO_FIRST) {
             room.config.whoFirstPenalty = true;
             room.config.whoFirstHostPlays = false;
-            room.config.maxRounds = 5;
+            room.config.whoFirstMaxRounds = 5;
             room.whoFirstState = {
                 phase: 'LOBBY',
                 presses: [],
@@ -271,10 +267,6 @@ let GamesService = class GamesService {
                 const waState = room.whoAmIState;
                 if (waState.currentTurn === oldSocketId)
                     waState.currentTurn = user.socketId;
-                if (waState.playerWords[oldSocketId]) {
-                    waState.playerWords[user.socketId] = waState.playerWords[oldSocketId];
-                    delete waState.playerWords[oldSocketId];
-                }
                 if (waState.votes[oldSocketId]) {
                     waState.votes[user.socketId] = waState.votes[oldSocketId];
                     delete waState.votes[oldSocketId];
@@ -287,10 +279,6 @@ let GamesService = class GamesService {
                 const fgIdx = waState.finalGuessUsed.indexOf(oldSocketId);
                 if (fgIdx !== -1)
                     waState.finalGuessUsed[fgIdx] = user.socketId;
-                if (waState.wordSubmissions?.[oldSocketId]) {
-                    waState.wordSubmissions[user.socketId] = waState.wordSubmissions[oldSocketId];
-                    delete waState.wordSubmissions[oldSocketId];
-                }
             }
             if (room.whoFirstState) {
                 room.whoFirstState.presses.forEach((p) => {
@@ -301,6 +289,7 @@ let GamesService = class GamesService {
             if (room.musicTriviaState) {
                 this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
             }
+            this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
         }
         else {
@@ -342,15 +331,32 @@ let GamesService = class GamesService {
                 if (explicitLeave || room.status === types_1.RoomStatus.LOBBY) {
                     this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
                     room.players.splice(playerIndex, 1);
+                    this.privateStateService.clearSocket(code, clientId);
+                    if (room.ticTacToeState) {
+                        if (room.ticTacToeState.playerXId === clientId)
+                            room.ticTacToeState.playerXId = undefined;
+                        if (room.ticTacToeState.playerOId === clientId)
+                            room.ticTacToeState.playerOId = undefined;
+                    }
+                    if (room.gobblerState) {
+                        if (room.gobblerState.playerXId === clientId)
+                            room.gobblerState.playerXId = undefined;
+                        if (room.gobblerState.playerOId === clientId)
+                            room.gobblerState.playerOId = undefined;
+                    }
                 }
                 else {
                     room.players[playerIndex].connected = false;
+                    this.privateStateService.clearSocket(code, clientId);
                 }
                 if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
                     this.whoKnowService.checkVoteResolution(room);
                 }
                 if (room.gameType === types_1.GameType.SOUNDS_FISHY && room.status === types_1.RoomStatus.QUESTIONING) {
                     this.soundsFishyService.checkAnswerResolution(room);
+                }
+                if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
+                    this.detectiveClubService.handlePlayerDisconnect(room, clientId);
                 }
                 const activePlayers = room.players.filter((p) => p.connected !== false).length;
                 if (activePlayers === 0) {
@@ -368,6 +374,7 @@ let GamesService = class GamesService {
         this.secretWords.delete(code);
         this.playerSessionService.clearRoom(code);
         this.musicTriviaService.deleteRoomData(code);
+        this.privateStateService.clearRoom(code);
     }
     getAvailableRooms() {
         const availableRooms = [];
@@ -421,12 +428,12 @@ let GamesService = class GamesService {
             result.wordCategory = config.wordCategory;
         }
         copyBoolean('whoFirstPenalty');
-        copyInteger('whoFirstCooldownMs', 100, 60_000);
         copyBoolean('whoFirstHostPlays');
         copyInteger('whoFirstMinCountdownMs', 100, 60_000);
         copyInteger('whoFirstMaxCountdownMs', 100, 60_000);
         copyBoolean('whoFirstInfiniteRounds');
         copyBoolean('whoFirstShowCounter');
+        copyInteger('whoFirstMaxRounds', 1, 100);
         copyEnum('musicTriviaMode', ['TYPING', 'GAME_MASTER']);
         copyEnum('musicTriviaSource', ['ITUNES', 'SPOTIFY', 'YOUTUBE', 'DEEZER', 'SOUNDCLOUD']);
         if (typeof config.musicTriviaQuery === 'string' && config.musicTriviaQuery.length <= 200) {
@@ -589,6 +596,19 @@ let GamesService = class GamesService {
     }
     getSecretWord(code) {
         return this.secretWords.get(code);
+    }
+    getPlayerRole(code, socketId) {
+        const data = this.privateStateService.getSocketData(code, socketId);
+        return data['wkRole'] ?? data['sfRole'];
+    }
+    whoKnowServerTimeout(code) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const updatedRoom = this.whoKnowService.handleQuestioningTimeout(room);
+        if (updatedRoom)
+            this.rooms.set(code, updatedRoom);
+        return updatedRoom;
     }
     tttJoinSide(code, clientId, side) {
         const room = this.rooms.get(code);
@@ -824,6 +844,15 @@ let GamesService = class GamesService {
             this.rooms.set(code, updatedRoom);
         return updatedRoom;
     }
+    whoFirstSetActive(code) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const updatedRoom = this.whoFirstService.setActive(room);
+        if (updatedRoom)
+            this.rooms.set(code, updatedRoom);
+        return updatedRoom;
+    }
     whoAmICategoriesList(lang) {
         return this.whoAmIService.getCategories(lang);
     }
@@ -841,6 +870,15 @@ let GamesService = class GamesService {
         if (!room)
             return null;
         const result = await this.musicTriviaService.handleGameAction(room, clientId, action);
+        if (result)
+            this.rooms.set(code, result.room);
+        return result;
+    }
+    musicTriviaFinalizeAnswerTimeout(code) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const result = this.musicTriviaService.answerTimeout(room);
         if (result)
             this.rooms.set(code, result.room);
         return result;
@@ -949,6 +987,7 @@ exports.GamesService = GamesService = __decorate([
         who_first_service_1.WhoFirstService,
         music_trivia_service_1.MusicTriviaService,
         the_mind_service_1.TheMindService,
-        player_session_service_1.PlayerSessionService])
+        player_session_service_1.PlayerSessionService,
+        private_state_service_1.PrivateStateService])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map

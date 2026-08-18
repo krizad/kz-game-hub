@@ -1,5 +1,14 @@
 import { RoomState, Role } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
 export declare class SoundsFishyService {
+    private readonly privateState;
+    constructor(privateState: PrivateStateService);
+    private shuffleArray;
+    private isMember;
+    private getTrueAnswer;
+    private getBlueFishId;
+    private getRedHerringIds;
+    private revealRoles;
     assignRoles(room: RoomState, requesterId: string): Promise<{
         room: RoomState;
         roles: Record<string, Role>;

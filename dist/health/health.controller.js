@@ -13,8 +13,7 @@ exports.HealthController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const database_1 = require("@repo/database");
-const node_fs_1 = require("node:fs");
-const node_path_1 = require("node:path");
+const types_1 = require("@repo/types");
 let HealthController = class HealthController {
     async check() {
         const databaseStartedAt = Date.now();
@@ -40,11 +39,10 @@ let HealthController = class HealthController {
                 clearTimeout(timeout);
         }
         const memory = process.memoryUsage();
-        const version = this.getPackageVersion();
         return {
             status: database.status === 'connected' ? 'ok' : 'degraded',
             service: 'kz-game-hub-api',
-            version,
+            version: types_1.APP_VERSION,
             environment: process.env.NODE_ENV || 'development',
             nodeVersion: process.version,
             pid: process.pid,
@@ -59,14 +57,7 @@ let HealthController = class HealthController {
         };
     }
     getPackageVersion() {
-        try {
-            const packageJsonPath = (0, node_path_1.resolve)(__dirname, '../../package.json');
-            const packageJson = JSON.parse((0, node_fs_1.readFileSync)(packageJsonPath, 'utf8'));
-            return packageJson.version || 'unknown';
-        }
-        catch {
-            return process.env.npm_package_version || 'unknown';
-        }
+        return types_1.APP_VERSION;
     }
 };
 exports.HealthController = HealthController;

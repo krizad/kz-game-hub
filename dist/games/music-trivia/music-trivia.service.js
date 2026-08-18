@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MusicTriviaService = void 0;
 const common_1 = require("@nestjs/common");
+const private_state_service_1 = require("../private-state.service");
 const types_1 = require("@repo/types");
 const itunes_adapter_1 = require("./adapters/itunes.adapter");
 const spotify_adapter_1 = require("./adapters/spotify.adapter");
@@ -19,9 +20,8 @@ const deezer_adapter_1 = require("./adapters/deezer.adapter");
 const soundcloud_adapter_1 = require("./adapters/soundcloud.adapter");
 const music_source_adapter_1 = require("./music-source-adapter");
 let MusicTriviaService = class MusicTriviaService {
-    constructor() {
-        this.trackAnswers = new Map();
-        this.fullTracks = new Map();
+    constructor(privateState) {
+        this.privateState = privateState;
         this.sourceFactory = new music_source_adapter_1.MusicSourceFactory();
         this.sourceFactory.register(new itunes_adapter_1.ITunesAdapter());
         this.sourceFactory.register(new spotify_adapter_1.SpotifyAdapter());
@@ -87,8 +87,7 @@ let MusicTriviaService = class MusicTriviaService {
     resetGame(room, requesterId) {
         if (room.roomHostId !== requesterId)
             return null;
-        this.trackAnswers.delete(room.code);
-        this.fullTracks.delete(room.code);
+        this.privateState.clearRoom(room.code);
         room.musicTriviaState = undefined;
         room.status = types_1.RoomStatus.LOBBY;
         for (const p of room.players) {
@@ -97,8 +96,7 @@ let MusicTriviaService = class MusicTriviaService {
         return room;
     }
     deleteRoomData(roomCode) {
-        this.trackAnswers.delete(roomCode);
-        this.fullTracks.delete(roomCode);
+        this.privateState.clearRoom(roomCode);
     }
     remapSocketId(state, oldId, newId) {
         if (state.scores[oldId] !== undefined) {
@@ -207,7 +205,7 @@ let MusicTriviaService = class MusicTriviaService {
             }
             state.totalRounds = Math.min(state.totalRounds, uniqueTracks.length);
             const selectedTracks = uniqueTracks.slice(0, state.totalRounds);
-            this.trackAnswers.set(room.code, selectedTracks.map((t) => ({
+            this.privateState.set(room.code, '__ROOM__', 'mtTrackAnswers', selectedTracks.map((t) => ({
                 id: t.id,
                 title: t.title,
                 artist: t.artist,
@@ -215,7 +213,7 @@ let MusicTriviaService = class MusicTriviaService {
                 album: t.album,
                 releaseYear: t.releaseYear,
             })));
-            this.fullTracks.set(room.code, selectedTracks);
+            this.privateState.set(room.code, '__ROOM__', 'mtFullTracks', selectedTracks);
             const firstTrack = selectedTracks[0];
             state.currentRound = this.createRound(1, firstTrack);
             state.phase = 'GET_READY';
@@ -271,6 +269,15 @@ let MusicTriviaService = class MusicTriviaService {
         const result = { room };
         return result;
     }
+    answerTimeout(room) {
+        const state = room.musicTriviaState;
+        if (!state || (state.phase !== 'ANSWERING' && state.phase !== 'BUZZED'))
+            return null;
+        const round = state.currentRound;
+        if (!round || !round.currentBuzzerId)
+            return null;
+        return this.giveUp(room, round.currentBuzzerId);
+    }
     giveUp(room, clientId) {
         const state = room.musicTriviaState;
         if (state.phase !== 'PLAYING')
@@ -289,7 +296,7 @@ let MusicTriviaService = class MusicTriviaService {
         round.struckOutIds.push(clientId);
         if (this.allPlayersStruckOut(room)) {
             state.phase = 'REVEAL';
-            const answers = this.trackAnswers.get(room.code);
+            const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
             const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
             if (trackAnswer) {
                 state.revealedAnswer = {
@@ -312,7 +319,7 @@ let MusicTriviaService = class MusicTriviaService {
         const round = state.currentRound;
         if (!round || round.currentBuzzerId !== clientId)
             return null;
-        const answers = this.trackAnswers.get(room.code);
+        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
         if (!answers)
             return null;
         const trackAnswer = answers[round.roundNumber - 1];
@@ -399,7 +406,7 @@ let MusicTriviaService = class MusicTriviaService {
         if (!round || !round.currentBuzzerId)
             return null;
         const buzzerId = round.currentBuzzerId;
-        const answers = this.trackAnswers.get(room.code);
+        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
         const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
         if (correct) {
             round.answeredCorrectly = true;
@@ -468,7 +475,7 @@ let MusicTriviaService = class MusicTriviaService {
         const round = state.currentRound;
         if (!round)
             return null;
-        const answers = this.trackAnswers.get(room.code);
+        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
         const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
         state.phase = 'REVEAL';
         if (trackAnswer) {
@@ -507,7 +514,7 @@ let MusicTriviaService = class MusicTriviaService {
         const state = room.musicTriviaState;
         const round = state.currentRound;
         if (round) {
-            const answers = this.trackAnswers.get(room.code);
+            const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
             const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
             const historyEntry = {
                 roundNumber: round.roundNumber,
@@ -532,7 +539,7 @@ let MusicTriviaService = class MusicTriviaService {
             }
             return { room };
         }
-        const answers = this.trackAnswers.get(room.code);
+        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
         if (!answers || !answers[nextRoundNumber - 1]) {
             state.phase = 'FINISHED';
             room.status = types_1.RoomStatus.RESULT;
@@ -597,7 +604,7 @@ let MusicTriviaService = class MusicTriviaService {
         return eligiblePlayers.every((p) => round.struckOutIds.includes(p.socketId));
     }
     getFullTracks(roomCode) {
-        return this.fullTracks.get(roomCode);
+        return this.privateState.get(roomCode, '__ROOM__', 'mtFullTracks');
     }
     levenshteinDistance(a, b) {
         const m = a.length;
@@ -651,6 +658,6 @@ let MusicTriviaService = class MusicTriviaService {
 exports.MusicTriviaService = MusicTriviaService;
 exports.MusicTriviaService = MusicTriviaService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [private_state_service_1.PrivateStateService])
 ], MusicTriviaService);
 //# sourceMappingURL=music-trivia.service.js.map

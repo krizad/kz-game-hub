@@ -14,16 +14,21 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GamesGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
+const common_1 = require("@nestjs/common");
 const socket_io_1 = require("socket.io");
 const games_service_1 = require("./games.service");
 const leaderboard_service_1 = require("./leaderboard/leaderboard.service");
 const room_timer_service_1 = require("./room-timer.service");
+const private_state_service_1 = require("./private-state.service");
+const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
 let GamesGateway = class GamesGateway {
-    constructor(gamesService, leaderboardService, roomTimerService) {
+    constructor(gamesService, leaderboardService, roomTimerService, privateStateService) {
         this.gamesService = gamesService;
         this.leaderboardService = leaderboardService;
         this.roomTimerService = roomTimerService;
+        this.privateStateService = privateStateService;
+        this.recordedResults = new Set();
     }
     handleConnection(client) {
         console.log(`Client connected: ${client.id}`);
@@ -38,15 +43,15 @@ let GamesGateway = class GamesGateway {
         console.log(`Client disconnected: ${client.id}`);
         const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? client.data.spectatingRoomCode ?? '';
         const result = this.gamesService.leaveRoom(client.id, false);
-        if (result && 'code' in result && result.code === null) {
+        if (result && result.code === null) {
             if (currentRoomCode) {
                 this.roomTimerService.clearRoom(currentRoomCode);
                 this.server.to(currentRoomCode).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
             }
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
-        else if (result) {
-            this.server.to(result.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, result);
+        else if (result && 'players' in result) {
+            this.broadcastRoomState(result);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -56,15 +61,15 @@ let GamesGateway = class GamesGateway {
     handleLeaveRoom(client) {
         const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? '';
         const result = this.gamesService.leaveRoom(client.id, true);
-        if (result && 'code' in result && result.code === null) {
+        if (result && result.code === null) {
             if (currentRoomCode) {
                 this.roomTimerService.clearRoom(currentRoomCode);
                 this.server.to(currentRoomCode).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
             }
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
-        else if (result) {
-            this.server.to(result.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, result);
+        else if (result && 'players' in result) {
+            this.broadcastRoomState(result);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -101,19 +106,20 @@ let GamesGateway = class GamesGateway {
         if (room) {
             client.join(room.code);
             this.emitSessionToken(client, room.code);
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
             const player = room.players.find((p) => p.socketId === client.id);
-            if (player?.role) {
+            const playerRole = this.gamesService.getPlayerRole(room.code, client.id);
+            if (player && playerRole) {
                 if (room.status === types_1.RoomStatus.WORD_SETTING) {
-                    if (player.role === types_1.Role.Host) {
-                        client.emit(types_1.SOCKET_EVENTS.ROLE_ASSIGNED, { role: player.role });
+                    if (playerRole === types_1.Role.Host) {
+                        client.emit(types_1.SOCKET_EVENTS.ROLE_ASSIGNED, { role: playerRole });
                     }
                 }
                 else if (room.status !== types_1.RoomStatus.LOBBY) {
-                    client.emit(types_1.SOCKET_EVENTS.ROLE_ASSIGNED, { role: player.role });
+                    client.emit(types_1.SOCKET_EVENTS.ROLE_ASSIGNED, { role: playerRole });
                     const secretWord = this.gamesService.getSecretWord(room.code);
-                    if (secretWord && (player.role === types_1.Role.Host || player.role === types_1.Role.Know)) {
+                    if (secretWord && (playerRole === types_1.Role.Host || playerRole === types_1.Role.Know)) {
                         client.emit(types_1.SOCKET_EVENTS.WORD_SETTING_COMPLETED, { word: secretWord });
                     }
                 }
@@ -128,8 +134,9 @@ let GamesGateway = class GamesGateway {
     async handleStartGame(data, client) {
         const result = await this.gamesService.assignRoles(data.code, client.id);
         if (result) {
-            this.server.to(result.room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+            this.broadcastRoomState(result.room);
             this.syncTheMindTimer(result.room);
+            this.syncWhoFirstTimer(result.room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
             const host = Object.entries(result.roles).find(([, role]) => role === types_1.Role.Host);
             if (host) {
@@ -140,8 +147,11 @@ let GamesGateway = class GamesGateway {
             const roomInfo = this.gamesService.getRoom(data.code);
             const gameType = roomInfo?.gameType;
             let msg = 'Cannot start game.';
-            if (gameType === types_1.GameType.WHO_KNOW || gameType === types_1.GameType.SOUNDS_FISHY) {
+            if (gameType === types_1.GameType.WHO_KNOW) {
                 msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
+            }
+            else if (gameType === types_1.GameType.SOUNDS_FISHY) {
+                msg = 'Cannot start game. Need at least 3 players.';
             }
             else if (gameType === types_1.GameType.MUSIC_TRIVIA) {
                 msg = 'Cannot start game. Need at least 2 players and a music query.';
@@ -155,8 +165,8 @@ let GamesGateway = class GamesGateway {
     handleSetWord(data, client) {
         const room = this.gamesService.setWord(data.code, data.word, client.id);
         if (room) {
-            const insider = room.players.find((p) => p.role === types_1.Role.Know);
-            const gameHost = room.players.find((p) => p.role === types_1.Role.Host);
+            const insider = room.players.find((p) => this.gamesService.getPlayerRole(room.code, p.socketId) === types_1.Role.Know);
+            const gameHost = room.players.find((p) => this.gamesService.getPlayerRole(room.code, p.socketId) === types_1.Role.Host);
             if (insider)
                 this.server
                     .to(insider.socketId)
@@ -166,11 +176,13 @@ let GamesGateway = class GamesGateway {
                     .to(gameHost.socketId)
                     .emit(types_1.SOCKET_EVENTS.WORD_SETTING_COMPLETED, { word: data.word });
             room.players.forEach((player) => {
-                if (player.role && player.role !== types_1.Role.Host) {
-                    this.server.to(player.socketId).emit(types_1.SOCKET_EVENTS.ROLE_ASSIGNED, { role: player.role });
+                const role = this.gamesService.getPlayerRole(room.code, player.socketId);
+                if (role && role !== types_1.Role.Host) {
+                    this.server.to(player.socketId).emit(types_1.SOCKET_EVENTS.ROLE_ASSIGNED, { role });
                 }
             });
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
+            this.syncWhoKnowTimer(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
@@ -181,7 +193,8 @@ let GamesGateway = class GamesGateway {
     handleStopTimer(data, client) {
         const room = this.gamesService.stopTimer(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.roomTimerService.cancel(room.code, 'who-know');
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
@@ -192,7 +205,8 @@ let GamesGateway = class GamesGateway {
     handleEndQuestioning(data, client) {
         const room = this.gamesService.endQuestioning(data.code, client.id, data.timeout);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.roomTimerService.cancel(room.code, 'who-know');
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
@@ -203,7 +217,7 @@ let GamesGateway = class GamesGateway {
     handleSubmitVote(data, client) {
         const room = this.gamesService.submitVote(data.code, client.id, data.targetId);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.maybeRecordGameResult(room);
         }
         else {
@@ -213,7 +227,9 @@ let GamesGateway = class GamesGateway {
     handleResetGame(data, client) {
         const room = this.gamesService.resetGame(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.roomTimerService.cancel(room.code, 'who-know');
+            this.roomTimerService.cancel(room.code, 'the-mind');
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -225,7 +241,7 @@ let GamesGateway = class GamesGateway {
     handleUpdateConfig(data, client) {
         const room = this.gamesService.updateConfig(data.code, client.id, data.config);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
@@ -236,7 +252,7 @@ let GamesGateway = class GamesGateway {
     handleTTTJoinSide(data, client) {
         const room = this.gamesService.tttJoinSide(data.code, client.id, data.side);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -246,7 +262,7 @@ let GamesGateway = class GamesGateway {
     handleTTTMakeMove(data, client) {
         const room = this.gamesService.tttMakeMove(data.code, client.id, data.index);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
@@ -255,7 +271,7 @@ let GamesGateway = class GamesGateway {
     handleTTTReset(data, client) {
         const room = this.gamesService.tttReset(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -265,7 +281,8 @@ let GamesGateway = class GamesGateway {
     handleRPSNextRound(data, client) {
         const room = this.gamesService.rpsNextRound(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized or slot already taken.' });
@@ -274,7 +291,8 @@ let GamesGateway = class GamesGateway {
     handleRPSMakeChoice(data, client) {
         const room = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid choice or not your turn.' });
@@ -283,7 +301,7 @@ let GamesGateway = class GamesGateway {
     handleRPSReset(data, client) {
         const room = this.gamesService.rpsReset(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -293,7 +311,7 @@ let GamesGateway = class GamesGateway {
     handleGobblerJoinSide(data, client) {
         const room = this.gamesService.gobblerJoinSide(data.code, client.id, data.side);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -303,7 +321,7 @@ let GamesGateway = class GamesGateway {
     handleGobblerPlace(data, client) {
         const room = this.gamesService.gobblerPlacePiece(data.code, client.id, data.pieceId, data.toIndex);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid move or not your turn.' });
@@ -312,7 +330,7 @@ let GamesGateway = class GamesGateway {
     handleGobblerMove(data, client) {
         const room = this.gamesService.gobblerMovePiece(data.code, client.id, data.fromIndex, data.toIndex);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid move or not your turn.' });
@@ -321,7 +339,7 @@ let GamesGateway = class GamesGateway {
     handleGobblerReset(data, client) {
         const room = this.gamesService.gobblerReset(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -331,13 +349,13 @@ let GamesGateway = class GamesGateway {
     handleSoundsFishyTypeAnswer(data, client) {
         const room = this.gamesService.soundsFishyTypeAnswer(data.code, client.id, data.answer);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
     }
     handleSoundsFishySubmitAnswer(data, client) {
         const room = this.gamesService.soundsFishySubmitAnswer(data.code, client.id, data.answer);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid answer or not in submission phase.' });
@@ -346,7 +364,7 @@ let GamesGateway = class GamesGateway {
     handleSoundsFishyRevealAnswer(data, client) {
         const room = this.gamesService.soundsFishyRevealPlayer(data.code, client.id, data.targetId);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot reveal player.' });
@@ -355,7 +373,7 @@ let GamesGateway = class GamesGateway {
     handleSoundsFishyEliminatePlayer(data, client) {
         const room = this.gamesService.soundsFishyEliminatePlayer(data.code, client.id, data.targetId);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot eliminate player.' });
@@ -364,7 +382,7 @@ let GamesGateway = class GamesGateway {
     handleSoundsFishyBankPoints(data, client) {
         const room = this.gamesService.soundsFishyBankPoints(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot bank points.' });
@@ -373,7 +391,7 @@ let GamesGateway = class GamesGateway {
     handleSoundsFishyNextRound(data, client) {
         const room = this.gamesService.soundsFishyNextRound(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot go to next round.' });
@@ -382,7 +400,7 @@ let GamesGateway = class GamesGateway {
     handleSoundsFishyReset(data, client) {
         const room = this.gamesService.soundsFishyReset(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -392,7 +410,7 @@ let GamesGateway = class GamesGateway {
     handleDetectiveClubSubmitWord(data, client) {
         const room = this.gamesService.detectiveClubSubmitWord(data.code, client.id, data.word);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot submit word' });
@@ -401,7 +419,7 @@ let GamesGateway = class GamesGateway {
     handleDetectiveClubPlayCard(data, client) {
         const room = this.gamesService.detectiveClubPlayCard(data.code, client.id, data.cardIndex);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid card play' });
@@ -410,7 +428,7 @@ let GamesGateway = class GamesGateway {
     handleDetectiveClubNextPhase(data, client) {
         const room = this.gamesService.detectiveClubNextPhase(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot move to next phase' });
@@ -419,7 +437,7 @@ let GamesGateway = class GamesGateway {
     handleDetectiveClubVote(data, client) {
         const room = this.gamesService.detectiveClubVote(data.code, client.id, data.targetId);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid vote' });
@@ -428,7 +446,7 @@ let GamesGateway = class GamesGateway {
     handleDetectiveClubNextRound(data, client) {
         const room = this.gamesService.detectiveClubNextRound(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to move to next round' });
@@ -437,7 +455,7 @@ let GamesGateway = class GamesGateway {
     handleDetectiveClubReset(data, client) {
         const room = this.gamesService.detectiveClubReset(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -447,7 +465,7 @@ let GamesGateway = class GamesGateway {
     handleWhoAmISubmitWords(data, client) {
         const room = this.gamesService.whoAmIStartHostInput(data.code, client.id, data.playerWords);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot start Host Input mode' });
@@ -459,7 +477,7 @@ let GamesGateway = class GamesGateway {
             if (result.error) {
                 client.emit(types_1.SOCKET_EVENTS.ERROR, { message: result.error });
             }
-            this.server.to(result.room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+            this.broadcastRoomState(result.room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot submit word' });
@@ -470,11 +488,15 @@ let GamesGateway = class GamesGateway {
         client.emit(types_1.SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
     }
     async handleGameAction(data, client) {
+        if (!data?.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
+            return;
+        }
         const roomInfo = this.gamesService.getRoom(data.code);
         if (roomInfo && roomInfo.gameType === types_1.GameType.WHO_AM_I) {
             const room = this.gamesService.whoAmIGameAction(data.code, client.id, data.action);
             if (room) {
-                this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+                this.broadcastRoomState(room);
                 this.maybeRecordGameResult(room);
             }
             else {
@@ -484,7 +506,8 @@ let GamesGateway = class GamesGateway {
         else if (roomInfo && roomInfo.gameType === types_1.GameType.WHO_FIRST) {
             const room = this.gamesService.whoFirstGameAction(data.code, client.id, data.action);
             if (room) {
-                this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+                this.broadcastRoomState(room);
+                this.syncWhoFirstTimer(room);
                 this.maybeRecordGameResult(room);
             }
             else {
@@ -494,7 +517,7 @@ let GamesGateway = class GamesGateway {
         else if (roomInfo && roomInfo.gameType === types_1.GameType.MUSIC_TRIVIA) {
             const result = await this.gamesService.musicTriviaGameAction(data.code, client.id, data.action);
             if (result) {
-                this.server.to(result.room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+                this.broadcastRoomState(result.room);
                 if (result.syncPlay) {
                     this.server
                         .to(result.room.code)
@@ -519,19 +542,35 @@ let GamesGateway = class GamesGateway {
                 const actionData = data.action;
                 if (actionData.type === 'START_COUNTDOWN' ||
                     (actionData.type === 'NEXT_ROUND' && result.room.musicTriviaState?.phase === 'COUNTDOWN')) {
-                    setTimeout(() => {
+                    this.roomTimerService.schedule(data.code, 'music-trivia-countdown', Date.now() + 3000, () => {
                         const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
                         if (finalResult) {
-                            this.server
-                                .to(finalResult.room.code)
-                                .emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, finalResult.room);
+                            this.broadcastRoomState(finalResult.room);
                             if (finalResult.syncPlay) {
                                 this.server
                                     .to(finalResult.room.code)
                                     .emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, finalResult.syncPlay);
                             }
                         }
-                    }, 3000);
+                    });
+                }
+                if (actionData.type === 'PRESS_BUZZER' &&
+                    result.room.musicTriviaState?.phase.match(/^(BUZZED|ANSWERING)$/)) {
+                    const timeoutMs = result.room.musicTriviaState.answerTimeoutMs || 15000;
+                    this.roomTimerService.schedule(data.code, 'music-trivia-answer', Date.now() + timeoutMs, () => {
+                        const timeoutResult = this.gamesService.musicTriviaFinalizeAnswerTimeout(data.code);
+                        if (timeoutResult) {
+                            this.broadcastRoomState(timeoutResult.room);
+                            if (timeoutResult.syncPlay) {
+                                this.server
+                                    .to(timeoutResult.room.code)
+                                    .emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, timeoutResult.syncPlay);
+                            }
+                        }
+                    });
+                }
+                if (['SUBMIT_ANSWER', 'HOST_JUDGE', 'GIVE_UP', 'NEXT_ROUND'].includes(actionData.type)) {
+                    this.roomTimerService.cancel(data.code, 'music-trivia-answer');
                 }
                 this.maybeRecordGameResult(result.room);
             }
@@ -549,7 +588,7 @@ let GamesGateway = class GamesGateway {
     handleTheMindReady(data, client) {
         const room = this.gamesService.theMindReady(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.syncTheMindTimer(room);
         }
         else {
@@ -559,7 +598,7 @@ let GamesGateway = class GamesGateway {
     handleTheMindPlayCard(data, client) {
         const room = this.gamesService.theMindPlayCard(data.code, client.id, data.card, data.pile);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.syncTheMindTimer(room);
             this.maybeRecordGameResult(room);
         }
@@ -570,7 +609,7 @@ let GamesGateway = class GamesGateway {
     handleTheMindNextLevel(data, client) {
         const room = this.gamesService.theMindNextLevel(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.syncTheMindTimer(room);
         }
         else {
@@ -580,7 +619,7 @@ let GamesGateway = class GamesGateway {
     handleTheMindProposeShuriken(data, client) {
         const room = this.gamesService.theMindProposeShuriken(data.code, client.id);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.syncTheMindTimer(room);
         }
         else {
@@ -590,7 +629,7 @@ let GamesGateway = class GamesGateway {
     handleTheMindVoteShuriken(data, client) {
         const room = this.gamesService.theMindVoteShuriken(data.code, client.id, data.agree);
         if (room) {
-            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+            this.broadcastRoomState(room);
             this.syncTheMindTimer(room);
             this.maybeRecordGameResult(room);
         }
@@ -601,7 +640,7 @@ let GamesGateway = class GamesGateway {
     handleTheMindCancelShuriken(data, client) {
         const updatedRoom = this.gamesService.theMindCancelShuriken(data.code, client.id);
         if (updatedRoom) {
-            this.server.to(data.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+            this.broadcastRoomState(updatedRoom);
             this.syncTheMindTimer(updatedRoom);
         }
         else {
@@ -622,6 +661,16 @@ let GamesGateway = class GamesGateway {
         client.data.spectatingRoomCode = room.code;
         client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
     }
+    broadcastRoomState(room) {
+        this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+        this.emitPrivateStates(room);
+    }
+    emitPrivateStates(room) {
+        for (const player of room.players) {
+            const data = this.privateStateService.getSocketData(room.code, player.socketId);
+            this.server.to(player.socketId).emit(types_1.SOCKET_EVENTS.PRIVATE_STATE_UPDATED, { data });
+        }
+    }
     emitSessionToken(client, code) {
         const reconnectToken = this.gamesService.getReconnectToken(code, client.id);
         const playerId = this.gamesService
@@ -630,6 +679,43 @@ let GamesGateway = class GamesGateway {
         if (reconnectToken && playerId) {
             client.emit(types_1.SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken, playerId });
         }
+    }
+    syncWhoFirstTimer(room) {
+        const deadline = room.whoFirstState?.countdownEndTime;
+        if (room.whoFirstState?.phase !== 'COUNTDOWN' || !deadline) {
+            this.roomTimerService.cancel(room.code, 'who-first');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'who-first', deadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            if (currentRoom?.whoFirstState?.phase !== 'COUNTDOWN' ||
+                currentRoom.whoFirstState.countdownEndTime !== deadline) {
+                return;
+            }
+            const updatedRoom = this.gamesService.whoFirstSetActive(room.code);
+            if (updatedRoom) {
+                this.broadcastRoomState(updatedRoom);
+                this.syncWhoFirstTimer(updatedRoom);
+            }
+        });
+    }
+    syncWhoKnowTimer(room) {
+        const deadline = room.endTime;
+        if (room.status !== types_1.RoomStatus.QUESTIONING || !deadline) {
+            this.roomTimerService.cancel(room.code, 'who-know');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'who-know', deadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            if (currentRoom?.status !== types_1.RoomStatus.QUESTIONING || currentRoom.endTime !== deadline) {
+                return;
+            }
+            const updatedRoom = this.gamesService.whoKnowServerTimeout(room.code);
+            if (updatedRoom) {
+                this.broadcastRoomState(updatedRoom);
+                this.maybeRecordGameResult(updatedRoom);
+            }
+        });
     }
     syncTheMindTimer(room) {
         const deadline = room.theMindState?.levelEndTime;
@@ -645,20 +731,20 @@ let GamesGateway = class GamesGateway {
             }
             const updatedRoom = this.gamesService.theMindServerTimeout(room.code);
             if (updatedRoom) {
-                this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+                this.broadcastRoomState(updatedRoom);
                 this.maybeRecordGameResult(updatedRoom);
             }
         });
     }
     isValidPayload(event, payload) {
-        if (event === 'leave_room' || event === types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
+        if (event === types_1.SOCKET_EVENTS.LEAVE_ROOM || event === types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
             return true;
         if (!payload || typeof payload !== 'object' || Array.isArray(payload))
             return false;
         const data = payload;
         if (!this.hasSafeValues(data))
             return false;
-        if (event === 'create_room') {
+        if (event === types_1.SOCKET_EVENTS.CREATE_ROOM) {
             return (this.isValidName(data.name) &&
                 (data.gameType === undefined || Object.values(types_1.GameType).includes(data.gameType)));
         }
@@ -703,8 +789,14 @@ let GamesGateway = class GamesGateway {
         return false;
     }
     maybeRecordGameResult(room) {
-        if (room.status !== types_1.RoomStatus.RESULT)
+        const key = room.code;
+        if (room.status !== types_1.RoomStatus.RESULT) {
+            this.recordedResults.delete(key);
             return;
+        }
+        if (this.recordedResults.has(key))
+            return;
+        this.recordedResults.add(key);
         const results = room.players
             .filter((p) => p.name)
             .map((p) => ({
@@ -729,7 +821,7 @@ __decorate([
     __metadata("design:type", socket_io_1.Server)
 ], GamesGateway.prototype, "server", void 0);
 __decorate([
-    (0, websockets_1.SubscribeMessage)('leave_room'),
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.LEAVE_ROOM),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket]),
@@ -743,7 +835,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleGetAvailableRooms", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)('create_room'),
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CREATE_ROOM),
     __param(0, (0, websockets_1.MessageBody)()),
     __param(1, (0, websockets_1.ConnectedSocket)()),
     __metadata("design:type", Function),
@@ -1095,6 +1187,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleSpectateJoin", null);
 exports.GamesGateway = GamesGateway = __decorate([
+    (0, common_1.UseFilters)(ws_exception_filter_1.WsExceptionFilter),
     (0, websockets_1.WebSocketGateway)({
         cors: {
             origin: '*',
@@ -1102,6 +1195,7 @@ exports.GamesGateway = GamesGateway = __decorate([
     }),
     __metadata("design:paramtypes", [games_service_1.GamesService,
         leaderboard_service_1.LeaderboardService,
-        room_timer_service_1.RoomTimerService])
+        room_timer_service_1.RoomTimerService,
+        private_state_service_1.PrivateStateService])
 ], GamesGateway);
 //# sourceMappingURL=games.gateway.js.map

@@ -1,16 +1,34 @@
 import { RoomState } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
 export declare class DetectiveClubService {
+    private readonly privateState;
     private readonly logger;
     private availableCards;
-    constructor();
+    constructor(privateState: PrivateStateService);
+    private shuffleArray;
     private loadAvailableCards;
+    private isMember;
+    private getRole;
+    private setRole;
+    private getHand;
+    private setHand;
+    private getConspiratorId;
+    private setConspiratorId;
+    private getSecretWord;
+    private setSecretWord;
+    private getDeck;
+    private setDeck;
+    private getDiscard;
+    private setDiscard;
     private drawCards;
+    private syncHandSizes;
     startGame(room: RoomState, requesterId: string): RoomState | null;
     submitWord(room: RoomState, playerId: string, word: string): RoomState | null;
     playCard(room: RoomState, playerId: string, cardIndex: number): RoomState | null;
     nextPhase(room: RoomState, requesterId: string): RoomState | null;
     submitVote(room: RoomState, playerId: string, targetId: string): RoomState | null;
     private calculateScore;
+    handlePlayerDisconnect(room: RoomState, socketId: string): void;
     nextRound(room: RoomState, requesterId: string): RoomState | null;
     reset(room: RoomState, requesterId: string): RoomState | null;
 }

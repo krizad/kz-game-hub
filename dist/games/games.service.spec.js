@@ -14,6 +14,7 @@ const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const types_1 = require("@repo/types");
 const player_session_service_1 = require("./player-session.service");
+const private_state_service_1 = require("./private-state.service");
 describe('GamesService', () => {
     let service;
     let whoKnowService;
@@ -51,6 +52,11 @@ describe('GamesService', () => {
             placePiece: jest.fn(),
             movePiece: jest.fn(),
             reset: jest.fn(),
+            createInitialInventory: (side) => ['SMALL', 'SMALL', 'MEDIUM', 'MEDIUM', 'LARGE', 'LARGE'].map((size, i) => ({
+                id: `${side}-${size}-${i}`,
+                side,
+                size,
+            })),
         },
         soundsFishy: {
             assignRoles: jest.fn(),
@@ -84,6 +90,7 @@ describe('GamesService', () => {
         whoFirst: {
             startGame: jest.fn(),
             handleGameAction: jest.fn(),
+            setActive: jest.fn(),
             resetGame: jest.fn(),
         },
         musicTrivia: {
@@ -122,6 +129,7 @@ describe('GamesService', () => {
                 { provide: music_trivia_service_1.MusicTriviaService, useValue: mockGameServices.musicTrivia },
                 { provide: the_mind_service_1.TheMindService, useValue: mockGameServices.theMind },
                 player_session_service_1.PlayerSessionService,
+                private_state_service_1.PrivateStateService,
             ],
         }).compile();
         service = module.get(games_service_1.GamesService);
