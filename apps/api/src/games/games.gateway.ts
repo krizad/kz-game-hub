@@ -192,6 +192,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Broadcast updated room state
       this.broadcastRoomState(result.room);
       this.syncTheMindTimer(result.room);
+      this.syncWhoFirstTimer(result.room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -744,6 +745,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       if (room) {
         this.broadcastRoomState(room);
+        this.syncWhoFirstTimer(room);
         this.maybeRecordGameResult(room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
@@ -947,6 +949,30 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (reconnectToken && playerId) {
       client.emit(SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken, playerId });
     }
+  }
+
+  private syncWhoFirstTimer(room: RoomState): void {
+    const deadline = room.whoFirstState?.countdownEndTime;
+    if (room.whoFirstState?.phase !== 'COUNTDOWN' || !deadline) {
+      this.roomTimerService.cancel(room.code, 'who-first');
+      return;
+    }
+
+    this.roomTimerService.schedule(room.code, 'who-first', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (
+        currentRoom?.whoFirstState?.phase !== 'COUNTDOWN' ||
+        currentRoom.whoFirstState.countdownEndTime !== deadline
+      ) {
+        return;
+      }
+
+      const updatedRoom = this.gamesService.whoFirstSetActive(room.code);
+      if (updatedRoom) {
+        this.broadcastRoomState(updatedRoom);
+        this.syncWhoFirstTimer(updatedRoom);
+      }
+    });
   }
 
   private syncWhoKnowTimer(room: RoomState): void {

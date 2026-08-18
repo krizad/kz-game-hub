@@ -92,6 +92,7 @@ describe('GamesService', () => {
     whoFirst: {
       startGame: jest.fn(),
       handleGameAction: jest.fn(),
+      setActive: jest.fn(),
       resetGame: jest.fn(),
     },
     musicTrivia: {

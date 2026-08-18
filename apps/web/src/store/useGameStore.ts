@@ -71,6 +71,7 @@ interface GameState {
   submitPlayerWordWhoAmI: (word: string) => void;
   getCategoriesWhoAmI: (lang?: string) => void;
   gameActionWhoAmI: (action: any) => void;
+  whoFirstGameAction: (action: any) => void;
   musicTriviaGameAction: (action: any) => void;
   theMindReady: () => void;
   theMindPlayCard: (card: number, pile?: 'UP' | 'DOWN') => void;
@@ -564,6 +565,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   gameActionWhoAmI: (action: any) => {
+    const { socket, room, actionLoading } = get();
+    if (socket && room && !actionLoading) {
+      set({ actionLoading: true });
+      socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
+    }
+  },
+
+  whoFirstGameAction: (action: any) => {
     const { socket, room, actionLoading } = get();
     if (socket && room && !actionLoading) {
       set({ actionLoading: true });

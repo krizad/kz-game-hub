@@ -503,6 +503,7 @@ export const en: Dictionary = {
       minCountdown: 'Min Countdown (s)',
       maxCountdown: 'Max Countdown (s)',
       infiniteRounds: 'Infinite Rounds',
+      roundsCount: 'Number of Rounds',
       showCounter: 'Show Timer',
       startBtn: 'Start Countdown!',
       waitingForHost: 'Waiting for host to start the game',

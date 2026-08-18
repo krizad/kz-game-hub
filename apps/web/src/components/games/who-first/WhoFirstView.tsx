@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Play, RotateCcw, AlertTriangle, Users, Trophy } from 'lucide-react';
 
 export const WhoFirstView = () => {
-  const { room, socket, socketId } = useGameStore();
+  const { room, socketId, startGame, updateConfig, whoFirstGameAction, resetRoom, actionLoading } =
+    useGameStore();
   const { t } = useTranslate();
   const [activeTime, setActiveTime] = useState<number>(0);
   const [countdownRemaining, setCountdownRemaining] = useState<number>(0);
@@ -21,7 +22,7 @@ export const WhoFirstView = () => {
     if (state?.phase === 'ACTIVE' && state.activeStartTime) {
       interval = setInterval(() => {
         setActiveTime(Date.now() - state.activeStartTime!);
-      }, 10); // Update every 10ms for smooth ms counter
+      }, 50);
     } else {
       setActiveTime(0);
     }
@@ -30,98 +31,43 @@ export const WhoFirstView = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (state?.phase === 'COUNTDOWN' && state.countdownStartTime && state.countdownDurationMs) {
-      interval = setInterval(() => {
-        const now = Date.now();
-        const elapsed = now - state.countdownStartTime!;
-        const remaining = Math.max(0, state.countdownDurationMs! - elapsed);
+    if (state?.phase === 'COUNTDOWN' && state.countdownEndTime) {
+      const update = () => {
+        const remaining = Math.max(0, state.countdownEndTime! - Date.now());
         setCountdownRemaining(remaining);
-      }, 10);
+        if (remaining <= 0) clearInterval(interval);
+      };
+      update();
+      interval = setInterval(update, 50);
     } else {
       setCountdownRemaining(0);
     }
     return () => clearInterval(interval);
-  }, [state?.phase, state?.countdownStartTime, state?.countdownDurationMs]);
+  }, [state?.phase, state?.countdownEndTime]);
 
   const isPlayer = room?.players.some((p) => p.socketId === socketId) ?? false;
   const hostPlays = room?.config.whoFirstHostPlays;
   const canPlay = isPlayer && (!isHost || hostPlays);
 
-  const handleStartCountdown = () => {
-    if (!room) return;
-    socket?.emit('game_action', {
-      code: room.code,
-      action: { type: 'START_COUNTDOWN' },
-    });
-  };
-
   const handlePressButton = () => {
     if (!room) return;
-    socket?.emit('game_action', {
-      code: room.code,
-      action: { type: 'PRESS_BUTTON' },
-    });
+    whoFirstGameAction({ type: 'PRESS_BUTTON' });
   };
 
   const handleNextRound = () => {
     if (!room) return;
-    socket?.emit('game_action', {
-      code: room.code,
-      action: { type: 'NEXT_ROUND' },
-    });
+    whoFirstGameAction({ type: 'NEXT_ROUND' });
   };
 
   const handleEndGame = () => {
     if (!room) return;
-    socket?.emit('game_action', {
-      code: room.code,
-      action: { type: 'END_GAME' },
-    });
+    whoFirstGameAction({ type: 'END_GAME' });
   };
 
-  // If we're in countdown phase but the client-side timer hasn't been implemented perfectly,
-  // we might want a local hook to set ACTIVE. Since the backend handles the timer, we'll
-  // assume the server will just transition the state.
-  // Wait, I didn't add a setTimeout in the backend for countdown! I should send an action from the host when the timer finishes.
-  useEffect(() => {
-    if (
-      state?.phase === 'COUNTDOWN' &&
-      isHost &&
-      state.countdownStartTime &&
-      state.countdownDurationMs
-    ) {
-      const now = Date.now();
-      const elapsed = now - state.countdownStartTime;
-      const remaining = state.countdownDurationMs - elapsed;
-      if (remaining > 0) {
-        const timeout = setTimeout(() => {
-          socket?.emit('game_action', {
-            code: room?.code,
-            action: { type: 'SET_ACTIVE' },
-          });
-        }, remaining);
-        return () => clearTimeout(timeout);
-      } else {
-        // Already passed
-        socket?.emit('game_action', {
-          code: room?.code,
-          action: { type: 'SET_ACTIVE' },
-        });
-      }
-    }
-  }, [
-    state?.phase,
-    state?.countdownStartTime,
-    state?.countdownDurationMs,
-    isHost,
-    socket,
-    room?.code,
-  ]);
+  if (!room) return null;
 
-  if (!room || !state) return null;
-
-  // Render Lobby Config
-  if (state.phase === 'LOBBY') {
+  // Render Lobby Config (before the game starts)
+  if (!state) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
         <Card className="w-full bg-white border border-amber-200 shadow-xl rounded-2xl overflow-hidden">
@@ -145,10 +91,7 @@ export const WhoFirstView = () => {
                       className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
                       value={(room.config.whoFirstMinCountdownMs || 2000) / 1000}
                       onChange={(e) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { whoFirstMinCountdownMs: parseInt(e.target.value) * 1000 },
-                        })
+                        updateConfig({ whoFirstMinCountdownMs: parseInt(e.target.value) * 1000 })
                       }
                       min={1}
                     />
@@ -164,10 +107,7 @@ export const WhoFirstView = () => {
                       className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
                       value={(room.config.whoFirstMaxCountdownMs || 5000) / 1000}
                       onChange={(e) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { whoFirstMaxCountdownMs: parseInt(e.target.value) * 1000 },
-                        })
+                        updateConfig({ whoFirstMaxCountdownMs: parseInt(e.target.value) * 1000 })
                       }
                       min={1}
                     />
@@ -185,10 +125,7 @@ export const WhoFirstView = () => {
                       className="data-[state=checked]:bg-indigo-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
                       checked={room.config.whoFirstInfiniteRounds}
                       onCheckedChange={(checked) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { whoFirstInfiniteRounds: checked },
-                        })
+                        updateConfig({ whoFirstInfiniteRounds: checked })
                       }
                     />
                   </div>
@@ -196,18 +133,15 @@ export const WhoFirstView = () => {
                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <Label className="flex items-center gap-2 text-slate-700 font-bold">
                         <Trophy className="w-5 h-5 text-amber-500" />
-                        {t('lobby.targetScore')}
+                        {t('whoFirst.lobby.roundsCount')}
                       </Label>
                       <input
-                        aria-label={t('lobby.targetScore')}
+                        aria-label={t('whoFirst.lobby.roundsCount')}
                         type="number"
                         className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
-                        value={room.config.maxRounds || 3}
+                        value={room.config.whoFirstMaxRounds ?? room.config.maxRounds ?? 5}
                         onChange={(e) =>
-                          socket?.emit('update_config', {
-                            code: room.code,
-                            config: { maxRounds: parseInt(e.target.value) },
-                          })
+                          updateConfig({ whoFirstMaxRounds: parseInt(e.target.value) })
                         }
                         min={1}
                       />
@@ -225,12 +159,7 @@ export const WhoFirstView = () => {
                       id="counter-switch"
                       className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
                       checked={room.config.whoFirstShowCounter !== false}
-                      onCheckedChange={(checked) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { whoFirstShowCounter: checked },
-                        })
-                      }
+                      onCheckedChange={(checked) => updateConfig({ whoFirstShowCounter: checked })}
                     />
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -245,12 +174,7 @@ export const WhoFirstView = () => {
                       id="penalty-switch"
                       className="data-[state=checked]:bg-amber-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
                       checked={room.config.whoFirstPenalty}
-                      onCheckedChange={(checked) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { whoFirstPenalty: checked },
-                        })
-                      }
+                      onCheckedChange={(checked) => updateConfig({ whoFirstPenalty: checked })}
                     />
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -265,12 +189,7 @@ export const WhoFirstView = () => {
                       id="host-plays-switch"
                       className="data-[state=checked]:bg-indigo-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
                       checked={room.config.whoFirstHostPlays}
-                      onCheckedChange={(checked) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { whoFirstHostPlays: checked },
-                        })
-                      }
+                      onCheckedChange={(checked) => updateConfig({ whoFirstHostPlays: checked })}
                     />
                   </div>
                 </div>
@@ -300,7 +219,8 @@ export const WhoFirstView = () => {
                 </div>
 
                 <Button
-                  onClick={handleStartCountdown}
+                  onClick={() => startGame()}
+                  disabled={room.players.filter((p) => p.connected).length < 2 || actionLoading}
                   className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
                   size="lg"
                 >
@@ -313,32 +233,6 @@ export const WhoFirstView = () => {
                 <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
                 <div className="text-center text-slate-500 font-medium animate-pulse">
                   {t('whoFirst.lobby.waitingForHost')}
-                </div>
-              </div>
-            )}
-
-            {!isHost && (
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <Label className="text-slate-500 text-sm font-bold mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  {t('lobby.playersInRoom')} ({room.players.filter((p) => p.connected).length})
-                </Label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                  {room.players
-                    .filter((p) => p.connected)
-                    .map((player) => (
-                      <div
-                        key={player.socketId}
-                        className="flex items-center gap-2 bg-slate-50 rounded-lg p-2 border border-slate-100"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
-                          {player.name.charAt(0)}
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 truncate">
-                          {player.name} {player.socketId === room.roomHostId && '👑'}
-                        </span>
-                      </div>
-                    ))}
                 </div>
               </div>
             )}
@@ -572,7 +466,7 @@ export const WhoFirstView = () => {
             {isHost && state.phase === 'FINISHED' && (
               <div className="p-6 bg-slate-50 border-t border-slate-200 text-center">
                 <Button
-                  onClick={() => socket?.emit('reset_game', { code: room.code })}
+                  onClick={() => resetRoom()}
                   variant="outline"
                   size="lg"
                   className="w-full md:w-auto border-slate-300 text-slate-700 hover:bg-slate-100 font-bold py-6 px-8 rounded-xl transition-all active:scale-95 text-lg uppercase tracking-widest bg-white shadow-sm"

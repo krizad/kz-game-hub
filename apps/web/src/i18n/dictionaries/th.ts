@@ -490,6 +490,7 @@ export const th: Dictionary = {
       minCountdown: 'เวลาสุ่มต่ำสุด (วิ)',
       maxCountdown: 'เวลาสุ่มสูงสุด (วิ)',
       infiniteRounds: 'เล่นไม่จำกัดรอบ',
+      roundsCount: 'จำนวนรอบ',
       showCounter: 'แสดงตัวจับเวลา (วิ)',
       startBtn: 'เริ่มนับถอยหลัง!',
       waitingForHost: 'รอเจ้าของห้องเริ่มเกม',

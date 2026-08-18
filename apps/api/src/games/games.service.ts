@@ -126,7 +126,7 @@ export class GamesService {
     } else if (gameType === GameType.WHO_FIRST) {
       room.config.whoFirstPenalty = true;
       room.config.whoFirstHostPlays = false;
-      room.config.maxRounds = 5;
+      room.config.whoFirstMaxRounds = 5;
       room.whoFirstState = {
         phase: 'LOBBY',
         presses: [],
@@ -474,12 +474,12 @@ export class GamesService {
       result.wordCategory = config.wordCategory;
     }
     copyBoolean('whoFirstPenalty');
-    copyInteger('whoFirstCooldownMs', 100, 60_000);
     copyBoolean('whoFirstHostPlays');
     copyInteger('whoFirstMinCountdownMs', 100, 60_000);
     copyInteger('whoFirstMaxCountdownMs', 100, 60_000);
     copyBoolean('whoFirstInfiniteRounds');
     copyBoolean('whoFirstShowCounter');
+    copyInteger('whoFirstMaxRounds', 1, 100);
     copyEnum('musicTriviaMode', ['TYPING', 'GAME_MASTER']);
     copyEnum('musicTriviaSource', ['ITUNES', 'SPOTIFY', 'YOUTUBE', 'DEEZER', 'SOUNDCLOUD']);
     if (typeof config.musicTriviaQuery === 'string' && config.musicTriviaQuery.length <= 200) {
@@ -927,6 +927,14 @@ export class GamesService {
       clientId,
       action as Parameters<typeof this.whoFirstService.handleGameAction>[2],
     );
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
+  whoFirstSetActive(code: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const updatedRoom = this.whoFirstService.setActive(room);
     if (updatedRoom) this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }

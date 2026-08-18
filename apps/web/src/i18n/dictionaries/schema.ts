@@ -458,6 +458,7 @@ export interface Dictionary {
       minCountdown: string;
       maxCountdown: string;
       infiniteRounds: string;
+      roundsCount: string;
       showCounter: string;
       startBtn: string;
       waitingForHost: string;

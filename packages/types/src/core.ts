@@ -130,12 +130,12 @@ export interface RoomConfig {
   wordCategory?: string;
   // Who First config
   whoFirstPenalty?: boolean;
-  whoFirstCooldownMs?: number;
   whoFirstHostPlays?: boolean;
   whoFirstMinCountdownMs?: number;
   whoFirstMaxCountdownMs?: number;
   whoFirstInfiniteRounds?: boolean;
   whoFirstShowCounter?: boolean;
+  whoFirstMaxRounds?: number;
   // Music Trivia config
   musicTriviaMode?: MusicTriviaMode;
   musicTriviaSource?: MusicSourceType;
