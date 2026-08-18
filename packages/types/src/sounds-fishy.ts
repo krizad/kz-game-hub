@@ -9,7 +9,7 @@ export enum SoundsFishyPhase {
 export interface SoundsFishyQuestionData {
   id: string;
   question: string;
-  answer: string;
+  answer?: string;
   lang: string;
 }
 
@@ -26,6 +26,7 @@ export interface SoundsFishyState {
   redHerringIds: string[];
   question: SoundsFishyQuestionData | null;
   playerAnswers: Record<string, SoundsFishyPlayerAnswer>;
+  answeredPlayerIds: string[];
   eliminatedPlayers: string[];
   roundScorePool: number;
   roundPoints: Record<string, number>;

@@ -8,66 +8,152 @@ import {
   Role,
 } from '@repo/types';
 import { prisma } from '@repo/database';
+import { PrivateStateService } from '../private-state.service';
+
+const ROOM_KEY = '__room__';
+const SF_ROLE = 'sfRole';
+const SF_TRUE_ANSWER = 'sfTrueAnswer';
+const SF_MY_ANSWER = 'sfMyAnswer';
+const SF_ROOM_TRUE_ANSWER = 'sfRoomTrueAnswer';
+const SF_ROOM_BLUE_FISH = 'sfRoomBlueFish';
+const SF_ROOM_RED_HERRINGS = 'sfRoomRedHerrings';
+
+const MAX_ANSWER_LENGTH = 200;
 
 @Injectable()
 export class SoundsFishyService {
+  constructor(private readonly privateState: PrivateStateService) {}
+
+  private shuffleArray<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  private isMember(room: RoomState, socketId: string): boolean {
+    return room.players.some((p) => p.socketId === socketId);
+  }
+
+  private getTrueAnswer(room: RoomState): string {
+    return this.privateState.get<string>(room.code, ROOM_KEY, SF_ROOM_TRUE_ANSWER) ?? '';
+  }
+
+  private getBlueFishId(room: RoomState): string | null {
+    return this.privateState.get<string>(room.code, ROOM_KEY, SF_ROOM_BLUE_FISH) ?? null;
+  }
+
+  private getRedHerringIds(room: RoomState): string[] {
+    return this.privateState.get<string[]>(room.code, ROOM_KEY, SF_ROOM_RED_HERRINGS) ?? [];
+  }
+
+  private revealRoles(room: RoomState): void {
+    const state = room.soundsFishyState;
+    if (!state) return;
+    state.blueFishId =
+      this.privateState.get<string>(room.code, ROOM_KEY, SF_ROOM_BLUE_FISH) ?? null;
+    state.redHerringIds =
+      this.privateState.get<string[]>(room.code, ROOM_KEY, SF_ROOM_RED_HERRINGS) ?? [];
+    if (state.question) {
+      state.question.answer = this.getTrueAnswer(room);
+    }
+  }
+
   async assignRoles(
     room: RoomState,
     requesterId: string,
   ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
-    if (room.players.length < 3) return null; // Need at least 3 players
+    const connectedPlayers = room.players.filter((p) => p.connected !== false);
+    if (connectedPlayers.length < 3) return null; // Need at least 3 players
     if (room.roomHostId !== requesterId) return null;
 
     const lang = room.config.language || 'th';
-    const minQueryCountResult = await prisma.soundsFishyQuestion.aggregate({
-      where: { lang },
-      _min: { query_count: true },
-    });
 
-    // If no questions in DB
-    if (minQueryCountResult._min.query_count === null) return null;
-
-    const minQueryCount = minQueryCountResult._min.query_count;
-
-    const questionsWithMinCount = await prisma.soundsFishyQuestion.findMany({
-      where: { lang, query_count: minQueryCount },
-      select: { id: true, question: true, answer: true, lang: true },
-    });
-
-    if (questionsWithMinCount.length === 0) return null;
-
-    const randomIndex = Math.floor(Math.random() * questionsWithMinCount.length);
-    const questionRecord = questionsWithMinCount[randomIndex];
-
-    // Increment query_count for the chosen question
-    if (questionRecord) {
-      await prisma.soundsFishyQuestion.update({
-        where: { id: questionRecord.id },
-        data: { query_count: { increment: 1 } },
+    let questionRecord: {
+      id: string;
+      question: string;
+      answer: string;
+      lang: string;
+    } | null = null;
+    try {
+      const minQueryCountResult = await prisma.soundsFishyQuestion.aggregate({
+        where: { lang },
+        _min: { query_count: true },
       });
+
+      // If no questions in DB
+      if (minQueryCountResult._min.query_count === null) return null;
+
+      const minQueryCount = minQueryCountResult._min.query_count;
+
+      const questionsWithMinCount = await prisma.soundsFishyQuestion.findMany({
+        where: { lang, query_count: minQueryCount },
+        select: { id: true, question: true, answer: true, lang: true },
+      });
+
+      if (questionsWithMinCount.length === 0) return null;
+
+      const randomIndex = Math.floor(Math.random() * questionsWithMinCount.length);
+      questionRecord = questionsWithMinCount[randomIndex];
+
+      // Increment query_count for the chosen question
+      if (questionRecord) {
+        await prisma.soundsFishyQuestion.update({
+          where: { id: questionRecord.id },
+          data: { query_count: { increment: 1 } },
+        });
+      }
+    } catch {
+      return null;
     }
 
-    // Assign roles randomly
+    if (!questionRecord) return null;
+
+    // Assign roles randomly among connected players
     // 1 Picker, 1 Blue Fish, rest are Red Herrings
-    const shuffledPlayers = [...room.players].sort(() => 0.5 - Math.random());
+    const shuffledPlayers = this.shuffleArray(connectedPlayers);
     const picker = shuffledPlayers[0];
     const blueFish = shuffledPlayers[1];
     const redHerrings = shuffledPlayers.slice(2);
 
+    // Store secrets server-side only
+    for (const p of connectedPlayers) {
+      const role =
+        p.socketId === picker.socketId
+          ? 'PICKER'
+          : p.socketId === blueFish.socketId
+            ? 'BLUE_FISH'
+            : 'RED_HERRING';
+      this.privateState.set(room.code, p.socketId, SF_ROLE, role);
+      if (role !== 'PICKER') {
+        this.privateState.set(room.code, p.socketId, SF_TRUE_ANSWER, questionRecord.answer);
+      }
+    }
+    this.privateState.set(room.code, ROOM_KEY, SF_ROOM_TRUE_ANSWER, questionRecord.answer);
+    this.privateState.set(room.code, ROOM_KEY, SF_ROOM_BLUE_FISH, blueFish.socketId);
+    this.privateState.set(
+      room.code,
+      ROOM_KEY,
+      SF_ROOM_RED_HERRINGS,
+      redHerrings.map((p) => p.socketId),
+    );
+
     const questionData: SoundsFishyQuestionData = {
       id: questionRecord.id,
       question: questionRecord.question,
-      answer: questionRecord.answer,
       lang: questionRecord.lang,
     };
 
     const state: SoundsFishyState = {
       currentPhase: SoundsFishyPhase.SETUP,
       pickerId: picker.socketId,
-      blueFishId: blueFish.socketId,
-      redHerringIds: redHerrings.map((p) => p.socketId),
+      blueFishId: null,
+      redHerringIds: [],
       question: questionData,
       playerAnswers: {},
+      answeredPlayerIds: [],
       eliminatedPlayers: [],
       roundScorePool: 0,
       roundPoints: {},
@@ -77,8 +163,6 @@ export class SoundsFishyService {
     room.status = RoomStatus.QUESTIONING;
     room.soundsFishyState = state;
 
-    // Clear previous generic roles if any, maybe assign host?
-    // Usually host is picker for display consistency in other places, but let's just leave role as null.
     const roles: Record<string, Role> = {};
     room.players.forEach((p) => {
       p.role = null as unknown as Role;
@@ -93,9 +177,10 @@ export class SoundsFishyService {
       return null;
     const state = room.soundsFishyState;
 
+    if (!this.isMember(room, playerId)) return null;
     if (playerId === state.pickerId) return null;
 
-    state.typingAnswers[playerId] = answer;
+    state.typingAnswers[playerId] = answer.slice(0, MAX_ANSWER_LENGTH);
 
     return room;
   }
@@ -105,15 +190,11 @@ export class SoundsFishyService {
       return false;
     const state = room.soundsFishyState;
 
-    // Check if everyone has answered
     const requiredAnswersCount = room.players.filter(
       (p) => p.socketId !== state.pickerId && p.connected !== false,
     ).length;
-    if (
-      Object.keys(state.playerAnswers).length >= requiredAnswersCount &&
-      requiredAnswersCount > 0
-    ) {
-      // Transition to SUBMISSION/PITCH phase
+    const answeredCount = this.privateState.getRoomData(room.code, SF_MY_ANSWER).size;
+    if (answeredCount >= requiredAnswersCount && requiredAnswersCount > 0) {
       state.currentPhase = SoundsFishyPhase.THE_PITCH;
       return true;
     }
@@ -125,22 +206,28 @@ export class SoundsFishyService {
       return null;
     const state = room.soundsFishyState;
 
+    if (!this.isMember(room, playerId)) return null;
     if (playerId === state.pickerId) return null; // Picker doesn't answer
+    if (this.privateState.has(room.code, playerId, SF_MY_ANSWER)) return null; // No resubmission
 
-    // Validate that answer is not exactly the truth
-    if (state.redHerringIds.includes(playerId)) {
-      if (answer.toLowerCase().trim() === state.question?.answer.toLowerCase().trim()) {
-        return null; // Return null to indicate error (can enhance gateway to give specific message)
-      }
+    const trimmed = answer.trim().slice(0, MAX_ANSWER_LENGTH);
+    if (!trimmed) return null;
+
+    const trueAnswer = this.getTrueAnswer(room).trim().toLowerCase();
+    const normalized = trimmed.toLowerCase();
+
+    if (playerId === this.getBlueFishId(room)) {
+      if (normalized !== trueAnswer) return null; // Blue fish must enter the true answer
+    } else if (this.getRedHerringIds(room).includes(playerId)) {
+      if (normalized === trueAnswer) return null; // Red herring must not copy the truth
     }
 
     if (state.typingAnswers) delete state.typingAnswers[playerId];
 
-    state.playerAnswers[playerId] = {
-      playerId,
-      answer,
-      isRevealed: false,
-    };
+    this.privateState.set(room.code, playerId, SF_MY_ANSWER, { playerId, answer: trimmed });
+    if (!state.answeredPlayerIds.includes(playerId)) {
+      state.answeredPlayerIds.push(playerId);
+    }
 
     this.checkAnswerResolution(room);
 
@@ -157,11 +244,22 @@ export class SoundsFishyService {
     )
       return null;
     if (pickerId !== state.pickerId) return null;
-    if (!state.playerAnswers[targetId]) return null;
+    if (!this.isMember(room, targetId)) return null;
     if (state.eliminatedPlayers.includes(targetId)) return null; // Can't reveal eliminated players
-    if (state.playerAnswers[targetId].isRevealed) return null; // Already revealed
+    if (state.playerAnswers[targetId]) return null; // Already revealed
 
-    state.playerAnswers[targetId].isRevealed = true;
+    const privateAnswer = this.privateState.get<{ playerId: string; answer: string }>(
+      room.code,
+      targetId,
+      SF_MY_ANSWER,
+    );
+    if (!privateAnswer) return null;
+
+    state.playerAnswers[targetId] = {
+      playerId: targetId,
+      answer: privateAnswer.answer,
+      isRevealed: true,
+    };
 
     // Allow elimination once at least one player is revealed
     state.currentPhase = SoundsFishyPhase.THE_HUNT;
@@ -178,33 +276,36 @@ export class SoundsFishyService {
     if (targetId === state.pickerId) return null;
     if (state.eliminatedPlayers.includes(targetId)) return null;
 
-    const nonPickerIds = room.players.map((p) => p.socketId).filter((id) => id !== state.pickerId);
+    const nonPickerIds = room.players
+      .filter((p) => p.connected !== false)
+      .map((p) => p.socketId)
+      .filter((id) => id !== state.pickerId);
     if (!nonPickerIds.includes(targetId)) return null;
 
-    const allRevealed = nonPickerIds.every((id) => {
-      const pData = state.playerAnswers[id];
-      return pData && pData.isRevealed;
-    });
+    const allRevealed = nonPickerIds.every((id) => state.playerAnswers[id]?.isRevealed);
 
     if (!allRevealed) return null;
 
     state.eliminatedPlayers.push(targetId);
 
-    if (targetId === state.blueFishId) {
+    const blueFishId = this.getBlueFishId(room);
+    const redHerringIds = this.getRedHerringIds(room);
+
+    if (targetId === blueFishId) {
       // Game over! Picker loses.
       state.roundScorePool = 0;
       // Distribute points
-      const survivingRedHerrings = state.redHerringIds.filter(
+      const survivingRedHerrings = redHerringIds.filter(
         (id) => !state.eliminatedPlayers.includes(id),
       ).length;
 
-      const blueFishPlayer = room.players.find((p) => p.socketId === state.blueFishId);
+      const blueFishPlayer = room.players.find((p) => p.socketId === blueFishId);
       if (blueFishPlayer) {
         blueFishPlayer.score += survivingRedHerrings;
         state.roundPoints[blueFishPlayer.socketId] = survivingRedHerrings;
       }
 
-      state.redHerringIds.forEach((id) => {
+      redHerringIds.forEach((id) => {
         if (!state.eliminatedPlayers.includes(id)) {
           const p = room.players.find((player) => player.socketId === id);
           if (p) {
@@ -219,12 +320,13 @@ export class SoundsFishyService {
 
       state.currentPhase = SoundsFishyPhase.SCORING;
       room.status = RoomStatus.RESULT;
-    } else if (state.redHerringIds.includes(targetId)) {
+      this.revealRoles(room);
+    } else if (redHerringIds.includes(targetId)) {
       // Correct pick!
       state.roundScorePool += 1;
 
       // Check if all red herrings are eliminated
-      const allRedHerringsEliminated = state.redHerringIds.every((id) =>
+      const allRedHerringsEliminated = redHerringIds.every((id) =>
         state.eliminatedPlayers.includes(id),
       );
       if (allRedHerringsEliminated) {
@@ -236,13 +338,14 @@ export class SoundsFishyService {
         }
 
         // Red herrings and blue fish get 0 points since picker won
-        state.redHerringIds.forEach((id) => {
+        redHerringIds.forEach((id) => {
           state.roundPoints[id] = 0;
         });
-        if (state.blueFishId) state.roundPoints[state.blueFishId] = 0;
+        if (blueFishId) state.roundPoints[blueFishId] = 0;
 
         state.currentPhase = SoundsFishyPhase.SCORING;
         room.status = RoomStatus.RESULT;
+        this.revealRoles(room);
       }
     }
 
@@ -264,13 +367,15 @@ export class SoundsFishyService {
     }
 
     // Others get 0
-    state.redHerringIds.forEach((id) => {
+    this.getRedHerringIds(room).forEach((id) => {
       state.roundPoints[id] = 0;
     });
-    if (state.blueFishId) state.roundPoints[state.blueFishId] = 0;
+    const blueFishId = this.getBlueFishId(room);
+    if (blueFishId) state.roundPoints[blueFishId] = 0;
 
     state.currentPhase = SoundsFishyPhase.SCORING;
     room.status = RoomStatus.RESULT;
+    this.revealRoles(room);
 
     return room;
   }
@@ -281,6 +386,7 @@ export class SoundsFishyService {
 
     room.status = RoomStatus.LOBBY;
     delete room.soundsFishyState;
+    this.privateState.clearRoom(room.code);
 
     return room;
   }

@@ -10,6 +10,7 @@ export function SoundsFishyView() {
   const {
     room,
     socketId,
+    privateState,
     soundsFishySubmitAnswer,
     soundsFishyTypeAnswer,
     soundsFishyRevealAnswer,
@@ -35,15 +36,14 @@ export function SoundsFishyView() {
   }
 
   const isPicker = state.pickerId === socketId;
-  const isBlueFish = state.blueFishId === socketId;
-  const myAnswer = state.playerAnswers[socketId];
+  const myRole = privateState.sfRole as string | undefined;
+  const isBlueFish = myRole === 'BLUE_FISH';
+  const trueAnswer = privateState.sfTrueAnswer as string | undefined;
+  const myAnswer = privateState.sfMyAnswer as { playerId: string; answer: string } | undefined;
 
   // Check if all players (excluding the Picker) have had their answers revealed
   const nonPickerPlayers = room.players.filter((p) => p.socketId !== state.pickerId);
-  const allRevealed = nonPickerPlayers.every((p) => {
-    const ans = state.playerAnswers[p.socketId];
-    return ans && ans.isRevealed;
-  });
+  const allRevealed = nonPickerPlayers.every((p) => state.playerAnswers[p.socketId]?.isRevealed);
 
   return (
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6 relative">
@@ -100,7 +100,7 @@ export function SoundsFishyView() {
                   {t('gameSoundsFishy.trueAnswer')}
                 </span>
                 <p className="text-2xl font-black text-blue-400 bg-blue-500/10 inline-block px-4 py-2 rounded-lg border border-blue-500/20">
-                  {state.question?.answer}
+                  {trueAnswer}
                 </p>
               </div>
             )}
@@ -167,7 +167,7 @@ export function SoundsFishyView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {room.players.map((p) => {
                   if (p.socketId === socketId || p.socketId === state.pickerId) return null; // Don't show myself or the picker
-                  if (state.playerAnswers[p.socketId]) return null; // Don't show if they already submitted
+                  if (state.answeredPlayerIds.includes(p.socketId)) return null; // Don't show if they already submitted
 
                   const typingText = state.typingAnswers?.[p.socketId];
                   if (!typingText) return null;
@@ -211,7 +211,7 @@ export function SoundsFishyView() {
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block flex items-center justify-center gap-2">
                   {t('gameSoundsFishy.trueAnswer')}{' '}
                   <span className="text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                    {state.question?.answer}
+                    {trueAnswer}
                   </span>
                 </span>
               </div>

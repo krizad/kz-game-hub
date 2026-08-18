@@ -205,8 +205,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const roomInfo = this.gamesService.getRoom(data.code);
       const gameType = roomInfo?.gameType;
       let msg = 'Cannot start game.';
-      if (gameType === GameType.WHO_KNOW || gameType === GameType.SOUNDS_FISHY) {
+      if (gameType === GameType.WHO_KNOW) {
         msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
+      } else if (gameType === GameType.SOUNDS_FISHY) {
+        msg = 'Cannot start game. Need at least 3 players.';
       } else if (gameType === GameType.MUSIC_TRIVIA) {
         msg = 'Cannot start game. Need at least 2 players and a music query.';
       } else if (gameType === GameType.DETECTIVE_CLUB) {
