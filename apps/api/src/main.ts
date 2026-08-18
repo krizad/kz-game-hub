@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AppLogger } from './app.logger';
+import { APP_VERSION } from '@repo/types';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -19,7 +20,7 @@ async function bootstrap() {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('KZ Game Hub API')
       .setDescription('WebSocket-based game hub API with health check')
-      .setVersion('1.0')
+      .setVersion(APP_VERSION)
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api', app, document);
@@ -27,7 +28,7 @@ async function bootstrap() {
 
   const port = Number.parseInt(process.env.PORT || '3001', 10);
   await app.listen(port, '0.0.0.0');
-  console.log(`API listening on http://localhost:${port}`);
+  console.log(`API [${APP_VERSION}] listening on http://localhost:${port}`);
   if (!isProduction) {
     console.log(`Swagger docs at http://localhost:${port}/api`);
   }

@@ -24,6 +24,10 @@
 - **`apps/web`** — ห้าม import จาก `apps/api`
 - ทั้ง `api` และ `web` import ได้จาก `packages/*` เท่านั้น
 
+### App Versioning
+
+- **Global Versioning:** ให้จัดการเวอร์ชันของแอปพลิเคชันผ่าน `APP_VERSION` constant ใน `packages/types/src/core.ts` เสมอ เพื่อให้แน่ใจว่า Frontend และ Backend ใช้เวอร์ชันเดียวกัน ห้ามใช้ `.env` หรือ `package.json` เด็ดขาด
+
 ### Socket.io Event Convention
 
 เมื่อเพิ่ม Socket event ใหม่ ต้อง update 4 จุดเสมอ:

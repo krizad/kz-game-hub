@@ -1,8 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { prisma } from '@repo/database';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { APP_VERSION } from '@repo/types';
 
 @ApiTags('Health')
 @Controller('health')
@@ -32,12 +31,11 @@ export class HealthController {
     }
 
     const memory = process.memoryUsage();
-    const version = this.getPackageVersion();
 
     return {
       status: database.status === 'connected' ? 'ok' : 'degraded',
       service: 'kz-game-hub-api',
-      version,
+      version: APP_VERSION,
       environment: process.env.NODE_ENV || 'development',
       nodeVersion: process.version,
       pid: process.pid,
@@ -53,14 +51,6 @@ export class HealthController {
   }
 
   private getPackageVersion(): string {
-    try {
-      const packageJsonPath = resolve(__dirname, '../../package.json');
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-        version?: string;
-      };
-      return packageJson.version || 'unknown';
-    } catch {
-      return process.env.npm_package_version || 'unknown';
-    }
+    return APP_VERSION;
   }
 }

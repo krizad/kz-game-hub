@@ -9,6 +9,8 @@ import { WhoFirstState } from './who-first';
 import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-trivia';
 import { TheMindState } from './the-mind';
 
+export const APP_VERSION = 'v1.0.0';
+
 export enum RoomStatus {
   LOBBY = 'LOBBY',
   PLAYING = 'PLAYING',
