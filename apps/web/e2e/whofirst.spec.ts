@@ -7,8 +7,8 @@ test.describe('Who First Game Flow', () => {
     expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
 
     // Check for Who First lobby specifics
-    await expect(page.locator('text=Who First Lobby')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("Start Countdown!")')).toBeVisible({
+    await expect(page.getByTestId('lobby-title')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('start-btn')).toBeVisible({
       timeout: 5000,
     });
   });
@@ -40,27 +40,27 @@ test.describe('Who First Game Flow', () => {
     }
 
     // Host starts game
-    await p1.locator('button:has-text("Start Countdown!")').click();
+    await p1.getByTestId('start-btn').click();
 
     // Verify COUNTDOWN phase is active
-    await expect(p1.locator('text=Ready...')).toBeVisible({ timeout: 5000 });
-    await expect(p2.locator('text=Ready...')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByTestId('status-ready')).toBeVisible({ timeout: 5000 });
+    await expect(p2.getByTestId('status-ready')).toBeVisible({ timeout: 5000 });
 
     // Both wait for GO!!
     // Wait for the ACTIVE phase up to 6 seconds since countdown duration is 2-5s
-    await expect(p1.locator('text=GO!!')).toBeVisible({ timeout: 8000 });
-    await expect(p2.locator('text=GO!!')).toBeVisible({ timeout: 8000 });
+    await expect(p1.getByTestId('status-go')).toBeVisible({ timeout: 8000 });
+    await expect(p2.getByTestId('status-go')).toBeVisible({ timeout: 8000 });
 
     // P1 presses button
-    await p1.locator('button:has-text("PRESS!")').click();
+    await p1.getByTestId('press-btn').click();
     await p1.waitForTimeout(500);
 
     // P2 presses button
-    await p2.locator('button:has-text("PRESS!")').click();
+    await p2.getByTestId('press-btn').click();
 
     // Verify Round Result
-    await expect(p1.locator('text=Round Result')).toBeVisible({ timeout: 5000 });
-    await expect(p2.locator('text=Round Result')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByTestId('round-result-title')).toBeVisible({ timeout: 5000 });
+    await expect(p2.getByTestId('round-result-title')).toBeVisible({ timeout: 5000 });
 
     // Alice should be first since she pressed first
     await expect(p1.locator('text=Alice').first()).toBeVisible();

@@ -217,8 +217,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     if (words.length < room.players.length) {
       console.log('Falling back to database for words...');
-      const category =
-        room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
+      const category = room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
       const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
       if (dbWords.length < room.players.length) return null;
       words = dbWords.map((w) => (w.emoji ? `${w.emoji} ${w.word}` : w.word));

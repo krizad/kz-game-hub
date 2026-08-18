@@ -75,7 +75,9 @@ describe('WhoAmIService', () => {
       expect(result!.status).toBe(RoomStatus.PLAYING);
       expect(result!.whoAmIState).toBeDefined();
       expect(result!.whoAmIState!.phase).toBe('ASKING');
-      expect(Object.fromEntries(privateState.getRoomData('test-room', 'waiMyWord'))).toEqual(playerWords);
+      expect(Object.fromEntries(privateState.getRoomData('test-room', 'waiMyWord'))).toEqual(
+        playerWords,
+      );
       expect(result!.whoAmIState!.turnStatus).toBe('VOTING');
       expect(result!.whoAmIState!.currentRound).toBe(1);
       expect(result!.whoAmIState!.maxRounds).toBe(5);
@@ -315,7 +317,7 @@ describe('WhoAmIService', () => {
         players: [{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }],
         whoAmIState: {
           currentTurn: '',
-                    currentGuess: null,
+          currentGuess: null,
           votes: {},
           turnStatus: 'VOTING',
           winner: null,
@@ -449,7 +451,7 @@ describe('WhoAmIService', () => {
         config: { wordMode: 'PLAYER_INPUT', maxRounds: 3 },
         whoAmIState: {
           currentTurn: 'p1',
-                    currentGuess: null,
+          currentGuess: null,
           votes: {},
           turnStatus: 'VOTING',
           winner: null,
@@ -736,7 +738,7 @@ describe('WhoAmIService', () => {
     describe('END_MATCH', () => {
       it('should return null because handleGameAction requires PLAYING but resetGame requires RESULT', () => {
         const room = {
-        code: 'test-room',
+          code: 'test-room',
           status: RoomStatus.PLAYING,
           roomHostId: 'host1',
           whoAmIState: { winner: 'p1' },
@@ -810,7 +812,7 @@ describe('WhoAmIService', () => {
 
       it('should end game when all players eliminated', () => {
         const room = {
-        code: 'test-room',
+          code: 'test-room',
           gameType: GameType.WHO_AM_I,
           status: RoomStatus.PLAYING,
           roomHostId: 'p1',
@@ -822,7 +824,7 @@ describe('WhoAmIService', () => {
           config: { wordMode: 'PLAYER_INPUT', maxRounds: 3 },
           whoAmIState: {
             currentTurn: 'p1',
-                        currentGuess: null,
+            currentGuess: null,
             votes: { p2: 'NO', p3: 'NO' },
             turnStatus: 'RESULT',
             winner: null,
@@ -878,7 +880,7 @@ describe('WhoAmIService', () => {
 
         it('should end game when all players used final guess', () => {
           const room = {
-        code: 'test-room',
+            code: 'test-room',
             gameType: GameType.WHO_AM_I,
             status: RoomStatus.PLAYING,
             roomHostId: 'p1',
@@ -890,7 +892,7 @@ describe('WhoAmIService', () => {
             config: { wordMode: 'PLAYER_INPUT', maxRounds: 3 },
             whoAmIState: {
               currentTurn: 'p1',
-                            currentGuess: null,
+              currentGuess: null,
               votes: { p2: 'NO', p3: 'NO' },
               turnStatus: 'RESULT',
               winner: null,
@@ -914,7 +916,7 @@ describe('WhoAmIService', () => {
       describe('NEXT_TURN with HOST_INPUT mode', () => {
         it('should exclude host from eliminated player checks on score', () => {
           const room = {
-        code: 'test-room',
+            code: 'test-room',
             gameType: GameType.WHO_AM_I,
             status: RoomStatus.PLAYING,
             roomHostId: 'host1',
@@ -926,7 +928,7 @@ describe('WhoAmIService', () => {
             config: { wordMode: 'HOST_INPUT', maxRounds: 3 },
             whoAmIState: {
               currentTurn: 'p1',
-                            currentGuess: null,
+              currentGuess: null,
               votes: { p2: 'NO' },
               turnStatus: 'RESULT',
               winner: null,

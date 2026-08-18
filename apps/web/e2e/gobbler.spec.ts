@@ -60,24 +60,25 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
       inv: typeof p1InvX;
       board: typeof p1Board;
       cell: number;
+      stack: number;
     }> = [
-      { page: p1, inv: p1InvX, board: p1Board, cell: 0 },
-      { page: p2, inv: p2InvO, board: p2Board, cell: 6 },
-      { page: p1, inv: p1InvX, board: p1Board, cell: 1 },
-      { page: p2, inv: p2InvO, board: p2Board, cell: 7 },
-      { page: p1, inv: p1InvX, board: p1Board, cell: 2 },
+      { page: p1, inv: p1InvX, board: p1Board, cell: 0, stack: 2 },
+      { page: p2, inv: p2InvO, board: p2Board, cell: 6, stack: 2 },
+      { page: p1, inv: p1InvX, board: p1Board, cell: 1, stack: 2 },
+      { page: p2, inv: p2InvO, board: p2Board, cell: 7, stack: 2 },
+      { page: p1, inv: p1InvX, board: p1Board, cell: 2, stack: 1 },
     ];
 
     for (const move of moves) {
-      await expect(move.inv.nth(2)).toBeVisible({ timeout: 5000 });
-      await move.inv.nth(2).click();
+      await expect(move.inv.nth(move.stack)).toBeVisible({ timeout: 5000 });
+      await move.inv.nth(move.stack).click();
       await expect(move.board.nth(move.cell)).toBeVisible({ timeout: 5000 });
       await move.board.nth(move.cell).click();
       await move.page.waitForTimeout(600);
     }
 
     // Winner banner appears
-    await expect(p1.locator('body')).toContainText('wins', { timeout: 5000 });
+    await expect(p1.getByTestId('winner-banner')).toBeVisible({ timeout: 5000 });
 
     await p1Ctx.close();
     await p2Ctx.close();

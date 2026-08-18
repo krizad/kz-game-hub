@@ -67,12 +67,15 @@ export const WhoFirstView = () => {
   if (!room) return null;
 
   // Render Lobby Config (before the game starts)
-  if (!state) {
+  if (!state || state.phase === 'LOBBY') {
     return (
       <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
         <Card className="w-full bg-white border border-amber-200 shadow-xl rounded-2xl overflow-hidden">
           <CardHeader className="bg-amber-50 border-b border-amber-200 pb-4 pt-6">
-            <CardTitle className="text-2xl font-black text-center text-indigo-600 uppercase tracking-widest">
+            <CardTitle
+              data-testid="lobby-title"
+              className="text-2xl font-black text-center text-indigo-600 uppercase tracking-widest"
+            >
               {t('whoFirst.lobby.title')}
             </CardTitle>
           </CardHeader>
@@ -219,6 +222,7 @@ export const WhoFirstView = () => {
                 </div>
 
                 <Button
+                  data-testid="start-btn"
                   onClick={() => startGame()}
                   disabled={room.players.filter((p) => p.connected).length < 2 || actionLoading}
                   className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
@@ -279,18 +283,25 @@ export const WhoFirstView = () => {
       {state.phase === 'COUNTDOWN' || state.phase === 'ACTIVE' ? (
         <div className="flex flex-col items-center justify-center space-y-12 py-12 flex-1 w-full">
           {state.phase === 'COUNTDOWN' && (
-            <div className="text-5xl md:text-7xl font-black text-amber-500 animate-pulse uppercase tracking-widest drop-shadow-md">
+            <div
+              data-testid="status-ready"
+              className="text-5xl md:text-7xl font-black text-amber-500 animate-pulse uppercase tracking-widest drop-shadow-md"
+            >
               {t('whoFirst.game.ready')}
             </div>
           )}
           {state.phase === 'ACTIVE' && (
-            <div className="text-5xl md:text-7xl font-black text-emerald-500 uppercase tracking-widest drop-shadow-md">
+            <div
+              data-testid="status-go"
+              className="text-5xl md:text-7xl font-black text-emerald-500 uppercase tracking-widest drop-shadow-md"
+            >
               {t('whoFirst.game.go')}
             </div>
           )}
 
           {canPlay && (
             <button
+              data-testid="press-btn"
               onClick={handlePressButton}
               disabled={hasPressed}
               className={`
@@ -328,7 +339,10 @@ export const WhoFirstView = () => {
       {(state.phase === 'ROUND_RESULT' || state.phase === 'FINISHED') && (
         <Card className="w-full bg-white border-indigo-200 shadow-2xl overflow-hidden rounded-3xl animate-in zoom-in-95 duration-300">
           <CardHeader className="bg-indigo-50 border-b border-indigo-100 py-6">
-            <CardTitle className="text-2xl text-center text-indigo-700 flex items-center justify-center gap-3 font-black uppercase tracking-widest">
+            <CardTitle
+              data-testid="round-result-title"
+              className="text-2xl text-center text-indigo-700 flex items-center justify-center gap-3 font-black uppercase tracking-widest"
+            >
               <Trophy className="text-amber-500 w-8 h-8" />
               {state.phase === 'FINISHED'
                 ? t('whoFirst.result.finalTitle')

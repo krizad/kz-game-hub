@@ -164,7 +164,10 @@ export function GobblerView() {
     const renderStack = (pieces: GobblerPiece[], stackIndex: number) => {
       if (pieces.length === 0) {
         return (
-          <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-[1.25rem] bg-amber-100/20 border-2 border-amber-300/20 border-dashed flex-shrink-0" />
+          <div
+            data-testid={`gobbler-inventory-${side}-stack-${stackIndex}`}
+            className="w-14 h-14 sm:w-20 sm:h-20 rounded-[1.25rem] bg-amber-100/20 border-2 border-amber-300/20 border-dashed flex-shrink-0"
+          />
         );
       }
       const topPiece = pieces[0];
@@ -499,6 +502,7 @@ export function GobblerView() {
                       <>
                         <div className="text-5xl sm:text-7xl mb-4 sm:mb-6 animate-bounce">🏆</div>
                         <div
+                          data-testid="winner-banner"
                           className="text-3xl sm:text-5xl font-black uppercase tracking-widest mb-2 drop-shadow-lg"
                           style={{ color: gb.winner === 'X' ? '#22d3ee' : '#f472b6' }}
                         >

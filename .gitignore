@@ -47,3 +47,6 @@ deploy-api/
 logs/
 kz-api.zip
 kz-api-*.zip
+
+# plans
+/plan/

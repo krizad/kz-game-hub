@@ -108,12 +108,12 @@ E2E tests use Playwright with Chromium. Config at `apps/web/playwright.config.ts
 
 ## Existing agent docs
 
-Detailed docs live in `.agent/`:
+Detailed docs live in `.agents/rules/`:
 
-- `.agent/agent.md` — identity, behavior guidelines, key file refs
-- `.agent/architecture.md` — full architecture with data flow diagram
-- `.agent/infrastructure.md` — scripts, ports, deployment
-- `.agent/rules.md` — naming, style, do's/don'ts
+- `.agents/rules/agent.md` — identity, behavior guidelines, key file refs
+- `.agents/rules/architecture.md` — full architecture with data flow diagram
+- `.agents/rules/infrastructure.md` — scripts, ports, deployment
+- `.agents/rules/rules.md` — naming, style, do's/don'ts
 
 ## Git conventions
 

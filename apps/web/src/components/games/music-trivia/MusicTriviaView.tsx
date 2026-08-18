@@ -190,7 +190,13 @@ export function MusicTriviaView() {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [state?.phase, amICurrentBuzzer, room?.config.musicTriviaAnswerTimeoutMs, state?.pausedAtMs, musicTriviaGameAction]);
+  }, [
+    state?.phase,
+    amICurrentBuzzer,
+    room?.config.musicTriviaAnswerTimeoutMs,
+    state?.pausedAtMs,
+    musicTriviaGameAction,
+  ]);
 
   if (!state) return null;
 
@@ -209,8 +215,6 @@ export function MusicTriviaView() {
   };
 
   const amIStruckOut = state.currentRound?.struckOutIds.includes(socketId || '');
-
-
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
@@ -303,7 +307,9 @@ export function MusicTriviaView() {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* SETUP Phase */}
           {state.phase === 'SETUP' && (
-            <div className={`bg-white p-8 rounded-2xl shadow-sm border text-center space-y-4 ${state.errorMessage ? '' : 'animate-pulse'}`}>
+            <div
+              className={`bg-white p-8 rounded-2xl shadow-sm border text-center space-y-4 ${state.errorMessage ? '' : 'animate-pulse'}`}
+            >
               <div className="text-4xl mb-2">{state.errorMessage ? '❌' : '🎶'}</div>
               <h3 className="text-xl font-bold text-slate-800">
                 {state.errorMessage ? 'Setup Failed' : t('gameMusicTrivia.game.preparingMusic')}

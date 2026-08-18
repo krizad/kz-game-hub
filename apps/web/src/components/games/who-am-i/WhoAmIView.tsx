@@ -50,7 +50,7 @@ export function WhoAmIView() {
               </p>
 
               {/* Input */}
-              {gameState.wordSubmissions?.[socketId] ? (
+              {gameState.wordSubmittedIds?.includes(socketId) ? (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center shadow-inner">
                   <span className="text-emerald-600 font-bold">
                     ✅ {t('gameWhoAmI.wordSubmitted')}
@@ -96,7 +96,7 @@ export function WhoAmIView() {
                 </label>
                 <div className="flex flex-wrap justify-center gap-2">
                   {room.players.map((p) => {
-                    const hasSubmitted = !!gameState.wordSubmissions?.[p.socketId];
+                    const hasSubmitted = !!gameState.wordSubmittedIds?.includes(p.socketId);
                     return (
                       <div
                         key={p.id}
@@ -221,7 +221,9 @@ export function WhoAmIView() {
                   {room.players.map((player) => {
                     const isActive = player.socketId === gameState.currentTurn;
                     const isMe = player.socketId === socketId;
-                    const word = gameState.playerWords[player.socketId];
+                    const word = (gameState.revealedWords || ({} as Record<string, string>))[
+                      player.socketId
+                    ];
                     const isEliminated = gameState.eliminatedPlayers?.includes(player.socketId);
 
                     return (
@@ -622,35 +624,37 @@ export function WhoAmIView() {
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">
                 {t('gameWhoAmI.theWordsWere')}
               </h4>
-              <div className="space-y-2 max-h-[150px] overflow-y-auto pr-2">
-                {Object.entries(gameState.playerWords).map(([pId, word]) => {
-                  const player = room.players.find((p) => p.socketId === pId);
-                  const isWinner = gameState.winner === pId;
-                  const pColor = player?.color;
-                  const pAvatar = player?.avatar;
-                  return (
-                    <div
-                      key={pId}
-                      className={`flex justify-between items-center p-2 rounded-lg border ${isWinner ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="px-2 py-0.5 rounded text-xs border"
-                          style={{
-                            backgroundColor: pColor ? `${pColor}22` : '#fef3c7',
-                            borderColor: pColor || '#fcd34d',
-                          }}
-                        >
-                          {pAvatar || getAvatarEmoji(pId)}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-2xl mt-4">
+                {Object.entries(gameState.revealedWords || ({} as Record<string, string>)).map(
+                  ([pId, word]) => {
+                    const player = room.players.find((p) => p.socketId === pId);
+                    const isWinner = gameState.winner === pId;
+                    const pColor = player?.color;
+                    const pAvatar = player?.avatar;
+                    return (
+                      <div
+                        key={pId}
+                        className={`flex justify-between items-center p-2 rounded-lg border ${isWinner ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="px-2 py-0.5 rounded text-xs border"
+                            style={{
+                              backgroundColor: pColor ? `${pColor}22` : '#fef3c7',
+                              borderColor: pColor || '#fcd34d',
+                            }}
+                          >
+                            {pAvatar || getAvatarEmoji(pId)}
+                          </span>
+                          <span>{player?.name}</span>
                         </span>
-                        <span>{player?.name}</span>
-                      </span>
-                      <span className="px-2 py-0.5 bg-white rounded shadow-sm text-sm font-bold border border-slate-100">
-                        {word}
-                      </span>
-                    </div>
-                  );
-                })}
+                        <span className="px-2 py-0.5 bg-white rounded shadow-sm text-sm font-bold border border-slate-100">
+                          {word}
+                        </span>
+                      </div>
+                    );
+                  },
+                )}
               </div>
             </div>
           </div>
