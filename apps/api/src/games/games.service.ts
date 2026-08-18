@@ -23,6 +23,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { PlayerSessionService } from './player-session.service';
+import { PrivateStateService } from './private-state.service';
 
 @Injectable()
 export class GamesService {
@@ -41,7 +42,17 @@ export class GamesService {
     private readonly musicTriviaService: MusicTriviaService,
     private readonly theMindService: TheMindService,
     private readonly playerSessionService: PlayerSessionService,
+    private readonly privateStateService: PrivateStateService,
   ) {}
+
+  isRoomMember(code: string, socketId: string): boolean {
+    const room = this.rooms.get(code);
+    return !!room?.players.some((p) => p.socketId === socketId);
+  }
+
+  getPrivateSocketData(code: string, socketId: string): Record<string, unknown> {
+    return this.privateStateService.getSocketData(code, socketId);
+  }
 
   findRoomCodeBySocketId(socketId: string): string | null {
     for (const [code, room] of this.rooms.entries()) {
@@ -316,6 +327,7 @@ export class GamesService {
       if (room.musicTriviaState) {
         this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
       }
+      this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
       this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
     } else {
       const usedColors = new Set(room.players.map((p) => p.color));
@@ -364,8 +376,19 @@ export class GamesService {
         if (explicitLeave || room.status === RoomStatus.LOBBY) {
           this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
           room.players.splice(playerIndex, 1);
+          this.privateStateService.clearSocket(code, clientId);
+
+          if (room.ticTacToeState) {
+            if (room.ticTacToeState.playerXId === clientId) room.ticTacToeState.playerXId = undefined;
+            if (room.ticTacToeState.playerOId === clientId) room.ticTacToeState.playerOId = undefined;
+          }
+          if (room.gobblerState) {
+            if (room.gobblerState.playerXId === clientId) room.gobblerState.playerXId = undefined;
+            if (room.gobblerState.playerOId === clientId) room.gobblerState.playerOId = undefined;
+          }
         } else {
           room.players[playerIndex].connected = false;
+          this.privateStateService.clearSocket(code, clientId);
         }
 
         if (room.gameType === GameType.WHO_KNOW && room.status === RoomStatus.VOTING) {
@@ -393,6 +416,7 @@ export class GamesService {
     this.secretWords.delete(code);
     this.playerSessionService.clearRoom(code);
     this.musicTriviaService.deleteRoomData(code);
+    this.privateStateService.clearRoom(code);
   }
 
   getAvailableRooms(): {

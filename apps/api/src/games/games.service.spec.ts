@@ -13,6 +13,7 @@ import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
+import { PrivateStateService } from './private-state.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -125,6 +126,7 @@ describe('GamesService', () => {
         { provide: MusicTriviaService, useValue: mockGameServices.musicTrivia },
         { provide: TheMindService, useValue: mockGameServices.theMind },
         PlayerSessionService,
+        PrivateStateService,
       ],
     }).compile();
 

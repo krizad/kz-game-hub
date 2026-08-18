@@ -14,6 +14,7 @@ import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
+import { PrivateStateService } from './private-state.service';
 
 @Module({
   providers: [
@@ -32,6 +33,7 @@ import { RoomTimerService } from './room-timer.service';
     TheMindService,
     PlayerSessionService,
     RoomTimerService,
+    PrivateStateService,
   ],
 })
 export class GamesModule {}

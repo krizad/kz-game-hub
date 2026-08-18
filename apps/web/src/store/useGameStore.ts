@@ -24,6 +24,7 @@ interface GameState {
   availableRooms: AvailableRoom[];
   categories: WordCategory[];
   isLoading: boolean;
+  privateState: Record<string, unknown>;
   musicTriviaHostAnswer: {
     title: string;
     artist: string;
@@ -106,6 +107,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   categories: [],
   leaderboard: [],
   isLoading: false,
+  privateState: {},
   musicTriviaHostAnswer: null,
   actionLoading: false,
   musicTriviaTrackAnswer: null,
@@ -156,7 +158,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!isMe && !get().isSpectator) return;
 
       if (room.status === RoomStatus.LOBBY) {
-        set({ room, myRole: null, secretWord: null, isLoading: false, actionLoading: false });
+        set({
+          room,
+          myRole: null,
+          secretWord: null,
+          privateState: {},
+          isLoading: false,
+          actionLoading: false,
+        });
       } else {
         // Clear host answer when state updates (if not GAME_MASTER playing)
         if (
@@ -180,6 +189,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ myRole: role });
     });
 
+    socket.on(SOCKET_EVENTS.PRIVATE_STATE_UPDATED, ({ data }: { data: Record<string, unknown> }) => {
+      set({ privateState: data ?? {} });
+    });
+
     socket.on(
       SOCKET_EVENTS.SESSION_ASSIGNED,
       ({
@@ -200,7 +213,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     socket.on(SOCKET_EVENTS.ROOM_DELETED, () => {
       localStorage.removeItem('who-know-roomCode');
       localStorage.removeItem('who-know-reconnectToken');
-      set({ room: null, myRole: null, secretWord: null, isSpectator: false, playerId: '' });
+      set({
+        room: null,
+        myRole: null,
+        secretWord: null,
+        privateState: {},
+        isSpectator: false,
+        playerId: '',
+      });
       toast.error('The Room Host has left. Room has been closed.');
     });
 
@@ -246,7 +266,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   createRoom: (gameType: GameType = GameType.WHO_KNOW) => {
     const { socket, myName } = get();
     if (socket && myName) {
-      socket.emit('create_room', { name: myName, gameType });
+      socket.emit(SOCKET_EVENTS.CREATE_ROOM, { name: myName, gameType });
     } else if (!myName) {
       toast.error('Please enter your name first');
     }
@@ -312,10 +332,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   leaveRoom: () => {
     const { socket } = get();
     if (socket) {
-      socket.emit('leave_room');
+      socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
       localStorage.removeItem('who-know-roomCode');
       localStorage.removeItem('who-know-reconnectToken');
-      set({ room: null, myRole: null, secretWord: null, isSpectator: false, playerId: '' });
+      set({
+        room: null,
+        myRole: null,
+        secretWord: null,
+        privateState: {},
+        isSpectator: false,
+        playerId: '',
+      });
     }
   },
 

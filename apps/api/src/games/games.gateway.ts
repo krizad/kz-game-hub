@@ -7,12 +7,16 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { UseFilters } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
+import { PrivateStateService } from './private-state.service';
+import { WsExceptionFilter } from './ws-exception.filter';
 import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice } from '@repo/types';
 
+@UseFilters(WsExceptionFilter)
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -22,10 +26,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly recordedResults = new Set<string>();
+
   constructor(
     private readonly gamesService: GamesService,
     private readonly leaderboardService: LeaderboardService,
     private readonly roomTimerService: RoomTimerService,
+    private readonly privateStateService: PrivateStateService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -43,7 +50,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const currentRoomCode =
       this.gamesService.findRoomCodeBySocketId(client.id) ?? client.data.spectatingRoomCode ?? '';
     const result = this.gamesService.leaveRoom(client.id, false);
-    if (result && 'code' in result && result.code === null) {
+    if (result && result.code === null) {
       // Room was deleted because the host left, notify everyone in that room
       if (currentRoomCode) {
         this.roomTimerService.clearRoom(currentRoomCode);
@@ -53,9 +60,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
       );
-    } else if (result) {
+    } else if (result && 'players' in result) {
       // Player left, room still exists
-      this.server.to(result.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result);
+      this.broadcastRoomState(result);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -69,12 +76,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('leave_room')
+  @SubscribeMessage(SOCKET_EVENTS.LEAVE_ROOM)
   handleLeaveRoom(@ConnectedSocket() client: Socket) {
     const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? '';
 
     const result = this.gamesService.leaveRoom(client.id, true);
-    if (result && 'code' in result && result.code === null) {
+    if (result && result.code === null) {
       if (currentRoomCode) {
         this.roomTimerService.clearRoom(currentRoomCode);
         this.server.to(currentRoomCode).emit(SOCKET_EVENTS.ROOM_DELETED);
@@ -83,8 +90,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
       );
-    } else if (result) {
-      this.server.to(result.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result);
+    } else if (result && 'players' in result) {
+      this.broadcastRoomState(result);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -107,7 +114,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
   }
 
-  @SubscribeMessage('create_room')
+  @SubscribeMessage(SOCKET_EVENTS.CREATE_ROOM)
   handleCreateRoom(
     @MessageBody() data: { name: string; gameType?: GameType },
     @ConnectedSocket() client: Socket,
@@ -148,7 +155,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (room) {
       client.join(room.code);
       this.emitSessionToken(client, room.code);
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -182,7 +189,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (result) {
       // Broadcast updated room state
-      this.server.to(result.room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+      this.broadcastRoomState(result.room);
       this.syncTheMindTimer(result.room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
@@ -238,7 +245,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       // Tell everyone else the phase changed
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Not authorized to set word or invalid room state.',
@@ -251,7 +258,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.stopTimer(data.code, client.id);
 
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Not authorized or invalid game state to stop timer.',
@@ -268,7 +275,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (room) {
       // Transition to Voting phase for everyone
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Not authorized or invalid game state to end questioning.',
@@ -284,7 +291,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.submitVote(data.code, client.id, data.targetId);
 
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to submit vote.' });
@@ -296,7 +303,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.resetGame(data.code, client.id);
 
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -316,7 +323,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.updateConfig(data.code, client.id, data.config);
 
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Not authorized to update config or invalid state.',
@@ -333,7 +340,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.tttJoinSide(data.code, client.id, data.side);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       // If we transitioned to PLAYING, the available rooms list changed logic doesn't strictly need update
       // but safe to broadcast if lobby state changed.
       this.server.emit(
@@ -352,7 +359,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.tttMakeMove(data.code, client.id, data.index);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
     }
@@ -362,7 +369,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleTTTReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.tttReset(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -378,7 +385,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleRPSNextRound(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.rpsNextRound(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized or slot already taken.' });
     }
@@ -391,7 +398,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid choice or not your turn.' });
     }
@@ -401,7 +408,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleRPSReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.rpsReset(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -420,7 +427,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.gobblerJoinSide(data.code, client.id, data.side);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -442,7 +449,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       data.toIndex,
     );
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move or not your turn.' });
     }
@@ -460,7 +467,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       data.toIndex,
     );
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move or not your turn.' });
     }
@@ -470,7 +477,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleGobblerReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.gobblerReset(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -489,7 +496,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.soundsFishyTypeAnswer(data.code, client.id, data.answer);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     }
   }
 
@@ -500,7 +507,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.soundsFishySubmitAnswer(data.code, client.id, data.answer);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid answer or not in submission phase.' });
     }
@@ -513,7 +520,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.soundsFishyRevealPlayer(data.code, client.id, data.targetId);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot reveal player.' });
     }
@@ -526,7 +533,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.soundsFishyEliminatePlayer(data.code, client.id, data.targetId);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot eliminate player.' });
     }
@@ -539,7 +546,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.soundsFishyBankPoints(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot bank points.' });
     }
@@ -552,7 +559,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.soundsFishyNextRound(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot go to next round.' });
     }
@@ -562,7 +569,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleSoundsFishyReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.soundsFishyReset(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -581,7 +588,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.detectiveClubSubmitWord(data.code, client.id, data.word);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot submit word' });
     }
@@ -594,7 +601,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.detectiveClubPlayCard(data.code, client.id, data.cardIndex);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid card play' });
     }
@@ -607,7 +614,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.detectiveClubNextPhase(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot move to next phase' });
     }
@@ -620,7 +627,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.detectiveClubVote(data.code, client.id, data.targetId);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid vote' });
     }
@@ -633,7 +640,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.detectiveClubNextRound(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to move to next round' });
     }
@@ -646,7 +653,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.detectiveClubReset(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -665,7 +672,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.whoAmIStartHostInput(data.code, client.id, data.playerWords);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot start Host Input mode' });
     }
@@ -681,7 +688,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (result.error) {
         client.emit(SOCKET_EVENTS.ERROR, { message: result.error });
       }
-      this.server.to(result.room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+      this.broadcastRoomState(result.room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot submit word' });
     }
@@ -701,11 +708,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { code: string; action: Record<string, unknown> },
     @ConnectedSocket() client: Socket,
   ) {
+    if (!data?.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
+      return;
+    }
     const roomInfo = this.gamesService.getRoom(data.code);
     if (roomInfo && roomInfo.gameType === GameType.WHO_AM_I) {
       const room = this.gamesService.whoAmIGameAction(data.code, client.id, data.action);
       if (room) {
-        this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+        this.broadcastRoomState(room);
         this.maybeRecordGameResult(room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
@@ -717,7 +728,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.action as { type: string; payload?: unknown },
       );
       if (room) {
-        this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+        this.broadcastRoomState(room);
         this.maybeRecordGameResult(room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
@@ -729,7 +740,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.action as { type: string; payload?: unknown },
       );
       if (result) {
-        this.server.to(result.room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, result.room);
+        this.broadcastRoomState(result.room);
 
         // Emit sync play signal for audio synchronization
         if (result.syncPlay) {
@@ -767,9 +778,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
           setTimeout(() => {
             const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
             if (finalResult) {
-              this.server
-                .to(finalResult.room.code)
-                .emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, finalResult.room);
+              this.broadcastRoomState(finalResult.room);
               if (finalResult.syncPlay) {
                 this.server
                   .to(finalResult.room.code)
@@ -796,7 +805,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleTheMindReady(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.theMindReady(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.syncTheMindTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot ready for game.' });
@@ -810,7 +819,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.theMindPlayCard(data.code, client.id, data.card, data.pile);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.syncTheMindTimer(room);
       this.maybeRecordGameResult(room);
     } else {
@@ -822,7 +831,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleTheMindNextLevel(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.theMindNextLevel(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.syncTheMindTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot advance to next level.' });
@@ -836,7 +845,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.theMindProposeShuriken(data.code, client.id);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.syncTheMindTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot propose shuriken.' });
@@ -850,7 +859,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const room = this.gamesService.theMindVoteShuriken(data.code, client.id, data.agree);
     if (room) {
-      this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+      this.broadcastRoomState(room);
       this.syncTheMindTimer(room);
       this.maybeRecordGameResult(room);
     } else {
@@ -865,7 +874,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const updatedRoom = this.gamesService.theMindCancelShuriken(data.code, client.id);
     if (updatedRoom) {
-      this.server.to(data.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+      this.broadcastRoomState(updatedRoom);
       this.syncTheMindTimer(updatedRoom);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot cancel shuriken proposal.' });
@@ -903,6 +912,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // --- Private helpers ---
 
+  private broadcastRoomState(room: RoomState): void {
+    this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    this.emitPrivateStates(room);
+  }
+
+  private emitPrivateStates(room: RoomState): void {
+    for (const player of room.players) {
+      const data = this.privateStateService.getSocketData(room.code, player.socketId);
+      this.server.to(player.socketId).emit(SOCKET_EVENTS.PRIVATE_STATE_UPDATED, { data });
+    }
+  }
+
   private emitSessionToken(client: Socket, code: string): void {
     const reconnectToken = this.gamesService.getReconnectToken(code, client.id);
     const playerId = this.gamesService
@@ -931,19 +952,20 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const updatedRoom = this.gamesService.theMindServerTimeout(room.code);
       if (updatedRoom) {
-        this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+        this.broadcastRoomState(updatedRoom);
         this.maybeRecordGameResult(updatedRoom);
       }
     });
   }
 
   private isValidPayload(event: string, payload: unknown): boolean {
-    if (event === 'leave_room' || event === SOCKET_EVENTS.GET_AVAILABLE_ROOMS) return true;
+    if (event === SOCKET_EVENTS.LEAVE_ROOM || event === SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
+      return true;
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
 
     const data = payload as Record<string, unknown>;
     if (!this.hasSafeValues(data)) return false;
-    if (event === 'create_room') {
+    if (event === SOCKET_EVENTS.CREATE_ROOM) {
       return (
         this.isValidName(data.name) &&
         (data.gameType === undefined || Object.values(GameType).includes(data.gameType as GameType))
@@ -992,7 +1014,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private maybeRecordGameResult(room: RoomState) {
-    if (room.status !== RoomStatus.RESULT) return;
+    const key = room.code;
+    if (room.status !== RoomStatus.RESULT) {
+      this.recordedResults.delete(key);
+      return;
+    }
+    if (this.recordedResults.has(key)) return;
+    this.recordedResults.add(key);
 
     const results = room.players
       .filter((p) => p.name)
