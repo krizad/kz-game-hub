@@ -169,6 +169,7 @@ export interface RoomState {
   endTime?: number;
   votes?: Record<string, string>;
   winner?: WinningTeam;
+  hostPlayerId?: string;
   config: RoomConfig;
   ticTacToeState?: TicTacToeState;
   rpsState?: RPSState;

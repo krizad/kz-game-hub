@@ -162,16 +162,17 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const player = room.players.find((p) => p.socketId === client.id);
-      if (player?.role) {
+      const playerRole = this.gamesService.getPlayerRole(room.code, client.id);
+      if (player && playerRole) {
         if (room.status === RoomStatus.WORD_SETTING) {
-          if (player.role === Role.Host) {
-            client.emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role: player.role });
+          if (playerRole === Role.Host) {
+            client.emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role: playerRole });
           }
         } else if (room.status !== RoomStatus.LOBBY) {
-          client.emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role: player.role });
+          client.emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role: playerRole });
 
           const secretWord = this.gamesService.getSecretWord(room.code);
-          if (secretWord && (player.role === Role.Host || player.role === Role.Know)) {
+          if (secretWord && (playerRole === Role.Host || playerRole === Role.Know)) {
             client.emit(SOCKET_EVENTS.WORD_SETTING_COMPLETED, { word: secretWord });
           }
         }
@@ -227,8 +228,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (room) {
       // Send the word ONLY to the Insider and Game Host
-      const insider = room.players.find((p) => p.role === Role.Know);
-      const gameHost = room.players.find((p) => p.role === Role.Host);
+      const insider = room.players.find(
+        (p) => this.gamesService.getPlayerRole(room.code, p.socketId) === Role.Know,
+      );
+      const gameHost = room.players.find(
+        (p) => this.gamesService.getPlayerRole(room.code, p.socketId) === Role.Host,
+      );
 
       if (insider)
         this.server
@@ -241,13 +246,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Now that the word is set, reveal everyone's roles to them privately
       room.players.forEach((player) => {
-        if (player.role && player.role !== Role.Host) {
-          this.server.to(player.socketId).emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role: player.role });
+        const role = this.gamesService.getPlayerRole(room.code, player.socketId);
+        if (role && role !== Role.Host) {
+          this.server.to(player.socketId).emit(SOCKET_EVENTS.ROLE_ASSIGNED, { role });
         }
       });
 
       // Tell everyone else the phase changed
       this.broadcastRoomState(room);
+      this.syncWhoKnowTimer(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Not authorized to set word or invalid room state.',
@@ -260,6 +267,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.stopTimer(data.code, client.id);
 
     if (room) {
+      this.roomTimerService.cancel(room.code, 'who-know');
       this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
@@ -277,6 +285,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (room) {
       // Transition to Voting phase for everyone
+      this.roomTimerService.cancel(room.code, 'who-know');
       this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
@@ -305,6 +314,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.resetGame(data.code, client.id);
 
     if (room) {
+      this.roomTimerService.cancel(room.code, 'who-know');
+      this.roomTimerService.cancel(room.code, 'the-mind');
       this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
@@ -936,6 +947,27 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (reconnectToken && playerId) {
       client.emit(SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken, playerId });
     }
+  }
+
+  private syncWhoKnowTimer(room: RoomState): void {
+    const deadline = room.endTime;
+    if (room.status !== RoomStatus.QUESTIONING || !deadline) {
+      this.roomTimerService.cancel(room.code, 'who-know');
+      return;
+    }
+
+    this.roomTimerService.schedule(room.code, 'who-know', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (currentRoom?.status !== RoomStatus.QUESTIONING || currentRoom.endTime !== deadline) {
+        return;
+      }
+
+      const updatedRoom = this.gamesService.whoKnowServerTimeout(room.code);
+      if (updatedRoom) {
+        this.broadcastRoomState(updatedRoom);
+        this.maybeRecordGameResult(updatedRoom);
+      }
+    });
   }
 
   private syncTheMindTimer(room: RoomState): void {

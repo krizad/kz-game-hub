@@ -654,6 +654,20 @@ export class GamesService {
     return this.secretWords.get(code);
   }
 
+  getPlayerRole(code: string, socketId: string): Role | undefined {
+    const data = this.privateStateService.getSocketData(code, socketId);
+    return (data['wkRole'] as Role | undefined) ?? (data['sfRole'] as Role | undefined);
+  }
+
+  whoKnowServerTimeout(code: string): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+
+    const updatedRoom = this.whoKnowService.handleQuestioningTimeout(room);
+    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    return updatedRoom;
+  }
+
   // --- Tic-Tac-Toe Logic ---
 
   tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {

@@ -1,30 +1,62 @@
 import { Injectable } from '@nestjs/common';
 import { RoomState, RoomStatus, Role, UserState } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
+
+const WK_ROLE = 'wkRole';
+const WK_VOTE = 'wkVote';
+const MAX_WORD_LENGTH = 60;
 
 @Injectable()
 export class WhoKnowService {
+  constructor(private readonly privateState: PrivateStateService) {}
+
+  private getRole(room: RoomState, socketId: string): Role | undefined {
+    return this.privateState.get<Role>(room.code, socketId, WK_ROLE);
+  }
+
+  private setRole(room: RoomState, socketId: string, role: Role): void {
+    this.privateState.set(room.code, socketId, WK_ROLE, role);
+  }
+
+  private clearRoles(room: RoomState): void {
+    for (const p of room.players) {
+      this.privateState.delete(room.code, p.socketId, WK_ROLE);
+    }
+  }
+
+  private revealRoles(room: RoomState): void {
+    for (const p of room.players) {
+      const role = this.getRole(room, p.socketId);
+      if (role) p.role = role;
+    }
+  }
+
   assignRoles(
     room: RoomState,
     requesterId: string,
   ): { room: RoomState; roles: Record<string, Role> } | null {
-    if (room.players.length < 4) return null;
+    if (room.status !== RoomStatus.LOBBY && room.status !== RoomStatus.RESULT) return null;
     if (room.roomHostId !== requesterId) return null;
+
+    const connectedPlayers = room.players.filter((p) => p.connected !== false);
+    if (connectedPlayers.length < 4) return null;
 
     room.status = RoomStatus.WORD_SETTING;
 
-    // Assign Host based on config
+    // Assign Host based on config (connected players only)
     let hostPlayer: UserState;
 
     if (room.config.hostSelection === 'FIXED') {
-      hostPlayer = room.players.find((p) => p.socketId === room.roomHostId) || room.players[0];
+      hostPlayer =
+        connectedPlayers.find((p) => p.socketId === room.roomHostId) || connectedPlayers[0];
     } else if (room.config.hostSelection === 'RANDOM') {
-      const hostIndex = Math.floor(Math.random() * room.players.length);
-      hostPlayer = room.players[hostIndex];
+      const hostIndex = Math.floor(Math.random() * connectedPlayers.length);
+      hostPlayer = connectedPlayers[hostIndex];
     } else {
-      let eligibleHosts = room.players.filter((p) => !p.hasBeenHost);
+      let eligibleHosts = connectedPlayers.filter((p) => !p.hasBeenHost);
       if (eligibleHosts.length === 0) {
-        room.players.forEach((p) => (p.hasBeenHost = false));
-        eligibleHosts = room.players;
+        connectedPlayers.forEach((p) => (p.hasBeenHost = false));
+        eligibleHosts = connectedPlayers;
       }
       const hostIndex = Math.floor(Math.random() * eligibleHosts.length);
       hostPlayer = eligibleHosts[hostIndex];
@@ -32,7 +64,7 @@ export class WhoKnowService {
 
     hostPlayer.hasBeenHost = true;
 
-    const remainingPlayers = room.players.filter((p) => p.socketId !== hostPlayer.socketId);
+    const remainingPlayers = connectedPlayers.filter((p) => p.socketId !== hostPlayer.socketId);
     const knowIndex = Math.floor(Math.random() * remainingPlayers.length);
     const knowPlayer = remainingPlayers[knowIndex];
 
@@ -42,9 +74,12 @@ export class WhoKnowService {
       if (p.socketId === hostPlayer.socketId) role = Role.Host;
       else if (p.socketId === knowPlayer.socketId) role = Role.Know;
 
-      p.role = role;
+      this.setRole(room, p.socketId, role);
       roles[p.socketId] = role;
+      delete p.role;
     });
+
+    room.hostPlayerId = hostPlayer.socketId;
 
     return { room, roles };
   }
@@ -57,13 +92,15 @@ export class WhoKnowService {
   ): RoomState | null {
     if (room.status !== RoomStatus.WORD_SETTING) return null;
 
-    const player = room.players.find((p) => p.socketId === requesterId);
-    if (!player || player.role !== Role.Host) return null;
+    if (this.getRole(room, requesterId) !== Role.Host) return null;
+
+    const trimmed = word.trim();
+    if (!trimmed || trimmed.length > MAX_WORD_LENGTH) return null;
 
     room.status = RoomStatus.QUESTIONING;
     const timeMs = (room.config.timerMin || 5) * 60 * 1000;
     room.endTime = Date.now() + timeMs;
-    secretWords.set(room.code, word);
+    secretWords.set(room.code, trimmed);
 
     return room;
   }
@@ -71,8 +108,7 @@ export class WhoKnowService {
   stopTimer(room: RoomState, requesterId: string): RoomState | null {
     if (room.status !== RoomStatus.QUESTIONING) return null;
 
-    const player = room.players.find((p) => p.socketId === requesterId);
-    if (!player || player.role !== Role.Host) return null;
+    if (this.getRole(room, requesterId) !== Role.Host) return null;
 
     room.endTime = undefined;
     return room;
@@ -81,12 +117,12 @@ export class WhoKnowService {
   endQuestioning(room: RoomState, requesterId: string, timeout: boolean = false): RoomState | null {
     if (room.status !== RoomStatus.QUESTIONING) return null;
 
-    const player = room.players.find((p) => p.socketId === requesterId);
-    if (!player || player.role !== Role.Host) return null;
+    if (this.getRole(room, requesterId) !== Role.Host) return null;
 
     if (timeout) {
       room.status = RoomStatus.RESULT;
       room.winner = 'TIMEOUT';
+      this.revealRoles(room);
     } else {
       room.status = RoomStatus.VOTING;
       room.votes = {};
@@ -96,24 +132,33 @@ export class WhoKnowService {
     return room;
   }
 
-  checkVoteResolution(room: RoomState): boolean {
-    if (room.status !== RoomStatus.VOTING || !room.votes) return false;
+  handleQuestioningTimeout(room: RoomState): RoomState | null {
+    if (room.status !== RoomStatus.QUESTIONING) return null;
 
+    room.status = RoomStatus.RESULT;
+    room.winner = 'TIMEOUT';
+    room.endTime = undefined;
+    this.revealRoles(room);
+
+    return room;
+  }
+
+  checkVoteResolution(room: RoomState): boolean {
+    if (room.status !== RoomStatus.VOTING) return false;
+
+    const votes = this.privateState.getRoomData<string>(room.code, WK_VOTE);
     const playingCount = room.players.filter(
-      (p) => p.role !== Role.Host && p.connected !== false,
+      (p) => this.getRole(room, p.socketId) !== Role.Host && p.connected !== false,
     ).length;
-    const votesCast = Object.keys(room.votes).length;
+    const votesCast = votes.size;
 
     if (playingCount === 0 || (votesCast >= playingCount && playingCount > 0)) {
       room.status = RoomStatus.RESULT;
 
-      const voteCounts = Object.values(room.votes).reduce(
-        (acc, votedForId) => {
-          acc[votedForId] = (acc[votedForId] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
+      const voteCounts: Record<string, number> = {};
+      for (const targetId of votes.values()) {
+        voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+      }
 
       let maxVotes = 0;
       let suspectedIds: string[] = [];
@@ -127,18 +172,27 @@ export class WhoKnowService {
         }
       });
 
-      const insider = room.players.find((p) => p.role === Role.Know);
+      const insider = room.players.find((p) => this.getRole(room, p.socketId) === Role.Know);
       const isInsiderCaught = insider && suspectedIds.includes(insider.socketId);
 
       if (isInsiderCaught) {
         room.winner = 'COMMONERS';
         room.players.forEach((p) => {
-          if (p.role !== Role.Know && p.role !== Role.Host) p.score += 1;
+          const role = this.getRole(room, p.socketId);
+          if (role !== Role.Know && role !== Role.Host) p.score += 1;
         });
       } else {
         room.winner = 'INSIDER';
         if (insider) insider.score += 2;
       }
+
+      // Reveal votes and roles at resolution
+      room.votes = {};
+      for (const [voterId, targetId] of votes.entries()) {
+        room.votes[voterId] = targetId;
+      }
+      this.revealRoles(room);
+
       return true;
     }
     return false;
@@ -148,12 +202,16 @@ export class WhoKnowService {
     if (room.status !== RoomStatus.VOTING) return null;
 
     const voter = room.players.find((p) => p.socketId === voterId);
-    if (!voter || voter.role === Role.Host) return null;
+    if (!voter || voter.connected === false) return null;
+    if (this.getRole(room, voterId) === Role.Host) return null;
+    if (this.privateState.has(room.code, voterId, WK_VOTE)) return null;
 
-    if (!room.votes) room.votes = {};
-    if (room.votes[voterId] !== undefined) return null;
+    const target = room.players.find((p) => p.socketId === targetId);
+    if (!target || target.connected === false) return null;
+    if (targetId === voterId) return null;
+    if (this.getRole(room, targetId) === Role.Host) return null;
 
-    room.votes[voterId] = targetId;
+    this.privateState.set(room.code, voterId, WK_VOTE, targetId);
 
     this.checkVoteResolution(room);
 
@@ -172,9 +230,12 @@ export class WhoKnowService {
     room.votes = undefined;
     room.endTime = undefined;
     room.winner = undefined;
+    room.hostPlayerId = undefined;
 
+    this.clearRoles(room);
     room.players.forEach((p) => {
-      p.role = null as unknown as Role;
+      delete p.role;
+      this.privateState.delete(room.code, p.socketId, WK_VOTE);
     });
 
     secretWords.delete(room.code);

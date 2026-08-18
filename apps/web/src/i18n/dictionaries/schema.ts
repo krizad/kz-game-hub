@@ -663,4 +663,32 @@ export interface Dictionary {
       timeAttackDesc: string;
     };
   };
+  gameWhoKnow: {
+    wordSettingHost: string;
+    wordSettingWaiting: string;
+    questioningPhase: string;
+    questioningHost: string;
+    questioningPlayers: string;
+    wordGuessedVote: string;
+    timesUpFail: string;
+    stopTimer: string;
+    votingPhase: string;
+    votingHostWait: string;
+    votingPrompt: string;
+    insider: string;
+    resultsTitle: string;
+    timeoutTitle: string;
+    timeoutDesc: string;
+    insiderWinsTitle: string;
+    insiderWinsDesc: string;
+    commonersWinTitle: string;
+    commonersWinDesc: string;
+    secretWordWas: string;
+    insiderWas: string;
+    votingResults: string;
+    mostVoted: string;
+    votes: string;
+    vote: string;
+    playAgain: string;
+  };
 }
