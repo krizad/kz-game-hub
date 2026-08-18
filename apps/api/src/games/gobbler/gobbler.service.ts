@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GobblerService {
-  private createInitialInventory(side: PlayerSide): GobblerPiece[] {
+  createInitialInventory(side: PlayerSide): GobblerPiece[] {
     return [
       { id: uuidv4(), side, size: 'SMALL' },
       { id: uuidv4(), side, size: 'SMALL' },
@@ -23,21 +23,46 @@ export class GobblerService {
     ];
   }
 
+  private isMember(room: RoomState, clientId: string): boolean {
+    return room.players.some((p) => p.socketId === clientId);
+  }
+
+  private isValidIndex(index: unknown): index is number {
+    return Number.isInteger(index) && (index as number) >= 0 && (index as number) < 9;
+  }
+
   joinSide(room: RoomState, clientId: string, side: PlayerSide): RoomState | null {
     if (room.gameType !== GameType.GOBBLER_TIC_TAC_TOE || room.status !== RoomStatus.LOBBY)
       return null;
     if (!room.gobblerState) return null;
+    if (!this.isMember(room, clientId)) return null;
+    if (side !== 'X' && side !== 'O') return null;
 
-    if (room.gobblerState.playerXId === clientId) room.gobblerState.playerXId = undefined;
-    if (room.gobblerState.playerOId === clientId) room.gobblerState.playerOId = undefined;
+    const gb = room.gobblerState;
+    const otherSide: PlayerSide = side === 'X' ? 'O' : 'X';
+    const otherSideSeat = side === 'X' ? gb.playerOId : gb.playerXId;
 
-    if (side === 'X' && !room.gobblerState.playerXId) {
-      room.gobblerState.playerXId = clientId;
-    } else if (side === 'O' && !room.gobblerState.playerOId) {
-      room.gobblerState.playerOId = clientId;
+    // Seat already taken by someone else
+    const targetSeat = side === 'X' ? gb.playerXId : gb.playerOId;
+    if (targetSeat && targetSeat !== clientId) return null;
+
+    let changed = false;
+    if (targetSeat !== clientId) {
+      if (side === 'X') gb.playerXId = clientId;
+      else gb.playerOId = clientId;
+      changed = true;
     }
 
-    if (room.gobblerState.playerXId && room.gobblerState.playerOId) {
+    // Free own previous seat on the other side if present
+    if (otherSideSeat === clientId) {
+      if (otherSide === 'X') gb.playerXId = undefined;
+      else gb.playerOId = undefined;
+      changed = true;
+    }
+
+    if (!changed) return null;
+
+    if (gb.playerXId && gb.playerOId) {
       room.status = RoomStatus.PLAYING;
     }
 
@@ -110,6 +135,8 @@ export class GobblerService {
 
     const gb = room.gobblerState;
     if (!gb || gb.winner) return null;
+    if (!this.isMember(room, clientId)) return null;
+    if (typeof pieceId !== 'string' || !this.isValidIndex(toIndex)) return null;
 
     let mySide: PlayerSide | null = null;
     if (gb.playerXId === clientId) mySide = 'X';
@@ -142,6 +169,8 @@ export class GobblerService {
 
     const gb = room.gobblerState;
     if (!gb || gb.winner) return null;
+    if (!this.isMember(room, clientId)) return null;
+    if (!this.isValidIndex(fromIndex) || !this.isValidIndex(toIndex)) return null;
 
     let mySide: PlayerSide | null = null;
     if (gb.playerXId === clientId) mySide = 'X';
@@ -176,11 +205,13 @@ export class GobblerService {
         const winnerPlayerId = winner === 'X' ? gb.playerXId : gb.playerOId;
         const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
         if (winnerPlayer) winnerPlayer.score += 1;
-
-        // Update Gobbler specific team scores
-        if (winner === 'X') gb.scores.X += 1;
-        else if (winner === 'O') gb.scores.O += 1;
       }
+
+      // Sync side scores from player scores (single source of truth: player.score)
+      const xPlayer = room.players.find((p) => p.socketId === gb.playerXId);
+      const oPlayer = room.players.find((p) => p.socketId === gb.playerOId);
+      gb.scores.X = xPlayer?.score ?? gb.scores.X;
+      gb.scores.O = oPlayer?.score ?? gb.scores.O;
     } else {
       gb.currentTurn = gb.currentTurn === 'X' ? 'O' : 'X';
     }

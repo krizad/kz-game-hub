@@ -115,22 +115,8 @@ export class GamesService {
         board: Array.from({ length: 9 }, () => []),
         currentTurn: 'X',
         inventory: {
-          X: [
-            { id: uuidv4(), side: 'X', size: 'SMALL' },
-            { id: uuidv4(), side: 'X', size: 'SMALL' },
-            { id: uuidv4(), side: 'X', size: 'MEDIUM' },
-            { id: uuidv4(), side: 'X', size: 'MEDIUM' },
-            { id: uuidv4(), side: 'X', size: 'LARGE' },
-            { id: uuidv4(), side: 'X', size: 'LARGE' },
-          ],
-          O: [
-            { id: uuidv4(), side: 'O', size: 'SMALL' },
-            { id: uuidv4(), side: 'O', size: 'SMALL' },
-            { id: uuidv4(), side: 'O', size: 'MEDIUM' },
-            { id: uuidv4(), side: 'O', size: 'MEDIUM' },
-            { id: uuidv4(), side: 'O', size: 'LARGE' },
-            { id: uuidv4(), side: 'O', size: 'LARGE' },
-          ],
+          X: this.gobblerService.createInitialInventory('X'),
+          O: this.gobblerService.createInitialInventory('O'),
         },
         scores: { X: 0, O: 0 },
       };

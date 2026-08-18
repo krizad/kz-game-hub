@@ -1,8 +1,8 @@
 'use client';
 
 import { useGameStore } from '@/store/useGameStore';
-import { RoomStatus, GobblerSize, GobblerPiece, PlayerSide } from '@repo/types';
-import { useState } from 'react';
+import { RoomStatus, GobblerSize, GobblerPiece, PlayerSide, UserState } from '@repo/types';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
@@ -49,6 +49,27 @@ export function GobblerView() {
 
   const [selectedInventoryPieceId, setSelectedInventoryPieceId] = useState<string | null>(null);
   const [selectedBoardIndex, setSelectedBoardIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!gb) return;
+    if (selectedInventoryPieceId) {
+      const allPieces = [...gb.inventory.X, ...gb.inventory.O];
+      if (!allPieces.some((p) => p.id === selectedInventoryPieceId)) {
+        setSelectedInventoryPieceId(null);
+      }
+    }
+  }, [gb, selectedInventoryPieceId]);
+
+  useEffect(() => {
+    if (!gb || selectedBoardIndex === null) return;
+    const cell = gb.board[selectedBoardIndex];
+    if (!cell || cell.length === 0) {
+      setSelectedBoardIndex(null);
+    } else if (mySide && cell[cell.length - 1].side !== mySide) {
+      setSelectedBoardIndex(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gb, selectedBoardIndex]);
 
   if (!gb) return null;
 
@@ -244,7 +265,7 @@ export function GobblerView() {
   const pTop = topSide === 'X' ? pX : pO;
   const pBottom = bottomSide === 'X' ? pX : pO;
 
-  const renderPlayerHeader = (side: PlayerSide, details: any) => {
+  const renderPlayerHeader = (side: PlayerSide, details: UserState | undefined) => {
     const isActive = room.status === RoomStatus.PLAYING && gb.currentTurn === side;
     const isMe = details?.socketId === socketId;
     return (
