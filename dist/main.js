@@ -6,8 +6,11 @@ const path_1 = require("path");
 const core_1 = require("@nestjs/core");
 const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
+const app_logger_1 = require("./app.logger");
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    const app = await core_1.NestFactory.create(app_module_1.AppModule, {
+        logger: new app_logger_1.AppLogger(),
+    });
     app.enableCors();
     const isProduction = process.env.NODE_ENV === 'production';
     if (!isProduction) {

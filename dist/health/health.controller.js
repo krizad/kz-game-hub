@@ -19,8 +19,14 @@ let HealthController = class HealthController {
     async check() {
         const databaseStartedAt = Date.now();
         let database;
+        let timeout;
         try {
-            await database_1.prisma.$connect();
+            await Promise.race([
+                database_1.prisma.$connect(),
+                new Promise((_, reject) => {
+                    timeout = setTimeout(() => reject(new Error('database connection timeout')), 3000);
+                }),
+            ]);
             database = {
                 status: 'connected',
                 latencyMs: Date.now() - databaseStartedAt,
@@ -28,6 +34,10 @@ let HealthController = class HealthController {
         }
         catch {
             database = { status: 'disconnected' };
+        }
+        finally {
+            if (timeout)
+                clearTimeout(timeout);
         }
         const memory = process.memoryUsage();
         const version = this.getPackageVersion();
