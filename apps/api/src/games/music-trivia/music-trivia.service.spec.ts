@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MusicTriviaService } from './music-trivia.service';
+import { PrivateStateService } from '../private-state.service';
 import { RoomState, RoomStatus, GameType } from '@repo/types';
 
 describe('MusicTriviaService', () => {
@@ -7,7 +8,7 @@ describe('MusicTriviaService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MusicTriviaService],
+      providers: [MusicTriviaService, PrivateStateService],
     }).compile();
 
     service = module.get<MusicTriviaService>(MusicTriviaService);

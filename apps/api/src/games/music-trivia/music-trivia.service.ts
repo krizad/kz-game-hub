@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrivateStateService } from '../private-state.service';
 import {
   MusicTriviaAction,
   MusicTriviaRound,
@@ -46,12 +47,9 @@ export interface MusicTriviaActionResult {
 
 @Injectable()
 export class MusicTriviaService {
-  /** Secret track answers per room — never broadcast. */
-  private trackAnswers = new Map<string, TrackAnswer[]>();
-
   private sourceFactory: MusicSourceFactory;
 
-  constructor() {
+  constructor(private readonly privateState: PrivateStateService) {
     this.sourceFactory = new MusicSourceFactory();
     this.sourceFactory.register(new ITunesAdapter());
     this.sourceFactory.register(new SpotifyAdapter());
@@ -130,8 +128,7 @@ export class MusicTriviaService {
   resetGame(room: RoomState, requesterId: string): RoomState | null {
     if (room.roomHostId !== requesterId) return null;
 
-    this.trackAnswers.delete(room.code);
-    this.fullTracks.delete(room.code);
+    this.privateState.clearRoom(room.code);
     room.musicTriviaState = undefined;
     room.status = RoomStatus.LOBBY;
 
@@ -144,8 +141,7 @@ export class MusicTriviaService {
   }
 
   deleteRoomData(roomCode: string): void {
-    this.trackAnswers.delete(roomCode);
-    this.fullTracks.delete(roomCode);
+    this.privateState.clearRoom(roomCode);
   }
 
   /**
@@ -294,8 +290,10 @@ export class MusicTriviaService {
       const selectedTracks = uniqueTracks.slice(0, state.totalRounds);
 
       // Store secret answers server-side
-      this.trackAnswers.set(
+      this.privateState.set(
         room.code,
+        '__ROOM__',
+        'mtTrackAnswers',
         selectedTracks.map((t) => ({
           id: t.id,
           title: t.title,
@@ -307,7 +305,7 @@ export class MusicTriviaService {
       );
 
       // Store full tracks for later rounds
-      this.fullTracks.set(room.code, selectedTracks);
+      this.privateState.set(room.code, '__ROOM__', 'mtFullTracks', selectedTracks);
 
       // Start first round automatically in GET_READY phase
       const firstTrack = selectedTracks[0];
@@ -380,6 +378,17 @@ export class MusicTriviaService {
     return result;
   }
 
+  answerTimeout(room: RoomState): MusicTriviaActionResult | null {
+    const state = room.musicTriviaState;
+    if (!state || (state.phase !== 'ANSWERING' && state.phase !== 'BUZZED')) return null;
+
+    const round = state.currentRound;
+    if (!round || !round.currentBuzzerId) return null;
+
+    // Simulate giveUp by the current buzzer
+    return this.giveUp(room, round.currentBuzzerId);
+  }
+
   private giveUp(room: RoomState, clientId: string): MusicTriviaActionResult | null {
     const state = room.musicTriviaState!;
     if (state.phase !== 'PLAYING') return null;
@@ -401,7 +410,7 @@ export class MusicTriviaService {
 
     if (this.allPlayersStruckOut(room)) {
       state.phase = 'REVEAL';
-      const answers = this.trackAnswers.get(room.code);
+      const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
       const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
 
       if (trackAnswer) {
@@ -430,7 +439,7 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round || round.currentBuzzerId !== clientId) return null;
 
-    const answers = this.trackAnswers.get(room.code);
+    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
     if (!answers) return null;
 
     const trackAnswer = answers[round.roundNumber - 1];
@@ -525,7 +534,7 @@ export class MusicTriviaService {
     if (!round || !round.currentBuzzerId) return null;
 
     const buzzerId = round.currentBuzzerId;
-    const answers = this.trackAnswers.get(room.code);
+    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
     const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
 
     if (correct) {
@@ -599,7 +608,7 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round) return null;
 
-    const answers = this.trackAnswers.get(room.code);
+    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
     const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
 
     state.phase = 'REVEAL';
@@ -653,7 +662,7 @@ export class MusicTriviaService {
 
     // Save current round to history
     if (round) {
-      const answers = this.trackAnswers.get(room.code);
+      const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
       const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
 
       const historyEntry: MusicTriviaRoundHistory = {
@@ -686,7 +695,7 @@ export class MusicTriviaService {
     }
 
     // Load next track
-    const answers = this.trackAnswers.get(room.code);
+    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
     if (!answers || !answers[nextRoundNumber - 1]) {
       // No more tracks available
       state.phase = 'FINISHED';
@@ -770,10 +779,8 @@ export class MusicTriviaService {
   // Full track storage (separate from answers for clean separation)
   // ------------------------------------------------------------------
 
-  private fullTracks = new Map<string, TrackResult[]>();
-
   private getFullTracks(roomCode: string): TrackResult[] | undefined {
-    return this.fullTracks.get(roomCode);
+    return this.privateState.get<TrackResult[]>(roomCode, '__ROOM__', 'mtFullTracks');
   }
   // ------------------------------------------------------------------
   // Fuzzy matching (Levenshtein distance)

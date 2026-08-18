@@ -286,10 +286,6 @@ export class GamesService {
       if (room.whoAmIState) {
         const waState = room.whoAmIState;
         if (waState.currentTurn === oldSocketId) waState.currentTurn = user.socketId;
-        if (waState.playerWords[oldSocketId]) {
-          waState.playerWords[user.socketId] = waState.playerWords[oldSocketId];
-          delete waState.playerWords[oldSocketId];
-        }
         if (waState.votes[oldSocketId]) {
           waState.votes[user.socketId] = waState.votes[oldSocketId];
           delete waState.votes[oldSocketId];
@@ -299,10 +295,6 @@ export class GamesService {
         if (elimIdx !== -1) waState.eliminatedPlayers[elimIdx] = user.socketId;
         const fgIdx = waState.finalGuessUsed.indexOf(oldSocketId);
         if (fgIdx !== -1) waState.finalGuessUsed[fgIdx] = user.socketId;
-        if (waState.wordSubmissions?.[oldSocketId]) {
-          waState.wordSubmissions[user.socketId] = waState.wordSubmissions[oldSocketId];
-          delete waState.wordSubmissions[oldSocketId];
-        }
       }
 
       if (room.whoFirstState) {
@@ -968,6 +960,14 @@ export class GamesService {
       clientId,
       action as Parameters<typeof this.musicTriviaService.handleGameAction>[2],
     );
+    if (result) this.rooms.set(code, result.room);
+    return result;
+  }
+
+  musicTriviaFinalizeAnswerTimeout(code: string): MusicTriviaActionResult | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const result = this.musicTriviaService.answerTimeout(room);
     if (result) this.rooms.set(code, result.room);
     return result;
   }

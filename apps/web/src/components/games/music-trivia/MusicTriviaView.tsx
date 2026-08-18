@@ -161,6 +161,37 @@ export function MusicTriviaView() {
     }
   }, [isHost, state?.phase, state?.currentRound?.roundNumber]);
 
+  const amICurrentBuzzer = state?.currentRound?.currentBuzzerId === socketId;
+
+  // Countdown timer for answering phase
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (state?.phase === 'ANSWERING' && amICurrentBuzzer) {
+      const timeoutMs = room?.config.musicTriviaAnswerTimeoutMs || 15000;
+      const pausedAt = state.pausedAtMs || Date.now();
+
+      const checkTimer = () => {
+        const remaining = Math.max(0, timeoutMs - (Date.now() - pausedAt));
+        setAnswerTimeLeft(Math.ceil(remaining / 1000));
+
+        if (remaining <= 0) {
+          musicTriviaGameAction({ type: 'SUBMIT_ANSWER', answer: '' });
+          setAnswerTimeLeft(null);
+        } else {
+          timer = setTimeout(checkTimer, 100);
+        }
+      };
+      checkTimer();
+    } else {
+      setAnswerTimeLeft(null);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [state?.phase, amICurrentBuzzer, room?.config.musicTriviaAnswerTimeoutMs, state?.pausedAtMs, musicTriviaGameAction]);
+
   if (!state) return null;
 
   const handleAction = (type: MusicTriviaActionType, payload: any = {}) => {
@@ -179,36 +210,7 @@ export function MusicTriviaView() {
 
   const amIStruckOut = state.currentRound?.struckOutIds.includes(socketId || '');
 
-  const amICurrentBuzzer = state.currentRound?.currentBuzzerId === socketId;
 
-  // Countdown timer for answering phase
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-
-    if (state?.phase === 'ANSWERING' && amICurrentBuzzer) {
-      const timeoutMs = room?.config.musicTriviaAnswerTimeoutMs || 15000;
-      const pausedAt = state.pausedAtMs || Date.now();
-
-      const checkTimer = () => {
-        const remaining = Math.max(0, timeoutMs - (Date.now() - pausedAt));
-        setAnswerTimeLeft(Math.ceil(remaining / 1000));
-
-        if (remaining <= 0) {
-          handleAction('SUBMIT_ANSWER', { answer: '' });
-          setAnswerTimeLeft(null);
-        } else {
-          timer = setTimeout(checkTimer, 100);
-        }
-      };
-      checkTimer();
-    } else {
-      setAnswerTimeLeft(null);
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [state?.phase, amICurrentBuzzer, room?.config.musicTriviaAnswerTimeoutMs, state?.pausedAtMs]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
@@ -301,20 +303,47 @@ export function MusicTriviaView() {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* SETUP Phase */}
           {state.phase === 'SETUP' && (
-            <div className="bg-white p-8 rounded-2xl shadow-sm border text-center space-y-4 animate-pulse">
-              <div className="text-4xl mb-2">🎶</div>
+            <div className={`bg-white p-8 rounded-2xl shadow-sm border text-center space-y-4 ${state.errorMessage ? '' : 'animate-pulse'}`}>
+              <div className="text-4xl mb-2">{state.errorMessage ? '❌' : '🎶'}</div>
               <h3 className="text-xl font-bold text-slate-800">
-                {t('gameMusicTrivia.game.preparingMusic')}
+                {state.errorMessage ? 'Setup Failed' : t('gameMusicTrivia.game.preparingMusic')}
               </h3>
-              <p className="text-slate-500">
-                {t('gameMusicTrivia.game.searchingFor')} {room.config.musicTriviaQuery || 'songs'}{' '}
-                {t('gameMusicTrivia.game.on')}{' '}
-                {room.config.musicTriviaSource === 'SPOTIFY'
-                  ? 'Spotify'
-                  : room.config.musicTriviaSource === 'YOUTUBE'
-                    ? 'YouTube'
-                    : 'iTunes'}
-              </p>
+              {state.errorMessage ? (
+                <div className="text-red-500 bg-red-50 p-4 rounded-xl border border-red-100">
+                  <p>{state.errorMessage}</p>
+                </div>
+              ) : (
+                <p className="text-slate-500">
+                  {t('gameMusicTrivia.game.searchingFor')} {room.config.musicTriviaQuery || 'songs'}{' '}
+                  {t('gameMusicTrivia.game.on')}{' '}
+                  {room.config.musicTriviaSource === 'SPOTIFY'
+                    ? 'Spotify'
+                    : room.config.musicTriviaSource === 'YOUTUBE'
+                      ? 'YouTube'
+                      : 'iTunes'}
+                </p>
+              )}
+              {state.errorMessage && isHost && (
+                <div className="pt-4 flex gap-4 justify-center">
+                  <Button
+                    onClick={() => {
+                      handleAction('CONFIGURE_SOURCE', {
+                        query: room.config.musicTriviaQuery || 'Thai Pop',
+                        sourceType: room.config.musicTriviaSource || 'ITUNES',
+                        searchOptions: {
+                          country: room.config.musicTriviaCountry || 'TH',
+                          attribute: room.config.musicTriviaAttribute,
+                          yearStart: room.config.musicTriviaYearStart,
+                          yearEnd: room.config.musicTriviaYearEnd,
+                        },
+                      });
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  >
+                    Retry Setup
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

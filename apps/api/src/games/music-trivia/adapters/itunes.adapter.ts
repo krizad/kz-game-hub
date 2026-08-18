@@ -42,13 +42,28 @@ export class ITunesAdapter implements MusicSourceAdapter {
       params.append('attribute', options.attribute);
     }
 
-    const response = await fetch(`https://itunes.apple.com/search?${params.toString()}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    if (!response.ok) {
-      throw new Error(`iTunes API error: ${response.status} ${response.statusText}`);
+    let data;
+    try {
+      const response = await fetch(`https://itunes.apple.com/search?${params.toString()}`, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`iTunes API error: ${response.status} ${response.statusText}`);
+      }
+
+      data = await response.json();
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error('iTunes API request timed out after 5 seconds');
+      }
+      throw new Error(`Failed to fetch from iTunes: ${error.message}`);
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const data = await response.json();
 
     const tracks: TrackResult[] = (data.results || [])
       .filter((item: ItunesItem) => {

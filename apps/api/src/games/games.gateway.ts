@@ -792,17 +792,49 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
           actionData.type === 'START_COUNTDOWN' ||
           (actionData.type === 'NEXT_ROUND' && result.room.musicTriviaState?.phase === 'COUNTDOWN')
         ) {
-          setTimeout(() => {
-            const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
-            if (finalResult) {
-              this.broadcastRoomState(finalResult.room);
-              if (finalResult.syncPlay) {
-                this.server
-                  .to(finalResult.room.code)
-                  .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, finalResult.syncPlay);
+          this.roomTimerService.schedule(
+            data.code,
+            'music-trivia-countdown',
+            Date.now() + 3000,
+            () => {
+              const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
+              if (finalResult) {
+                this.broadcastRoomState(finalResult.room);
+                if (finalResult.syncPlay) {
+                  this.server
+                    .to(finalResult.room.code)
+                    .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, finalResult.syncPlay);
+                }
               }
-            }
-          }, 3000);
+            },
+          );
+        }
+
+        if (
+          actionData.type === 'PRESS_BUZZER' &&
+          result.room.musicTriviaState?.phase.match(/^(BUZZED|ANSWERING)$/)
+        ) {
+          const timeoutMs = result.room.musicTriviaState.answerTimeoutMs || 15000;
+          this.roomTimerService.schedule(
+            data.code,
+            'music-trivia-answer',
+            Date.now() + timeoutMs,
+            () => {
+              const timeoutResult = this.gamesService.musicTriviaFinalizeAnswerTimeout(data.code);
+              if (timeoutResult) {
+                this.broadcastRoomState(timeoutResult.room);
+                if (timeoutResult.syncPlay) {
+                  this.server
+                    .to(timeoutResult.room.code)
+                    .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, timeoutResult.syncPlay);
+                }
+              }
+            },
+          );
+        }
+
+        if (['SUBMIT_ANSWER', 'HOST_JUDGE', 'GIVE_UP', 'NEXT_ROUND'].includes(actionData.type)) {
+          this.roomTimerService.cancel(data.code, 'music-trivia-answer');
         }
 
         this.maybeRecordGameResult(result.room);
