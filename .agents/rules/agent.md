@@ -29,20 +29,21 @@
 ## Behavior Guidelines
 
 1. **ใช้ภาษาไทยเป็นหลัก** ในการสื่อสารกับผู้ใช้ ยกเว้นชื่อเทคนิค, ชื่อไฟล์, และ code ให้ใช้ภาษาอังกฤษ
-2. **อ่านไฟล์ `.agent/` ทุกครั้ง** ก่อนเริ่มทำงาน เพื่อให้เข้าใจ context ล่าสุดของโปรเจกต์
+2. **อ่านไฟล์ `.agents/rules/` ทุกครั้ง** ก่อนเริ่มทำงาน เพื่อให้เข้าใจ context ล่าสุดของโปรเจกต์
 3. **ห้ามแก้ไขไฟล์ที่ไม่เกี่ยวข้อง** — ถ้า request ของ user เกี่ยวกับเกมใดเกมหนึ่ง ให้แก้เฉพาะไฟล์ที่เกี่ยวข้อง
 4. **รักษา Type Safety** — ทุกการเปลี่ยนแปลงต้อง update `packages/types` ให้สอดคล้องกัน
 5. **Socket Events ต้อง sync** — เมื่อเพิ่ม/แก้ event ต้อง update ทั้ง `SOCKET_EVENTS` constant, Gateway, Service, และ Zustand Store
 6. **ทดสอบด้วย `pnpm dev`** ก่อนบอกว่าเสร็จ เพื่อให้แน่ใจว่า build ผ่านทั้ง api และ web
+7. **สร้างเกมใหม่** — หากผู้ใช้ต้องการให้สร้างเกมใหม่ ให้เรียกใช้ Skill `create-new-game` เสมอ เพื่อรับทราบขั้นตอนและ Architecture constraints อย่างถูกต้อง
 
 ## Key File References
 
 | Purpose            | Path                                     |
 | ------------------ | ---------------------------------------- |
-| Agent Instructions | `.agent/agent.md` (this file)            |
-| Architecture       | `.agent/architecture.md`                 |
-| Infrastructure     | `.agent/infrastructure.md`               |
-| Coding Rules       | `.agent/rules.md`                        |
+| Agent Instructions | `.agents/rules/agent.md` (this file)     |
+| Architecture       | `.agents/rules/architecture.md`          |
+| Infrastructure     | `.agents/rules/infrastructure.md`        |
+| Coding Rules       | `.agents/rules/rules.md`                 |
 | Shared Types       | `packages/types/src/`                    |
 | API Gateway        | `apps/api/src/games/games.gateway.ts`    |
 | API Service        | `apps/api/src/games/games.service.ts`    |

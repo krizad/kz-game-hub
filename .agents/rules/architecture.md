@@ -84,7 +84,7 @@ kz-game-hub/
 │   │   └── prisma/schema.prisma
 │   └── config/                 # Shared ESLint, TSConfig, Prettier
 │
-├── .agent/                     # AI Agent instructions
+├── .agents/                    # AI Agent instructions, rules, and skills
 ├── turbo.json
 ├── pnpm-workspace.yaml
 └── docker-compose.yml
@@ -169,7 +169,7 @@ Client                          Server
 
 ### 5. Adding a New Game (Pattern)
 
-เมื่อต้องการเพิ่มเกมใหม่:
+เมื่อต้องการเพิ่มเกมใหม่ แนะนำให้เรียกใช้ AI Skill **`create-new-game`** (คำสั่ง: สร้างเกมใหม่) ซึ่งมีอธิบายขั้นตอนทั้งหมดไว้แล้ว โดยมีหลักการคร่าวๆ ดังนี้:
 
 1. **`packages/types/src/<game-name>.ts`** — สร้าง interface สำหรับ game state
 2. **`packages/types/src/core.ts`** — เพิ่ม `GameType` enum, `SOCKET_EVENTS`, และ optional field ใน `RoomState`
