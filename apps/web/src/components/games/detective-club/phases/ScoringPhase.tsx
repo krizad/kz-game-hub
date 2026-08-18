@@ -23,7 +23,7 @@ export function ScoringPhase() {
   return (
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
-      <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-sm">
         <h2 className="text-4xl font-black mb-4 uppercase tracking-widest bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
           {t('gameDetectiveClub.roundOver')}
         </h2>
@@ -121,7 +121,7 @@ export function ScoringPhase() {
           <button
             onClick={() => detectiveClubNextRound()}
             disabled={actionLoading}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98] uppercase tracking-wider text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-4 rounded-xl transition-all shadow-sm shadow-indigo-500/20 active:scale-[0.98] uppercase tracking-wider text-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('gameDetectiveClub.playNextRound')}
           </button>

@@ -7,11 +7,11 @@ const sources = ['ITUNES', 'SOUNDCLOUD'];
 
 test.describe('Music Trivia Game Flow', () => {
   for (const source of sources) {
-    test(`two players can play a 5-round game using ${source}`, async ({ browser }) => {
+    test(`two players can play a 5-round game using ${source}`, async ({ browser, baseURL }) => {
       test.setTimeout(180000);
 
-      const p1Ctx = await browser.newContext();
-      const p2Ctx = await browser.newContext();
+      const p1Ctx = await browser.newContext({ baseURL });
+      const p2Ctx = await browser.newContext({ baseURL });
       const p1 = await p1Ctx.newPage();
       const p2 = await p2Ctx.newPage();
 

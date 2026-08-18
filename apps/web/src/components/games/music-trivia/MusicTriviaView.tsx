@@ -385,7 +385,7 @@ export function MusicTriviaView() {
                     setHasTestedAudio(true);
                     musicTriviaGameAction({ type: 'PLAYER_READY' });
                   }}
-                  className="w-full max-w-xs mx-auto h-16 rounded-2xl text-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
+                  className="w-full max-w-xs mx-auto h-16 rounded-2xl text-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
                 >
                   {t('gameMusicTrivia.game.getReadyBtn')}
                 </Button>
@@ -401,7 +401,7 @@ export function MusicTriviaView() {
                   </div>
                   <Button
                     onClick={() => musicTriviaGameAction({ type: 'START_COUNTDOWN' })}
-                    className="w-full h-14 rounded-2xl text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200 transition-all"
+                    className="w-full h-14 rounded-2xl text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-200 transition-all"
                   >
                     {t('gameMusicTrivia.game.getReadyStartBtn')}
                   </Button>
@@ -417,7 +417,7 @@ export function MusicTriviaView() {
                 {t('gameMusicTrivia.game.countdownTitle')}
               </h3>
               <div className="relative">
-                <div className="text-9xl font-black text-indigo-600 drop-shadow-xl animate-bounce">
+                <div className="text-9xl font-black text-indigo-600 drop-shadow-sm animate-bounce">
                   {countdown}
                 </div>
                 <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full z-[-1] animate-pulse"></div>
@@ -429,7 +429,7 @@ export function MusicTriviaView() {
           {state.phase === 'PLAYING' && (
             <div className="flex flex-col items-center justify-center py-10 space-y-8">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 animate-spin-slow shadow-lg shadow-indigo-200 flex items-center justify-center">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 animate-spin-slow shadow-sm shadow-indigo-200 flex items-center justify-center">
                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
                     <div className="flex items-end space-x-1 h-4">
                       <div className="w-1 bg-indigo-500 animate-[bounce_1s_infinite] h-full"></div>
@@ -438,7 +438,7 @@ export function MusicTriviaView() {
                     </div>
                   </div>
                 </div>
-                <div className="absolute inset-0 border-4 border-white/20 rounded-full animate-ping"></div>
+                <div className="absolute inset-0 border border-white/20 rounded-full animate-ping"></div>
                 {['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '') && (
                   <div className="hidden">
                     <ReactPlayer
@@ -503,7 +503,7 @@ export function MusicTriviaView() {
               </div>
 
               {/* Enhanced Audio Controls */}
-              <div className="w-full max-w-sm flex flex-col gap-3 bg-white p-5 rounded-3xl border shadow-lg border-indigo-50">
+              <div className="w-full max-w-sm flex flex-col gap-3 bg-white p-5 rounded-3xl border shadow-sm border-indigo-50">
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
                     <Button
@@ -561,7 +561,7 @@ export function MusicTriviaView() {
                   <Button
                     onClick={handleBuzz}
                     disabled={amIStruckOut}
-                    className={`w-full h-32 rounded-3xl text-3xl font-bold transition-all shadow-xl active:scale-95 active:shadow-md ${amIStruckOut ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white shadow-red-200'}`}
+                    className={`w-full h-32 rounded-3xl text-3xl font-bold transition-all shadow-sm active:scale-95 active:shadow-sm ${amIStruckOut ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white shadow-red-200'}`}
                   >
                     {amIStruckOut ? '❌ X' : '🚨 BUZZ!'}
                   </Button>
@@ -637,7 +637,7 @@ export function MusicTriviaView() {
                             <img
                               src={hostAnswer.artworkUrl}
                               alt="Album Art"
-                              className="w-24 h-24 rounded-lg shadow-md flex-shrink-0"
+                              className="w-24 h-24 rounded-lg shadow-sm flex-shrink-0"
                             />
                           )}
                           <div className="flex-1 text-center sm:text-left">
@@ -667,7 +667,7 @@ export function MusicTriviaView() {
                           onClick={() =>
                             musicTriviaGameAction({ type: 'HOST_JUDGE', correct: true })
                           }
-                          className="bg-green-500 hover:bg-green-600 px-8 text-lg font-bold py-6 rounded-xl shadow-lg shadow-green-500/30"
+                          className="bg-green-500 hover:bg-green-600 px-8 text-lg font-bold py-6 rounded-xl shadow-sm shadow-green-500/30"
                         >
                           {t('gameMusicTrivia.game.yesCorrect')}
                         </Button>
@@ -675,7 +675,7 @@ export function MusicTriviaView() {
                           onClick={() =>
                             musicTriviaGameAction({ type: 'HOST_JUDGE', correct: false })
                           }
-                          className="bg-red-500 hover:bg-red-600 px-8 text-lg font-bold py-6 rounded-xl shadow-lg shadow-red-500/30"
+                          className="bg-red-500 hover:bg-red-600 px-8 text-lg font-bold py-6 rounded-xl shadow-sm shadow-red-500/30"
                         >
                           {t('gameMusicTrivia.game.noWrong')}
                         </Button>
@@ -705,7 +705,7 @@ export function MusicTriviaView() {
                       </p>
                       <input
                         type="text"
-                        className="w-full p-4 text-center text-xl font-bold border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-0"
+                        className="w-full p-4 text-center text-xl font-bold border border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-0"
                         placeholder={
                           t('gameMusicTrivia.game.typeAnswerHere') || 'Type answer here...'
                         }
@@ -723,7 +723,7 @@ export function MusicTriviaView() {
                       <div className="flex flex-col gap-4 w-full max-w-sm mx-auto mt-6">
                         <Button
                           type="submit"
-                          className="w-full py-6 text-lg rounded-xl shadow-lg shadow-indigo-500/30"
+                          className="w-full py-6 text-lg rounded-xl shadow-sm shadow-indigo-500/30"
                           disabled={!answerInput.trim()}
                         >
                           {t('gameMusicTrivia.game.submitAnswer')}
@@ -795,7 +795,7 @@ export function MusicTriviaView() {
                         '300x300bb.jpg',
                       )}
                       alt="Album Art"
-                      className="w-32 h-32 mx-auto rounded-lg shadow-md mb-4"
+                      className="w-32 h-32 mx-auto rounded-lg shadow-sm mb-4"
                     />
                   )}
                   <p className="text-sm text-slate-500 font-bold uppercase mb-1">
@@ -835,7 +835,7 @@ export function MusicTriviaView() {
                 <div className="pt-6">
                   <Button
                     onClick={() => musicTriviaGameAction({ type: 'NEXT_ROUND' })}
-                    className="px-8 py-6 text-lg rounded-xl font-bold shadow-lg shadow-indigo-500/30"
+                    className="px-8 py-6 text-lg rounded-xl font-bold shadow-sm shadow-indigo-500/30"
                   >
                     Next Round 🎵
                   </Button>
@@ -861,7 +861,7 @@ export function MusicTriviaView() {
                   <img
                     src={state.revealedAnswer.artworkUrl.replace('100x100bb.jpg', '400x400bb.jpg')}
                     alt="Album Art"
-                    className="w-40 h-40 mx-auto rounded-xl shadow-lg mb-4"
+                    className="w-40 h-40 mx-auto rounded-xl shadow-sm mb-4"
                   />
                 )}
                 <p className="text-3xl font-black text-indigo-600 mb-2">
@@ -945,7 +945,7 @@ export function MusicTriviaView() {
                     return (
                       <div
                         key={playerId}
-                        className={`flex justify-between items-center p-4 rounded-xl font-bold ${index === 0 ? 'bg-amber-100 text-amber-900 border-2 border-amber-300' : 'bg-slate-50 text-slate-700 border'}`}
+                        className={`flex justify-between items-center p-4 rounded-xl font-bold ${index === 0 ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-50 text-slate-700 border'}`}
                       >
                         <span className="flex items-center gap-2">
                           {index === 0 && '🥇'}

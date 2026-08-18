@@ -45,7 +45,7 @@ export function DetectiveClubView() {
   return (
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6">
       {/* Header Info */}
-      <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-lg w-full gap-4">
+      <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-sm w-full gap-4">
         <div className="text-center sm:text-left">
           <p className="text-slate-600 uppercase tracking-widest text-xs font-bold mb-1">
             {t('gameDetectiveClub.yourRole')}

@@ -39,7 +39,7 @@ export function GameViewManager() {
     if (room.gameType === GameType.THE_MIND) return <TheMindGameView />;
 
     return (
-      <div className="flex-1 flex flex-col bg-white/80 border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-xl min-h-[300px]">
+      <div className="flex-1 flex flex-col bg-white/80 border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-sm min-h-[300px]">
         {room.status === RoomStatus.LOBBY && (
           <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-[150px]">
             <h4 className="text-lg font-black uppercase text-indigo-400 tracking-widest bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">

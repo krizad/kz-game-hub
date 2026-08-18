@@ -22,12 +22,12 @@ export function VotingPhase() {
   if (isInformer) {
     return (
       <div className="flex-1 flex flex-col space-y-6 items-center justify-center">
-        <div className="bg-white border border-amber-200 rounded-xl p-8 text-center max-w-lg shadow-2xl">
+        <div className="bg-white border border-amber-200 rounded-xl p-8 text-center max-w-lg shadow-sm">
           <h2 className="text-3xl font-black text-indigo-400 mb-4 uppercase tracking-widest">
             {t('gameDetectiveClub.votingPhase')}
           </h2>
           <p className="text-slate-700 text-lg mb-6">{t('gameDetectiveClub.detectivesVoting')}</p>
-          <div className="w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin mx-auto"></div>
+          <div className="w-16 h-16 rounded-full border border-indigo-500 border-t-transparent animate-spin mx-auto"></div>
           <p className="text-slate-500 mt-6 font-medium">
             {t('gameDetectiveClub.informerSitTight')}
           </p>
@@ -39,7 +39,7 @@ export function VotingPhase() {
   return (
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
-      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-sm">
         <h2 className="text-2xl sm:text-3xl font-black text-rose-400 mb-2">
           {t('gameDetectiveClub.whoIsConspirator')}
         </h2>
@@ -72,7 +72,7 @@ export function VotingPhase() {
               <button
                 key={pid}
                 onClick={() => setSelectedPlayer(pid)}
-                className={`flex items-center p-4 rounded-xl border-2 transition-all text-left ${
+                className={`flex items-center p-4 rounded-xl border transition-all text-left ${
                   selectedPlayer === pid
                     ? 'bg-rose-950/40 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
                     : 'bg-white border-amber-200 hover:border-amber-400 hover:bg-amber-100'
@@ -114,7 +114,7 @@ export function VotingPhase() {
             <button
               onClick={() => selectedPlayer && detectiveClubVote(selectedPlayer)}
               disabled={!selectedPlayer || actionLoading}
-              className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-6 py-4 rounded-xl transition-all shadow-lg shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-xl"
+              className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-6 py-4 rounded-xl transition-all shadow-sm shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-xl"
             >
               {t('gameDetectiveClub.confirmVote')}
             </button>

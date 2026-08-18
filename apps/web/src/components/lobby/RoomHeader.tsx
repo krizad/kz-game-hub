@@ -24,7 +24,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
 
   return (
     <>
-      <header className="flex-none flex items-center justify-between gap-4 p-2 sm:p-4 bg-white border border-amber-200 rounded-2xl shadow-xl z-10 w-full">
+      <header className="flex-none flex items-center justify-between gap-4 p-2 sm:p-4 bg-white border border-amber-200 rounded-2xl shadow-sm z-10 w-full">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full">
           <img
             src="/icon.png"
@@ -155,7 +155,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
       {/* Leave Room Modal */}
       {showLeaveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
-          <div className="bg-white border border-rose-500/50 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white border border-rose-500/50 rounded-3xl w-full max-w-sm shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500"></div>
             <div className="p-6 md:p-8 flex flex-col gap-4 text-center">
               <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest">
@@ -174,7 +174,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
                     leaveRoom();
                     setShowLeaveModal(false);
                   }}
-                  className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-rose-500/20"
+                  className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-sm shadow-rose-500/20"
                 >
                   {t('lobby.confirmLeave')}
                 </button>
@@ -187,7 +187,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
       {/* QR Code Modal */}
       {showQRModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
-          <div className="bg-white border border-purple-500/50 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white border border-purple-500/50 rounded-3xl w-full max-w-sm shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
             <div className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
               <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest">

@@ -26,7 +26,7 @@ export function PlayingPhase() {
   return (
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
-      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-sm">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
           {t('gameDetectiveClub.theSecretWord')}
         </span>
@@ -73,13 +73,13 @@ export function PlayingPhase() {
                   {player.playedCards.map((cardUrl, idx) => (
                     <div
                       key={idx}
-                      className="relative group w-20 h-28 sm:w-24 sm:h-32 rounded-lg overflow-hidden border-2 border-amber-300 shadow-md transform hover:scale-105 transition-transform cursor-pointer"
+                      className="relative group w-20 h-28 sm:w-24 sm:h-32 rounded-lg overflow-hidden border border-amber-300 shadow-sm transform hover:scale-105 transition-transform cursor-pointer"
                       onClick={() => setViewCardUrl(cardUrl)}
                     >
                       <img
                         src={cardUrl}
                         alt="Played Card"
-                        className="w-full h-full object-cover border-4 border-white rounded-lg"
+                        className="w-full h-full object-cover border border-white rounded-lg"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <ZoomIn className="text-white w-6 h-6 shadow-sm" />
@@ -93,10 +93,10 @@ export function PlayingPhase() {
                   }).map((_, i) => (
                     <div
                       key={`empty-${i}`}
-                      className={`w-20 h-28 sm:w-24 sm:h-32 rounded-lg border-2 border-dashed flex items-center justify-center ${isActive ? 'border-indigo-500/40 bg-indigo-500/5' : 'border-amber-200/80 bg-white/20'}`}
+                      className={`w-20 h-28 sm:w-24 sm:h-32 rounded-lg border border-dashed flex items-center justify-center ${isActive ? 'border-indigo-500/40 bg-indigo-500/5' : 'border-amber-200/80 bg-white/20'}`}
                     >
                       {isActive && (
-                        <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin opacity-50"></div>
+                        <div className="w-6 h-6 rounded-full border border-indigo-500 border-t-transparent animate-spin opacity-50"></div>
                       )}
                     </div>
                   ))}
@@ -108,7 +108,7 @@ export function PlayingPhase() {
       </div>
 
       {/* Your Hand */}
-      <div className="bg-white border border-amber-200 rounded-xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
+      <div className="bg-white border border-amber-200 rounded-xl p-4 sm:p-6 shadow-sm relative overflow-hidden">
         <div
           className={`absolute top-0 left-0 w-full py-1 text-center text-xs font-bold uppercase tracking-widest ${isMyTurn ? 'bg-indigo-600 text-white' : 'bg-amber-100 text-slate-600'}`}
         >
@@ -124,7 +124,7 @@ export function PlayingPhase() {
           {myHand.map((cardUrl, idx) => (
             <div
               key={idx}
-              className={`relative group flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 rounded-xl overflow-hidden border-2 transition-all ${
+              className={`relative group flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 rounded-xl overflow-hidden border transition-all ${
                 isMyTurn
                   ? 'border-indigo-500/50 hover:border-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:-translate-y-2'
                   : 'border-amber-300 opacity-80'
@@ -133,7 +133,7 @@ export function PlayingPhase() {
               <img
                 src={cardUrl}
                 alt="Hand Card"
-                className="w-full h-full object-cover border-4 border-white rounded-lg"
+                className="w-full h-full object-cover border border-white rounded-lg"
               />
 
               {isMyTurn && (
@@ -141,7 +141,7 @@ export function PlayingPhase() {
                   className="absolute inset-0 bg-transparent group-hover:bg-indigo-900/40 transition-colors flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[2px] cursor-pointer"
                   onClick={() => setConfirmPlayIndex(idx)}
                 >
-                  <span className="opacity-0 group-hover:opacity-100 bg-indigo-600 text-white text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-all">
+                  <span className="opacity-0 group-hover:opacity-100 bg-indigo-600 text-white text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-sm transform scale-90 group-hover:scale-100 transition-all">
                     {t('gameDetectiveClub.play')}
                   </span>
                 </div>
@@ -169,14 +169,14 @@ export function PlayingPhase() {
           onClick={() => setConfirmPlayIndex(null)}
         >
           <div
-            className="bg-white border-2 border-amber-300 rounded-xl max-w-sm w-full p-6 text-center shadow-2xl transform scale-100 transition-transform"
+            className="bg-white border border-amber-300 rounded-xl max-w-sm w-full p-6 text-center shadow-sm transform scale-100 transition-transform"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-black text-slate-800 mb-4">
               {t('gameDetectiveClub.confirmCardPlay')}
             </h2>
             <div className="flex justify-center mb-6">
-              <div className="w-32 h-44 rounded-lg overflow-hidden border-4 border-indigo-500 shadow-lg">
+              <div className="w-32 h-44 rounded-lg overflow-hidden border border-indigo-500 shadow-sm">
                 <img
                   src={myHand[confirmPlayIndex]}
                   alt="Selected Card"

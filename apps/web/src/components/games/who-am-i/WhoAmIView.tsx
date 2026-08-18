@@ -26,7 +26,7 @@ export function WhoAmIView() {
     !isSpectator && gameState.currentTurn === socketId && room.status === RoomStatus.PLAYING;
 
   return (
-    <div className="flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xl min-h-[450px] relative overflow-hidden">
+    <div className="flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm min-h-[450px] relative overflow-hidden">
       {actionLoading && <ActionLoadingOverlay />}
       {/* PLAYING STATUS */}
       {room.status === RoomStatus.PLAYING && (
@@ -82,7 +82,7 @@ export function WhoAmIView() {
                       setPlayerWordInput('');
                     }}
                     disabled={!playerWordInput.trim() || actionLoading}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-sm"
                   >
                     {t('gameWhoAmI.submitWord')}
                   </button>
@@ -161,14 +161,14 @@ export function WhoAmIView() {
                       Object.values(hostWords).some((w) => !w.trim()) ||
                       actionLoading
                     }
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-sm"
                   >
                     {t('gameWhoAmI.submitWord')}
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 py-6">
-                  <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                  <div className="w-12 h-12 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
                   <p className="text-slate-500 font-medium animate-pulse">
                     Waiting for Host to submit secret words...
                   </p>
@@ -201,7 +201,7 @@ export function WhoAmIView() {
                     </span>
                   </span>
                 ) : isMyTurn ? (
-                  <span className="text-emerald-600 animate-pulse font-black uppercase tracking-wider bg-emerald-50 px-6 py-2 rounded-full border border-emerald-200 shadow-md">
+                  <span className="text-emerald-600 animate-pulse font-black uppercase tracking-wider bg-emerald-50 px-6 py-2 rounded-full border border-emerald-200 shadow-sm">
                     {t('gameWhoAmI.yourTurn')}
                   </span>
                 ) : (
@@ -233,18 +233,18 @@ export function WhoAmIView() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: isEliminated ? 0.5 : 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className={`relative flex flex-col items-center p-4 rounded-2xl border transition-all duration-300 ${isEliminated ? 'bg-rose-50 border-rose-200 grayscale' : isActive ? 'bg-indigo-50 border-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'bg-white border-amber-200 shadow-sm hover:shadow-md'}`}
+                        className={`relative flex flex-col items-center p-4 rounded-2xl border transition-all duration-300 ${isEliminated ? 'bg-rose-50 border-rose-200 grayscale' : isActive ? 'bg-indigo-50 border-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'bg-white border-amber-200 shadow-sm hover:shadow-sm'}`}
                       >
                         {isEliminated ? (
                           <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                            <span className="bg-rose-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
+                            <span className="bg-rose-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm">
                               {t('gameWhoAmI.eliminated')}
                             </span>
                           </div>
                         ) : (
                           isActive && (
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                              <span className="bg-indigo-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
+                              <span className="bg-indigo-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm">
                                 {t('gameWhoAmI.active')}
                               </span>
                             </div>
@@ -277,11 +277,11 @@ export function WhoAmIView() {
                             transition={{ type: 'spring', stiffness: 260, damping: 20 }}
                           >
                             {/* Front of card (Hidden from player) */}
-                            <div className="absolute inset-0 w-full h-full backface-hidden bg-white rounded-xl border border-amber-300 flex items-center justify-center shadow-md">
+                            <div className="absolute inset-0 w-full h-full backface-hidden bg-white rounded-xl border border-amber-300 flex items-center justify-center shadow-sm">
                               <span className="text-3xl animate-pulse opacity-50">❓</span>
                             </div>
                             {/* Back of card (Visible to others) */}
-                            <div className="absolute inset-0 w-full h-full backface-hidden bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl border border-indigo-300 flex flex-col items-center justify-center shadow-md transform rotate-y-180 p-2">
+                            <div className="absolute inset-0 w-full h-full backface-hidden bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl border border-indigo-300 flex flex-col items-center justify-center shadow-sm transform rotate-y-180 p-2">
                               <span className="text-xs text-indigo-100 font-medium mb-1 uppercase tracking-wider">
                                 {t('gameWhoAmI.theyAre')}
                               </span>
@@ -353,7 +353,7 @@ export function WhoAmIView() {
                           if (yesCount === max && yesCount > noCount && yesCount > maybeCount) {
                             majority = t('gameWhoAmI.yes');
                             colorClass =
-                              'text-emerald-600 border-emerald-300 bg-emerald-50 shadow-md shadow-emerald-500/10';
+                              'text-emerald-600 border-emerald-300 bg-emerald-50 shadow-sm shadow-emerald-500/10';
                           } else if (
                             noCount === max &&
                             noCount > yesCount &&
@@ -361,7 +361,7 @@ export function WhoAmIView() {
                           ) {
                             majority = t('gameWhoAmI.no');
                             colorClass =
-                              'text-rose-600 border-rose-300 bg-rose-50 shadow-md shadow-rose-500/10';
+                              'text-rose-600 border-rose-300 bg-rose-50 shadow-sm shadow-rose-500/10';
                           } else if (
                             maybeCount === max &&
                             maybeCount > yesCount &&
@@ -369,7 +369,7 @@ export function WhoAmIView() {
                           ) {
                             majority = t('gameWhoAmI.maybe');
                             colorClass =
-                              'text-amber-600 border-amber-300 bg-amber-50 shadow-md shadow-amber-500/10';
+                              'text-amber-600 border-amber-300 bg-amber-50 shadow-sm shadow-amber-500/10';
                           }
 
                           return (
@@ -406,7 +406,7 @@ export function WhoAmIView() {
                                 gameActionWhoAmI({ type: 'END_TURN' });
                               }}
                               disabled={actionLoading}
-                              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-4 rounded-xl transition-all shadow-md uppercase tracking-widest w-full sm:w-auto border border-slate-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-4 rounded-xl transition-all shadow-sm uppercase tracking-widest w-full sm:w-auto border border-slate-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {t('gameWhoAmI.endAsking')}
                             </button>
@@ -422,7 +422,7 @@ export function WhoAmIView() {
                                 setShowGuessModal(true);
                               }}
                               disabled={actionLoading}
-                              className={`${gameState.phase === 'FINAL_GUESS' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 text-white' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 text-white'} active:scale-95 font-bold px-8 py-4 rounded-xl transition-all shadow-lg uppercase tracking-widest w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
+                              className={`${gameState.phase === 'FINAL_GUESS' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 text-white' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 text-white'} active:scale-95 font-bold px-8 py-4 rounded-xl transition-all shadow-sm uppercase tracking-widest w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                               {t('gameWhoAmI.guessTheWord')}
                             </button>
@@ -457,21 +457,21 @@ export function WhoAmIView() {
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' })}
                             disabled={actionLoading}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-md' : 'bg-white text-rose-500 hover:bg-rose-50 border border-rose-200'}`}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-sm' : 'bg-white text-rose-500 hover:bg-rose-50 border border-rose-200'}`}
                           >
                             {t('gameWhoAmI.no')}
                           </button>
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'MAYBE' })}
                             disabled={actionLoading}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'MAYBE' ? 'bg-amber-500 text-white ring-2 ring-amber-300 scale-105 shadow-amber-500/40 shadow-md' : 'bg-white text-amber-500 hover:bg-amber-50 border border-amber-200'}`}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'MAYBE' ? 'bg-amber-500 text-white ring-2 ring-amber-300 scale-105 shadow-amber-500/40 shadow-sm' : 'bg-white text-amber-500 hover:bg-amber-50 border border-amber-200'}`}
                           >
                             {t('gameWhoAmI.maybe')}
                           </button>
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' })}
                             disabled={actionLoading}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-md' : 'bg-white text-emerald-500 hover:bg-emerald-50 border border-emerald-200'}`}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-sm' : 'bg-white text-emerald-500 hover:bg-emerald-50 border border-emerald-200'}`}
                           >
                             {t('gameWhoAmI.yes')}
                           </button>
@@ -537,14 +537,14 @@ export function WhoAmIView() {
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' })}
                             disabled={actionLoading}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-md' : 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200'}`}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 scale-105 shadow-emerald-500/40 shadow-sm' : 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200'}`}
                           >
                             ✅ YES
                           </button>
                           <button
                             onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' })}
                             disabled={actionLoading}
-                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-md' : 'bg-white text-rose-600 hover:bg-rose-50 border border-rose-200'}`}
+                            className={`py-3 sm:py-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105 shadow-rose-500/40 shadow-sm' : 'bg-white text-rose-600 hover:bg-rose-50 border border-rose-200'}`}
                           >
                             ❌ NO
                           </button>
@@ -583,7 +583,7 @@ export function WhoAmIView() {
                       <button
                         onClick={() => gameActionWhoAmI({ type: 'NEXT_TURN' })}
                         disabled={actionLoading}
-                        className="w-full sm:max-w-xs mx-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full sm:max-w-xs mx-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t('gameWhoAmI.continueBtn')}
                       </button>
@@ -603,9 +603,9 @@ export function WhoAmIView() {
             {t('gameWhoAmI.gameOver')}
           </h4>
 
-          <div className="text-center p-6 sm:p-8 border border-indigo-200 bg-white rounded-2xl shadow-xl animate-in zoom-in-95 duration-500 max-w-md w-full relative overflow-hidden">
+          <div className="text-center p-6 sm:p-8 border border-indigo-200 bg-white rounded-2xl shadow-sm animate-in zoom-in-95 duration-500 max-w-md w-full relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-            <div className="text-5xl sm:text-7xl mb-4 sm:mb-6 animate-bounce drop-shadow-md">
+            <div className="text-5xl sm:text-7xl mb-4 sm:mb-6 animate-bounce drop-shadow-sm">
               🎉
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-indigo-600 mb-2">
@@ -663,7 +663,7 @@ export function WhoAmIView() {
             <button
               onClick={() => gameActionWhoAmI({ type: 'END_MATCH' })}
               disabled={actionLoading}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-xl transition-all shadow-lg active:scale-95 text-sm sm:text-lg uppercase tracking-widest mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-xl transition-all shadow-sm active:scale-95 text-sm sm:text-lg uppercase tracking-widest mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('result.playAgain')}
             </button>
@@ -679,7 +679,7 @@ export function WhoAmIView() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white border border-indigo-200 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden relative"
+              className="bg-white border border-indigo-200 rounded-3xl w-full max-w-sm shadow-sm overflow-hidden relative"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
               <div className="p-6 md:p-8 flex flex-col gap-4 text-center">
@@ -722,7 +722,7 @@ export function WhoAmIView() {
                       setShowGuessModal(false);
                       gameActionWhoAmI({ type: 'GUESS_WORD', guess: guessInput.trim() });
                     }}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-sm"
                   >
                     {t('gameWhoAmI.submitGuess')}
                   </button>

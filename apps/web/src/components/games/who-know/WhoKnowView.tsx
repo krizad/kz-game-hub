@@ -23,7 +23,7 @@ export function WhoKnowView() {
             <p className="text-slate-700 font-medium">{t('gameWhoKnow.wordSettingHost')}</p>
           ) : (
             <>
-              <div className="w-8 h-8 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+              <div className="w-8 h-8 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
               <p className="text-slate-700 font-medium animate-pulse">
                 {t('gameWhoKnow.wordSettingWaiting')}
               </p>
@@ -48,7 +48,7 @@ export function WhoKnowView() {
             )}
           </div>
 
-          <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-slate-800 bg-amber-50 px-6 py-4 rounded-2xl border-2 sm:border-4 border-amber-200 shadow-inner tracking-widest w-full max-w-sm text-center">
+          <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-slate-800 bg-amber-50 px-6 py-4 rounded-2xl border sm:border border-amber-200 shadow-inner tracking-widest w-full max-w-sm text-center">
             {room.endTime ? <CountdownTimer endTime={room.endTime} /> : <span>--:--</span>}
           </div>
 
@@ -58,14 +58,14 @@ export function WhoKnowView() {
                 <button
                   onClick={() => useGameStore.getState().endQuestioning(false)}
                   disabled={actionLoading}
-                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg shadow-teal-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-sm shadow-teal-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('gameWhoKnow.wordGuessedVote')}
                 </button>
                 <button
                   onClick={() => useGameStore.getState().endQuestioning(true)}
                   disabled={actionLoading}
-                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-sm shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('gameWhoKnow.timesUpFail')}
                 </button>
@@ -74,7 +74,7 @@ export function WhoKnowView() {
                 <button
                   onClick={() => useGameStore.getState().stopTimer()}
                   disabled={actionLoading}
-                  className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-all shadow-md active:scale-[0.98] uppercase tracking-wider text-sm border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-all shadow-sm active:scale-[0.98] uppercase tracking-wider text-sm border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('gameWhoKnow.stopTimer')}
                 </button>
@@ -112,7 +112,7 @@ export function WhoKnowView() {
                     key={p.id}
                     onClick={() => useGameStore.getState().submitVote(p.socketId)}
                     disabled={actionLoading}
-                    className={`px-4 py-4 rounded-xl font-bold transition-all shadow-md active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border disabled:opacity-50 disabled:cursor-not-allowed ${hasVotedTarget ? 'bg-orange-600 text-white border-orange-500 shadow-orange-900/50' : 'bg-amber-100 hover:bg-amber-200 text-slate-700 border-amber-300 hover:text-slate-800'}`}
+                    className={`px-4 py-4 rounded-xl font-bold transition-all shadow-sm active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border disabled:opacity-50 disabled:cursor-not-allowed ${hasVotedTarget ? 'bg-orange-600 text-white border-orange-500 shadow-orange-900/50' : 'bg-amber-100 hover:bg-amber-200 text-slate-700 border-amber-300 hover:text-slate-800'}`}
                   >
                     {p.name}
                   </button>
@@ -137,7 +137,7 @@ export function WhoKnowView() {
               <p className="text-rose-200/80 font-medium text-sm">{t('gameWhoKnow.timeoutDesc')}</p>
             </div>
           ) : room.winner === 'INSIDER' ? (
-            <div className="text-center bg-rose-950/50 p-6 rounded-2xl border border-rose-900 w-full max-w-sm shadow-xl animate-in zoom-in-95">
+            <div className="text-center bg-rose-950/50 p-6 rounded-2xl border border-rose-900 w-full max-w-sm shadow-sm animate-in zoom-in-95">
               <h5 className="text-2xl font-black text-rose-500 mb-2 uppercase tracking-wider">
                 {t('gameWhoKnow.insiderWinsTitle')}
               </h5>
@@ -146,7 +146,7 @@ export function WhoKnowView() {
               </p>
             </div>
           ) : room.winner === 'COMMONERS' ? (
-            <div className="text-center bg-emerald-950/50 p-6 rounded-2xl border border-emerald-900 w-full max-w-sm shadow-xl animate-in zoom-in-95">
+            <div className="text-center bg-emerald-950/50 p-6 rounded-2xl border border-emerald-900 w-full max-w-sm shadow-sm animate-in zoom-in-95">
               <h5 className="text-2xl font-black text-emerald-500 mb-2 uppercase tracking-wider">
                 {t('gameWhoKnow.commonersWinTitle')}
               </h5>
@@ -243,7 +243,7 @@ export function WhoKnowView() {
               <button
                 onClick={() => useGameStore.getState().resetRoom()}
                 disabled={actionLoading}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-black text-lg py-4 rounded-xl transition-all uppercase tracking-widest shadow-xl shadow-yellow-900/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-black text-lg py-4 rounded-xl transition-all uppercase tracking-widest shadow-sm shadow-yellow-900/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('gameWhoKnow.playAgain')}
               </button>

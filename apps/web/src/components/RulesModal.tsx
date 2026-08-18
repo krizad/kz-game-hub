@@ -94,7 +94,7 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-amber-50/80 backdrop-blur-sm p-2 pt-4 sm:p-4 text-left overflow-y-auto">
-          <div className="bg-white border border-amber-300 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white border border-amber-300 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 pb-2 border-b border-amber-200 flex justify-between items-center bg-white z-10 shrink-0">
               <h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
                 <svg
@@ -216,7 +216,7 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
             <div className="p-6 border-t border-amber-200 bg-white shrink-0">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-4 rounded-xl transition-colors shadow-lg active:scale-[0.98]"
+                className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-4 rounded-xl transition-colors shadow-sm active:scale-[0.98]"
               >
                 {t('rules.modal.closeBtn')}
               </button>

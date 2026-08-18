@@ -27,7 +27,7 @@ export function TicTacToeView() {
           </h2>
           <div className="flex gap-4">
             <div
-              className={`p-6 border-2 rounded-2xl flex flex-col items-center gap-4 ${ttt.playerXId ? 'border-amber-300 bg-white/50' : 'border-indigo-500 bg-indigo-950/20'}`}
+              className={`p-6 border rounded-2xl flex flex-col items-center gap-4 ${ttt.playerXId ? 'border-amber-300 bg-white/50' : 'border-indigo-500 bg-indigo-950/20'}`}
             >
               <div className="text-4xl font-black text-blue-400">X</div>
               {ttt.playerXId ? (
@@ -46,7 +46,7 @@ export function TicTacToeView() {
             </div>
 
             <div
-              className={`p-6 border-2 rounded-2xl flex flex-col items-center gap-4 ${ttt.playerOId ? 'border-amber-300 bg-white/50' : 'border-rose-500 bg-rose-950/20'}`}
+              className={`p-6 border rounded-2xl flex flex-col items-center gap-4 ${ttt.playerOId ? 'border-amber-300 bg-white/50' : 'border-rose-500 bg-rose-950/20'}`}
             >
               <div className="text-4xl font-black text-rose-400">O</div>
               {ttt.playerOId ? (
@@ -67,7 +67,7 @@ export function TicTacToeView() {
           <p className="text-slate-600 font-medium">{t('gameTicTacToe.waitingJoin')}</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-8 w-full max-w-md bg-white border border-amber-200 rounded-3xl p-6 shadow-2xl">
+        <div className="flex flex-col items-center gap-8 w-full max-w-md bg-white border border-amber-200 rounded-3xl p-6 shadow-sm">
           <div className="flex justify-between w-full items-center px-4">
             <div
               className={`flex flex-col items-center ${ttt.currentTurn === 'X' ? 'scale-110 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]' : 'opacity-50'} transition-all`}
@@ -137,7 +137,7 @@ export function TicTacToeView() {
                 </div>
               ) : (
                 <div
-                  className={`text-3xl font-black px-6 py-2 rounded-xl border ${ttt.winner === 'X' ? 'text-blue-400 bg-blue-950/30 border-blue-900' : 'text-rose-400 bg-rose-950/30 border-rose-900'} drop-shadow-xl`}
+                  className={`text-3xl font-black px-6 py-2 rounded-xl border ${ttt.winner === 'X' ? 'text-blue-400 bg-blue-950/30 border-blue-900' : 'text-rose-400 bg-rose-950/30 border-rose-900'} drop-shadow-sm`}
                 >
                   {t('gameTicTacToe.wins', { winner: ttt.winner || '' })}
                 </div>
@@ -147,7 +147,7 @@ export function TicTacToeView() {
                 <button
                   onClick={tttReset}
                   disabled={actionLoading}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-xl mt-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-xl mt-2 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('gameTicTacToe.playAgain')}
                 </button>

@@ -15,7 +15,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
   const [isRevealed, setIsRevealed] = useState(false);
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-white border border-amber-200 rounded-2xl shadow-2xl relative w-full max-w-sm mx-auto overflow-hidden">
+    <div className="flex flex-col items-center justify-center p-8 bg-white border border-amber-200 rounded-2xl shadow-sm relative w-full max-w-sm mx-auto overflow-hidden">
       <div className="flex items-center justify-between w-full mb-6">
         <h2 className="text-2xl font-bold text-slate-800 tracking-wider m-0">YOUR ROLE</h2>
         <button
@@ -43,7 +43,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
               animate={{ rotateX: 0, opacity: 1 }}
               exit={{ rotateX: 90, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-amber-100 rounded-xl border-2 border-dashed border-amber-400 flex flex-col items-center justify-center transform-gpu group-hover:bg-amber-200 transition-colors"
+              className="absolute inset-0 bg-amber-100 rounded-xl border border-dashed border-amber-400 flex flex-col items-center justify-center transform-gpu group-hover:bg-amber-200 transition-colors"
             >
               <EyeOff className="w-12 h-12 text-slate-500 mb-3 group-hover:text-slate-600 transition-colors" />
               <p className="text-slate-600 font-medium group-hover:text-slate-700 transition-colors">
@@ -66,7 +66,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
               )}
             >
               <div className="flex flex-col items-center justify-center w-full">
-                <h3 className="text-4xl font-black tracking-widest drop-shadow-md">
+                <h3 className="text-4xl font-black tracking-widest drop-shadow-sm">
                   {role || 'WAITING'}
                 </h3>
                 {word && role !== Role.Unknow && (
@@ -74,7 +74,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
                     <span className="text-xs uppercase tracking-widest opacity-80 block mb-1">
                       Target Word
                     </span>
-                    <span className="text-2xl font-black drop-shadow-md">{word}</span>
+                    <span className="text-2xl font-black drop-shadow-sm">{word}</span>
                   </div>
                 )}
               </div>

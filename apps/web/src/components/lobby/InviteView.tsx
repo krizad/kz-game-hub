@@ -34,13 +34,13 @@ export function InviteView() {
           </div>
         </div>
       </div>
-      <div className="w-full max-w-md md:max-w-lg lg:max-w-xl p-6 sm:p-8 md:p-10 bg-white border border-indigo-500/30 rounded-3xl shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-md md:max-w-lg lg:max-w-xl p-6 sm:p-8 md:p-10 bg-white border border-indigo-500/30 rounded-3xl shadow-sm relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
         <div className="flex justify-center mb-4 mt-2">
           <img
             src="/icon.png"
             alt="KZ Game Hub Logo"
-            className="w-20 h-20 rounded-2xl shadow-lg shadow-indigo-500/20 border border-amber-300"
+            className="w-20 h-20 rounded-2xl shadow-sm shadow-indigo-500/20 border border-amber-300"
           />
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-center mb-2 tracking-tighter text-slate-800">
@@ -80,7 +80,7 @@ export function InviteView() {
           <button
             onClick={() => joinRoom(roomQuery)}
             disabled={!connected || !myName || roomQuery.length < 4}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xl py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xl py-4 rounded-xl transition-all shadow-sm shadow-indigo-500/20 active:scale-[0.98]"
           >
             {t('lobby.enterGame')}
           </button>
@@ -91,7 +91,7 @@ export function InviteView() {
               // Instead of managing joinCode here, we force a page reload without query params
               window.location.reload();
             }}
-            className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-3 rounded-xl transition-all shadow-lg active:scale-[0.98] border border-amber-300"
+            className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-3 rounded-xl transition-all shadow-sm active:scale-[0.98] border border-amber-300"
           >
             {t('lobby.returnToHome')}
           </button>

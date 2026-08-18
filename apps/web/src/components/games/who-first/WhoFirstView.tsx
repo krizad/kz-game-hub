@@ -70,7 +70,7 @@ export const WhoFirstView = () => {
   if (!state || state.phase === 'LOBBY') {
     return (
       <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
-        <Card className="w-full bg-white border border-amber-200 shadow-xl rounded-2xl overflow-hidden">
+        <Card className="w-full bg-white border border-amber-200 shadow-sm rounded-2xl overflow-hidden">
           <CardHeader className="bg-amber-50 border-b border-amber-200 pb-4 pt-6">
             <CardTitle
               data-testid="lobby-title"
@@ -225,7 +225,7 @@ export const WhoFirstView = () => {
                   data-testid="start-btn"
                   onClick={() => startGame()}
                   disabled={room.players.filter((p) => p.connected).length < 2 || actionLoading}
-                  className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+                  className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
                   size="lg"
                 >
                   <Play className="w-6 h-6 mr-2" />
@@ -234,7 +234,7 @@ export const WhoFirstView = () => {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center space-y-4 py-8">
-                <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                <div className="w-12 h-12 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
                 <div className="text-center text-slate-500 font-medium animate-pulse">
                   {t('whoFirst.lobby.waitingForHost')}
                 </div>
@@ -251,7 +251,7 @@ export const WhoFirstView = () => {
   const myPress = state.presses.find((p) => p.socketId === socketId);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-white border border-amber-200 rounded-2xl p-4 sm:p-6 shadow-xl w-full max-w-2xl mx-auto space-y-8 relative overflow-hidden">
+    <div className="flex-1 flex flex-col items-center justify-center bg-white border border-amber-200 rounded-2xl p-4 sm:p-6 shadow-sm w-full max-w-2xl mx-auto space-y-8 relative overflow-hidden">
       {/* Header Info */}
       <div className="w-full flex justify-between items-center text-slate-600 bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm relative h-16">
         <div className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200">
@@ -285,7 +285,7 @@ export const WhoFirstView = () => {
           {state.phase === 'COUNTDOWN' && (
             <div
               data-testid="status-ready"
-              className="text-5xl md:text-7xl font-black text-amber-500 animate-pulse uppercase tracking-widest drop-shadow-md"
+              className="text-5xl md:text-7xl font-black text-amber-500 animate-pulse uppercase tracking-widest drop-shadow-sm"
             >
               {t('whoFirst.game.ready')}
             </div>
@@ -293,7 +293,7 @@ export const WhoFirstView = () => {
           {state.phase === 'ACTIVE' && (
             <div
               data-testid="status-go"
-              className="text-5xl md:text-7xl font-black text-emerald-500 uppercase tracking-widest drop-shadow-md"
+              className="text-5xl md:text-7xl font-black text-emerald-500 uppercase tracking-widest drop-shadow-sm"
             >
               {t('whoFirst.game.go')}
             </div>
@@ -306,8 +306,8 @@ export const WhoFirstView = () => {
               disabled={hasPressed}
               className={`
                  relative flex items-center justify-center
-                 w-48 h-48 md:w-64 md:h-64 rounded-full border-4
-                 text-4xl font-black shadow-2xl transition-all duration-150 active:scale-95 uppercase tracking-wider
+                 w-48 h-48 md:w-64 md:h-64 rounded-full border
+                 text-4xl font-black shadow-sm transition-all duration-150 active:scale-95 uppercase tracking-wider
                  ${
                    hasPressed
                      ? myPress?.isPenalty
@@ -337,7 +337,7 @@ export const WhoFirstView = () => {
 
       {/* Results Area */}
       {(state.phase === 'ROUND_RESULT' || state.phase === 'FINISHED') && (
-        <Card className="w-full bg-white border-indigo-200 shadow-2xl overflow-hidden rounded-3xl animate-in zoom-in-95 duration-300">
+        <Card className="w-full bg-white border-indigo-200 shadow-sm overflow-hidden rounded-3xl animate-in zoom-in-95 duration-300">
           <CardHeader className="bg-indigo-50 border-b border-indigo-100 py-6">
             <CardTitle
               data-testid="round-result-title"
@@ -371,7 +371,7 @@ export const WhoFirstView = () => {
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg border-2 ${index === 0 ? 'bg-amber-100 text-amber-600 border-amber-300 shadow-sm' : index === 1 ? 'bg-slate-100 text-slate-600 border-slate-300 shadow-sm' : index === 2 ? 'bg-amber-50/50 text-amber-700 border-amber-200 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg border ${index === 0 ? 'bg-amber-100 text-amber-600 border-amber-300 shadow-sm' : index === 1 ? 'bg-slate-100 text-slate-600 border-slate-300 shadow-sm' : index === 2 ? 'bg-amber-50/50 text-amber-700 border-amber-200 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
                         >
                           {index + 1}
                         </div>
@@ -406,7 +406,7 @@ export const WhoFirstView = () => {
                       className="flex items-center justify-between p-5 bg-rose-50/50"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-rose-100 border-2 border-rose-200 text-rose-500">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-rose-100 border border-rose-200 text-rose-500">
                           <AlertTriangle className="w-5 h-5" />
                         </div>
                         <span className="font-bold text-slate-500 line-through">
@@ -434,7 +434,7 @@ export const WhoFirstView = () => {
                     className="flex items-center justify-between p-5 opacity-60 bg-slate-50"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-200 border-2 border-slate-300 text-slate-500 font-black">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-200 border border-slate-300 text-slate-500 font-black">
                         -
                       </div>
                       <span className="font-bold text-slate-500">{p.name}</span>
@@ -462,7 +462,7 @@ export const WhoFirstView = () => {
                 <Button
                   onClick={handleNextRound}
                   size="lg"
-                  className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 px-10 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+                  className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 px-10 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
                 >
                   {t('whoFirst.result.nextRoundBtn')}
                 </Button>

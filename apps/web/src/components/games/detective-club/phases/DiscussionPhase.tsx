@@ -18,7 +18,7 @@ export function DiscussionPhase() {
   return (
     <div className="flex-1 flex flex-col space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
-      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
+      <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-sm">
         <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-2">
           {t('gameDetectiveClub.discussionPhase')}
         </h2>
@@ -53,13 +53,13 @@ export function DiscussionPhase() {
                   {player.playedCards.map((cardUrl, idx) => (
                     <div
                       key={idx}
-                      className="relative group w-24 h-32 sm:w-28 sm:h-40 rounded-lg overflow-hidden border-2 border-amber-300 shadow-md transform hover:scale-105 transition-transform cursor-pointer"
+                      className="relative group w-24 h-32 sm:w-28 sm:h-40 rounded-lg overflow-hidden border border-amber-300 shadow-sm transform hover:scale-105 transition-transform cursor-pointer"
                       onClick={() => setViewCardUrl(cardUrl)}
                     >
                       <img
                         src={cardUrl}
                         alt="Played Card"
-                        className="w-full h-full object-cover border-4 border-white rounded-lg"
+                        className="w-full h-full object-cover border border-white rounded-lg"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <ZoomIn className="text-white w-6 h-6 shadow-sm" />
@@ -78,7 +78,7 @@ export function DiscussionPhase() {
           <button
             onClick={() => detectiveClubNextPhase()}
             disabled={actionLoading}
-            className="w-full max-w-md bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full max-w-md bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-4 rounded-xl transition-all shadow-sm active:scale-[0.98] uppercase tracking-wider text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('gameDetectiveClub.startVoting')}
           </button>

@@ -70,14 +70,14 @@ export function HomeView() {
           </div>
         </div>
       </div>
-      <div className="w-full max-w-md lg:max-w-5xl p-6 sm:p-8 bg-white border border-amber-200 rounded-3xl shadow-2xl lg:p-10 lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
+      <div className="w-full max-w-md lg:max-w-5xl p-6 sm:p-8 bg-white border border-amber-200 rounded-3xl shadow-sm lg:p-10 lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
         {/* Left Column (PC) / Top Section (Mobile) */}
         <div className="flex flex-col h-full lg:justify-center">
           <div className="flex justify-center mb-6">
             <img
               src="/icon.png"
               alt="KZ Game Hub Logo"
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-[2rem] shadow-2xl shadow-indigo-500/20 border border-amber-300"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-[2rem] shadow-sm shadow-indigo-500/20 border border-amber-300"
             />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-center mb-8 tracking-tighter bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent">
@@ -132,7 +132,7 @@ export function HomeView() {
               <button
                 onClick={() => joinRoom(joinCode)}
                 disabled={!myName || joinCode.length < 4}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-6 rounded-xl transition-colors shadow-md"
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-6 rounded-xl transition-colors shadow-sm"
               >
                 {t('lobby.join')}
               </button>
@@ -146,7 +146,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.WHO_KNOW)}
               disabled={!connected || !myName}
-              className="w-full bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🕵️</span>
               <span className="text-xs tracking-wider text-center px-1">
@@ -156,7 +156,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.SOUNDS_FISHY)}
               disabled={!connected || !myName}
-              className="w-full bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-purple-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-purple-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🐟</span>
               <span className="text-xs tracking-wider text-center px-1">Sounds Fishy</span>
@@ -167,7 +167,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.GOBBLER_TIC_TAC_TOE)}
               disabled={!connected || !myName}
-              className="w-full bg-blue-600/80 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-blue-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-blue-600/80 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-blue-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <div className="flex items-end justify-center gap-1.5 group-hover:scale-110 transition-transform h-7">
                 <span className="text-[10px] leading-none mb-1">❌⭕️</span>
@@ -181,7 +181,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.TIC_TAC_TOE)}
               disabled={!connected || !myName}
-              className="w-full bg-zinc-600/80 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-zinc-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-zinc-600/80 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-zinc-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">❌⭕️</span>
               <span className="text-xs tracking-wider text-center px-1">
@@ -194,7 +194,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.RPS)}
               disabled={!connected || !myName}
-              className="w-full bg-amber-600/80 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-amber-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-amber-600/80 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-amber-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">✌️✊✋</span>
               <span className="text-xs tracking-wider text-center px-1">
@@ -204,7 +204,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.DETECTIVE_CLUB)}
               disabled={!connected || !myName}
-              className="w-full bg-amber-200/80 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 font-bold py-3 rounded-xl transition-colors shadow-lg border border-amber-400/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-amber-200/80 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 font-bold py-3 rounded-xl transition-colors shadow-sm border border-amber-400/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🔍</span>
               <span className="text-xs tracking-wider text-center px-1">Detective Club</span>
@@ -215,7 +215,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.WHO_AM_I)}
               disabled={!connected || !myName}
-              className="w-full bg-pink-600/80 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-pink-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-pink-600/80 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-pink-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🤔❓</span>
               <span className="text-xs tracking-wider text-center px-1">Who Am I</span>
@@ -223,7 +223,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.WHO_FIRST)}
               disabled={!connected || !myName}
-              className="w-full bg-emerald-600/80 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-emerald-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-emerald-600/80 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-emerald-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🛎️</span>
               <span className="text-xs tracking-wider text-center px-1">Who First</span>
@@ -234,7 +234,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.MUSIC_TRIVIA)}
               disabled={!connected || !myName}
-              className="w-full bg-indigo-500/80 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-indigo-500/80 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🎵</span>
               <span className="text-xs tracking-wider text-center px-1">Music Trivia</span>
@@ -242,7 +242,7 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.THE_MIND)}
               disabled={!connected || !myName}
-              className="w-full bg-cyan-600/80 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-lg border border-cyan-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-cyan-600/80 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-cyan-500/50 flex flex-col items-center justify-center gap-1 group"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">🧠</span>
               <span className="text-xs tracking-wider text-center px-1">The Mind</span>
@@ -326,7 +326,7 @@ export function HomeView() {
                           <circle cx="12" cy="7" r="4" />
                         </svg>
                       </div>
-                      <div className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] uppercase font-black px-4 py-2 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100 border border-indigo-500/50">
+                      <div className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] uppercase font-black px-4 py-2 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100 border border-indigo-500/50">
                         {t('lobby.join')}
                       </div>
                     </div>

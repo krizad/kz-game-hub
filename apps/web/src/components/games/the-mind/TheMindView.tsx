@@ -224,7 +224,7 @@ export function TheMindView() {
 
   const renderLobby = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
-      <Card className="w-full bg-white border border-amber-200 shadow-xl rounded-2xl overflow-hidden">
+      <Card className="w-full bg-white border border-amber-200 shadow-sm rounded-2xl overflow-hidden">
         <CardHeader className="bg-indigo-50 border-b border-indigo-200 pb-4 pt-6">
           <CardTitle className="text-2xl font-black text-center text-indigo-600 uppercase tracking-widest">
             {t('gameTheMind.lobby.title')}
@@ -346,7 +346,7 @@ export function TheMindView() {
               <Button
                 onClick={() => startGame()}
                 disabled={room.players.filter((p) => p.connected).length < 2}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
                 size="lg"
               >
                 <Play className="w-6 h-6 mr-2" />
@@ -355,7 +355,7 @@ export function TheMindView() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center space-y-4 py-8">
-              <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+              <div className="w-12 h-12 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
               <div className="text-center text-slate-500 font-medium animate-pulse">
                 {t('lobby.waitingForHost')}
               </div>
@@ -435,7 +435,7 @@ export function TheMindView() {
         {!state.readyPlayers.includes(playerId) ? (
           <Button
             onClick={() => theMindReady()}
-            className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg active:scale-95 text-lg"
+            className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-sm active:scale-95 text-lg"
             size="lg"
           >
             <Check className="w-5 h-5 mr-2" />
@@ -506,7 +506,7 @@ export function TheMindView() {
 
       {remainingTime !== null && (
         <div
-          className={`flex items-center justify-center p-3 rounded-2xl border-2 font-black text-3xl shadow-sm transition-colors duration-300 ${remainingTime <= 10 ? 'bg-rose-100 text-rose-600 border-rose-300 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}`}
+          className={`flex items-center justify-center p-3 rounded-2xl border font-black text-3xl shadow-sm transition-colors duration-300 ${remainingTime <= 10 ? 'bg-rose-100 text-rose-600 border-rose-300 animate-pulse' : 'bg-slate-50 text-slate-700 border-slate-200'}`}
         >
           ⏱️ {remainingTime}s
         </div>
@@ -521,7 +521,7 @@ export function TheMindView() {
                 theMindPlayCard(selectedExtremeCard, 'UP');
               }
             }}
-            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-indigo-50 border-indigo-400 hover:bg-indigo-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-indigo-50 border-indigo-400 hover:bg-indigo-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">
               {t('gameTheMind.game.whitePileUp')}
@@ -542,7 +542,7 @@ export function TheMindView() {
                 theMindPlayCard(selectedExtremeCard, 'DOWN');
               }
             }}
-            className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-rose-50 border-rose-400 hover:bg-rose-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-rose-50 border-rose-400 hover:bg-rose-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-1">
               {t('gameTheMind.game.redPileDown')}
@@ -558,7 +558,7 @@ export function TheMindView() {
           </button>
         </div>
       ) : (
-        <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 text-center shadow-sm">
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 text-center shadow-sm">
           <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
             {t('gameTheMind.game.pileTop')}
           </p>
@@ -623,11 +623,11 @@ export function TheMindView() {
             let buttonClass = '';
             if (isExtreme) {
               buttonClass = isSelected
-                ? 'bg-amber-300 text-slate-900 border-amber-500 shadow-lg scale-105 cursor-pointer'
+                ? 'bg-amber-300 text-slate-900 border-amber-500 shadow-sm scale-105 cursor-pointer'
                 : 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-500 cursor-pointer';
             } else if (isPlayable && canPlay) {
               buttonClass =
-                'bg-indigo-600 text-white border-indigo-700 shadow-lg hover:bg-indigo-500 hover:scale-105 cursor-pointer';
+                'bg-indigo-600 text-white border-indigo-700 shadow-sm hover:bg-indigo-500 hover:scale-105 cursor-pointer';
             } else if (isPlayable && !canPlay) {
               buttonClass = 'bg-indigo-200 text-indigo-400 border-indigo-300 cursor-not-allowed';
             } else {
@@ -647,7 +647,7 @@ export function TheMindView() {
                 }}
                 disabled={!canPlay || !isPlayable}
                 aria-pressed={isExtreme ? isSelected : undefined}
-                className={`w-16 h-20 rounded-xl font-black text-xl transition-all duration-200 border-2 ${buttonClass}`}
+                className={`w-16 h-20 rounded-xl font-black text-xl transition-all duration-200 border ${buttonClass}`}
               >
                 {displayCard}
               </button>
@@ -683,7 +683,7 @@ export function TheMindView() {
 
   const renderShurikenVote = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
-      <Card className="w-full bg-white border border-indigo-200 shadow-xl rounded-2xl overflow-hidden">
+      <Card className="w-full bg-white border border-indigo-200 shadow-sm rounded-2xl overflow-hidden">
         <CardHeader className="bg-indigo-50 border-b border-indigo-200 pb-4 pt-6">
           <CardTitle className="text-xl font-black text-center text-indigo-600 uppercase tracking-widest">
             <Zap className="w-6 h-6 inline-block mr-2" />
@@ -706,7 +706,7 @@ export function TheMindView() {
             <div className="flex gap-3 justify-center">
               <Button
                 onClick={() => theMindVoteShuriken(true)}
-                className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg active:scale-95"
+                className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-sm active:scale-95"
               >
                 <Check className="w-5 h-5 mr-2" />
                 {t('gameTheMind.game.agree')}
@@ -751,7 +751,7 @@ export function TheMindView() {
 
   const renderShurikenResult = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
-      <Card className="w-full bg-white border shadow-xl rounded-2xl overflow-hidden">
+      <Card className="w-full bg-white border shadow-sm rounded-2xl overflow-hidden">
         <CardHeader className="bg-indigo-50 border-b border-indigo-200 pb-4 pt-6">
           <CardTitle className="text-2xl font-black text-center text-indigo-600 uppercase tracking-widest">
             <Zap className="w-6 h-6 inline-block mr-2" />
@@ -776,7 +776,7 @@ export function TheMindView() {
           {isHost && (
             <Button
               onClick={() => theMindNextLevel()}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
               size="lg"
             >
               <Play className="w-6 h-6 mr-2" />
@@ -812,10 +812,10 @@ export function TheMindView() {
               return (
                 <div
                   key={idx}
-                  className={`flex-shrink-0 border-2 rounded-lg p-2 text-center min-w-[70px] transition-all duration-500 transform ${
+                  className={`flex-shrink-0 border rounded-lg p-2 text-center min-w-[70px] transition-all duration-500 transform ${
                     isRevealed
                       ? isMistake
-                        ? 'bg-rose-100 border-rose-500 scale-110 shadow-lg rotate-3'
+                        ? 'bg-rose-100 border-rose-500 scale-110 shadow-sm rotate-3'
                         : 'bg-white border-slate-200'
                       : 'bg-slate-700 border-slate-600 scale-95'
                   }`}
@@ -876,7 +876,7 @@ export function TheMindView() {
 
   const renderLevelResult = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
-      <Card className="w-full bg-white border shadow-xl rounded-2xl overflow-hidden">
+      <Card className="w-full bg-white border shadow-sm rounded-2xl overflow-hidden">
         <CardHeader
           className={`border-b pb-4 pt-6 ${state.result?.success ? 'bg-green-50 border-green-200' : 'bg-rose-50 border-rose-200'}`}
         >
@@ -962,7 +962,7 @@ export function TheMindView() {
           {isHost && (
             <Button
               onClick={() => theMindNextLevel()}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
               size="lg"
             >
               <Play className="w-6 h-6 mr-2" />
@@ -978,7 +978,7 @@ export function TheMindView() {
 
   const renderGameOver = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
-      <Card className="w-full bg-white border shadow-xl rounded-2xl overflow-hidden">
+      <Card className="w-full bg-white border shadow-sm rounded-2xl overflow-hidden">
         <CardHeader
           className={
             state.level >= state.maxLevel
@@ -1078,7 +1078,7 @@ export function TheMindView() {
           {isHost && (
             <Button
               onClick={() => resetRoom()}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
               size="lg"
             >
               <RotateCcw className="w-5 h-5 mr-2" />

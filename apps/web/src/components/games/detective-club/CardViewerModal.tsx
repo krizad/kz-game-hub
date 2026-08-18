@@ -34,7 +34,7 @@ export function CardViewerModal({ cardUrl, onClose }: CardViewerModalProps) {
       >
         <button
           onClick={onClose}
-          className="absolute -top-12 right-0 p-2 bg-amber-100 hover:bg-amber-200 text-slate-800 rounded-full transition-colors z-10 shadow-lg"
+          className="absolute -top-12 right-0 p-2 bg-amber-100 hover:bg-amber-200 text-slate-800 rounded-full transition-colors z-10 shadow-sm"
           aria-label="Close"
         >
           <X className="w-6 h-6" />
@@ -42,7 +42,7 @@ export function CardViewerModal({ cardUrl, onClose }: CardViewerModalProps) {
         <img
           src={cardUrl}
           alt="Card enlarged"
-          className="max-w-[95vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl border-4 border-amber-300/50"
+          className="max-w-[95vw] max-h-[85vh] object-contain rounded-2xl shadow-sm border border-amber-300/50"
         />
       </div>
     </div>

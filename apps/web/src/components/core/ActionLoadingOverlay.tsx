@@ -12,9 +12,9 @@ export function ActionLoadingOverlay() {
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white/90 rounded-2xl p-6 shadow-xl flex flex-col items-center gap-3"
+          className="bg-white/90 rounded-2xl p-6 shadow-sm flex flex-col items-center gap-3"
         >
-          <div className="w-8 h-8 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border border-indigo-500 border-t-transparent animate-spin" />
           <span className="text-slate-600 font-medium text-sm">Processing...</span>
         </motion.div>
       </motion.div>

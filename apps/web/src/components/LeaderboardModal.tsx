@@ -38,7 +38,7 @@ export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-white border border-amber-300 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200"
+        className="bg-white border border-amber-300 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-sm overflow-hidden animate-in zoom-in-95 fade-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 pb-2 border-b border-amber-200 bg-white shrink-0">
@@ -111,7 +111,7 @@ export function LeaderboardModal({ isOpen, onClose }: LeaderboardModalProps) {
         <div className="p-6 border-t border-amber-200 bg-white shrink-0">
           <button
             onClick={onClose}
-            className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-4 rounded-xl transition-colors shadow-lg active:scale-[0.98]"
+            className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-4 rounded-xl transition-colors shadow-sm active:scale-[0.98]"
           >
             Close
           </button>

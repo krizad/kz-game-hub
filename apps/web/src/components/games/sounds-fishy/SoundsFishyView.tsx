@@ -49,7 +49,7 @@ export function SoundsFishyView() {
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6 relative">
       {actionLoading && <ActionLoadingOverlay />}
       {/* Header Info */}
-      <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-lg w-full gap-4">
+      <div className="bg-white border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-sm w-full gap-4">
         <div className="text-center sm:text-left">
           <p className="text-slate-600 uppercase tracking-widest text-xs font-bold mb-1">
             {t('gameSoundsFishy.yourRole')}
@@ -80,7 +80,7 @@ export function SoundsFishyView() {
 
       {/* Main Game Area */}
       {state.currentPhase === SoundsFishyPhase.SETUP && (
-        <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg flex-1 flex flex-col items-center justify-center">
+        <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-sm flex-1 flex flex-col items-center justify-center">
           <h2 className="text-2xl sm:text-3xl font-black text-indigo-400 mb-6">
             {t('gameSoundsFishy.setupPhase')}
           </h2>
@@ -109,7 +109,7 @@ export function SoundsFishyView() {
           {/* Action Area */}
           {isPicker ? (
             <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="w-12 h-12 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
+              <div className="w-12 h-12 rounded-full border border-purple-500 border-t-transparent animate-spin"></div>
               <p className="text-slate-700 font-medium animate-pulse">
                 {t('gameSoundsFishy.waitingForFish')}
               </p>
@@ -143,7 +143,7 @@ export function SoundsFishyView() {
                   soundsFishyTypeAnswer(val);
                 }}
                 placeholder={t('gameSoundsFishy.typeAnswerPlaceholder')}
-                className="w-full bg-amber-50 border-2 border-amber-200 focus:border-indigo-500 text-slate-800 px-4 py-3 rounded-xl outline-none transition-all font-medium text-center"
+                className="w-full bg-amber-50 border border-amber-200 focus:border-indigo-500 text-slate-800 px-4 py-3 rounded-xl outline-none transition-all font-medium text-center"
                 onKeyDown={(e) =>
                   e.key === 'Enter' && answerInput.trim() && soundsFishySubmitAnswer(answerInput)
                 }
@@ -151,7 +151,7 @@ export function SoundsFishyView() {
               <button
                 onClick={() => soundsFishySubmitAnswer(answerInput)}
                 disabled={!answerInput.trim() || actionLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-4 py-3 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-4 py-3 rounded-xl transition-all shadow-sm active:scale-[0.98] uppercase tracking-wider"
               >
                 {t('gameSoundsFishy.submitAnswer')}
               </button>
@@ -191,7 +191,7 @@ export function SoundsFishyView() {
       {(state.currentPhase === SoundsFishyPhase.THE_PITCH ||
         state.currentPhase === SoundsFishyPhase.THE_HUNT) && (
         <div className="flex-1 flex flex-col space-y-6">
-          <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-lg">
+          <div className="bg-white border border-amber-200 rounded-xl p-6 text-center w-full shadow-sm">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
               {t('gameSoundsFishy.theTopic')}
             </span>
@@ -227,7 +227,7 @@ export function SoundsFishyView() {
               return (
                 <div
                   key={p.socketId}
-                  className={`relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${isEliminated ? 'bg-rose-950/30 border-rose-900/50 opacity-50 grayscale' : isRevealed ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-white border-amber-200'}`}
+                  className={`relative flex flex-col items-center justify-center p-6 rounded-xl border transition-all ${isEliminated ? 'bg-rose-950/30 border-rose-900/50 opacity-50 grayscale' : isRevealed ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-white border-amber-200'}`}
                 >
                   <span className="font-bold text-slate-600 mb-2">{p.name}</span>
 
@@ -249,7 +249,7 @@ export function SoundsFishyView() {
                       <button
                         onClick={() => soundsFishyRevealAnswer(p.socketId)}
                         disabled={actionLoading}
-                        className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t('gameSoundsFishy.revealAnswer')}
                       </button>
@@ -263,7 +263,7 @@ export function SoundsFishyView() {
                       <button
                         onClick={() => soundsFishyEliminatePlayer(p.socketId)}
                         disabled={actionLoading}
-                        className="mt-4 bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="mt-4 bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t('gameSoundsFishy.eliminateLooksFishy')}
                       </button>
@@ -271,7 +271,7 @@ export function SoundsFishyView() {
 
                   {isEliminated && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                      <span className="bg-rose-600 text-white font-black uppercase tracking-widest px-4 py-2 rounded-lg border-2 border-rose-400 rotate-[-15deg] text-xl shadow-2xl">
+                      <span className="bg-rose-600 text-white font-black uppercase tracking-widest px-4 py-2 rounded-lg border border-rose-400 rotate-[-15deg] text-xl shadow-sm">
                         {t('gameSoundsFishy.eliminated')}
                       </span>
                     </div>
@@ -284,7 +284,7 @@ export function SoundsFishyView() {
           {isPicker &&
             state.currentPhase === SoundsFishyPhase.THE_HUNT &&
             state.roundScorePool > 0 && (
-              <div className="bg-amber-950/30 border border-amber-900/50 rounded-xl p-6 text-center shadow-lg mt-auto">
+              <div className="bg-amber-950/30 border border-amber-900/50 rounded-xl p-6 text-center shadow-sm mt-auto">
                 <p className="text-slate-700 mb-4 font-medium">
                   {t('gameSoundsFishy.youHavePointsPrefix')}
                   <span className="text-amber-400 font-black">{state.roundScorePool}</span>
@@ -293,7 +293,7 @@ export function SoundsFishyView() {
                 <button
                   onClick={() => soundsFishyBankPoints()}
                   disabled={actionLoading}
-                  className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-black px-8 py-4 rounded-xl text-lg uppercase tracking-widest transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-black px-8 py-4 rounded-xl text-lg uppercase tracking-widest transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('gameSoundsFishy.bankPointsAndEnd')}
                 </button>
@@ -303,7 +303,7 @@ export function SoundsFishyView() {
       )}
 
       {room.status === RoomStatus.RESULT && (
-        <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-lg flex-1 flex flex-col items-center justify-center">
+        <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-sm flex-1 flex flex-col items-center justify-center">
           <h2 className="text-4xl font-black text-yellow-400 mb-2 tracking-wider">
             {t('gameSoundsFishy.roundOver')}
           </h2>
@@ -355,7 +355,7 @@ export function SoundsFishyView() {
             <button
               onClick={() => soundsFishyReset()}
               disabled={actionLoading}
-              className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] uppercase tracking-wider text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-sm active:scale-[0.98] uppercase tracking-wider text-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('gameSoundsFishy.playNextRound')}
             </button>

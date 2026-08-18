@@ -45,7 +45,7 @@ export function TheMindGameView() {
                 return (
                   <div
                     key={card}
-                    className={`w-16 h-20 rounded-xl font-black text-xl border-2 shadow-md flex items-center justify-center ${
+                    className={`w-16 h-20 rounded-xl font-black text-xl border shadow-sm flex items-center justify-center ${
                       isDownCard
                         ? 'bg-rose-600 text-white border-rose-700'
                         : 'bg-indigo-600 text-white border-indigo-700'

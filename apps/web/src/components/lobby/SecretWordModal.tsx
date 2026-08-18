@@ -10,7 +10,7 @@ export function SecretWordModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
-      <div className="bg-white border border-indigo-500/50 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white border border-indigo-500/50 rounded-3xl w-full max-w-md shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
         <div className="p-6 md:p-8 flex flex-col gap-6">
           <div className="text-center">
@@ -50,7 +50,7 @@ export function SecretWordModal() {
                   setSecretWordInput('');
                 }
               }}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg py-4 rounded-xl transition-all shadow-sm shadow-indigo-500/20 active:scale-[0.98]"
             >
               {t('lobby.confirmSecretWord')}
             </button>

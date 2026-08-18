@@ -12,7 +12,7 @@ export function PlayerGrid() {
   if (!room) return null;
 
   return (
-    <div className="flex-1 md:flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-xl overflow-hidden min-h-[100px]">
+    <div className="flex-1 md:flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-sm overflow-hidden min-h-[100px]">
       <div className="flex flex-none items-center justify-between mb-2 sm:mb-3">
         <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider pl-1">
           {t('lobby.players')}
