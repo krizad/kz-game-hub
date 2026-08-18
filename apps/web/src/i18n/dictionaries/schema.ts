@@ -586,7 +586,6 @@ export interface Dictionary {
     };
   };
   gameTheMind: {
-
     lobby: {
       title: string;
       startingLives: string;
@@ -606,6 +605,10 @@ export interface Dictionary {
       ready: string;
       waitingForOthers: string;
       pileTop: string;
+      whitePileUp: string;
+      redPileDown: string;
+      playCard: string;
+      timesUp: string;
       yourHand: string;
       blindModeActive: string;
       useShuriken: string;

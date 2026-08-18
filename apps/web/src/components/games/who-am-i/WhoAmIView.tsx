@@ -249,11 +249,11 @@ export function WhoAmIView() {
                           )
                         )}
 
-                        <div 
+                        <div
                           className="w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-inner border mb-3 relative overflow-hidden"
-                          style={{ 
+                          style={{
                             backgroundColor: player.color ? `${player.color}22` : '#fef3c7',
-                            borderColor: player.color || '#fcd34d'
+                            borderColor: player.color || '#fcd34d',
                           }}
                         >
                           {player.avatar || getAvatarEmoji(player.id)}
@@ -634,11 +634,11 @@ export function WhoAmIView() {
                       className={`flex justify-between items-center p-2 rounded-lg border ${isWinner ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
                     >
                       <span className="flex items-center gap-2">
-                        <span 
+                        <span
                           className="px-2 py-0.5 rounded text-xs border"
                           style={{
                             backgroundColor: pColor ? `${pColor}22` : '#fef3c7',
-                            borderColor: pColor || '#fcd34d'
+                            borderColor: pColor || '#fcd34d',
                           }}
                         >
                           {pAvatar || getAvatarEmoji(pId)}

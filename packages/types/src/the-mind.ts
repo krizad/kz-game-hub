@@ -10,7 +10,6 @@ export enum TheMindPhase {
 
 export interface TheMindState {
   phase: TheMindPhase;
-  deck: number[];
   level: number;
   maxLevel: number;
   lives: number;
@@ -18,8 +17,8 @@ export interface TheMindState {
   pileTop: number;
   pileTopDOWN?: number | null;
   pileTopPlayerId: string | null;
-  playedCards: { card: number; playerId: string; pile?: 'UP' | 'DOWN' }[];
-  playerHands: Record<string, number[]>;
+  playedCards: { card: number | null; playerId: string | null; pile?: 'UP' | 'DOWN' }[];
+  handSizes: Record<string, number>;
   readyPlayers: string[];
   failedPlayerId: string | null;
   discardedCards: Record<string, number[]>;
@@ -27,6 +26,7 @@ export interface TheMindState {
   shurikenVotes: Record<string, boolean>;
   result: TheMindLevelResult | null;
   levelEndTime?: number;
+  remainingHands?: Record<string, number[]>;
 }
 
 export interface TheMindLevelResult {
@@ -36,12 +36,13 @@ export interface TheMindLevelResult {
   livesLost: number;
   levelCleared?: boolean;
   isTimeOut?: boolean;
+  invalidPlayIndexes?: number[];
 }
 
 /**
  * Replays a Blind Mode round and returns the card positions that violated the
  * pile rules. Extreme Mode validates each pile independently and permits the
- * backwards-by-exactly-10 move.
+ * backwards-by-exactly-10 move. Entries with a hidden (null) card are skipped.
  */
 export function getTheMindInvalidPlayIndexes(
   playedCards: TheMindState['playedCards'],
@@ -52,6 +53,8 @@ export function getTheMindInvalidPlayIndexes(
   const invalidIndexes: number[] = [];
 
   playedCards.forEach((playedCard, index) => {
+    if (playedCard.card === null) return;
+
     if (mode === 'EXTREME' && playedCard.pile === 'DOWN') {
       const isValid = playedCard.card < pileTopDown || playedCard.card === pileTopDown + 10;
       if (!isValid) invalidIndexes.push(index);

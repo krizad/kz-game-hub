@@ -6,7 +6,8 @@ import { GoogleGenAI } from '@google/genai';
 @Injectable()
 export class WhoAmIService {
   // ─── Categories from DB ────────────────────────────────────────────
-  async getCategories(lang?: string): Promise<WordCategory[]> {    if (lang) {
+  async getCategories(lang?: string): Promise<WordCategory[]> {
+    if (lang) {
       const results = await prisma.word.groupBy({
         by: ['category'],
         _count: { id: true },

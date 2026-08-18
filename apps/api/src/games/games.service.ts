@@ -379,8 +379,10 @@ export class GamesService {
           this.privateStateService.clearSocket(code, clientId);
 
           if (room.ticTacToeState) {
-            if (room.ticTacToeState.playerXId === clientId) room.ticTacToeState.playerXId = undefined;
-            if (room.ticTacToeState.playerOId === clientId) room.ticTacToeState.playerOId = undefined;
+            if (room.ticTacToeState.playerXId === clientId)
+              room.ticTacToeState.playerXId = undefined;
+            if (room.ticTacToeState.playerOId === clientId)
+              room.ticTacToeState.playerOId = undefined;
           }
           if (room.gobblerState) {
             if (room.gobblerState.playerXId === clientId) room.gobblerState.playerXId = undefined;

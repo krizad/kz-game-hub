@@ -5,7 +5,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { toast } from 'react-hot-toast';
-import { GameType, getTheMindInvalidPlayIndexes, TheMindPhase } from '@repo/types';
+import { GameType, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Heart, Star, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
@@ -15,10 +15,13 @@ const THE_MIND_RESULT_TOAST_ID = 'the-mind-result';
 export function TheMindView() {
   const {
     room,
-    socket,
     socketId,
     playerId: storedPlayerId,
     myName,
+    privateState,
+    updateConfig,
+    resetRoom,
+    startGame,
     theMindReady,
     theMindPlayCard,
     theMindNextLevel,
@@ -71,11 +74,11 @@ export function TheMindView() {
   }, [playerId, storedPlayerId]);
 
   React.useEffect(() => {
-    const currentHand = room?.theMindState?.playerHands[playerId] ?? [];
+    const currentHand = (privateState.theMindHand as number[] | undefined) ?? [];
     if (selectedExtremeCard !== null && !currentHand.includes(selectedExtremeCard)) {
       setSelectedExtremeCard(null);
     }
-  }, [room?.theMindState?.playerHands, playerId, selectedExtremeCard]);
+  }, [privateState, selectedExtremeCard]);
 
   React.useEffect(() => {
     if (playedCardsContainerRef.current) {
@@ -92,6 +95,8 @@ export function TheMindView() {
       currentPhase === TheMindPhase.PLAYING
     ) {
       toast.remove(THE_MIND_RESULT_TOAST_ID);
+      setDisplayPhase(null);
+      setRevealedCount(0);
     }
   }, [room?.theMindState?.phase]);
 
@@ -243,10 +248,7 @@ export function TheMindView() {
                       room.players.filter((p) => p.connected).length
                     }
                     onChange={(e) =>
-                      socket?.emit('update_config', {
-                        code: room.code,
-                        config: { theMindStartingLives: parseInt(e.target.value) },
-                      })
+                      updateConfig({ theMindStartingLives: parseInt(e.target.value) })
                     }
                     min={1}
                   />
@@ -262,10 +264,7 @@ export function TheMindView() {
                     className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
                     value={room.config?.theMindStartingShurikens ?? 1}
                     onChange={(e) =>
-                      socket?.emit('update_config', {
-                        code: room.code,
-                        config: { theMindStartingShurikens: parseInt(e.target.value) },
-                      })
+                      updateConfig({ theMindStartingShurikens: parseInt(e.target.value) })
                     }
                     min={0}
                   />
@@ -280,12 +279,7 @@ export function TheMindView() {
                       type="checkbox"
                       className="sr-only peer"
                       checked={room.config?.theMindBlindMode ?? false}
-                      onChange={(e) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { theMindBlindMode: e.target.checked },
-                        })
-                      }
+                      onChange={(e) => updateConfig({ theMindBlindMode: e.target.checked })}
                     />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                   </label>
@@ -299,10 +293,7 @@ export function TheMindView() {
                     className="bg-white border border-slate-300 rounded-lg p-1 text-sm font-bold text-slate-700"
                     value={room.config?.theMindMode ?? 'NORMAL'}
                     onChange={(e) =>
-                      socket?.emit('update_config', {
-                        code: room.code,
-                        config: { theMindMode: e.target.value },
-                      })
+                      updateConfig({ theMindMode: e.target.value as 'NORMAL' | 'EXTREME' })
                     }
                   >
                     <option value="NORMAL">{t('gameTheMind.lobby.modeNormal') || 'Normal'}</option>
@@ -321,12 +312,7 @@ export function TheMindView() {
                       type="checkbox"
                       className="sr-only peer"
                       checked={room.config?.theMindTimeAttack ?? false}
-                      onChange={(e) =>
-                        socket?.emit('update_config', {
-                          code: room.code,
-                          config: { theMindTimeAttack: e.target.checked },
-                        })
-                      }
+                      onChange={(e) => updateConfig({ theMindTimeAttack: e.target.checked })}
                     />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
                   </label>
@@ -341,10 +327,7 @@ export function TheMindView() {
                     value={room.config?.theMindMaxLevel ?? ''}
                     onChange={(e) => {
                       const val = e.target.value === '' ? undefined : parseInt(e.target.value);
-                      socket?.emit('update_config', {
-                        code: room.code,
-                        config: { theMindMaxLevel: val },
-                      });
+                      updateConfig({ theMindMaxLevel: val });
                     }}
                   >
                     <option value="">Auto</option>
@@ -361,7 +344,7 @@ export function TheMindView() {
                 {t('gameTheMind.lobby.readyToStart')}
               </p>
               <Button
-                onClick={() => socket?.emit('start_game', { code: room.code })}
+                onClick={() => startGame()}
                 disabled={room.players.filter((p) => p.connected).length < 2}
                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
                 size="lg"
@@ -424,16 +407,11 @@ export function TheMindView() {
   }
 
   const state = room.theMindState;
-  const myHand = state.playerHands[playerId] || [];
+  const myHand = (privateState.theMindHand as number[] | undefined) ?? [];
   const canPlay = state.phase === TheMindPhase.PLAYING;
   const shurikenVote = state.shurikenVotes[playerId];
   const isShurikenProposer = state.shurikenProposerId === playerId;
-  const blindMistakeIndexes = new Set(
-    getTheMindInvalidPlayIndexes(
-      state.playedCards,
-      room.config?.theMindMode === 'EXTREME' ? 'EXTREME' : 'NORMAL',
-    ),
-  );
+  const blindMistakeIndexes = new Set(state.result?.invalidPlayIndexes ?? []);
 
   const renderSetup = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-8 w-full max-w-lg mx-auto p-4">
@@ -501,7 +479,7 @@ export function TheMindView() {
         {room.players
           .filter((p) => p.connected && p.id !== playerId)
           .map((p) => {
-            const handCount = state.playerHands[p.id]?.length || 0;
+            const handCount = state.handSizes[p.id] ?? 0;
             return (
               <div
                 key={p.socketId}
@@ -546,14 +524,14 @@ export function TheMindView() {
             className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-indigo-50 border-indigo-400 hover:bg-indigo-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">
-              White Pile (UP)
+              {t('gameTheMind.game.whitePileUp')}
             </p>
             <span className="text-4xl sm:text-5xl font-black text-indigo-600 leading-none">
-              {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
+              {room.config?.theMindBlindMode ? '?' : state.pileTop}
             </span>
             {canPlay && selectedExtremeCard !== null && (
               <div className="mt-2 text-xs text-indigo-500 font-bold bg-indigo-100 rounded-full px-2 py-1 mx-auto w-fit">
-                Play {Math.abs(selectedExtremeCard)}
+                {t('gameTheMind.game.playCard', { card: Math.abs(selectedExtremeCard) })}
               </div>
             )}
           </button>
@@ -567,14 +545,14 @@ export function TheMindView() {
             className={`flex-1 border-2 rounded-2xl p-4 text-center shadow-sm transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-rose-50 border-rose-400 hover:bg-rose-100 cursor-pointer active:scale-95' : 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-1">
-              Red Pile (DOWN)
+              {t('gameTheMind.game.redPileDown')}
             </p>
             <span className="text-4xl sm:text-5xl font-black text-rose-600 leading-none">
               {room.config?.theMindBlindMode ? '?' : (state.pileTopDOWN ?? 101)}
             </span>
             {canPlay && selectedExtremeCard !== null && (
               <div className="mt-2 text-xs text-rose-500 font-bold bg-rose-100 rounded-full px-2 py-1 mx-auto w-fit">
-                Play {Math.abs(selectedExtremeCard)}
+                {t('gameTheMind.game.playCard', { card: Math.abs(selectedExtremeCard) })}
               </div>
             )}
           </button>
@@ -585,7 +563,7 @@ export function TheMindView() {
             {t('gameTheMind.game.pileTop')}
           </p>
           <span className="text-5xl font-black text-indigo-600 leading-none">
-            {room.config?.theMindBlindMode && state.pileTop > 0 ? '?' : state.pileTop}
+            {room.config?.theMindBlindMode ? '?' : state.pileTop}
           </span>
           {state.pileTopPlayerId && !room.config?.theMindBlindMode && (
             <p className="mt-2 text-sm text-indigo-500 font-medium">
@@ -622,7 +600,7 @@ export function TheMindView() {
                   <div
                     className={`font-bold ${room.config?.theMindBlindMode ? 'text-slate-500' : isDown ? 'text-rose-600' : 'text-indigo-600'}`}
                   >
-                    {room.config?.theMindBlindMode ? '?' : Math.abs(pc.card)}
+                    {room.config?.theMindBlindMode ? '?' : Math.abs(pc.card ?? 0)}
                   </div>
                 </div>
               );
@@ -691,7 +669,7 @@ export function TheMindView() {
         )}
         {isHost && (
           <Button
-            onClick={() => socket?.emit('reset_game', { code: room.code })}
+            onClick={() => resetRoom()}
             variant="outline"
             className="border-rose-200 text-rose-500 hover:bg-rose-50 font-bold rounded-xl shadow-sm"
           >
@@ -863,7 +841,7 @@ export function TheMindView() {
                         <div
                           className={`font-black text-xl ${isMistake ? 'text-rose-700' : 'text-indigo-600'}`}
                         >
-                          {Math.abs(pc.card)}
+                          {Math.abs(pc.card ?? 0)}
                         </div>
                       </>
                     ) : (
@@ -908,7 +886,7 @@ export function TheMindView() {
             {state.result?.success
               ? t('gameTheMind.game.levelComplete')
               : state.result?.isTimeOut
-                ? "TIME'S UP!"
+                ? t('gameTheMind.game.timesUp')
                 : t('gameTheMind.game.mistake')}
           </CardTitle>
         </CardHeader>
@@ -957,7 +935,7 @@ export function TheMindView() {
                   <p className="text-sm font-bold text-slate-700 mb-2">
                     {t('gameTheMind.game.remainingCards')}:
                   </p>
-                  {Object.entries(state.playerHands).map(([pid, cards]) => {
+                  {Object.entries(state.remainingHands ?? {}).map(([pid, cards]) => {
                     if (cards.length === 0) return null;
                     const player = room.players.find((p) => p.id === pid);
                     return (
@@ -1099,7 +1077,7 @@ export function TheMindView() {
           </div>
           {isHost && (
             <Button
-              onClick={() => socket?.emit('reset_game', { code: room.code })}
+              onClick={() => resetRoom()}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-lg active:scale-95 text-lg uppercase tracking-widest"
               size="lg"
             >

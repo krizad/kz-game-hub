@@ -7,7 +7,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { TheMindView } from './TheMindView';
 
 export function TheMindGameView() {
-  const { room, playerId, socketId, myName } = useGameStore();
+  const { room, playerId, socketId, myName, privateState } = useGameStore();
   const { t } = useTranslate();
 
   const currentPlayerId = React.useMemo(() => {
@@ -27,7 +27,7 @@ export function TheMindGameView() {
   }, [currentPlayerId, playerId]);
 
   const state = room?.theMindState;
-  const myHand = state?.playerHands[currentPlayerId] ?? [];
+  const myHand = (privateState.theMindHand as number[] | undefined) ?? [];
   const showSetupHand = state?.phase === TheMindPhase.SETUP;
 
   return (

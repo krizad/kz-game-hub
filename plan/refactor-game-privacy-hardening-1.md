@@ -31,48 +31,48 @@ tags: [refactor, architecture, security, bug]
 
 - GOAL-001: สร้าง `PrivateStateService` (deep module) + gateway hardening + cross-cutting fixes
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-001 | สร้าง `apps/api/src/games/private-state.service.ts` + spec | | |
-| TASK-002 | `PRIVATE_STATE_UPDATED` ลง `SOCKET_EVENTS` (4 จุด) + rebuild types | | |
-| TASK-003 | Gateway: WsExceptionFilter + try/catch + `assertMember()` + `broadcastRoomState()` helper | | |
-| TASK-004 | `create_room`/`leave_room` ลง SOCKET_EVENTS, leaderboard dedup, แยก config `maxRounds`, ลบ `whoFirstCooldownMs` | | |
-| TASK-005 | `leaveRoom` ล้าง ghost state: `ticTacToeState.playerXId/OId`, `theMindState`, private data | | |
+| Task     | Description                                                                                                     | Completed | Date |
+| -------- | --------------------------------------------------------------------------------------------------------------- | --------- | ---- |
+| TASK-001 | สร้าง `apps/api/src/games/private-state.service.ts` + spec                                                      |           |      |
+| TASK-002 | `PRIVATE_STATE_UPDATED` ลง `SOCKET_EVENTS` (4 จุด) + rebuild types                                              |           |      |
+| TASK-003 | Gateway: WsExceptionFilter + try/catch + `assertMember()` + `broadcastRoomState()` helper                       |           |      |
+| TASK-004 | `create_room`/`leave_room` ลง SOCKET_EVENTS, leaderboard dedup, แยก config `maxRounds`, ลบ `whoFirstCooldownMs` |           |      |
+| TASK-005 | `leaveRoom` ล้าง ghost state: `ticTacToeState.playerXId/OId`, `theMindState`, private data                      |           |      |
 
 ### Implementation Phase 1 — เกมชุด A (HIGH severity)
 
 - GOAL-002: The Mind → Sounds Fishy → Detective Club → RPS → Gobbler
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-101 | The Mind: hands+deck → private, reset `levelEndTime` ทุก transition, shuriken soft-lock, disconnect กลางเลเวล | | |
-| TASK-102 | Sounds Fishy: answer/pickerId/blueFishId → private, disconnect deadlock, picker reassign, blue fish validate | | |
-| TASK-103 | Detective Club: word/role/hand → private, vote deadlock, vote validation, deck loader | | |
-| TASK-104 | RPS: choices → private, score+leaderboard, choice locked+enum validate, both-disconnect | | |
-| TASK-105 | Gobbler: index validation, membership, inventory dedup, score source เดียว | | |
+| Task     | Description                                                                                                   | Completed | Date |
+| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---- |
+| TASK-101 | The Mind: hands+deck → private, reset `levelEndTime` ทุก transition, shuriken soft-lock, disconnect กลางเลเวล |           |      |
+| TASK-102 | Sounds Fishy: answer/pickerId/blueFishId → private, disconnect deadlock, picker reassign, blue fish validate  |           |      |
+| TASK-103 | Detective Club: word/role/hand → private, vote deadlock, vote validation, deck loader                         |           |      |
+| TASK-104 | RPS: choices → private, score+leaderboard, choice locked+enum validate, both-disconnect                       |           |      |
+| TASK-105 | Gobbler: index validation, membership, inventory dedup, score source เดียว                                    |           |      |
 
 ### Implementation Phase 2 — เกมชุด B
 
 - GOAL-003: Who-Know → Who-First → Tic-Tac-Toe → Who Am I → Music Trivia
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-201 | Who-Know: role → private, vote validation, server timer, i18n | | |
-| TASK-202 | Who-First: countdown → server, preconditions, phase flow, spec ใหม่ | | |
-| TASK-203 | Tic-Tac-Toe: membership, index validate, ghost seat, e2e เดินหมากจริง | | |
-| TASK-204 | Who Am I: playerWords → private, Gemini timeout/validate, lang default, dead types, i18n | | |
-| TASK-205 | Music Trivia: rules-of-hooks, errorMessage/retry, timer → server, adapter hardening, spec | | |
+| Task     | Description                                                                               | Completed | Date |
+| -------- | ----------------------------------------------------------------------------------------- | --------- | ---- |
+| TASK-201 | Who-Know: role → private, vote validation, server timer, i18n                             |           |      |
+| TASK-202 | Who-First: countdown → server, preconditions, phase flow, spec ใหม่                       |           |      |
+| TASK-203 | Tic-Tac-Toe: membership, index validate, ghost seat, e2e เดินหมากจริง                     |           |      |
+| TASK-204 | Who Am I: playerWords → private, Gemini timeout/validate, lang default, dead types, i18n  |           |      |
+| TASK-205 | Music Trivia: rules-of-hooks, errorMessage/retry, timer → server, adapter hardening, spec |           |      |
 
 ### Implementation Phase 3 — ปิดท้าย
 
 - GOAL-004: i18n กวาดรอบ, E2E smoke, test/format/build, graphify update
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-301 | i18n กวาดรอบสุดท้าย (th/en ครบทุก key) | | |
-| TASK-302 | E2E: แก้ tictactoe, เพิ่ม gobbler, smoke ทุกเกม | | |
-| TASK-303 | `pnpm -F api test` + `pnpm test:e2e` + `pnpm format` + `pnpm build` | | |
-| TASK-304 | `graphify update .` | | |
+| Task     | Description                                                         | Completed | Date |
+| -------- | ------------------------------------------------------------------- | --------- | ---- |
+| TASK-301 | i18n กวาดรอบสุดท้าย (th/en ครบทุก key)                              |           |      |
+| TASK-302 | E2E: แก้ tictactoe, เพิ่ม gobbler, smoke ทุกเกม                     |           |      |
+| TASK-303 | `pnpm -F api test` + `pnpm test:e2e` + `pnpm format` + `pnpm build` |           |      |
+| TASK-304 | `graphify update .`                                                 |           |      |
 
 ## 3. Alternatives
 

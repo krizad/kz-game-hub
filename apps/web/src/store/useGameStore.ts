@@ -189,9 +189,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ myRole: role });
     });
 
-    socket.on(SOCKET_EVENTS.PRIVATE_STATE_UPDATED, ({ data }: { data: Record<string, unknown> }) => {
-      set({ privateState: data ?? {} });
-    });
+    socket.on(
+      SOCKET_EVENTS.PRIVATE_STATE_UPDATED,
+      ({ data }: { data: Record<string, unknown> }) => {
+        set({ privateState: data ?? {} });
+      },
+    );
 
     socket.on(
       SOCKET_EVENTS.SESSION_ASSIGNED,

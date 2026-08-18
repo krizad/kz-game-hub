@@ -36,15 +36,15 @@ export function PlayerGrid() {
                 <td className="px-3 py-2 font-medium flex items-center gap-2.5">
                   <span
                     className="w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-inner flex-shrink-0 border"
-                    style={{ 
+                    style={{
                       backgroundColor: p.color ? `${p.color}22` : '#fef3c7',
-                      borderColor: p.color || '#fcd34d'
+                      borderColor: p.color || '#fcd34d',
                     }}
                     title={p.name}
                   >
                     {p.avatar || getAvatarEmoji(p.id)}
                   </span>
-                  <span 
+                  <span
                     className="truncate max-w-[120px] sm:max-w-[200px]"
                     style={{ color: p.color || '#334155', fontWeight: p.color ? 800 : 500 }}
                   >

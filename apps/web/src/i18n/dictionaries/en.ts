@@ -653,6 +653,10 @@ export const en: Dictionary = {
       ready: 'ready',
       waitingForOthers: 'Waiting for others to be ready...',
       pileTop: 'Pile Top',
+      whitePileUp: 'White Pile (UP)',
+      redPileDown: 'Red Pile (DOWN)',
+      playCard: 'Play {card}',
+      timesUp: "TIME'S UP!",
       yourHand: 'Your Hand',
       blindModeActive: 'Blind Mode Active! Cards are hidden.',
       useShuriken: 'Use Shuriken',
@@ -713,9 +717,11 @@ export const en: Dictionary = {
       winDesc:
         'Clear all levels to win! The number of levels depends on player count: 2 players = 12 levels, 3 = 10 levels, 4+ = 8 levels.',
       extremeTitle: 'Extreme Mode (2 Piles)',
-      extremeDesc: 'You must manage cards 1-100 on two piles: a White Pile (ascending) and a Red Pile (descending). You can jump backwards exactly 10 points (e.g. playing a 40 on a 50 White Pile)!',
+      extremeDesc:
+        'You must manage cards 1-100 on two piles: a White Pile (ascending) and a Red Pile (descending). You can jump backwards exactly 10 points (e.g. playing a 40 on a 50 White Pile)!',
       timeAttackTitle: 'Time Attack Mode',
-      timeAttackDesc: 'Adds a time limit to each level. If the timer runs out before you finish, you lose 1 life immediately!',
+      timeAttackDesc:
+        'Adds a time limit to each level. If the timer runs out before you finish, you lose 1 life immediately!',
     },
   },
 };
