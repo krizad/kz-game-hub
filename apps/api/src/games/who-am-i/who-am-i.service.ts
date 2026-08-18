@@ -2,22 +2,94 @@ import { Injectable } from '@nestjs/common';
 import { RoomState, RoomStatus, WhoAmIGameState, WordCategory } from '@repo/types';
 import { prisma } from '@repo/database';
 import { GoogleGenAI } from '@google/genai';
+import { PrivateStateService } from '../private-state.service';
+
+const WAI_MY_WORD = 'waiMyWord';
+const WAI_VISIBLE_WORDS = 'waiVisibleWords';
+const WAI_SUBMITTED = 'waiSubmittedWord';
+const MAX_WORD_LENGTH = 60;
+const GEMINI_TIMEOUT_MS = 15000;
 
 @Injectable()
 export class WhoAmIService {
+  constructor(private readonly privateState: PrivateStateService) {}
+
+  private shuffleArray<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  private setMyWord(room: RoomState, socketId: string, word: string): void {
+    this.privateState.set(room.code, socketId, WAI_MY_WORD, word);
+  }
+
+  private clearRoomPrivateData(room: RoomState): void {
+    for (const p of room.players) {
+      this.privateState.delete(room.code, p.socketId, WAI_MY_WORD);
+      this.privateState.delete(room.code, p.socketId, WAI_VISIBLE_WORDS);
+      this.privateState.delete(room.code, p.socketId, WAI_SUBMITTED);
+    }
+  }
+
+  private syncVisibleWords(room: RoomState): void {
+    const allWords: Record<string, string> = {};
+    for (const p of room.players) {
+      const word = this.privateState.get<string>(room.code, p.socketId, WAI_MY_WORD);
+      if (word) allWords[p.socketId] = word;
+    }
+    for (const p of room.players) {
+      const visible: Record<string, string> = {};
+      for (const [socketId, word] of Object.entries(allWords)) {
+        if (socketId !== p.socketId) visible[socketId] = word;
+      }
+      if (Object.keys(visible).length > 0) {
+        this.privateState.set(room.code, p.socketId, WAI_VISIBLE_WORDS, visible);
+      }
+    }
+  }
+
+  private finishGame(room: RoomState, gameState: WhoAmIGameState, winner: string | null): void {
+    gameState.winner = winner;
+    room.status = RoomStatus.RESULT;
+    const revealedWords: Record<string, string> = {};
+    for (const p of room.players) {
+      const word = this.privateState.get<string>(room.code, p.socketId, WAI_MY_WORD);
+      if (word) revealedWords[p.socketId] = word;
+    }
+    gameState.revealedWords = revealedWords;
+  }
+
+  private createGameState(
+    room: RoomState,
+    currentTurn: string,
+    phase: WhoAmIGameState['phase'],
+  ): WhoAmIGameState {
+    return {
+      currentTurn,
+      currentGuess: null,
+      votes: {},
+      turnStatus: 'VOTING',
+      winner: null,
+      currentRound: 1,
+      maxRounds: room.config.maxRounds || 3,
+      eliminatedPlayers: [],
+      phase,
+      finalGuessUsed: [],
+      wordSubmittedIds: [],
+    };
+  }
+
   // ─── Categories from DB ────────────────────────────────────────────
   async getCategories(lang?: string): Promise<WordCategory[]> {
-    if (lang) {
-      const results = await prisma.word.groupBy({
-        by: ['category'],
-        _count: { id: true },
-        where: { lang },
-      });
-      return results.map((r) => ({ name: r.category, count: r._count.id }));
-    }
+    const where = lang ? { lang } : {};
     const results = await prisma.word.groupBy({
       by: ['category'],
       _count: { id: true },
+      where,
     });
     return results.map((r) => ({ name: r.category, count: r._count.id }));
   }
@@ -32,7 +104,7 @@ export class WhoAmIService {
       where: { category, lang },
       select: { word: true, emoji: true },
     });
-    return [...words].sort(() => Math.random() - 0.5).slice(0, count);
+    return this.shuffleArray(words).slice(0, count);
   }
 
   // ─── Start Game (HOST_INPUT mode) ─────────────────────────────────
@@ -41,6 +113,7 @@ export class WhoAmIService {
     requesterId: string,
     playerWords: Record<string, string>,
   ): RoomState | null {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.config.wordMode !== 'HOST_INPUT') return null;
 
@@ -49,34 +122,29 @@ export class WhoAmIService {
     if (gamePlayers.length < 2) return null;
 
     // Verify words provided for all non-host players
+    const trimmedWords: Record<string, string> = {};
     for (const p of gamePlayers) {
-      if (!playerWords[p.socketId]?.trim()) return null;
+      const word = playerWords[p.socketId]?.trim();
+      if (!word || word.length > MAX_WORD_LENGTH) return null;
+      trimmedWords[p.socketId] = word;
     }
 
     room.status = RoomStatus.PLAYING;
 
-    const shuffled = [...gamePlayers].sort(() => Math.random() - 0.5);
+    const shuffled = this.shuffleArray(gamePlayers);
 
-    const gameState: WhoAmIGameState = {
-      currentTurn: shuffled[0].socketId,
-      playerWords,
-      currentGuess: null,
-      votes: {},
-      turnStatus: 'VOTING',
-      winner: null,
-      currentRound: 1,
-      maxRounds: room.config.maxRounds || 3,
-      eliminatedPlayers: [],
-      phase: 'ASKING',
-      finalGuessUsed: [],
-    };
+    for (const p of gamePlayers) {
+      this.setMyWord(room, p.socketId, trimmedWords[p.socketId]);
+    }
 
+    const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
     room.whoAmIState = gameState;
     return room;
   }
 
   // ─── Start Game (AI_GENERATED mode) ───────────────────────────────
   async startGameAiGenerated(room: RoomState, requesterId: string): Promise<RoomState | null> {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.config.wordMode !== 'AI_GENERATED') return null;
     if (room.players.length < 2) return null;
@@ -90,9 +158,12 @@ export class WhoAmIService {
 
     const promptCategory = room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
 
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `You are an expert game master generating words for the game "Who Am I".
+    let words: string[] = [];
+
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const prompt = `You are an expert game master generating words for the game "Who Am I".
 Target Language: ${langLabel}
 Category: "${promptCategory}"
 Count: ${room.players.length} words
@@ -108,44 +179,50 @@ BAD EXAMPLES: ["A big animal with a trunk", "Running in the park", "The man who 
 
 Output ONLY a JSON array containing exactly ${room.players.length} strings. No markdown formatting.`;
 
-      let response;
-      try {
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-          },
-        });
-      } catch {
-        console.log('gemini-2.5-flash failed, falling back to gemini-1.5-flash...');
-        response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-          },
-        });
-      }
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+        try {
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              abortSignal: controller.signal,
+            },
+          });
 
-      const responseText = response.text;
-      let words: string[] = [];
-      try {
-        // Strip markdown if AI somehow includes it despite instructions
-        const cleanText = responseText
-          .replace(/```json/g, '')
-          .replace(/```/g, '')
-          .trim();
-        words = JSON.parse(cleanText);
-      } catch {
-        console.error('Failed to parse AI response', responseText);
-        return null;
+          const responseText = response.text;
+          const cleanText = responseText
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .trim();
+          const parsed = JSON.parse(cleanText);
+          if (Array.isArray(parsed)) {
+            words = [
+              ...new Set(
+                parsed
+                  .filter((w): w is string => typeof w === 'string')
+                  .map((w) => w.trim())
+                  .filter((w) => w && w.length <= MAX_WORD_LENGTH),
+              ),
+            ];
+          }
+        } finally {
+          clearTimeout(timeout);
+        }
+      } catch (error) {
+        console.error('Error calling Gemini API:', error);
       }
+    }
 
-      if (!Array.isArray(words) || words.length < room.players.length) {
-        return null; // Fallback or handle error
-      }
-
+    if (words.length < room.players.length) {
+      console.log('Falling back to database for words...');
+      const category =
+        room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
+      const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
+      if (dbWords.length < room.players.length) return null;
+      words = dbWords.map((w) => (w.emoji ? `${w.emoji} ${w.word}` : w.word));
+    } else {
       // Asynchronously insert generated words into DB
       Promise.resolve().then(async () => {
         try {
@@ -173,72 +250,23 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
           console.error('Failed to save AI words to DB:', dbError);
         }
       });
-
-      room.status = RoomStatus.PLAYING;
-
-      const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
-      const playerWords: Record<string, string> = {};
-      shuffledPlayers.forEach((p, idx) => {
-        playerWords[p.socketId] = words[idx];
-      });
-
-      const gameState: WhoAmIGameState = {
-        currentTurn: shuffledPlayers[0].socketId,
-        playerWords,
-        currentGuess: null,
-        votes: {},
-        turnStatus: 'VOTING',
-        winner: null,
-        currentRound: 1,
-        maxRounds: room.config.maxRounds || 3,
-        eliminatedPlayers: [],
-        phase: 'ASKING',
-        finalGuessUsed: [],
-      };
-
-      room.whoAmIState = gameState;
-      return room;
-    } catch (error) {
-      console.error('Error calling Gemini API:', error);
-      console.log('Falling back to database for words...');
-
-      const lang = room.config.language || 'en';
-      const category =
-        room.config.wordCategory || (lang === 'th' ? 'สิ่งของรอบตัว' : 'Random things');
-
-      const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
-
-      if (dbWords.length < room.players.length) return null; // not enough words in DB
-
-      room.status = RoomStatus.PLAYING;
-      const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
-      const playerWords: Record<string, string> = {};
-      shuffledPlayers.forEach((p, idx) => {
-        const w = dbWords[idx];
-        playerWords[p.socketId] = w.emoji ? `${w.emoji} ${w.word}` : w.word;
-      });
-
-      const gameState: WhoAmIGameState = {
-        currentTurn: shuffledPlayers[0].socketId,
-        playerWords,
-        currentGuess: null,
-        votes: {},
-        turnStatus: 'VOTING',
-        winner: null,
-        currentRound: 1,
-        maxRounds: room.config.maxRounds || 3,
-        eliminatedPlayers: [],
-        phase: 'ASKING',
-        finalGuessUsed: [],
-      };
-
-      room.whoAmIState = gameState;
-      return room;
     }
+
+    room.status = RoomStatus.PLAYING;
+
+    const shuffledPlayers = this.shuffleArray(room.players);
+    shuffledPlayers.forEach((p, idx) => {
+      this.setMyWord(room, p.socketId, words[idx]);
+    });
+
+    const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
+    room.whoAmIState = gameState;
+    return room;
   }
 
   // ─── Start Game (RANDOM mode) ─────────────────────────────────────
   async startGameRandom(room: RoomState, requesterId: string): Promise<RoomState | null> {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.config.wordMode !== 'RANDOM') return null;
     if (room.players.length < 2) return null;
@@ -246,7 +274,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     const category = room.config.wordCategory;
     if (!category) return null;
 
-    const lang = room.config.language || 'en';
+    const lang = room.config.language || 'th';
 
     const words = await this.fetchRandomWords(category, lang, room.players.length);
 
@@ -254,33 +282,20 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     room.status = RoomStatus.PLAYING;
 
-    const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
-    const playerWords: Record<string, string> = {};
+    const shuffledPlayers = this.shuffleArray(room.players);
     shuffledPlayers.forEach((p, idx) => {
       const w = words[idx];
-      playerWords[p.socketId] = w.emoji ? `${w.emoji} ${w.word}` : w.word;
+      this.setMyWord(room, p.socketId, w.emoji ? `${w.emoji} ${w.word}` : w.word);
     });
 
-    const gameState: WhoAmIGameState = {
-      currentTurn: shuffledPlayers[0].socketId,
-      playerWords,
-      currentGuess: null,
-      votes: {},
-      turnStatus: 'VOTING',
-      winner: null,
-      currentRound: 1,
-      maxRounds: room.config.maxRounds || 3,
-      eliminatedPlayers: [],
-      phase: 'ASKING',
-      finalGuessUsed: [],
-    };
-
+    const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
     room.whoAmIState = gameState;
     return room;
   }
 
   // ─── Start Game (HOST_INPUT) — waiting for host to submit all words ─
   startGameAwaitHostInput(room: RoomState, requesterId: string): RoomState | null {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.config.wordMode !== 'HOST_INPUT') return null;
     if (room.players.length < 3) return null; // host + at least 2 players
@@ -290,48 +305,22 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     room.status = RoomStatus.PLAYING;
 
-    const gameState: WhoAmIGameState = {
-      currentTurn: '',
-      playerWords: {},
-      currentGuess: null,
-      votes: {},
-      turnStatus: 'VOTING',
-      winner: null,
-      currentRound: 1,
-      maxRounds: room.config.maxRounds || 3,
-      eliminatedPlayers: [],
-      phase: 'AWAITING_HOST_INPUT',
-      finalGuessUsed: [],
-    };
-
+    const gameState = this.createGameState(room, '', 'AWAITING_HOST_INPUT');
     room.whoAmIState = gameState;
     return room;
   }
 
   // ─── Start Game (PLAYER_INPUT) — enter COLLECTING_WORDS phase ─────
   startGamePlayerInput(room: RoomState, requesterId: string): RoomState | null {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.config.wordMode !== 'PLAYER_INPUT') return null;
     if (room.players.length < 2) return null;
 
     room.status = RoomStatus.PLAYING;
 
-    const gameState: WhoAmIGameState = {
-      currentTurn: '',
-      playerWords: {},
-      currentGuess: null,
-      votes: {},
-      turnStatus: 'VOTING',
-      winner: null,
-      currentRound: 1,
-      maxRounds: room.config.maxRounds || 3,
-      eliminatedPlayers: [],
-      phase: 'COLLECTING_WORDS',
-      finalGuessUsed: [],
-      wordSubmissions: {},
-      wordSubmissionCategory: room.config.wordCategory || '',
-    };
-
+    const gameState = this.createGameState(room, '', 'COLLECTING_WORDS');
+    gameState.wordSubmissionCategory = room.config.wordCategory || '';
     room.whoAmIState = gameState;
     return room;
   }
@@ -348,38 +337,33 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     if (!gameState) return null;
     if (gameState.phase !== 'COLLECTING_WORDS') return null;
     if (!room.players.find((p) => p.socketId === socketId)) return null;
+    if (this.privateState.has(room.code, socketId, WAI_SUBMITTED)) return null;
 
-    const trimmedWord = word.trim().toLowerCase();
-    if (!trimmedWord) return null;
+    const trimmedWord = word.trim();
+    if (!trimmedWord || trimmedWord.length > MAX_WORD_LENGTH) return null;
 
-    // Check for duplicates — compare with other players' submissions (not the submitter's own)
-    const submissions = gameState.wordSubmissions || {};
-    const duplicateEntries = Object.entries(submissions).filter(
-      ([sid, w]) => sid !== socketId && w.toLowerCase() === trimmedWord,
-    );
-
-    if (duplicateEntries.length > 0) {
-      // Remove all duplicate submissions (including the existing one)
-      for (const [sid] of duplicateEntries) {
-        delete submissions[sid];
+    const existingSubmissions = this.privateState.getRoomData<string>(room.code, WAI_SUBMITTED);
+    for (const [sid, existingWord] of existingSubmissions.entries()) {
+      if (sid !== socketId && existingWord.toLowerCase() === trimmedWord.toLowerCase()) {
+        return {
+          room,
+          error: `Duplicate word "${trimmedWord}"! Please submit a different word.`,
+        };
       }
-      // Don't store this one either
-      gameState.wordSubmissions = submissions;
-      return {
-        room,
-        error: `Duplicate word "${word.trim()}"! All matching submissions have been cleared. Please submit a different word.`,
-      };
     }
 
-    // Store submission (keep original casing)
-    submissions[socketId] = word.trim();
-    gameState.wordSubmissions = submissions;
+    this.privateState.set(room.code, socketId, WAI_SUBMITTED, trimmedWord);
+    if (!gameState.wordSubmittedIds.includes(socketId)) {
+      gameState.wordSubmittedIds.push(socketId);
+    }
 
-    // Check if all players have submitted
-    const allSubmitted = room.players.every((p) => submissions[p.socketId]?.trim());
+    // Check if all connected players have submitted
+    const connectedPlayers = room.players.filter((p) => p.connected !== false);
+    const allSubmitted = connectedPlayers.every((p) =>
+      this.privateState.has(room.code, p.socketId, WAI_SUBMITTED),
+    );
 
     if (allSubmitted) {
-      // Shuffle-assign words so nobody gets their own
       this.assignShuffledWords(room, gameState);
     }
 
@@ -388,15 +372,16 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
   // ─── Shuffle words so no player gets their own ────────────────────
   private assignShuffledWords(room: RoomState, gameState: WhoAmIGameState): void {
-    const submissions = gameState.wordSubmissions!;
-    const playerIds = room.players.map((p) => p.socketId);
-    const words = playerIds.map((id) => submissions[id]);
+    const playerIds = room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+    const words = playerIds.map(
+      (id) => this.privateState.get<string>(room.code, id, WAI_SUBMITTED)!,
+    );
 
     // Derangement: shuffle until nobody has their own word
     let shuffled: string[];
     let attempts = 0;
     do {
-      shuffled = [...words].sort(() => Math.random() - 0.5);
+      shuffled = this.shuffleArray(words);
       attempts++;
       // Safety: after many attempts, force a derangement via cyclic shift
       if (attempts > 100) {
@@ -406,16 +391,14 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       }
     } while (shuffled.some((w, i) => w === words[i]));
 
-    const playerWords: Record<string, string> = {};
     playerIds.forEach((id, i) => {
-      playerWords[id] = shuffled[i];
+      this.setMyWord(room, id, shuffled[i]);
     });
 
-    gameState.playerWords = playerWords;
     gameState.phase = 'ASKING';
-    gameState.wordSubmissions = undefined;
+    gameState.wordSubmittedIds = [];
 
-    const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
+    const shuffledPlayers = this.shuffleArray(room.players);
     gameState.currentTurn = shuffledPlayers[0].socketId;
   }
 
@@ -464,8 +447,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     gameState.phase = 'FINAL_GUESS';
     const firstPlayer = this.findNextPlayer(room, gameState, players[players.length - 1].socketId);
     if (!firstPlayer) {
-      gameState.winner = null;
-      room.status = RoomStatus.RESULT;
+      this.finishGame(room, gameState, null);
     } else {
       gameState.currentTurn = firstPlayer;
       gameState.currentGuess = null;
@@ -569,25 +551,18 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
       const isCorrectGuess = yesVotes > noVotes;
 
-      const players =
-        room.config.wordMode === 'HOST_INPUT'
-          ? room.players.filter((p) => p.socketId !== room.roomHostId)
-          : room.players;
-
       if (gameState.guessResult && isCorrectGuess) {
         const activePlayer = room.players.find((p) => p.socketId === gameState.currentTurn);
         if (activePlayer) activePlayer.score += 1;
 
-        gameState.winner = gameState.currentTurn;
-        room.status = RoomStatus.RESULT; // use RESULT instead of FINISHED to match hub
+        this.finishGame(room, gameState, gameState.currentTurn);
       } else if (gameState.phase === 'FINAL_GUESS') {
         gameState.finalGuessUsed.push(gameState.currentTurn);
 
         const nextPlayer = this.findNextPlayer(room, gameState, gameState.currentTurn);
 
         if (!nextPlayer) {
-          gameState.winner = null;
-          room.status = RoomStatus.RESULT;
+          this.finishGame(room, gameState, null);
         } else {
           gameState.currentTurn = nextPlayer;
           gameState.currentGuess = null;
@@ -599,21 +574,23 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       } else {
         gameState.eliminatedPlayers.push(gameState.currentTurn);
 
+        const players =
+          room.config.wordMode === 'HOST_INPUT'
+            ? room.players.filter((p) => p.socketId !== room.roomHostId)
+            : room.players;
         const activePlayers = players.filter(
           (p) => !gameState.eliminatedPlayers.includes(p.socketId),
         );
 
         if (activePlayers.length === 0) {
-          gameState.winner = null;
-          room.status = RoomStatus.RESULT;
+          this.finishGame(room, gameState, null);
           return room;
         }
 
         const nextPlayer = this.findNextPlayer(room, gameState, gameState.currentTurn);
 
         if (!nextPlayer) {
-          gameState.winner = null;
-          room.status = RoomStatus.RESULT;
+          this.finishGame(room, gameState, null);
         } else {
           const nextIndex = players.findIndex((p) => p.socketId === nextPlayer);
           const currentIndex = players.findIndex((p) => p.socketId === gameState.currentTurn);
@@ -647,6 +624,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     room.status = RoomStatus.LOBBY;
     room.whoAmIState = undefined;
+    this.clearRoomPrivateData(room);
 
     return room;
   }
