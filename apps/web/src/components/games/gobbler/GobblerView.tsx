@@ -161,7 +161,7 @@ export function GobblerView() {
     const mediums = inventory.filter((p) => p.size === 'MEDIUM');
     const larges = inventory.filter((p) => p.size === 'LARGE');
 
-    const renderStack = (pieces: GobblerPiece[]) => {
+    const renderStack = (pieces: GobblerPiece[], stackIndex: number) => {
       if (pieces.length === 0) {
         return (
           <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-[1.25rem] bg-amber-100/20 border-2 border-amber-300/20 border-dashed flex-shrink-0" />
@@ -173,6 +173,7 @@ export function GobblerView() {
 
       return (
         <div
+          data-testid={`gobbler-inventory-${side}-stack-${stackIndex}`}
           className={clsx(
             'relative w-14 h-14 sm:w-20 sm:h-20 flex-shrink-0 bg-amber-100/40 backdrop-blur-md rounded-[1.25rem] transition-all border border-amber-300/50 shadow-inner flex items-center justify-center group',
             isInventoryOwner
@@ -244,9 +245,9 @@ export function GobblerView() {
           )}
         </div>
         <div className="flex gap-4 sm:gap-6 justify-center">
-          {renderStack(smalls)}
-          {renderStack(mediums)}
-          {renderStack(larges)}
+          {renderStack(smalls, 0)}
+          {renderStack(mediums, 1)}
+          {renderStack(larges, 2)}
         </div>
       </div>
     );
@@ -437,6 +438,7 @@ export function GobblerView() {
                   return (
                     <button
                       key={idx}
+                      data-testid={`gobbler-cell-${idx}`}
                       onClick={() => handleCellClick(idx)}
                       className={clsx(
                         'bg-amber-50/60 border-2 rounded-[1.25rem] sm:rounded-[1.75rem] relative overflow-hidden transition-all duration-300 group flex items-center justify-center',

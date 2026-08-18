@@ -3,20 +3,45 @@ import { RoomState, RoomStatus, TicTacToeCell, GameType } from '@repo/types';
 
 @Injectable()
 export class TicTacToeService {
+  private isMember(room: RoomState, clientId: string): boolean {
+    return room.players.some((p) => p.socketId === clientId);
+  }
+
+  private isValidIndex(index: unknown): index is number {
+    return Number.isInteger(index) && (index as number) >= 0 && (index as number) < 9;
+  }
+
   joinSide(room: RoomState, clientId: string, side: 'X' | 'O'): RoomState | null {
     if (room.gameType !== GameType.TIC_TAC_TOE || room.status !== RoomStatus.LOBBY) return null;
     if (!room.ticTacToeState) return null;
+    if (!this.isMember(room, clientId)) return null;
+    if (side !== 'X' && side !== 'O') return null;
 
-    if (room.ticTacToeState.playerXId === clientId) room.ticTacToeState.playerXId = undefined;
-    if (room.ticTacToeState.playerOId === clientId) room.ticTacToeState.playerOId = undefined;
+    const ttt = room.ticTacToeState;
+    const otherSide: 'X' | 'O' = side === 'X' ? 'O' : 'X';
+    const targetSeat = side === 'X' ? ttt.playerXId : ttt.playerOId;
 
-    if (side === 'X' && !room.ticTacToeState.playerXId) {
-      room.ticTacToeState.playerXId = clientId;
-    } else if (side === 'O' && !room.ticTacToeState.playerOId) {
-      room.ticTacToeState.playerOId = clientId;
+    // Seat already taken by someone else
+    if (targetSeat && targetSeat !== clientId) return null;
+
+    let changed = false;
+    if (targetSeat !== clientId) {
+      if (side === 'X') ttt.playerXId = clientId;
+      else ttt.playerOId = clientId;
+      changed = true;
     }
 
-    if (room.ticTacToeState.playerXId && room.ticTacToeState.playerOId) {
+    // Free own previous seat on the other side if present
+    const otherSeat = otherSide === 'X' ? ttt.playerXId : ttt.playerOId;
+    if (otherSeat === clientId) {
+      if (otherSide === 'X') ttt.playerXId = undefined;
+      else ttt.playerOId = undefined;
+      changed = true;
+    }
+
+    if (!changed) return null;
+
+    if (ttt.playerXId && ttt.playerOId) {
       room.status = RoomStatus.PLAYING;
     }
 
@@ -49,6 +74,8 @@ export class TicTacToeService {
 
     const ttt = room.ticTacToeState;
     if (!ttt || ttt.winner) return null;
+    if (!this.isMember(room, clientId)) return null;
+    if (!this.isValidIndex(index)) return null;
 
     const mySide = ttt.playerXId === clientId ? 'X' : ttt.playerOId === clientId ? 'O' : null;
     if (!mySide || ttt.currentTurn !== mySide) return null;
