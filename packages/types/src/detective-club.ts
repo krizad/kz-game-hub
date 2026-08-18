@@ -15,23 +15,21 @@ export enum DetectiveClubRole {
 
 export interface DetectiveClubPlayer {
   id: string; // socketId
-  role: DetectiveClubRole;
   score: number;
-  hand: string[]; // URLs or paths to images
   playedCards: string[];
   votedFor: string | null;
+  handSize: number;
+  role?: DetectiveClubRole; // revealed only at SCORING
 }
 
 export interface DetectiveClubState {
   currentPhase: DetectiveClubPhase;
   informerId: string | null;
-  conspiratorId: string | null;
-  word: string | null;
+  conspiratorId: string | null; // hidden until SCORING
+  word: string | null; // hidden from the conspirator until DISCUSSION
   activePlayerId: string | null; // Whose turn is it to play a card
   playOrder: string[]; // Order of socketIds for the round
   round1StarterId: string | null; // The informer starts round 1
   scoreDeltas?: Record<string, number>; // Points gained in the current round
-  deck?: string[]; // Deck of cards to draw from
-  discardPile?: string[]; // Cards that have been played in previous rounds
   players: Record<string, DetectiveClubPlayer>; // Player states
 }

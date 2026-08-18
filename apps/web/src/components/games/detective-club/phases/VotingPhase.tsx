@@ -2,11 +2,12 @@ import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { DetectiveClubRole } from '@repo/types';
 import { CardViewerModal } from '../CardViewerModal';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function VotingPhase() {
-  const { room, socketId, detectiveClubVote, actionLoading } = useGameStore();
+  const { room, socketId, privateState, detectiveClubVote, actionLoading } = useGameStore();
   const { t } = useTranslate();
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
@@ -16,8 +17,9 @@ export function VotingPhase() {
   const state = room.detectiveClubState;
   const myPlayer = state.players[socketId];
   const hasVoted = myPlayer?.votedFor != null;
+  const isInformer = privateState.dcRole === DetectiveClubRole.INFORMER;
 
-  if (myPlayer?.role === 'INFORMER') {
+  if (isInformer) {
     return (
       <div className="flex-1 flex flex-col space-y-6 items-center justify-center">
         <div className="bg-white border border-amber-200 rounded-xl p-8 text-center max-w-lg shadow-2xl">
@@ -62,9 +64,9 @@ export function VotingPhase() {
             const player = state.players[pid];
             const pName = room.players.find((p) => p.socketId === pid)?.name || 'Unknown';
             const isMe = socketId === pid;
-            const isInformer = player.role === 'INFORMER';
+            const isInformerPlayer = state.informerId === pid;
 
-            if (isMe || isInformer) return null;
+            if (isMe || isInformerPlayer) return null;
 
             return (
               <button

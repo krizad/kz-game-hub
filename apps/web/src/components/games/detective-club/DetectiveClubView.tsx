@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore } from '@/store/useGameStore';
-import { GameType, DetectiveClubPhase } from '@repo/types';
+import { GameType, DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { SetupPhase } from './phases/SetupPhase';
 import { PlayingPhase } from './phases/PlayingPhase';
@@ -11,11 +11,11 @@ import { ScoringPhase } from './phases/ScoringPhase';
 
 function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslate>['t']): string {
   switch (role) {
-    case 'INFORMER':
+    case DetectiveClubRole.INFORMER:
       return t('gameDetectiveClub.informer');
-    case 'CONSPIRATOR':
+    case DetectiveClubRole.CONSPIRATOR:
       return t('gameDetectiveClub.conspirator');
-    case 'DETECTIVE':
+    case DetectiveClubRole.DETECTIVE:
       return t('gameDetectiveClub.detective');
     default:
       return t('gameDetectiveClub.unknownRole');
@@ -23,7 +23,7 @@ function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslat
 }
 
 export function DetectiveClubView() {
-  const { room, socketId } = useGameStore();
+  const { room, socketId, privateState } = useGameStore();
   const { t } = useTranslate();
 
   if (!room || room.gameType !== GameType.DETECTIVE_CLUB) return null;
@@ -39,6 +39,8 @@ export function DetectiveClubView() {
   }
 
   const myPlayer = state.players[socketId];
+  const myRole = privateState.dcRole as DetectiveClubRole | undefined;
+  const roleAtScoring = myPlayer?.role ?? myRole;
 
   return (
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6">
@@ -50,9 +52,9 @@ export function DetectiveClubView() {
           </p>
           <div className="flex items-center gap-2 justify-center sm:justify-start">
             <span
-              className={`text-xl font-black ${myPlayer?.role === 'INFORMER' ? 'text-indigo-400' : myPlayer?.role === 'CONSPIRATOR' ? 'text-rose-400' : 'text-emerald-400'}`}
+              className={`text-xl font-black ${roleAtScoring === DetectiveClubRole.INFORMER ? 'text-indigo-400' : roleAtScoring === DetectiveClubRole.CONSPIRATOR ? 'text-rose-400' : 'text-emerald-400'}`}
             >
-              {getRoleLabel(myPlayer?.role, t)}
+              {getRoleLabel(roleAtScoring, t)}
             </span>
           </div>
         </div>

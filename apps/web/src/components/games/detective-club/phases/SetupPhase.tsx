@@ -1,18 +1,19 @@
 import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { DetectiveClubRole } from '@repo/types';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function SetupPhase() {
-  const { room, socketId, detectiveClubSubmitWord, actionLoading } = useGameStore();
+  const { room, socketId, privateState, detectiveClubSubmitWord, actionLoading } = useGameStore();
   const { t } = useTranslate();
   const [wordInput, setWordInput] = useState('');
 
   if (!room?.detectiveClubState) return null;
 
   const state = room.detectiveClubState;
-  const myPlayer = state.players[socketId];
-  const isInformer = myPlayer?.role === 'INFORMER';
+  const myHand = (privateState.dcHand as string[] | undefined) ?? [];
+  const isInformer = privateState.dcRole === DetectiveClubRole.INFORMER;
 
   return (
     <div className="flex-1 flex flex-col space-y-6 relative">
@@ -29,13 +30,13 @@ export function SetupPhase() {
       </div>
 
       {/* Your Hand - shown for ALL players */}
-      {myPlayer && myPlayer.hand.length > 0 && (
+      {myHand.length > 0 && (
         <div className="bg-white border border-amber-200 rounded-xl p-4 sm:p-6 shadow-2xl">
           <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center">
             {t('gameDetectiveClub.yourHandCards')}
           </h3>
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 justify-start sm:justify-center items-center px-4">
-            {myPlayer.hand.map((cardUrl, idx) => (
+            {myHand.map((cardUrl, idx) => (
               <div
                 key={`hand-${idx}`}
                 className="relative flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 rounded-xl overflow-hidden border-2 border-amber-300 shadow-md transform hover:scale-105 transition-transform"

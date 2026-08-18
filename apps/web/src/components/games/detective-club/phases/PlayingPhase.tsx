@@ -1,5 +1,5 @@
 import { useGameStore } from '@/store/useGameStore';
-import { DetectiveClubPhase } from '@repo/types';
+import { DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -7,7 +7,7 @@ import { CardViewerModal } from '../CardViewerModal';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function PlayingPhase() {
-  const { room, socketId, detectiveClubPlayCard, actionLoading } = useGameStore();
+  const { room, socketId, privateState, detectiveClubPlayCard, actionLoading } = useGameStore();
   const { t } = useTranslate();
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
   const [confirmPlayIndex, setConfirmPlayIndex] = useState<number | null>(null);
@@ -15,9 +15,10 @@ export function PlayingPhase() {
   if (!room || !room.detectiveClubState) return null;
 
   const state = room.detectiveClubState;
-  const myPlayer = state.players[socketId];
   const isMyTurn = state.activePlayerId === socketId;
-  const isConspirator = myPlayer?.role === 'CONSPIRATOR';
+  const isConspirator = privateState.dcRole === DetectiveClubRole.CONSPIRATOR;
+  const myHand = (privateState.dcHand as string[] | undefined) ?? [];
+  const secretWord = privateState.dcWord as string | undefined;
 
   const activePlayerName =
     room.players.find((p) => p.socketId === state.activePlayerId)?.name || 'Unknown';
@@ -37,7 +38,7 @@ export function PlayingPhase() {
           </div>
         ) : (
           <p className="text-2xl sm:text-3xl font-black text-emerald-400 bg-emerald-500/10 inline-block px-6 py-2 rounded-lg border border-emerald-500/20 shadow-inner">
-            {state.word}
+            {secretWord}
           </p>
         )}
         <p className="text-sm text-slate-600 mt-4">
@@ -120,7 +121,7 @@ export function PlayingPhase() {
           {t('gameDetectiveClub.yourHand')}
         </h3>
         <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 justify-start sm:justify-center items-center px-4">
-          {myPlayer?.hand.map((cardUrl, idx) => (
+          {myHand.map((cardUrl, idx) => (
             <div
               key={idx}
               className={`relative group flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 rounded-xl overflow-hidden border-2 transition-all ${
@@ -177,7 +178,7 @@ export function PlayingPhase() {
             <div className="flex justify-center mb-6">
               <div className="w-32 h-44 rounded-lg overflow-hidden border-4 border-indigo-500 shadow-lg">
                 <img
-                  src={myPlayer?.hand[confirmPlayIndex]}
+                  src={myHand[confirmPlayIndex]}
                   alt="Selected Card"
                   className="w-full h-full object-cover"
                 />

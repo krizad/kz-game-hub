@@ -399,6 +399,9 @@ export class GamesService {
         if (room.gameType === GameType.SOUNDS_FISHY && room.status === RoomStatus.QUESTIONING) {
           this.soundsFishyService.checkAnswerResolution(room);
         }
+        if (room.gameType === GameType.DETECTIVE_CLUB && room.detectiveClubState) {
+          this.detectiveClubService.handlePlayerDisconnect(room, clientId);
+        }
 
         const activePlayers = room.players.filter((p) => p.connected !== false).length;
         if (activePlayers === 0) {
