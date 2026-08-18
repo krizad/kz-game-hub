@@ -53,6 +53,12 @@ describe('GamesService', () => {
       placePiece: jest.fn(),
       movePiece: jest.fn(),
       reset: jest.fn(),
+      createInitialInventory: (side: 'X' | 'O') =>
+        ['SMALL', 'SMALL', 'MEDIUM', 'MEDIUM', 'LARGE', 'LARGE'].map((size, i) => ({
+          id: `${side}-${size}-${i}`,
+          side,
+          size,
+        })),
     },
     soundsFishy: {
       assignRoles: jest.fn(),
