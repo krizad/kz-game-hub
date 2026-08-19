@@ -26,8 +26,8 @@ export function LobbyStartButton() {
   const getMinPlayers = () => {
     switch (room.gameType) {
       case GameType.WHO_KNOW:
-      case GameType.SOUNDS_FISHY:
         return 4;
+      case GameType.SOUNDS_FISHY:
       case GameType.DETECTIVE_CLUB:
         return 3;
       case GameType.MUSIC_TRIVIA:
@@ -39,6 +39,7 @@ export function LobbyStartButton() {
         return 2;
     }
   };
+
 
   const minPlayers = getMinPlayers();
   const notEnoughPlayers = room.players.length < minPlayers;

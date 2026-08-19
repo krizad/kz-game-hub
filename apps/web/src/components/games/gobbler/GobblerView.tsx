@@ -44,6 +44,9 @@ export function GobblerView() {
   const [selectedInventoryPieceId, setSelectedInventoryPieceId] = useState<string | null>(null);
   const [selectedBoardIndex, setSelectedBoardIndex] = useState<number | null>(null);
 
+  // Derive mySide early so it can be used in useEffects below
+  const mySide = gb ? (gb.playerXId === socketId ? 'X' : gb.playerOId === socketId ? 'O' : null) : null;
+
   useEffect(() => {
     if (!gb) return;
     if (selectedInventoryPieceId) {
@@ -66,8 +69,8 @@ export function GobblerView() {
 
   if (!gb) return null;
 
-  const mySide = gb.playerXId === socketId ? 'X' : gb.playerOId === socketId ? 'O' : null;
   const isMyTurn = mySide === gb.currentTurn && room.status === RoomStatus.PLAYING;
+
 
   const handleCellClick = (index: number) => {
     if (!isMyTurn || actionLoading) return;

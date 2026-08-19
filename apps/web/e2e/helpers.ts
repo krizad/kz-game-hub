@@ -29,11 +29,13 @@ export async function goToLobbyInEnglish(page: Page) {
 }
 
 export async function extractRoomCode(page: Page): Promise<string> {
-  // The room code is displayed in a specific element with indigo-400 color and tracking-widest
+  // Wait for the room code element to appear (up to 10s) before reading
+  const codeEl = page.locator('span.text-indigo-400.tracking-widest');
+  await codeEl.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   const code = await page.$eval(
     'span.text-indigo-400.tracking-widest',
     (el) => el.textContent?.trim() ?? '',
-  );
+  ).catch(() => '');
   // Validate it's a 6-char alphanumeric code
   if (/^[A-Z0-9]{6}$/.test(code)) return code;
   // Fallback: scan body text and find code after the game name
@@ -42,6 +44,7 @@ export async function extractRoomCode(page: Page): Promise<string> {
   const knownNames = [
     'Music Trivia',
     'Who Know',
+    'Gobbler Tic Tac Toe',
     'Tic Tac Toe',
     'Hand Duel',
     'Sounds Fishy',
@@ -49,6 +52,7 @@ export async function extractRoomCode(page: Page): Promise<string> {
     'Who Am I',
     'Who First',
     'Gobbler',
+    'The Mind',
   ];
   for (const name of knownNames) {
     const idx = bodyText.indexOf(name);
