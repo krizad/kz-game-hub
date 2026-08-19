@@ -2,6 +2,7 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 export function WhoAmISettings() {
   const { room, categories, getCategoriesWhoAmI } = useGameStore();
@@ -12,14 +13,14 @@ export function WhoAmISettings() {
   const getWordModeLabel = (mode: string | undefined) => {
     switch (mode) {
       case 'RANDOM':
-        return t('lobby.wordModeRandom');
+        return t('gameWhoAmI.lobby.modeRandom');
       case 'PLAYER_INPUT':
-        return t('lobby.wordModePlayer');
+        return t('gameWhoAmI.lobby.modePlayer');
       case 'AI_GENERATED':
-        return t('lobby.wordModeAI');
+        return t('gameWhoAmI.lobby.modeAi');
       case 'HOST_INPUT':
       default:
-        return t('lobby.wordModeHost');
+        return t('gameWhoAmI.lobby.modeHostPick');
     }
   };
 
@@ -27,8 +28,8 @@ export function WhoAmISettings() {
 
   return (
     <>
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - mb-6">
+        <label className="block text-black font-black uppercase tracking-widest mb-2 text-lg">
           {t('gameWhoAmI.lobby.numRounds')}
         </label>
         {isHost ? (
@@ -39,11 +40,11 @@ export function WhoAmISettings() {
                   maxRounds: Math.max(1, (room.config.maxRounds || 3) - 1),
                 })
               }
-              className="w-8 h-8 bg-white border border-amber-300 rounded-lg flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100"
+              className="w-10 h-10 bg-yellow-300 border-4 border-black flex items-center justify-center font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
             >
               -
             </button>
-            <span className="text-lg font-bold text-indigo-600 w-8 text-center">
+            <span className="text-2xl font-black text-black w-10 text-center">
               {room.config.maxRounds || 3}
             </span>
             <button
@@ -52,143 +53,128 @@ export function WhoAmISettings() {
                   maxRounds: Math.min(20, (room.config.maxRounds || 3) + 1),
                 })
               }
-              className="w-8 h-8 bg-white border border-amber-300 rounded-lg flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100"
+              className="w-10 h-10 bg-yellow-300 border-4 border-black flex items-center justify-center font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
             >
               +
             </button>
           </div>
         ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+          <div className="text-black font-black text-base px-4 py-2 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block -">
             {t('gameWhoAmI.lobby.roundsCount', { count: room.config.maxRounds || 3 })}
           </div>
         )}
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+        <label className="block text-black font-black uppercase tracking-widest mb-2 text-lg">
           {t('gameWhoAmI.lobby.wordMode')}
         </label>
         {isHost ? (
-          <select
-            id="wordModeSelect"
-            name="wordMode"
-            title="Word Mode"
-            aria-label="Word Mode"
+          <NeobrutalismSelect
             value={room.config.wordMode || 'HOST_INPUT'}
-            onChange={(e) => {
-              const mode = e.target.value as
-                | 'HOST_INPUT'
-                | 'RANDOM'
-                | 'PLAYER_INPUT'
-                | 'AI_GENERATED';
+            options={[
+              { value: 'HOST_INPUT', label: t('gameWhoAmI.lobby.modeHostPick') },
+              { value: 'RANDOM', label: t('gameWhoAmI.lobby.modeRandom') },
+              { value: 'PLAYER_INPUT', label: t('gameWhoAmI.lobby.modePlayer') },
+              { value: 'AI_GENERATED', label: t('gameWhoAmI.lobby.modeAi') },
+            ]}
+            onChange={(val) => {
+              const mode = val as 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT' | 'AI_GENERATED';
               useGameStore.getState().updateConfig({ wordMode: mode });
               if (mode === 'RANDOM') {
                 getCategoriesWhoAmI(language);
               }
             }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value="HOST_INPUT">{t('gameWhoAmI.lobby.modeHostPick')}</option>
-            <option value="RANDOM">{t('gameWhoAmI.lobby.modeRandom')}</option>
-            <option value="PLAYER_INPUT">{t('gameWhoAmI.lobby.modePlayer')}</option>
-            <option value="AI_GENERATED">{t('gameWhoAmI.lobby.modeAi')}</option>
-          </select>
+            className="bg-cyan-300 hover:bg-cyan-400"
+          />
         ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+          <div className="text-black font-black text-base px-4 py-3 bg-cyan-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             {getWordModeLabel(room.config.wordMode)}
           </div>
         )}
+
+        {room.config.wordMode === 'RANDOM' && (
+          <div className="mt-4 border-t-4 border-black pt-4">
+            <label className="block text-black font-black uppercase tracking-widest mb-2">
+              {t('gameWhoAmI.lobby.category')}
+            </label>
+            {!isHost && (
+              <div className="text-black font-bold px-4 py-3 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {room.config.wordCategory || t('gameWhoAmI.lobby.notSelected')}
+              </div>
+            )}
+            {isHost && categories.length === 0 && (
+              <p className="text-black font-bold italic">{t('gameWhoAmI.lobby.noCategories')}</p>
+            )}
+            {isHost && categories.length > 0 && (
+              <NeobrutalismSelect
+                value={room.config.wordCategory || ''}
+                options={[
+                  { value: '', label: t('gameWhoAmI.lobby.selectCategory') },
+                  ...categories.map((cat) => ({
+                    value: cat.name,
+                    label: `${cat.name} (${cat.count})`,
+                  })),
+                ]}
+                onChange={(val) => useGameStore.getState().updateConfig({ wordCategory: val })}
+                className="bg-pink-300 hover:bg-pink-400"
+              />
+            )}
+          </div>
+        )}
+
+        {room.config.wordMode === 'PLAYER_INPUT' && (
+          <div className="mt-4 border-t-4 border-black pt-4">
+            <label className="block text-black font-black uppercase tracking-widest mb-2">
+              {t('gameWhoAmI.lobby.themeOptional')}
+            </label>
+            {isHost ? (
+              <input
+                id="themeInput"
+                name="wordCategory"
+                autoComplete="off"
+                type="text"
+                value={room.config.wordCategory || ''}
+                onChange={(e) =>
+                  useGameStore.getState().updateConfig({ wordCategory: e.target.value })
+                }
+                placeholder={t('gameWhoAmI.lobby.themePlaceholder')}
+                className="w-full bg-white border-4 border-black px-4 py-3 text-lg font-black text-black focus:outline-none focus:bg-yellow-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              />
+            ) : (
+              <div className="text-black font-bold px-4 py-3 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {room.config.wordCategory || t('gameWhoAmI.lobby.anyTopic')}
+              </div>
+            )}
+          </div>
+        )}
+
+        {room.config.wordMode === 'AI_GENERATED' && (
+          <div className="mt-4 border-t-4 border-black pt-4">
+            <label className="block text-black font-black uppercase tracking-widest mb-2">
+              {t('gameWhoAmI.lobby.aiPrompt')}
+            </label>
+            {isHost ? (
+              <input
+                id="aiPromptInput"
+                name="aiPrompt"
+                autoComplete="off"
+                type="text"
+                value={room.config.wordCategory || ''}
+                onChange={(e) =>
+                  useGameStore.getState().updateConfig({ wordCategory: e.target.value })
+                }
+                placeholder={t('gameWhoAmI.lobby.aiPromptPlaceholder')}
+                className="w-full bg-white border-4 border-black px-4 py-3 text-lg font-black text-black focus:outline-none focus:bg-indigo-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              />
+            ) : (
+              <div className="text-black font-bold px-4 py-3 bg-indigo-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {room.config.wordCategory || t('gameWhoAmI.lobby.randomTopic')}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {room.config.wordMode === 'RANDOM' && (
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            {t('gameWhoAmI.lobby.category')}
-          </label>
-          {!isHost && (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-              {room.config.wordCategory || t('gameWhoAmI.lobby.notSelected')}
-            </div>
-          )}
-          {isHost && categories.length === 0 && (
-            <p className="text-slate-500 text-sm italic">{t('gameWhoAmI.lobby.noCategories')}</p>
-          )}
-          {isHost && categories.length > 0 && (
-            <select
-              id="wordCatSelect"
-              name="wordCategory"
-              title="Word Category"
-              aria-label="Word Category"
-              value={room.config.wordCategory || ''}
-              onChange={(e) =>
-                useGameStore.getState().updateConfig({ wordCategory: e.target.value })
-              }
-              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-            >
-              <option value="" disabled>
-                {t('gameWhoAmI.lobby.selectCategory')}
-              </option>
-              {categories.map((cat) => (
-                <option key={cat.name} value={cat.name}>
-                  {cat.name} ({cat.count})
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      )}
-
-      {room.config.wordMode === 'PLAYER_INPUT' && (
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            {t('gameWhoAmI.lobby.themeOptional')}
-          </label>
-          {isHost ? (
-            <input
-              id="themeInput"
-              name="wordCategory"
-              autoComplete="off"
-              type="text"
-              value={room.config.wordCategory || ''}
-              onChange={(e) =>
-                useGameStore.getState().updateConfig({ wordCategory: e.target.value })
-              }
-              placeholder={t('gameWhoAmI.lobby.themePlaceholder')}
-              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
-            />
-          ) : (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-              {room.config.wordCategory || t('gameWhoAmI.lobby.anyTopic')}
-            </div>
-          )}
-        </div>
-      )}
-
-      {room.config.wordMode === 'AI_GENERATED' && (
-        <div>
-          <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">
-            {t('gameWhoAmI.lobby.aiPrompt')}
-          </label>
-          {isHost ? (
-            <input
-              id="aiPromptInput"
-              name="aiPrompt"
-              autoComplete="off"
-              type="text"
-              value={room.config.wordCategory || ''}
-              onChange={(e) =>
-                useGameStore.getState().updateConfig({ wordCategory: e.target.value })
-              }
-              placeholder={t('gameWhoAmI.lobby.aiPromptPlaceholder')}
-              className="w-full bg-white border border-indigo-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          ) : (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-200">
-              {room.config.wordCategory || t('gameWhoAmI.lobby.randomTopic')}
-            </div>
-          )}
-        </div>
-      )}
     </>
   );
 }

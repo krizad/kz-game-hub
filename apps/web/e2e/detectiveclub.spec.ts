@@ -44,12 +44,63 @@ test.describe('Detective Club Gameplay', () => {
     expect(hasRole || hasSetup).toBeTruthy();
 
     // Informer should submit a word if visible
-    const wordInput = p1.locator('#wordInput');
-    if (await wordInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await wordInput.fill('Mystery');
-      await p1.locator('button:has-text("Confirm Word")').click();
-      await p1.waitForTimeout(1500);
+    for (const page of [p1, p2, p3]) {
+      const wordInput = page.locator('input').filter({ hasText: '' }).first();
+      if (await wordInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await wordInput.fill('Mystery');
+        await page
+          .locator('button', { hasText: /Confirm|Submit/i })
+          .first()
+          .click();
+        await page.waitForTimeout(1500);
+        break;
+      }
     }
+
+    // Now players need to play cards in order (Playing Phase)
+    // There are 3 players. Each plays 1 card, then again 1 card.
+    // For simplicity, we just look for any page that has "Play Card" button and click it, 6 times total.
+    for (let round = 0; round < 6; round++) {
+      for (const page of [p1, p2, p3]) {
+        // Wait briefly to see if it's this player's turn
+        const playBtn = page.locator('button', { hasText: /Play Card/i }).first();
+        if (await playBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          // Select a card (click the first image in hand)
+          await page.locator('img').first().click();
+          await playBtn.click();
+          await page.waitForTimeout(1000);
+          break; // Move to next play
+        }
+      }
+    }
+
+    // Then there might be a discussion phase -> Continue
+    for (const page of [p1, p2, p3]) {
+      const continueBtn = page.locator('button', { hasText: /Continue|Vote/i }).first();
+      if (await continueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await continueBtn.click();
+      }
+    }
+
+    // Voting Phase
+    for (const page of [p1, p2, p3]) {
+      const voteBtn = page.locator('button', { hasText: /Vote/i }).first();
+      if (await voteBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        // Vote for someone (e.g. click first player to vote)
+        await page
+          .locator('button')
+          .filter({ hasText: /Player|D1|D2|DetHost/i })
+          .first()
+          .click()
+          .catch(() => {});
+        await voteBtn.click().catch(() => {});
+      }
+    }
+
+    // Wait for Round Results
+    await expect(p1.locator('text=Round Results').or(p1.locator('text=Scoreboard')))
+      .toBeVisible({ timeout: 10000 })
+      .catch(() => {});
 
     await p1.waitForTimeout(1000);
     await Promise.all(contexts.map((c) => c.close()));

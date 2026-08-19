@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { useGameStore } from '@/store/useGameStore';
-import { Button } from '@/components/ui/button';
+
 import { MusicTriviaActionType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
@@ -217,57 +217,57 @@ export function MusicTriviaView() {
   const amIStruckOut = state.currentRound?.struckOutIds.includes(socketId || '');
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
+    <div className="flex flex-col h-full bg-yellow-300 relative overflow-hidden font-mono">
       {/* Header */}
-      <div className="p-4 bg-white border-b flex justify-between items-center shadow-sm z-0 relative">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          🎵{' '}
+      <div className="p-4 bg-white border-b-8 border-black flex justify-between items-center z-10 relative">
+        <h2 className="text-2xl font-black text-black flex items-center gap-3 uppercase tracking-widest bg-emerald-300 px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+          <span className="text-3xl drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">🎵</span>{' '}
           <span className="hidden sm:inline">
             {t('rules.modal.tabs.musicTrivia') || 'Music Trivia'}
           </span>
         </h2>
-        <div className="flex gap-4 text-sm font-medium items-center">
-          <div className="px-3 py-1 bg-slate-100 rounded-full text-slate-600 border">
-            {t('gameMusicTrivia.game.roundLabel')} {state.currentRound?.roundNumber || 0} /{' '}
+        <div className="flex gap-4 font-bold items-center">
+          <div className="px-4 py-2 bg-white border-4 border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-lg">
+            {t('gameMusicTrivia.game.roundLabel')}{' '}
+            <span className="text-2xl font-black">{state.currentRound?.roundNumber || 0}</span> /{' '}
             {state.totalRounds}
           </div>
           {isHost && state.phase !== 'FINISHED' && (
-            <Button
-              size="sm"
-              variant="outline"
+            <button
               onClick={() => handleAction('END_GAME')}
-              className="text-red-500 border-red-200 hover:bg-red-50"
+              className="px-4 py-2 bg-rose-400 border-4 border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none hover:bg-rose-300 uppercase tracking-widest text-sm"
             >
               {t('gameMusicTrivia.game.endGame')}
-            </Button>
+            </button>
           )}
         </div>
       </div>
 
       {/* Sub-header for Category Info */}
-      <div className="px-4 py-2.5 bg-indigo-50/80 border-b border-indigo-100 flex flex-wrap gap-x-4 gap-y-2 items-center text-xs text-indigo-800 font-medium z-0 relative shadow-inner">
-        <span className="flex items-center gap-1.5 bg-white/60 px-2 py-0.5 rounded border border-indigo-200">
-          <span className="opacity-70 uppercase tracking-wider text-[10px] font-bold">
+      <div className="px-4 py-3 bg-pink-300 border-b-8 border-black flex flex-wrap gap-x-6 gap-y-3 items-center text-black font-bold z-0 relative ">
+        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.playlist')}
           </span>
-          <span className="font-bold text-sm">{room.config.musicTriviaQuery || 'Thai Pop'}</span>
+          <span className="font-black text-base uppercase">
+            {room.config.musicTriviaQuery || 'Thai Pop'}
+          </span>
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="opacity-70 uppercase tracking-wider text-[10px] font-bold">
+        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.regionLabel')}
           </span>
-          <span>
+          <span className="font-black text-base uppercase">
             {(room.config.musicTriviaCountry || 'TH') === 'TH'
               ? t('gameMusicTrivia.lobby.regionTh')
               : t('gameMusicTrivia.lobby.regionIntl')}
           </span>
         </span>
-        <span className="opacity-30">|</span>
-        <span className="flex items-center gap-1.5">
-          <span className="opacity-70 uppercase tracking-wider text-[10px] font-bold">
+        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.searchByLabel')}
           </span>
-          <span>
+          <span className="font-black text-base uppercase">
             {room.config.musicTriviaAttribute === 'artistTerm'
               ? t('gameMusicTrivia.lobby.searchArtist')
               : room.config.musicTriviaAttribute === 'songTerm'
@@ -279,23 +279,21 @@ export function MusicTriviaView() {
                     : t('gameMusicTrivia.lobby.sourceProvidesPreview')}
           </span>
         </span>
-        <span className="opacity-30">|</span>
-        <span className="flex items-center gap-1.5">
-          <span className="opacity-70 uppercase tracking-wider text-[10px] font-bold">
+        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.yearsLabel')}
           </span>
-          <span>
+          <span className="font-black text-base uppercase">
             {room.config.musicTriviaYearStart || room.config.musicTriviaYearEnd
               ? `${room.config.musicTriviaYearStart || 'Any'} - ${room.config.musicTriviaYearEnd || 'Any'}`
               : 'All'}
           </span>
         </span>
-        <span className="opacity-30">|</span>
-        <span className="flex items-center gap-1.5">
-          <span className="opacity-70 uppercase tracking-wider text-[10px] font-bold">
+        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.modeLabel')}
           </span>
-          <span>
+          <span className="font-black text-base uppercase">
             {state.mode === 'GAME_MASTER'
               ? t('gameMusicTrivia.game.modeVoice')
               : t('gameMusicTrivia.game.modeTyping')}
@@ -308,30 +306,37 @@ export function MusicTriviaView() {
           {/* SETUP Phase */}
           {state.phase === 'SETUP' && (
             <div
-              className={`bg-white p-8 rounded-2xl shadow-sm border text-center space-y-4 ${state.errorMessage ? '' : 'animate-pulse'}`}
+              className={`bg-white p-8 border-8 border-black text-center space-y-6 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] ${state.errorMessage ? '' : 'animate-pulse'}`}
             >
-              <div className="text-4xl mb-2">{state.errorMessage ? '❌' : '🎶'}</div>
-              <h3 className="text-xl font-bold text-slate-800">
+              <div className="text-6xl mb-4 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                {state.errorMessage ? '❌' : '🎶'}
+              </div>
+              <h3 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-4 py-2 border-4 border-black inline-block - shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 {state.errorMessage ? 'Setup Failed' : t('gameMusicTrivia.game.preparingMusic')}
               </h3>
               {state.errorMessage ? (
-                <div className="text-red-500 bg-red-50 p-4 rounded-xl border border-red-100">
+                <div className="text-black font-bold bg-rose-400 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xl">
                   <p>{state.errorMessage}</p>
                 </div>
               ) : (
-                <p className="text-slate-500">
-                  {t('gameMusicTrivia.game.searchingFor')} {room.config.musicTriviaQuery || 'songs'}{' '}
+                <p className="text-black font-bold text-xl bg-cyan-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                  {t('gameMusicTrivia.game.searchingFor')}{' '}
+                  <span className="bg-white px-2 uppercase tracking-widest">
+                    {room.config.musicTriviaQuery || 'songs'}
+                  </span>{' '}
                   {t('gameMusicTrivia.game.on')}{' '}
-                  {room.config.musicTriviaSource === 'SPOTIFY'
-                    ? 'Spotify'
-                    : room.config.musicTriviaSource === 'YOUTUBE'
-                      ? 'YouTube'
-                      : 'iTunes'}
+                  <span className="bg-white px-2 uppercase tracking-widest">
+                    {room.config.musicTriviaSource === 'SPOTIFY'
+                      ? 'Spotify'
+                      : room.config.musicTriviaSource === 'YOUTUBE'
+                        ? 'YouTube'
+                        : 'iTunes'}
+                  </span>
                 </p>
               )}
               {state.errorMessage && isHost && (
-                <div className="pt-4 flex gap-4 justify-center">
-                  <Button
+                <div className="pt-6 flex gap-4 justify-center">
+                  <button
                     onClick={() => {
                       handleAction('CONFIGURE_SOURCE', {
                         query: room.config.musicTriviaQuery || 'Thai Pop',
@@ -344,10 +349,10 @@ export function MusicTriviaView() {
                         },
                       });
                     }}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="bg-indigo-400 hover:bg-indigo-300 text-black font-black px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest text-lg "
                   >
                     Retry Setup
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
@@ -355,15 +360,15 @@ export function MusicTriviaView() {
 
           {/* GET_READY Phase */}
           {state.phase === 'GET_READY' && (
-            <div className="bg-white p-8 rounded-3xl shadow-sm border text-center space-y-8 animate-in fade-in zoom-in duration-300">
-              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                <span className="text-4xl">🎵</span>
+            <div className="bg-white p-8 border-8 border-black text-center space-y-8 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] - animate-in fade-in zoom-in duration-300">
+              <div className="w-24 h-24 bg-pink-300 border-4 border-black flex items-center justify-center mx-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                <span className="text-5xl drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">🎵</span>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-800">
+              <div className="space-y-4">
+                <h3 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                   {t('gameMusicTrivia.game.getReadyTitle')}
                 </h3>
-                <p className="text-slate-500">
+                <p className="text-black font-bold text-xl bg-cyan-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                   {state.readyPlayerIds?.includes(socketId)
                     ? t('gameMusicTrivia.game.getReadyHostWait')
                     : t('gameMusicTrivia.game.getReadyUnlock')}
@@ -371,7 +376,7 @@ export function MusicTriviaView() {
               </div>
 
               {!state.readyPlayerIds?.includes(socketId) && (
-                <Button
+                <button
                   onClick={() => {
                     // Unlock audio element with a silent play/pause if not youtube
                     if (audioRef.current) {
@@ -385,26 +390,28 @@ export function MusicTriviaView() {
                     setHasTestedAudio(true);
                     musicTriviaGameAction({ type: 'PLAYER_READY' });
                   }}
-                  className="w-full max-w-xs mx-auto h-16 rounded-2xl text-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
+                  className="w-full max-w-xs mx-auto h-20 text-2xl font-black bg-emerald-400 hover:bg-emerald-300 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none uppercase tracking-widest "
                 >
                   {t('gameMusicTrivia.game.getReadyBtn')}
-                </Button>
+                </button>
               )}
 
               {isHost && (
-                <div className="pt-6 border-t mt-6 space-y-4">
-                  <div className="flex justify-between items-center text-sm font-medium text-slate-600 bg-slate-50 p-4 rounded-xl border">
-                    <span>{t('gameMusicTrivia.game.getReadyPlayers')}</span>
-                    <span className="text-indigo-600 font-bold text-lg">
+                <div className="pt-8 border-t-8 border-black mt-8 space-y-6">
+                  <div className="flex justify-between items-center text-xl font-black text-black bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+                    <span className="uppercase tracking-widest">
+                      {t('gameMusicTrivia.game.getReadyPlayers')}
+                    </span>
+                    <span className="text-black bg-yellow-300 px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
                       {state.readyPlayerIds?.length || 0} / {room.players.length}
                     </span>
                   </div>
-                  <Button
+                  <button
                     onClick={() => musicTriviaGameAction({ type: 'START_COUNTDOWN' })}
-                    className="w-full h-14 rounded-2xl text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-200 transition-all"
+                    className="w-full h-20 text-2xl font-black bg-rose-400 hover:bg-rose-300 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none uppercase tracking-widest "
                   >
                     {t('gameMusicTrivia.game.getReadyStartBtn')}
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
@@ -413,14 +420,13 @@ export function MusicTriviaView() {
           {/* COUNTDOWN Phase */}
           {state.phase === 'COUNTDOWN' && (
             <div className="flex flex-col items-center justify-center py-20 space-y-8 animate-in fade-in">
-              <h3 className="text-2xl font-bold text-slate-500 uppercase tracking-widest animate-pulse">
+              <h3 className="text-4xl font-black text-black bg-yellow-300 px-6 py-3 border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest animate-pulse ">
                 {t('gameMusicTrivia.game.countdownTitle')}
               </h3>
               <div className="relative">
-                <div className="text-9xl font-black text-indigo-600 drop-shadow-sm animate-bounce">
+                <div className="text-[12rem] leading-none font-black text-black drop-shadow-[8px_8px_0px_rgba(0,0,0,1)] animate-bounce -">
                   {countdown}
                 </div>
-                <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full z-[-1] animate-pulse"></div>
               </div>
             </div>
           )}
@@ -429,16 +435,15 @@ export function MusicTriviaView() {
           {state.phase === 'PLAYING' && (
             <div className="flex flex-col items-center justify-center py-10 space-y-8">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 animate-spin-slow shadow-sm shadow-indigo-200 flex items-center justify-center">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                    <div className="flex items-end space-x-1 h-4">
-                      <div className="w-1 bg-indigo-500 animate-[bounce_1s_infinite] h-full"></div>
-                      <div className="w-1 bg-purple-500 animate-[bounce_0.8s_infinite] h-3/4"></div>
-                      <div className="w-1 bg-indigo-400 animate-[bounce_1.2s_infinite] h-full"></div>
+                <div className="w-40 h-40 rounded-full bg-cyan-300 border-8 border-black animate-spin-slow shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
+                  <div className="w-16 h-16 bg-white border-4 border-black rounded-full flex items-center justify-center">
+                    <div className="flex items-end space-x-1 h-6">
+                      <div className="w-2 bg-pink-400 animate-[bounce_1s_infinite] h-full border-2 border-black"></div>
+                      <div className="w-2 bg-yellow-400 animate-[bounce_0.8s_infinite] h-3/4 border-2 border-black"></div>
+                      <div className="w-2 bg-emerald-400 animate-[bounce_1.2s_infinite] h-full border-2 border-black"></div>
                     </div>
                   </div>
                 </div>
-                <div className="absolute inset-0 border border-white/20 rounded-full animate-ping"></div>
                 {['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '') && (
                   <div className="hidden">
                     <ReactPlayer
@@ -474,50 +479,52 @@ export function MusicTriviaView() {
                 )}
               </div>
               <div className="text-center space-y-4">
-                <h3 className="text-2xl font-bold text-slate-800 animate-pulse">
+                <h3 className="text-3xl font-black text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest animate-pulse -">
                   {t('gameMusicTrivia.game.nowPlaying')}
                 </h3>
-                <p className="text-slate-500 mt-2">{t('gameMusicTrivia.game.listenCarefully')}</p>
+                <p className="text-black font-bold text-xl bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                  {t('gameMusicTrivia.game.listenCarefully')}
+                </p>
                 {musicTriviaSyncPlay?.sourceType === 'SOUNDCLOUD' && (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl shadow-sm max-w-sm mx-auto text-sm font-medium mb-4">
+                  <div className="bg-rose-300 border-4 border-black text-black px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-sm mx-auto text-lg font-black uppercase mb-4 ">
                     <p>⚠️ SoundCloud กำลังโหลด (Loading SoundCloud)</p>
                   </div>
                 )}
                 {musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl shadow-sm max-w-sm mx-auto text-sm font-medium mb-4">
+                  <div className="bg-rose-300 border-4 border-black text-black px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-sm mx-auto text-lg font-black uppercase mb-4 -">
                     <p>⚠️ YouTube กำลังโหลด (Loading YouTube)</p>
                   </div>
                 )}
-                <button
-                  onClick={() => {
-                    if (['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '')) {
-                      setIsLocalPaused(false);
-                    } else if (audioRef.current) {
-                      audioRef.current.play().catch((e) => console.error(e));
-                    }
-                  }}
-                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
-                >
-                  {t('gameMusicTrivia.game.cantHearMusic')}
-                </button>
+                <div>
+                  <button
+                    onClick={() => {
+                      if (
+                        ['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '')
+                      ) {
+                        setIsLocalPaused(false);
+                      } else if (audioRef.current) {
+                        audioRef.current.play().catch((e) => console.error(e));
+                      }
+                    }}
+                    className="px-6 py-3 bg-white text-black border-4 border-black font-black uppercase tracking-widest hover:bg-slate-200 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform"
+                  >
+                    {t('gameMusicTrivia.game.cantHearMusic')}
+                  </button>
+                </div>
               </div>
 
               {/* Enhanced Audio Controls */}
-              <div className="w-full max-w-sm flex flex-col gap-3 bg-white p-5 rounded-3xl border shadow-sm border-indigo-50">
+              <div className="w-full max-w-sm flex flex-col gap-3 bg-pink-300 p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
+                    <button
                       onClick={() => setIsLocalPaused(!isLocalPaused)}
-                      className={`h-10 w-10 rounded-full ${isLocalPaused ? 'text-amber-500 border-amber-200 bg-amber-50' : 'text-indigo-600 border-indigo-200'}`}
+                      className={`h-12 w-12 flex items-center justify-center font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none ${isLocalPaused ? 'bg-yellow-300 text-black' : 'bg-white text-black'}`}
                       title={isLocalPaused ? 'Play' : 'Pause'}
                     >
                       {isLocalPaused ? '▶️' : '⏸️'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
+                    </button>
+                    <button
                       onClick={() => {
                         if (
                           ['YOUTUBE', 'SOUNDCLOUD'].includes(
@@ -533,14 +540,14 @@ export function MusicTriviaView() {
                           setIsLocalPaused(false);
                         }
                       }}
-                      className="h-10 w-10 rounded-full text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                      className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
                       title="Listen Again"
                     >
                       🔄
-                    </Button>
+                    </button>
                   </div>
-                  <div className="flex items-center space-x-3 flex-1 ml-4">
-                    <span className="text-slate-400 text-sm">🔉</span>
+                  <div className="flex items-center space-x-3 flex-1 ml-4 bg-white p-2 border-4 border-black">
+                    <span className="text-black font-black">🔉</span>
                     <input
                       type="range"
                       min="0"
@@ -548,49 +555,47 @@ export function MusicTriviaView() {
                       step="0.05"
                       value={volume}
                       onChange={(e) => setVolume(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      className="w-full h-3 bg-black appearance-none cursor-pointer accent-yellow-400 border-2 border-black"
                       aria-label="Volume control"
                     />
-                    <span className="text-slate-500 text-sm">🔊</span>
+                    <span className="text-black font-black">🔊</span>
                   </div>
                 </div>
               </div>
 
               {!isHost || state.hostPlays ? (
-                <div className="w-full max-w-xs flex flex-col items-center gap-3">
-                  <Button
+                <div className="w-full max-w-xs flex flex-col items-center gap-4 mt-8">
+                  <button
                     onClick={handleBuzz}
                     disabled={amIStruckOut}
-                    className={`w-full h-32 rounded-3xl text-3xl font-bold transition-all shadow-sm active:scale-95 active:shadow-sm ${amIStruckOut ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white shadow-red-200'}`}
+                    className={`w-full h-32 text-5xl font-black uppercase tracking-widest border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all ${amIStruckOut ? 'bg-slate-400 text-slate-800 cursor-not-allowed opacity-50' : 'bg-rose-500 hover:bg-rose-400 text-white active:translate-y-2 active:shadow-none '}`}
                   >
                     {amIStruckOut ? '❌ X' : '🚨 BUZZ!'}
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     onClick={() => handleAction('GIVE_UP')}
                     disabled={amIStruckOut}
-                    variant="outline"
-                    className="w-full h-12 rounded-xl font-bold text-slate-500 border-slate-300 hover:bg-slate-100"
+                    className="w-full h-14 bg-white font-black uppercase tracking-widest text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-slate-200 active:translate-y-1 active:shadow-none - mt-4"
                   >
                     {t('gameMusicTrivia.game.giveUp')}
-                  </Button>
+                  </button>
                 </div>
               ) : (
-                <div className="space-y-4 mt-6">
-                  <p className="text-slate-500 font-medium">
+                <div className="space-y-4 mt-8">
+                  <p className="text-black font-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase -">
                     {t('gameMusicTrivia.game.hostCannotBuzz')}
                   </p>
                 </div>
               )}
 
               {isHost && (
-                <div className="mt-4">
-                  <Button
-                    variant="ghost"
+                <div className="mt-8">
+                  <button
                     onClick={() => musicTriviaGameAction({ type: 'REVEAL_ANSWER' })}
-                    className="text-slate-400 hover:text-indigo-600"
+                    className="px-4 py-2 bg-slate-800 text-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none hover:bg-slate-700 uppercase"
                   >
                     {t('gameMusicTrivia.game.skipQuestion')}
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
@@ -598,10 +603,12 @@ export function MusicTriviaView() {
 
           {/* BUZZED / ANSWERING Phase */}
           {(state.phase === 'BUZZED' || state.phase === 'ANSWERING') && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border text-center space-y-6">
-              <div className="text-5xl animate-bounce">🚨</div>
+            <div className="bg-white p-8 border-8 border-black text-center space-y-6 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] - max-w-2xl mx-auto mt-8">
+              <div className="text-6xl animate-bounce drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                🚨
+              </div>
               <div>
-                <h3 className="text-2xl font-bold text-slate-800">
+                <h3 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                   {
                     room?.players.find((p) => p.socketId === state.currentRound?.currentBuzzerId)
                       ?.name
@@ -611,7 +618,7 @@ export function MusicTriviaView() {
                 {state.currentRound?.buzzerPresses.find(
                   (p) => p.playerId === state.currentRound?.currentBuzzerId,
                 ) && (
-                  <p className="text-sm font-mono text-slate-500 mt-2">
+                  <p className="text-xl font-black text-white bg-black px-3 py-1 inline-block mt-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                     {t('gameMusicTrivia.game.reaction')}{' '}
                     {(
                       state.currentRound.buzzerPresses.find(
@@ -626,26 +633,28 @@ export function MusicTriviaView() {
               {state.mode === 'GAME_MASTER' ? (
                 <>
                   {isHost ? (
-                    <div className="mt-6 p-4 bg-slate-50 rounded-xl border">
-                      <p className="font-bold mb-3 text-slate-700">
+                    <div className="mt-8 p-6 bg-cyan-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
+                      <p className="text-2xl font-black uppercase tracking-widest text-black mb-4 bg-white border-4 border-black p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                         {t('gameMusicTrivia.game.isAnswerCorrect')}
                       </p>
 
                       {hostAnswer && (
-                        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-left flex flex-col sm:flex-row gap-4 items-center sm:items-start">
+                        <div className="mb-8 p-6 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-left flex flex-col sm:flex-row gap-6 items-center sm:items-start ">
                           {hostAnswer.artworkUrl && (
                             <img
                               src={hostAnswer.artworkUrl}
                               alt="Album Art"
-                              className="w-24 h-24 rounded-lg shadow-sm flex-shrink-0"
+                              className="w-32 h-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0"
                             />
                           )}
                           <div className="flex-1 text-center sm:text-left">
-                            <p className="text-sm text-indigo-500 font-bold uppercase mb-1">
+                            <p className="text-sm text-white bg-black px-2 py-1 font-black uppercase mb-2 inline-block">
                               {t('gameMusicTrivia.game.actualAnswer')}
                             </p>
-                            <p className="text-xl font-bold text-slate-800">{hostAnswer.title}</p>
-                            <p className="text-md text-slate-600">
+                            <p className="text-3xl font-black text-black uppercase">
+                              {hostAnswer.title}
+                            </p>
+                            <p className="text-xl font-bold text-slate-800">
                               {t('gameMusicTrivia.game.by')} {hostAnswer.artist}
                             </p>
                             {hostAnswer.trackViewUrl && (
@@ -653,7 +662,7 @@ export function MusicTriviaView() {
                                 href={hostAnswer.trackViewUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium bg-white/50 px-3 py-1 rounded-full shadow-sm"
+                                className="inline-flex items-center gap-2 mt-4 text-sm text-black font-black bg-pink-300 px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-pink-400 active:translate-y-1 active:shadow-none uppercase tracking-widest"
                               >
                                 {t('gameMusicTrivia.game.viewOnAppleMusic')}
                               </a>
@@ -662,36 +671,36 @@ export function MusicTriviaView() {
                         </div>
                       )}
 
-                      <div className="flex gap-4 justify-center">
-                        <Button
+                      <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                        <button
                           onClick={() =>
                             musicTriviaGameAction({ type: 'HOST_JUDGE', correct: true })
                           }
-                          className="bg-green-500 hover:bg-green-600 px-8 text-lg font-bold py-6 rounded-xl shadow-sm shadow-green-500/30"
+                          className="bg-emerald-400 hover:bg-emerald-300 text-black px-8 py-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none text-2xl font-black uppercase tracking-widest -"
                         >
                           {t('gameMusicTrivia.game.yesCorrect')}
-                        </Button>
-                        <Button
+                        </button>
+                        <button
                           onClick={() =>
                             musicTriviaGameAction({ type: 'HOST_JUDGE', correct: false })
                           }
-                          className="bg-red-500 hover:bg-red-600 px-8 text-lg font-bold py-6 rounded-xl shadow-sm shadow-red-500/30"
+                          className="bg-rose-400 hover:bg-rose-300 text-black px-8 py-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none text-2xl font-black uppercase tracking-widest "
                         >
                           {t('gameMusicTrivia.game.noWrong')}
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   ) : amICurrentBuzzer ? (
                     <div className="py-8 animate-pulse">
-                      <p className="text-3xl font-black text-indigo-600 mb-2">
+                      <p className="text-4xl font-black text-black bg-yellow-300 px-6 py-3 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest mb-6">
                         {t('gameMusicTrivia.game.sayAnswerOutLoud')}
                       </p>
-                      <p className="text-slate-500 font-medium">
+                      <p className="text-xl font-bold text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block -">
                         {t('gameMusicTrivia.game.hostWillJudge')}
                       </p>
                     </div>
                   ) : (
-                    <p className="text-slate-500 font-medium text-lg mt-4">
+                    <p className="text-black font-black text-xl bg-slate-200 px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mt-8 inline-block ">
                       {t('gameMusicTrivia.game.waitingForHostToJudge')}
                     </p>
                   )}
@@ -699,13 +708,13 @@ export function MusicTriviaView() {
               ) : (
                 <>
                   {amICurrentBuzzer ? (
-                    <form onSubmit={submitAnswer} className="space-y-4 max-w-sm mx-auto">
-                      <p className="text-slate-600 font-medium">
+                    <form onSubmit={submitAnswer} className="space-y-6 max-w-sm mx-auto mt-8">
+                      <p className="text-xl font-black text-black bg-yellow-300 px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                         {t('gameMusicTrivia.game.whatIsSongOrArtist')}
                       </p>
                       <input
                         type="text"
-                        className="w-full p-4 text-center text-xl font-bold border border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-0"
+                        className="w-full p-6 text-center text-3xl font-black text-black border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-0 uppercase placeholder:text-slate-400 placeholder:normal-case placeholder:text-xl"
                         placeholder={
                           t('gameMusicTrivia.game.typeAnswerHere') || 'Type answer here...'
                         }
@@ -714,35 +723,36 @@ export function MusicTriviaView() {
                         autoFocus
                       />
                       {answerTimeLeft !== null && (
-                        <p
-                          className={`text-xl font-black ${answerTimeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-indigo-600'}`}
-                        >
-                          ⏳ {answerTimeLeft}s
-                        </p>
+                        <div className="flex justify-center mt-4">
+                          <p
+                            className={`text-3xl font-black border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${answerTimeLeft <= 5 ? 'bg-rose-400 text-black animate-pulse' : 'bg-white text-black'}`}
+                          >
+                            ⏳ {answerTimeLeft}s
+                          </p>
+                        </div>
                       )}
-                      <div className="flex flex-col gap-4 w-full max-w-sm mx-auto mt-6">
-                        <Button
+                      <div className="flex flex-col gap-6 w-full max-w-sm mx-auto mt-8">
+                        <button
                           type="submit"
-                          className="w-full py-6 text-lg rounded-xl shadow-sm shadow-indigo-500/30"
+                          className="w-full py-6 text-2xl font-black bg-emerald-400 hover:bg-emerald-300 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none uppercase tracking-widest -"
                           disabled={!answerInput.trim()}
                         >
                           {t('gameMusicTrivia.game.submitAnswer')}
-                        </Button>
-                        <Button
+                        </button>
+                        <button
                           type="button"
                           onClick={() => {
                             setAnswerInput('');
                             handleAction('SUBMIT_ANSWER', { answer: '' });
                           }}
-                          variant="outline"
-                          className="w-full py-4 text-lg rounded-xl text-red-500 border-red-200 hover:bg-red-50"
+                          className="w-full py-4 text-xl font-black bg-white text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-slate-200 active:translate-y-1 active:shadow-none uppercase tracking-widest "
                         >
                           {t('gameMusicTrivia.game.giveUp')}
-                        </Button>
+                        </button>
                       </div>
                     </form>
                   ) : (
-                    <p className="text-slate-500 font-medium text-lg mt-4">
+                    <p className="text-black font-black text-xl bg-slate-200 px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mt-8 inline-block -">
                       {t('gameMusicTrivia.game.waitingForTheirAnswer')}
                     </p>
                   )}
@@ -754,17 +764,17 @@ export function MusicTriviaView() {
           {/* ANSWER_RESULT Phase */}
           {state.phase === 'ANSWER_RESULT' && (
             <div
-              className={`p-8 rounded-2xl shadow-sm border text-center space-y-4 ${state.currentRound?.answeredCorrectly ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+              className={`p-8 border-8 border-black text-center space-y-6 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-2xl mx-auto mt-8 ${state.currentRound?.answeredCorrectly ? 'bg-emerald-300' : 'bg-rose-400'}`}
             >
-              <div className="text-6xl mb-4">
+              <div className="text-6xl mb-4 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
                 {state.currentRound?.answeredCorrectly ? '✅' : '❌'}
               </div>
-              <h3 className="text-3xl font-bold text-slate-800">
+              <h3 className="text-4xl font-black text-black uppercase tracking-widest bg-white px-6 py-3 border-4 border-black inline-block shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
                 {state.currentRound?.answeredCorrectly
                   ? t('gameMusicTrivia.game.correct')
                   : t('gameMusicTrivia.game.incorrect')}
               </h3>
-              <p className="text-slate-600 font-medium">
+              <p className="text-xl font-bold text-black bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 {
                   room?.players.find((p) => p.socketId === state.currentRound?.currentBuzzerId)
                     ?.name
@@ -776,18 +786,18 @@ export function MusicTriviaView() {
               </p>
 
               {state.revealedAnswer?.successfulAnswerText && (
-                <div className="bg-white/80 rounded-xl p-4 border border-slate-200 shadow-sm max-w-md mx-auto my-4">
-                  <p className="text-sm font-bold text-slate-500 uppercase">
+                <div className="bg-yellow-300 p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-md mx-auto my-6 -">
+                  <p className="text-lg font-black text-black uppercase tracking-widest bg-white border-4 border-black px-2 py-1 inline-block mb-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                     {t('gameMusicTrivia.game.playerAnswered')}
                   </p>
-                  <p className="text-xl font-black text-indigo-700 mt-1">
+                  <p className="text-3xl font-black text-black mt-2">
                     "{state.revealedAnswer.successfulAnswerText}"
                   </p>
                 </div>
               )}
 
               {state.revealedAnswer && (
-                <div className="mt-6 p-6 bg-white/50 rounded-xl border border-slate-200 shadow-inner inline-block min-w-[250px]">
+                <div className="mt-8 p-8 bg-white border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] inline-block min-w-[250px] ">
                   {state.revealedAnswer.artworkUrl && (
                     <img
                       src={state.revealedAnswer.artworkUrl.replace(
@@ -795,20 +805,20 @@ export function MusicTriviaView() {
                         '300x300bb.jpg',
                       )}
                       alt="Album Art"
-                      className="w-32 h-32 mx-auto rounded-lg shadow-sm mb-4"
+                      className="w-40 h-40 mx-auto border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-6 -"
                     />
                   )}
-                  <p className="text-sm text-slate-500 font-bold uppercase mb-1">
+                  <p className="text-lg font-black text-white bg-black px-3 py-1 uppercase tracking-widest inline-block mb-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                     {t('gameMusicTrivia.game.theAnswerWas')}
                   </p>
-                  <p className="text-2xl font-black text-indigo-600 mb-1">
+                  <p className="text-4xl font-black text-black uppercase mb-2">
                     {state.revealedAnswer.title}
                   </p>
-                  <p className="text-lg font-medium text-slate-600">
+                  <p className="text-2xl font-bold text-black bg-pink-300 border-4 border-black px-2 py-1 inline-block -">
                     {t('gameMusicTrivia.game.by')} {state.revealedAnswer.artist}
                   </p>
                   {(state.revealedAnswer.album || state.revealedAnswer.releaseYear) && (
-                    <p className="text-sm font-medium text-slate-500 mt-1">
+                    <p className="text-lg font-bold text-black mt-4">
                       {state.revealedAnswer.album && <span>{state.revealedAnswer.album}</span>}
                       {state.revealedAnswer.album && state.revealedAnswer.releaseYear && (
                         <span> • </span>
@@ -819,30 +829,32 @@ export function MusicTriviaView() {
                     </p>
                   )}
                   {state.revealedAnswer.trackViewUrl && (
-                    <a
-                      href={state.revealedAnswer.trackViewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-medium bg-white px-3 py-1.5 rounded-full shadow-sm border border-indigo-100"
-                    >
-                      {t('gameMusicTrivia.game.listenOnAppleMusic')}
-                    </a>
+                    <div className="mt-6">
+                      <a
+                        href={state.revealedAnswer.trackViewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-black font-black uppercase tracking-widest bg-cyan-300 px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-cyan-400 active:translate-y-1 active:shadow-none transition-transform "
+                      >
+                        {t('gameMusicTrivia.game.listenOnAppleMusic')}
+                      </a>
+                    </div>
                   )}
                 </div>
               )}
 
               {isHost && (
-                <div className="pt-6">
-                  <Button
+                <div className="pt-8">
+                  <button
                     onClick={() => musicTriviaGameAction({ type: 'NEXT_ROUND' })}
-                    className="px-8 py-6 text-lg rounded-xl font-bold shadow-sm shadow-indigo-500/30"
+                    className="px-8 py-6 text-2xl font-black uppercase tracking-widest text-black bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none hover:bg-yellow-400 -"
                   >
                     Next Round 🎵
-                  </Button>
+                  </button>
                 </div>
               )}
               {countdown !== null && (
-                <div className="pt-2 text-slate-500 font-medium animate-pulse">
+                <div className="pt-4 text-black font-black text-xl animate-pulse">
                   {t('gameMusicTrivia.game.autoProceedingIn', { count: countdown }) ||
                     `Auto-proceeding in ${countdown}s...`}
                 </div>
@@ -852,26 +864,26 @@ export function MusicTriviaView() {
 
           {/* REVEAL / ROUND_RESULT Phase */}
           {(state.phase === 'REVEAL' || state.phase === 'ROUND_RESULT') && (
-            <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border text-center space-y-6">
-              <h3 className="text-2xl font-bold text-slate-800">
+            <div className="bg-white p-8 border-8 border-black text-center space-y-8 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] - max-w-2xl mx-auto mt-8">
+              <h3 className="text-4xl font-black text-black uppercase tracking-widest bg-cyan-300 px-6 py-3 border-4 border-black inline-block shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameMusicTrivia.game.theAnswerWas')}
               </h3>
-              <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+              <div className="p-8 bg-pink-300 border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
                 {state.revealedAnswer?.artworkUrl && (
                   <img
                     src={state.revealedAnswer.artworkUrl.replace('100x100bb.jpg', '400x400bb.jpg')}
                     alt="Album Art"
-                    className="w-40 h-40 mx-auto rounded-xl shadow-sm mb-4"
+                    className="w-48 h-48 mx-auto border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-6 "
                   />
                 )}
-                <p className="text-3xl font-black text-indigo-600 mb-2">
+                <p className="text-4xl font-black text-black uppercase bg-white border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - mb-4">
                   {state.revealedAnswer?.title}
                 </p>
-                <p className="text-xl font-medium text-slate-600">
+                <p className="text-2xl font-bold text-black bg-yellow-300 border-4 border-black inline-block px-3 py-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                   {t('gameMusicTrivia.game.by')} {state.revealedAnswer?.artist}
                 </p>
                 {(state.revealedAnswer?.album || state.revealedAnswer?.releaseYear) && (
-                  <p className="text-base font-medium text-slate-500 mt-2">
+                  <p className="text-xl font-bold text-black mt-4">
                     {state.revealedAnswer?.album && <span>{state.revealedAnswer.album}</span>}
                     {state.revealedAnswer?.album && state.revealedAnswer?.releaseYear && (
                       <span> • </span>
@@ -882,19 +894,21 @@ export function MusicTriviaView() {
                   </p>
                 )}
                 {state.revealedAnswer?.trackViewUrl && (
-                  <a
-                    href={state.revealedAnswer.trackViewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-4 text-sm text-indigo-600 hover:text-indigo-800 font-medium bg-white px-4 py-2 rounded-full shadow-sm border border-indigo-100 transition-transform hover:scale-105 active:scale-95"
-                  >
-                    {t('gameMusicTrivia.game.listenOnAppleMusic')}
-                  </a>
+                  <div className="mt-6">
+                    <a
+                      href={state.revealedAnswer.trackViewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-black font-black uppercase tracking-widest bg-emerald-300 px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-400 active:translate-y-1 active:shadow-none transition-transform -"
+                    >
+                      {t('gameMusicTrivia.game.listenOnAppleMusic')}
+                    </a>
+                  </div>
                 )}
               </div>
 
               {state.phase === 'ROUND_RESULT' && state.currentRound?.winnerId && (
-                <div className="inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full font-bold">
+                <div className="inline-block px-6 py-3 bg-emerald-400 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-2xl font-black uppercase tracking-widest ">
                   {t('gameMusicTrivia.game.wonTheRound', {
                     name:
                       room?.players.find((p) => p.socketId === state.currentRound?.winnerId)
@@ -904,23 +918,23 @@ export function MusicTriviaView() {
                 </div>
               )}
               {state.phase === 'ROUND_RESULT' && !state.currentRound?.winnerId && (
-                <div className="inline-block px-4 py-2 bg-slate-100 text-slate-600 rounded-full font-bold">
+                <div className="inline-block px-6 py-3 bg-slate-300 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-2xl font-black uppercase tracking-widest -">
                   {t('gameMusicTrivia.game.noOneGotItRight')}
                 </div>
               )}
 
               {isHost && (
-                <div className="pt-4">
-                  <Button
+                <div className="pt-8">
+                  <button
                     onClick={() => handleAction('NEXT_ROUND')}
-                    className="px-8 py-6 text-lg rounded-xl font-bold"
+                    className="px-8 py-6 text-2xl font-black uppercase tracking-widest text-black bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none hover:bg-yellow-400 "
                   >
                     {t('gameMusicTrivia.game.nextRound')}
-                  </Button>
+                  </button>
                 </div>
               )}
               {countdown !== null && (
-                <div className="pt-2 text-slate-500 font-medium animate-pulse">
+                <div className="pt-4 text-black font-black text-xl animate-pulse">
                   {t('gameMusicTrivia.game.autoProceedingIn', { count: countdown }) ||
                     `Auto-proceeding in ${countdown}s...`}
                 </div>
@@ -930,13 +944,15 @@ export function MusicTriviaView() {
 
           {/* FINISHED Phase */}
           {state.phase === 'FINISHED' && (
-            <div className="bg-white p-8 rounded-2xl shadow-sm border text-center space-y-6">
-              <div className="text-6xl mb-4">🏆</div>
-              <h3 className="text-3xl font-bold text-slate-800">
+            <div className="bg-white p-8 border-8 border-black text-center space-y-8 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-3xl mx-auto mt-8 ">
+              <div className="text-[6rem] mb-4 drop-shadow-[8px_8px_0px_rgba(0,0,0,1)] animate-bounce">
+                🏆
+              </div>
+              <h3 className="text-5xl font-black text-black uppercase tracking-widest bg-yellow-300 px-6 py-3 border-4 border-black inline-block shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
                 {t('gameMusicTrivia.game.gameOver')}
               </h3>
 
-              <div className="space-y-3 pt-4 max-w-sm mx-auto">
+              <div className="space-y-4 pt-6 max-w-md mx-auto">
                 {Object.entries(state.scores)
                   .sort(([, a], [, b]) => b - a)
                   .map(([playerId, score], index) => {
@@ -945,26 +961,28 @@ export function MusicTriviaView() {
                     return (
                       <div
                         key={playerId}
-                        className={`flex justify-between items-center p-4 rounded-xl font-bold ${index === 0 ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-50 text-slate-700 border'}`}
+                        className={`flex justify-between items-center p-4 border-4 border-black font-black text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${index === 0 ? 'bg-cyan-300 text-black text-2xl' : index === 1 ? 'bg-emerald-300 text-black -' : index === 2 ? 'bg-pink-300 text-black ' : 'bg-white text-black -'}`}
                       >
-                        <span className="flex items-center gap-2">
-                          {index === 0 && '🥇'}
-                          {index === 1 && '🥈'}
-                          {index === 2 && '🥉'}
-                          {p.name}
+                        <span className="flex items-center gap-3">
+                          {index === 0 && <span className="text-3xl">🥇</span>}
+                          {index === 1 && <span className="text-2xl">🥈</span>}
+                          {index === 2 && <span className="text-2xl">🥉</span>}
+                          <span className="uppercase">{p.name}</span>
                         </span>
-                        <span className="text-xl">{score} pts</span>
+                        <span className="bg-white px-2 py-1 border-2 border-black">
+                          {score} pts
+                        </span>
                       </div>
                     );
                   })}
               </div>
 
               {state.roundHistory && state.roundHistory.length > 0 && (
-                <div className="mt-8 text-left max-w-2xl mx-auto">
-                  <h4 className="text-xl font-bold text-slate-800 mb-4">
+                <div className="mt-12 text-left max-w-2xl mx-auto p-6 bg-pink-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
+                  <h4 className="text-2xl font-black text-black uppercase tracking-widest bg-white border-4 border-black px-4 py-2 inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 ">
                     {t('gameMusicTrivia.game.playedSongs') || 'Played Songs'}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {state.roundHistory.map((history) => {
                       const winner = history.winnerId
                         ? room?.players.find((p) => p.socketId === history.winnerId)
@@ -972,32 +990,34 @@ export function MusicTriviaView() {
                       return (
                         <div
                           key={history.roundNumber}
-                          className="bg-slate-50 border p-4 rounded-xl flex items-center gap-4"
+                          className="bg-white border-4 border-black p-4 flex items-center gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                         >
                           {history.artworkUrl ? (
                             <img
                               src={history.artworkUrl}
                               alt={history.trackTitle}
-                              className="w-16 h-16 rounded-md object-cover"
+                              className="w-16 h-16 object-cover border-2 border-black"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-md bg-slate-200 flex items-center justify-center text-slate-400">
+                            <div className="w-16 h-16 border-2 border-black bg-yellow-300 flex items-center justify-center text-black text-2xl">
                               🎵
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-800 truncate">
+                            <p className="font-black text-xl text-black truncate uppercase">
                               {history.trackTitle}
                             </p>
-                            <p className="text-sm text-slate-500 truncate">{history.artistName}</p>
+                            <p className="text-lg font-bold text-slate-700 truncate">
+                              {history.artistName}
+                            </p>
                           </div>
                           <div className="text-right flex-shrink-0">
                             {winner ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium">
-                                <span className="text-xs">🏆</span> {winner.name}
+                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-300 border-2 border-black text-black text-lg font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+                                <span className="text-sm">🏆</span> {winner.name}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 text-sm font-medium">
+                              <span className="inline-flex items-center px-3 py-1 bg-slate-300 border-2 border-black text-black text-lg font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
                                 ❌ {t('gameMusicTrivia.game.noWinner') || 'No winner'}
                               </span>
                             )}
@@ -1010,10 +1030,13 @@ export function MusicTriviaView() {
               )}
 
               {isHost && (
-                <div className="pt-6">
-                  <Button onClick={() => resetRoom()} variant="outline" className="w-full">
+                <div className="pt-8">
+                  <button
+                    onClick={() => resetRoom()}
+                    className="w-full py-6 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none text-2xl font-black text-black uppercase tracking-widest hover:bg-slate-200 "
+                  >
                     {t('gameMusicTrivia.game.returnToLobby')}
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>

@@ -115,6 +115,11 @@ Detailed docs live in `.agents/rules/`:
 - `.agents/rules/infrastructure.md` — scripts, ports, deployment
 - `.agents/rules/rules.md` — naming, style, do's/don'ts
 
+## AI Agent Workflows & Temp Scripts
+
+- If an AI agent needs to create a temporary script (e.g., Python scripts for bulk finding/replacing code or doing complex modifications), the agent **must create it in the `tmp-script/` directory** at the root of the repository.
+- The agent **must also ensure that the `tmp-script/` folder is ignored** by Git.
+
 ## Git conventions
 
 - Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)

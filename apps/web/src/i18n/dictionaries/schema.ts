@@ -10,6 +10,7 @@ export interface Dictionary {
     createOwnRoom: string;
     returnToHome: string;
     gameLobbyTitle: string;
+    seconds: string;
     gameNames: {
       whoKnow: string;
       gobbler: string;
@@ -20,6 +21,7 @@ export interface Dictionary {
       detectiveClub: string;
       whoFirst: string;
       theMind: string;
+      musicTrivia: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -108,6 +110,8 @@ export interface Dictionary {
       whoAmIDesc: string;
       detectiveClubDesc: string;
       whoFirstDesc: string;
+      musicTriviaDesc: string;
+      theMindDesc: string;
     };
     whoKnow: {
       setupTitle: string;
@@ -340,6 +344,10 @@ export interface Dictionary {
     gameOver: string;
     noWinners: string;
     theWordsWere: string;
+    wins: string;
+    theyGuessedCorrectly: string;
+    noWinner: string;
+    everyoneUsedGuesses: string;
     whoAreYou: string;
     takeAGuessDesc: string;
     typeYourGuess: string;
@@ -527,6 +535,19 @@ export interface Dictionary {
       yearStart: string;
       yearEnd: string;
       answerTimeout: string;
+      searchCriteria: string;
+      searchKeywords: string;
+      searchPlaceholder: string;
+      searchHint: string;
+      anyTopic: string;
+      gameRules: string;
+      playbackHostHint: string;
+      playbackEveryoneHint: string;
+      answerCriteria: string;
+      sourceProvidesVideo: string;
+      sourceProvidesPreview: string;
+      sourceLabel: string;
+      regionLabel: string;
     };
     game: {
       viewOnAppleMusic: string;

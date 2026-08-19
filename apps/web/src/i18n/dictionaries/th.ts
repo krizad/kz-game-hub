@@ -12,6 +12,7 @@ export const th: Dictionary = {
     createOwnRoom: 'หรือสร้างห้องของคุณเอง',
     returnToHome: 'กลับหน้าหลัก',
     gameLobbyTitle: 'GAME LOBBY',
+    seconds: 'วินาที',
     gameNames: {
       whoKnow: 'Who Know!',
       gobbler: 'Gobbler Tic Tac Toe',
@@ -22,6 +23,7 @@ export const th: Dictionary = {
       detectiveClub: 'Detective Club',
       whoFirst: 'ใครกดก่อน (Who First)',
       theMind: 'เดอะมายด์ (The Mind)',
+      musicTrivia: 'แฟนพันธุ์แท้เสียงเพลง (Music Trivia)',
     },
     or: 'หรือ',
     roomCodePlaceholder: 'รหัสห้อง',
@@ -117,6 +119,10 @@ export const th: Dictionary = {
       detectiveClubDesc:
         'เกมแนวบลัฟฟิง + การตีความภาพ ผู้เล่นทุกคนรู้ "คำศัพท์" ยกเว้น Conspirator ที่ต้องเนียนตามน้ำให้ทัน',
       whoFirstDesc: 'ใครเร็วกว่าคนนั้นชนะ! แข่งกันกดปุ่มให้เร็วที่สุดเมื่อสัญญาณดังขึ้น',
+      musicTriviaDesc:
+        'เกมทายเพลงสุดมันส์! ทดสอบความรู้เรื่องเพลงของคุณ ใครตอบได้เร็วและถูกต้องที่สุดจะเป็นผู้ชนะ',
+      theMindDesc:
+        'เกมการ์ดสุดล้ำที่คุณต้องร่วมมือกันเรียงไพ่จากน้อยไปมาก โดยห้ามพูดคุยหรือส่งสัญญาณใดๆ ทั้งสิ้น!',
     },
     whoKnow: {
       setupTitle: 'การเริ่มต้น',
@@ -372,6 +378,10 @@ export const th: Dictionary = {
     gameOver: 'จบเกม',
     noWinners: 'ไม่มีใครชนะในรอบนี้',
     theWordsWere: 'คำปริศนาคือ',
+    wins: 'ชนะแล้ว!',
+    theyGuessedCorrectly: 'ทายคำปริศนาของตัวเองถูกแล้ว',
+    noWinner: 'ไม่มีผู้ชนะ',
+    everyoneUsedGuesses: 'ทุกคนใช้สิทธิ์ทายคำจนหมดแล้ว',
     whoAreYou: 'คุณคือใคร?',
     takeAGuessDesc: 'ทายเลย! หากคุณทายผิด คุณอาจถูกคัดออกและหมดสิทธิ์ชนะ',
     typeYourGuess: 'พิมพ์คำตอบของคุณ...',
@@ -560,6 +570,19 @@ export const th: Dictionary = {
       yearStart: 'ตั้งแต่ปี (ค.ศ.)',
       yearEnd: 'ถึงปี (ค.ศ.)',
       answerTimeout: 'เวลาในการตอบ (วินาที)',
+      searchCriteria: 'เงื่อนไขการค้นหา',
+      searchKeywords: 'คำค้นหา (Keywords)',
+      searchPlaceholder: 'เช่น Taylor Swift, Pop 2023',
+      searchHint: 'เว้นว่างไว้เพื่อสุ่มเพลงจากหมวดหมู่',
+      anyTopic: 'ทุกหัวข้อ',
+      gameRules: 'กติกาเกม',
+      playbackHostHint: 'โฮสต์เปิดเพลงจากเครื่องตัวเอง (Discord/Zoom)',
+      playbackEveryoneHint: 'เพลงเล่นอัตโนมัติบนเครื่องทุกคน',
+      answerCriteria: 'เกณฑ์การตอบถูก',
+      sourceProvidesVideo: 'เล่นเป็นมิวสิควิดีโอ',
+      sourceProvidesPreview: 'เล่นตัวอย่างเพลง 30 วินาที',
+      sourceLabel: 'แหล่งเพลง',
+      regionLabel: 'ภูมิภาค',
     },
     game: {
       viewOnAppleMusic: 'ดูบน Apple Music',

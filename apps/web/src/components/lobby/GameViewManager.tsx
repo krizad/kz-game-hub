@@ -39,10 +39,10 @@ export function GameViewManager() {
     if (room.gameType === GameType.THE_MIND) return <TheMindGameView />;
 
     return (
-      <div className="flex-1 flex flex-col bg-white/80 border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-sm min-h-[300px]">
+      <div className="flex-1 flex flex-col bg-white border-4 border-black p-2 sm:p-4 shadow-[4px_4px_0_0_#000] min-h-[300px] overflow-y-auto">
         {room.status === RoomStatus.LOBBY && (
           <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-[150px]">
-            <h4 className="text-lg font-black uppercase text-indigo-400 tracking-widest bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
+            <h4 className="text-lg font-black uppercase text-black tracking-widest bg-white px-4 py-2 rounded-lg border-4 border-black shadow-[4px_4px_0_0_#000]">
               {t('lobby.waitingRoom')}
             </h4>
             <GameSettingsManager />
@@ -58,7 +58,7 @@ export function GameViewManager() {
     <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-2 sm:gap-4 relative w-full">
       {/* Left: Players Table (Hidden on mobile/tablet during active game, visible on PC always) */}
       <div
-        className={`${room.status === RoomStatus.LOBBY ? 'flex' : 'hidden lg:flex'} lg:flex-none lg:w-72 xl:w-80 flex-col min-h-0`}
+        className={`${room.status === RoomStatus.LOBBY ? 'flex' : 'hidden lg:flex'} lg:flex-none lg:w-72 xl:w-80 flex-col min-h-0 h-fit max-h-[40vh] lg:max-h-full`}
       >
         <PlayerGrid />
       </div>

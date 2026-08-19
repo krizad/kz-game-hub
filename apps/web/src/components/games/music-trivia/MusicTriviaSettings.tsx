@@ -1,17 +1,12 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 export function MusicTriviaSettings() {
   const { room } = useGameStore();
   const { t } = useTranslate();
-  const [localQuery, setLocalQuery] = useState(room?.config.musicTriviaQuery || '');
-
-  useEffect(() => {
-    if (room?.config.musicTriviaQuery !== undefined) {
-      setLocalQuery(room.config.musicTriviaQuery);
-    }
-  }, [room?.config.musicTriviaQuery]);
 
   if (room?.gameType !== 'MUSIC_TRIVIA') return null;
 
@@ -41,6 +36,7 @@ export function MusicTriviaSettings() {
         return t('gameMusicTrivia.lobby.searchSong');
       case 'albumTerm':
         return t('gameMusicTrivia.lobby.searchAlbum');
+      case '':
       default:
         return t('gameMusicTrivia.lobby.searchAnything');
     }
@@ -48,322 +44,283 @@ export function MusicTriviaSettings() {
 
   return (
     <>
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-          {t('gameMusicTrivia.lobby.musicCategory')}
-        </label>
-        {isHost ? (
-          <input
-            autoComplete="off"
-            type="text"
-            value={localQuery}
-            onChange={(e) => setLocalQuery(e.target.value)}
-            onBlur={() => useGameStore.getState().updateConfig({ musicTriviaQuery: localQuery })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                useGameStore.getState().updateConfig({ musicTriviaQuery: localQuery });
-              }
-            }}
-            placeholder={t('gameMusicTrivia.lobby.queryPlaceholder') || 'e.g. Thai Pop, 90s Hits'}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-            {room.config.musicTriviaQuery || t('gameMusicTrivia.lobby.waitingForHost')}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - mb-6">
+        <h4 className="font-black text-xl text-black uppercase tracking-widest mb-4 border-b-4 border-black pb-2 inline-block -">
           {t('gameMusicTrivia.lobby.musicSource')}
-        </label>
-        {isHost ? (
-          <select
-            title="Select music source"
-            aria-label="Music source"
-            value={room.config.musicTriviaSource || 'ITUNES'}
-            onChange={(e) =>
-              useGameStore.getState().updateConfig({
-                musicTriviaSource: e.target.value as
-                  | 'ITUNES'
-                  | 'SPOTIFY'
-                  | 'YOUTUBE'
-                  | 'DEEZER'
-                  | 'SOUNDCLOUD',
-              })
-            }
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="ITUNES">{t('gameMusicTrivia.lobby.sourceItunes')}</option>
-            <option value="SPOTIFY">{t('gameMusicTrivia.lobby.sourceSpotify')}</option>
-            <option value="YOUTUBE">{t('gameMusicTrivia.lobby.sourceYoutube')}</option>
-            <option value="DEEZER">{t('gameMusicTrivia.lobby.sourceDeezer')}</option>
-            <option value="SOUNDCLOUD">{t('gameMusicTrivia.lobby.sourceSoundcloud')}</option>
-          </select>
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-            {getSourceLabel(room.config.musicTriviaSource)}
+        </h4>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.sourceLabel')}
+            </label>
+            {isHost ? (
+              <NeobrutalismSelect
+                value={room.config.musicTriviaSource || 'ITUNES'}
+                options={[
+                  { value: 'ITUNES', label: t('gameMusicTrivia.lobby.sourceItunes') },
+                  { value: 'SPOTIFY', label: t('gameMusicTrivia.lobby.sourceSpotify') },
+                  { value: 'YOUTUBE', label: t('gameMusicTrivia.lobby.sourceYoutube') },
+                  { value: 'DEEZER', label: t('gameMusicTrivia.lobby.sourceDeezer') },
+                  { value: 'SOUNDCLOUD', label: t('gameMusicTrivia.lobby.sourceSoundcloud') },
+                ]}
+                onChange={(val) =>
+                  useGameStore.getState().updateConfig({
+                    musicTriviaSource: val as
+                      | 'ITUNES'
+                      | 'SPOTIFY'
+                      | 'YOUTUBE'
+                      | 'DEEZER'
+                      | 'SOUNDCLOUD',
+                  })
+                }
+                className="bg-white hover:bg-gray-100"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {getSourceLabel(room.config.musicTriviaSource)}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            {t('gameMusicTrivia.lobby.region')}
-          </label>
-          {isHost ? (
-            <select
-              title="Select music region"
-              aria-label="Music region"
-              value={room.config.musicTriviaCountry || 'TH'}
-              onChange={(e) =>
-                useGameStore.getState().updateConfig({ musicTriviaCountry: e.target.value })
-              }
-              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="TH">{t('gameMusicTrivia.lobby.regionTh')}</option>
-              <option value="US">{t('gameMusicTrivia.lobby.regionIntl')}</option>
-            </select>
-          ) : (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-              {room.config.musicTriviaCountry === 'US'
-                ? t('gameMusicTrivia.lobby.regionIntl')
-                : t('gameMusicTrivia.lobby.regionTh')}
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.regionLabel')}
+            </label>
+            {isHost ? (
+              <NeobrutalismSelect
+                value={room.config.musicTriviaCountry || 'TH'}
+                options={[
+                  { value: 'TH', label: t('gameMusicTrivia.lobby.regionTh') },
+                  { value: 'US', label: t('gameMusicTrivia.lobby.regionIntl') },
+                ]}
+                onChange={(val) =>
+                  useGameStore.getState().updateConfig({ musicTriviaCountry: val })
+                }
+                className="bg-white hover:bg-gray-100"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {room.config.musicTriviaCountry === 'US'
+                  ? t('gameMusicTrivia.lobby.regionIntl')
+                  : t('gameMusicTrivia.lobby.regionTh')}
+              </div>
+            )}
+          </div>
+
+          {room.config.musicTriviaSource === 'ITUNES' && (
+            <div>
+              <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+                {t('gameMusicTrivia.lobby.searchCriteria')}
+              </label>
+              {isHost ? (
+                <NeobrutalismSelect
+                  value={room.config.musicTriviaAttribute || ''}
+                  options={[
+                    { value: '', label: t('gameMusicTrivia.lobby.searchAnything') },
+                    { value: 'artistTerm', label: t('gameMusicTrivia.lobby.searchArtist') },
+                    { value: 'songTerm', label: t('gameMusicTrivia.lobby.searchSong') },
+                    { value: 'albumTerm', label: t('gameMusicTrivia.lobby.searchAlbum') },
+                  ]}
+                  onChange={(val) =>
+                    useGameStore.getState().updateConfig({ musicTriviaAttribute: val })
+                  }
+                  className="bg-white hover:bg-gray-100"
+                />
+              ) : (
+                <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] truncate">
+                  {getAttributeLabel(room.config.musicTriviaAttribute)}
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            {t('gameMusicTrivia.lobby.searchBy')}
-          </label>
-          {isHost ? (
-            <select
-              title="Select search attribute"
-              aria-label="Search attribute"
-              value={room.config.musicTriviaAttribute || ''}
-              onChange={(e) =>
-                useGameStore.getState().updateConfig({ musicTriviaAttribute: e.target.value })
-              }
-              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">{t('gameMusicTrivia.lobby.searchAnything')}</option>
-              <option value="artistTerm">{t('gameMusicTrivia.lobby.searchArtist')}</option>
-              <option value="songTerm">{t('gameMusicTrivia.lobby.searchSong')}</option>
-              <option value="albumTerm">{t('gameMusicTrivia.lobby.searchAlbum')}</option>
-            </select>
-          ) : (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200 truncate">
-              {getAttributeLabel(room.config.musicTriviaAttribute)}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            {t('gameMusicTrivia.lobby.yearStart')}
-          </label>
-          {isHost ? (
-            <input
-              type="number"
-              min="1950"
-              max={new Date().getFullYear()}
-              placeholder="e.g. 1990"
-              value={room.config.musicTriviaYearStart || ''}
-              onChange={(e) => {
-                const val = e.target.value ? parseInt(e.target.value) : undefined;
-                useGameStore.getState().updateConfig({ musicTriviaYearStart: val });
-              }}
-              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          ) : (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-              {room.config.musicTriviaYearStart || 'All'}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            {t('gameMusicTrivia.lobby.yearEnd')}
-          </label>
-          {isHost ? (
-            <input
-              type="number"
-              min="1950"
-              max={new Date().getFullYear()}
-              placeholder={`e.g. ${new Date().getFullYear()}`}
-              value={room.config.musicTriviaYearEnd || ''}
-              onChange={(e) => {
-                const val = e.target.value ? parseInt(e.target.value) : undefined;
-                useGameStore.getState().updateConfig({ musicTriviaYearEnd: val });
-              }}
-              className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          ) : (
-            <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-              {room.config.musicTriviaYearEnd || 'All'}
-            </div>
-          )}
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.searchKeywords')}
+            </label>
+            {isHost ? (
+              <input
+                id="musicSearchTermInput"
+                name="musicTriviaQuery"
+                autoComplete="off"
+                type="text"
+                value={room.config.musicTriviaQuery || ''}
+                onChange={(e) =>
+                  useGameStore.getState().updateConfig({ musicTriviaQuery: e.target.value })
+                }
+                placeholder={t('gameMusicTrivia.lobby.searchPlaceholder')}
+                className="w-full bg-white border-4 border-black px-4 py-3 text-lg font-bold text-black focus:outline-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform focus:-translate-y-1"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] truncate">
+                {room.config.musicTriviaQuery || t('gameMusicTrivia.lobby.anyTopic')}
+              </div>
+            )}
+            <p className="text-xs text-black font-bold mt-2 bg-yellow-300 border-2 border-black inline-block px-2 py-1 ">
+              {t('gameMusicTrivia.lobby.searchHint')}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-          {t('gameMusicTrivia.lobby.gameMode')}
-        </label>
-        {isHost ? (
-          <select
-            id="musicModeSelect"
-            name="musicTriviaMode"
-            title="Game Mode"
-            aria-label="Game Mode"
-            value={room.config?.musicTriviaMode || 'TYPING'}
-            onChange={(e) => {
-              useGameStore
-                .getState()
-                .updateConfig({ musicTriviaMode: e.target.value as 'TYPING' | 'GAME_MASTER' });
-            }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value="TYPING">{t('gameMusicTrivia.lobby.modeTyping')}</option>
-            <option value="GAME_MASTER">{t('gameMusicTrivia.lobby.modeVoice')}</option>
-          </select>
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-            {room.config?.musicTriviaMode === 'GAME_MASTER'
-              ? t('gameMusicTrivia.lobby.modeVoice')
-              : t('gameMusicTrivia.lobby.modeTyping')}
-          </div>
-        )}
-      </div>
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+        <h4 className="font-black text-xl text-black uppercase tracking-widest mb-4 border-b-4 border-black pb-2 inline-block -">
+          {t('gameMusicTrivia.lobby.gameRules')}
+        </h4>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-          {t('gameMusicTrivia.lobby.numRounds')}
-        </label>
-        {isHost ? (
-          <select
-            id="musicRoundsSelect"
-            name="musicTriviaRounds"
-            title="Number of Rounds"
-            aria-label="Number of Rounds"
-            value={room.config?.musicTriviaRounds || 10}
-            onChange={(e) => {
-              useGameStore
-                .getState()
-                .updateConfig({ musicTriviaRounds: Number.parseInt(e.target.value, 10) });
-            }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value={5}>{t('gameMusicTrivia.lobby.roundsCount', { count: 5 })}</option>
-            <option value={10}>{t('gameMusicTrivia.lobby.roundsCount', { count: 10 })}</option>
-            <option value={15}>{t('gameMusicTrivia.lobby.roundsCount', { count: 15 })}</option>
-            <option value={20}>{t('gameMusicTrivia.lobby.roundsCount', { count: 20 })}</option>
-          </select>
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-            {t('gameMusicTrivia.lobby.roundsCount', {
-              count: room.config?.musicTriviaRounds || 10,
-            })}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.gameMode')}
+            </label>
+            {isHost ? (
+              <NeobrutalismSelect
+                value={room.config?.musicTriviaMode || 'TYPING'}
+                options={[
+                  { value: 'TYPING', label: t('gameMusicTrivia.lobby.modeTyping') },
+                  { value: 'GAME_MASTER', label: t('gameMusicTrivia.lobby.modeVoice') },
+                ]}
+                onChange={(val) => {
+                  useGameStore
+                    .getState()
+                    .updateConfig({ musicTriviaMode: val as 'TYPING' | 'GAME_MASTER' });
+                }}
+                className="bg-white hover:bg-gray-100"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {room.config?.musicTriviaMode === 'GAME_MASTER'
+                  ? t('gameMusicTrivia.lobby.modeVoice')
+                  : t('gameMusicTrivia.lobby.modeTyping')}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-          {t('gameMusicTrivia.lobby.answerTimeout')}
-        </label>
-        {isHost ? (
-          <select
-            id="musicTimeoutSelect"
-            name="musicTriviaAnswerTimeoutMs"
-            title="Answer Timeout"
-            aria-label="Answer Timeout"
-            value={room.config?.musicTriviaAnswerTimeoutMs || 15000}
-            onChange={(e) => {
-              useGameStore
-                .getState()
-                .updateConfig({ musicTriviaAnswerTimeoutMs: Number.parseInt(e.target.value, 10) });
-            }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value={5000}>5</option>
-            <option value={10000}>10</option>
-            <option value={15000}>15</option>
-            <option value={20000}>20</option>
-            <option value={30000}>30</option>
-          </select>
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-            {(room.config?.musicTriviaAnswerTimeoutMs || 15000) / 1000}
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.numRounds')}
+            </label>
+            {isHost ? (
+              <NeobrutalismSelect
+                value={room.config?.musicTriviaRounds || 10}
+                options={[
+                  { value: '5', label: t('gameMusicTrivia.lobby.roundsCount', { count: 5 }) },
+                  { value: '10', label: t('gameMusicTrivia.lobby.roundsCount', { count: 10 }) },
+                  { value: '15', label: t('gameMusicTrivia.lobby.roundsCount', { count: 15 }) },
+                  { value: '20', label: t('gameMusicTrivia.lobby.roundsCount', { count: 20 }) },
+                  { value: '25', label: t('gameMusicTrivia.lobby.roundsCount', { count: 25 }) },
+                ]}
+                onChange={(val) => {
+                  useGameStore
+                    .getState()
+                    .updateConfig({ musicTriviaRounds: Number.parseInt(val, 10) });
+                }}
+                className="bg-white hover:bg-gray-100"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {t('gameMusicTrivia.lobby.roundsCount', {
+                  count: room.config?.musicTriviaRounds || 10,
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-          {t('gameMusicTrivia.lobby.audioPlayback')}
-        </label>
-        {isHost ? (
-          <select
-            id="musicPlaybackSelect"
-            name="musicTriviaAudioPlayback"
-            title="Audio Playback"
-            aria-label="Audio Playback"
-            value={room.config?.musicTriviaAudioPlayback || 'EVERYONE'}
-            onChange={(e) => {
-              useGameStore.getState().updateConfig({
-                musicTriviaAudioPlayback: e.target.value as 'EVERYONE' | 'HOST_ONLY',
-              });
-            }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value="EVERYONE">{t('gameMusicTrivia.lobby.playbackEveryone')}</option>
-            <option value="HOST_ONLY">{t('gameMusicTrivia.lobby.playbackHostOnly')}</option>
-          </select>
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-            {room.config?.musicTriviaAudioPlayback === 'HOST_ONLY'
-              ? t('gameMusicTrivia.lobby.playbackHostOnly')
-              : t('gameMusicTrivia.lobby.playbackEveryone')}
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.answerTimeout')}
+            </label>
+            {isHost ? (
+              <NeobrutalismSelect
+                value={room.config?.musicTriviaAnswerTimeoutMs || 15000}
+                options={[
+                  { value: '5000', label: `5 ${t('lobby.seconds') || 'Sec'}` },
+                  { value: '10000', label: `10 ${t('lobby.seconds') || 'Sec'}` },
+                  { value: '15000', label: `15 ${t('lobby.seconds') || 'Sec'}` },
+                  { value: '20000', label: `20 ${t('lobby.seconds') || 'Sec'}` },
+                  { value: '30000', label: `30 ${t('lobby.seconds') || 'Sec'}` },
+                  { value: '60000', label: `60 ${t('lobby.seconds') || 'Sec'}` },
+                ]}
+                onChange={(val) => {
+                  useGameStore.getState().updateConfig({
+                    musicTriviaAnswerTimeoutMs: Number.parseInt(val, 10),
+                  });
+                }}
+                className="bg-white hover:bg-gray-100"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {(room.config?.musicTriviaAnswerTimeoutMs || 15000) / 1000}{' '}
+                {t('lobby.seconds') || 'Sec'}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-          {t('gameMusicTrivia.lobby.answerType')}
-        </label>
-        {isHost ? (
-          <select
-            title="Answer Criteria"
-            aria-label="Answer Criteria"
-            value={room.config?.musicTriviaAnswerCriteria || 'ANY'}
-            onChange={(e) => {
-              useGameStore.getState().updateConfig({
-                musicTriviaAnswerCriteria: e.target.value as 'ANY' | 'TITLE' | 'ARTIST',
-              });
-            }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value="ANY">{t('gameMusicTrivia.lobby.answerAny')}</option>
-            <option value="TITLE">{t('gameMusicTrivia.lobby.answerTitle')}</option>
-            <option value="ARTIST">{t('gameMusicTrivia.lobby.answerArtist')}</option>
-          </select>
-        ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
-            {room.config?.musicTriviaAnswerCriteria === 'TITLE'
-              ? t('gameMusicTrivia.lobby.answerTitle')
-              : room.config?.musicTriviaAnswerCriteria === 'ARTIST'
-                ? t('gameMusicTrivia.lobby.answerArtist')
-                : t('gameMusicTrivia.lobby.answerAny')}
+          <div>
+            <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+              {t('gameMusicTrivia.lobby.audioPlayback')}
+            </label>
+            {isHost ? (
+              <NeobrutalismSelect
+                value={room.config?.musicTriviaAudioPlayback || 'EVERYONE'}
+                options={[
+                  { value: 'EVERYONE', label: t('gameMusicTrivia.lobby.playbackEveryone') },
+                  { value: 'HOST_ONLY', label: t('gameMusicTrivia.lobby.playbackHostOnly') },
+                ]}
+                onChange={(val) => {
+                  useGameStore.getState().updateConfig({
+                    musicTriviaAudioPlayback: val as 'EVERYONE' | 'HOST_ONLY',
+                  });
+                }}
+                className="bg-white hover:bg-gray-100"
+              />
+            ) : (
+              <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {room.config?.musicTriviaAudioPlayback === 'HOST_ONLY'
+                  ? t('gameMusicTrivia.lobby.playbackHostOnly')
+                  : t('gameMusicTrivia.lobby.playbackEveryone')}
+              </div>
+            )}
+            <p className="text-xs text-black font-bold mt-2 bg-yellow-300 border-2 border-black inline-block px-2 py-1 ">
+              {room.config?.musicTriviaAudioPlayback === 'HOST_ONLY'
+                ? t('gameMusicTrivia.lobby.playbackHostHint')
+                : t('gameMusicTrivia.lobby.playbackEveryoneHint')}
+            </p>
           </div>
-        )}
+
+          {room.config?.musicTriviaMode === 'TYPING' && (
+            <div>
+              <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
+                {t('gameMusicTrivia.lobby.answerCriteria')}
+              </label>
+              {isHost ? (
+                <NeobrutalismSelect
+                  value={room.config?.musicTriviaAnswerCriteria || 'ANY'}
+                  options={[
+                    { value: 'ANY', label: t('gameMusicTrivia.lobby.answerAny') },
+                    { value: 'TITLE', label: t('gameMusicTrivia.lobby.answerTitle') },
+                    { value: 'ARTIST', label: t('gameMusicTrivia.lobby.answerArtist') },
+                  ]}
+                  onChange={(val) => {
+                    useGameStore.getState().updateConfig({
+                      musicTriviaAnswerCriteria: val as 'ANY' | 'TITLE' | 'ARTIST',
+                    });
+                  }}
+                  className="bg-white hover:bg-gray-100"
+                />
+              ) : (
+                <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {room.config?.musicTriviaAnswerCriteria === 'TITLE'
+                    ? t('gameMusicTrivia.lobby.answerTitle')
+                    : room.config?.musicTriviaAnswerCriteria === 'ARTIST'
+                      ? t('gameMusicTrivia.lobby.answerArtist')
+                      : t('gameMusicTrivia.lobby.answerAny')}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

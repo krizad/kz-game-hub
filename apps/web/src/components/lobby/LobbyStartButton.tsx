@@ -17,7 +17,7 @@ export function LobbyStartButton() {
 
   if (!isHost) {
     return (
-      <div className="w-full max-w-xs bg-amber-100/50 text-slate-600 border border-amber-200 font-bold text-sm py-4 rounded-xl text-center uppercase tracking-widest">
+      <div className="w-full max-w-xs bg-white text-black border-4 border-black shadow-[4px_4px_0_0_#000] font-black text-sm py-4 text-center uppercase tracking-widest">
         {t('lobby.waitingForHost')}
       </div>
     );
@@ -80,10 +80,10 @@ export function LobbyStartButton() {
       <button
         onClick={handleStart}
         disabled={isDisabled}
-        className={`w-full max-w-xs text-white font-black text-lg py-4 rounded-xl transition-colors uppercase tracking-widest shadow-sm ${
+        className={`w-full max-w-xs text-white border-4 border-black font-black text-lg py-4 transition-all uppercase tracking-widest ${
           isDisabled
-            ? 'bg-slate-400 cursor-not-allowed'
-            : 'bg-green-600 hover:bg-green-500 shadow-green-900/20'
+            ? 'bg-[#9CA3AF] cursor-not-allowed shadow-[4px_4px_0_0_#000]'
+            : 'bg-[#22C55E] hover:bg-[#16A34A] shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]'
         }`}
       >
         {getButtonText()}
@@ -91,15 +91,14 @@ export function LobbyStartButton() {
 
       {/* Host Word Modal for Who Am I */}
       {showHostWordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
-          <div className="bg-white border border-indigo-500/50 rounded-3xl w-full max-w-lg shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#E879F9] border-4 border-black w-full max-w-lg shadow-[8px_8px_0_0_#000] relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
             <div className="p-6 md:p-8 flex flex-col gap-6 overflow-hidden flex-1">
               <div className="text-center">
-                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest mb-2">
+                <h3 className="text-2xl font-black text-black uppercase tracking-widest mb-2 bg-white border-2 border-black py-2 rounded-md shadow-[2px_2px_0_0_#000]">
                   📝 Set Words
                 </h3>
-                <p className="text-slate-600 font-medium text-sm">
+                <p className="text-black font-bold text-sm bg-white p-2 rounded border border-black/20">
                   Assign a word to each player. You (Host) won't get a word and will act as a
                   spectator/moderator for this match.
                 </p>
@@ -111,9 +110,9 @@ export function LobbyStartButton() {
                   .map((p) => (
                     <div
                       key={p.socketId}
-                      className="bg-amber-50 border border-amber-200 rounded-xl p-3"
+                      className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-3"
                     >
-                      <label className="text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+                      <label className="text-sm font-black text-black mb-1 flex items-center gap-2">
                         {p.name}
                       </label>
                       <input
@@ -126,7 +125,7 @@ export function LobbyStartButton() {
                           setHostWordInputs((prev) => ({ ...prev, [p.socketId]: e.target.value }))
                         }
                         placeholder="Enter a character, animal, object..."
-                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                        className="w-full bg-white border-2 border-black rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold"
                       />
                     </div>
                   ))}
@@ -135,7 +134,7 @@ export function LobbyStartButton() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowHostWordModal(false)}
-                  className="flex-1 bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-all"
+                  className="flex-1 bg-white hover:bg-gray-100 text-black border-2 border-black font-black py-3 px-4 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
                 >
                   Cancel
                 </button>
@@ -149,7 +148,7 @@ export function LobbyStartButton() {
                     setShowHostWordModal(false);
                     submitWordsWhoAmI(cleanInputs);
                   }}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-sm shadow-indigo-500/20"
+                  className="flex-1 bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:bg-gray-400 text-white border-2 border-black font-black py-3 px-4 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
                 >
                   Start Game
                 </button>

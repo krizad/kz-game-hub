@@ -2,6 +2,7 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 export function RpsSettings() {
   const { room } = useGameStore();
@@ -13,29 +14,26 @@ export function RpsSettings() {
 
   return (
     <>
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="font-mono">
+        <label className="block text-sm font-black text-black uppercase tracking-wider mb-2">
           {t('lobby.mode')}
         </label>
         {isHost ? (
-          <select
-            id="rpsModeSelect"
-            name="rpsMode"
-            title="RPS Mode"
-            aria-label="RPS Mode"
-            onChange={(e) => {
+          <NeobrutalismSelect
+            value={room.config?.rpsMode || '1V1_ROUND_ROBIN'}
+            options={[
+              { value: '1V1_ROUND_ROBIN', label: t('lobby.oneVOneRoundRobin') },
+              { value: 'ALL_AT_ONCE', label: t('lobby.allAtOnce') },
+            ]}
+            onChange={(val) => {
               useGameStore
                 .getState()
-                .updateConfig({ rpsMode: e.target.value as '1V1_ROUND_ROBIN' | 'ALL_AT_ONCE' });
+                .updateConfig({ rpsMode: val as '1V1_ROUND_ROBIN' | 'ALL_AT_ONCE' });
             }}
-            value={room.config?.rpsMode || '1V1_ROUND_ROBIN'}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value="1V1_ROUND_ROBIN">{t('lobby.oneVOneRoundRobin')}</option>
-            <option value="ALL_AT_ONCE">{t('lobby.allAtOnce')}</option>
-          </select>
+            className="bg-cyan-300"
+          />
         ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+          <div className="text-black font-bold px-3 py-2 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             {room.config?.rpsMode === 'ALL_AT_ONCE'
               ? t('lobby.allAtOnce')
               : t('lobby.oneVOneRoundRobin')}
@@ -43,31 +41,26 @@ export function RpsSettings() {
         )}
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="font-mono">
+        <label className="block text-sm font-black text-black uppercase tracking-wider mb-2">
           {t('lobby.targetScore')}
         </label>
         {isHost ? (
-          <select
-            id="rpsBestOfSelect"
-            name="rpsBestOf"
-            title="Best of Target Score"
-            aria-label="Best of Target Score"
-            value={room.config?.rpsBestOf || 3}
-            onChange={(e) => {
-              useGameStore
-                .getState()
-                .updateConfig({ rpsBestOf: Number.parseInt(e.target.value, 10) });
+          <NeobrutalismSelect
+            value={String(room.config?.rpsBestOf || 3)}
+            options={[
+              { value: '1', label: t('lobby.bo1') },
+              { value: '3', label: t('lobby.bo3') },
+              { value: '5', label: t('lobby.bo5') },
+              { value: '7', label: t('lobby.bo7') },
+            ]}
+            onChange={(val) => {
+              useGameStore.getState().updateConfig({ rpsBestOf: Number.parseInt(val, 10) });
             }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value={1}>{t('lobby.bo1')}</option>
-            <option value={3}>{t('lobby.bo3')}</option>
-            <option value={5}>{t('lobby.bo5')}</option>
-            <option value={7}>{t('lobby.bo7')}</option>
-          </select>
+            className="bg-pink-300"
+          />
         ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+          <div className="text-black font-bold px-3 py-2 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
             {t('lobby.bestOf')} {room.config?.rpsBestOf || 3}
           </div>
         )}

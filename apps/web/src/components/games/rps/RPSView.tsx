@@ -56,29 +56,31 @@ export function RPSView() {
       room.status === RoomStatus.RESULT &&
       (isWinnerId(rps.gameWinner, playerId) || isWinnerId(rps.roundWinner, playerId));
 
+    const colors = ['bg-cyan-300', 'bg-pink-300', 'bg-emerald-300', 'bg-purple-300'];
+    const bgColor = colors[index % colors.length];
+
     return (
       <div
         key={`active-${playerId}`}
-        className={`flex flex-col items-center transition-all ${mySideIndex !== -1 && mySideIndex !== index ? 'opacity-50' : ''} ${isWinner ? 'scale-110' : ''}`}
+        className={`flex flex-col items-center transition-all ${mySideIndex !== -1 && mySideIndex !== index ? 'opacity-70' : ''} ${isWinner ? 'scale-110 z-10' : ''}`}
       >
-        <span
-          className={`font-black text-2xl ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-orange-400' : 'text-indigo-400'}`}
+        <div
+          className={`flex flex-col items-center border-4 border-black p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${bgColor} ${index % 2 === 0 ? '' : '-'}`}
         >
-          P{index + 1}
-        </span>
-        <span className="text-slate-700 font-medium text-sm text-center truncate max-w-[100px]">
-          {player.name}
-        </span>
-        <span
-          className={`text-xs mt-1 px-2 py-0.5 rounded-md border shadow-inner ${index === 0 ? 'text-amber-300 bg-amber-950/50 border-amber-900/50' : index === 1 ? 'text-orange-300 bg-orange-950/50 border-orange-900/50' : 'text-indigo-300 bg-indigo-950/50 border-indigo-900/50'}`}
-        >
-          {score} / {targetScore}
-        </span>
+          <span className="font-black text-2xl text-black">P{index + 1}</span>
+          <span className="text-black font-bold text-sm text-center truncate max-w-[100px]">
+            {player.name}
+          </span>
+          <span className="text-black text-xs mt-1 bg-white px-2 py-0.5 border-2 border-black font-black">
+            {score} / {targetScore}
+          </span>
+        </div>
+
         {room.status === RoomStatus.RESULT && choice && (
           <div
-            className={`mt-4 p-4 rounded-3xl border ${isWinner ? (index === 0 ? 'border-amber-500 bg-amber-900/20 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-bounce' : index === 1 ? 'border-orange-500 bg-orange-900/20 shadow-[0_0_30px_rgba(249,115,22,0.3)] animate-bounce' : 'border-indigo-500 bg-indigo-900/20 shadow-[0_0_30px_rgba(99,102,241,0.3)] animate-bounce') : rps.roundWinner === 'DRAW' ? 'border-slate-500 bg-amber-100' : 'border-amber-200 bg-white opacity-50'}`}
+            className={`mt-4 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${isWinner ? 'bg-yellow-300 animate-bounce' : rps.roundWinner === 'DRAW' ? 'bg-gray-300' : 'bg-white opacity-50'} ${index % 2 === 0 ? '-' : ''}`}
           >
-            <span className="text-5xl sm:text-7xl">{getEmoji(choice)}</span>
+            <span className="text-5xl sm:text-7xl drop-">{getEmoji(choice)}</span>
           </div>
         )}
       </div>
@@ -86,38 +88,38 @@ export function RPSView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 relative font-mono h-full overflow-y-auto overflow-x-hidden w-full">
       {actionLoading && <ActionLoadingOverlay />}
-      <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-white border border-amber-200 rounded-3xl p-6 shadow-sm relative">
+      <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none p-6 relative my-auto">
         {/* Header */}
-        <div className="flex justify-between w-full items-center px-2 sm:px-4 mb-4">
-          <div className="text-xs font-bold text-slate-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+        <div className="flex flex-wrap justify-center w-full items-center gap-4 mb-4">
+          <div className="text-xs font-black text-black bg-cyan-300 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
             {room.config.rpsMode === 'ALL_AT_ONCE'
               ? t('gameRps.allAtOnce')
               : t('gameRps.oneVOneRoundRobin')}
           </div>
-          <div className="text-sm font-black tracking-widest uppercase text-slate-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-inner">
+          <div className="text-sm font-black tracking-widest uppercase text-black bg-yellow-300 px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10 ">
             {room.status === RoomStatus.RESULT
               ? rps.gameWinner
                 ? t('gameRps.matchOver')
                 : t('gameRps.roundOver')
               : t('gameRps.playing')}
           </div>
-          <div className="text-xs font-bold text-amber-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+          <div className="text-xs font-black text-black bg-pink-300 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
             {t('gameRps.firstTo', { score: targetScore })}
           </div>
         </div>
 
         {/* Players / Arena */}
         {room.config.rpsMode === 'ALL_AT_ONCE' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 w-full items-end justify-center min-h-[150px]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 w-full items-end justify-center min-h-[150px] mt-4">
             {rps.activePlayers.map((id, idx) => renderActivePlayer(id, idx))}
           </div>
         ) : (
-          <div className="flex justify-between w-full items-end min-h-[150px] px-2 sm:px-10">
+          <div className="flex justify-between w-full items-end min-h-[150px] px-2 sm:px-10 mt-4">
             {renderActivePlayer(rps.activePlayers[0], 0)}
             {room.status === RoomStatus.RESULT && (
-              <div className="hidden sm:block text-4xl font-black text-slate-600 italic px-4 pb-10">
+              <div className="hidden sm:block text-5xl font-black text-black px-4 pb-10 ">
                 {t('gameRps.vs')}
               </div>
             )}
@@ -129,27 +131,27 @@ export function RPSView() {
         {room.status === RoomStatus.PLAYING && (
           <div className="w-full flex flex-col items-center gap-6 mt-8">
             {!isMyTurn ? (
-              <div className="text-2xl font-black text-slate-500 uppercase tracking-widest bg-amber-50 px-8 py-4 rounded-2xl border border-amber-200">
+              <div className="text-2xl font-black text-black uppercase tracking-widest bg-gray-300 px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameRps.spectating')}
               </div>
             ) : myChoice ? (
-              <div className="text-2xl font-black text-amber-500 animate-pulse text-center bg-amber-950/30 px-8 py-4 rounded-2xl border border-amber-900/50">
+              <div className="text-xl font-black text-black text-center bg-yellow-300 px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                 {t('gameRps.choiceLocked')}
                 <br />
-                <span className="text-base text-amber-500/50 mt-2 block">
+                <span className="text-sm font-bold mt-2 block bg-white border-2 border-black px-2 py-1">
                   {t('gameRps.waitingOpponent')}
                 </span>
               </div>
             ) : (
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap justify-center">
                 {(['ROCK', 'PAPER', 'SCISSORS'] as const).map((choice) => (
                   <button
                     key={choice}
                     disabled={actionLoading}
                     onClick={() => rpsMakeChoice(choice)}
-                    className="w-20 h-20 sm:w-28 sm:h-28 bg-amber-100 hover:bg-amber-200 rounded-2xl flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:scale-95 border border-amber-300 hover:border-amber-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-20 h-20 sm:w-28 sm:h-28 bg-white hover:bg-yellow-200 flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:translate-y-1 active:shadow-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {getEmoji(choice)}
+                    <span className="drop-">{getEmoji(choice)}</span>
                   </button>
                 ))}
               </div>
@@ -159,17 +161,17 @@ export function RPSView() {
 
         {/* Results & Transitions */}
         {room.status === RoomStatus.RESULT && (
-          <div className="flex flex-col items-center gap-6 animate-in zoom-in slide-in-from-bottom-4 w-full mt-4">
+          <div className="flex flex-col items-center gap-6 animate-in zoom-in slide-in-from-bottom-4 w-full mt-8">
             {rps.roundWinner === 'DRAW' ? (
-              <div className="text-2xl sm:text-3xl font-black text-slate-600 bg-amber-100 px-6 py-2 rounded-2xl border border-amber-400 shadow-sm">
+              <div className="text-2xl sm:text-3xl font-black text-black bg-gray-300 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameRps.draw')}
               </div>
             ) : rps.gameWinner ? (
-              <div className="text-3xl sm:text-4xl font-black px-8 py-4 rounded-2xl border shadow-sm text-amber-400 bg-amber-950 border-amber-500 animate-pulse text-center">
+              <div className="text-xl sm:text-3xl text-center font-black px-4 sm:px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-black bg-yellow-300 - w-full break-words">
                 🏆 {t('gameRps.winsMatch', { winner: getWinnerNames(rps.gameWinner) })} 🏆
               </div>
             ) : (
-              <div className="text-2xl sm:text-3xl font-black px-6 py-2 rounded-2xl border shadow-sm text-indigo-400 bg-indigo-950/50 border-indigo-500/50">
+              <div className="text-lg sm:text-2xl text-center font-black px-4 sm:px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black bg-cyan-300 w-full break-words">
                 {t('gameRps.winsRound', { winner: getWinnerNames(rps.roundWinner) })}
               </div>
             )}
@@ -178,7 +180,7 @@ export function RPSView() {
               <button
                 onClick={rpsNextRound}
                 disabled={actionLoading}
-                className={`font-bold px-10 py-4 rounded-xl mt-2 transition-all shadow-sm active:scale-95 text-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ${rps.gameWinner ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-slate-800'}`}
+                className={`font-black px-10 py-4 border-4 border-black mt-2 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ${rps.gameWinner ? 'bg-pink-300 hover:bg-pink-400 text-black -' : 'bg-emerald-300 hover:bg-emerald-400 text-black '}`}
               >
                 {rps.gameWinner ? t('gameRps.playAgain') : t('gameRps.nextRound')}
               </button>
@@ -188,8 +190,8 @@ export function RPSView() {
 
         {/* 1V1 Queue Display */}
         {room.config.rpsMode === '1V1_ROUND_ROBIN' && rps.queue.length > 0 && (
-          <div className="absolute -left-6 top-1/2 -translate-y-1/2 -translate-x-full hidden lg:flex flex-col gap-2">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-2">
+          <div className="absolute -left-6 top-1/2 -translate-y-1/2 -translate-x-full hidden xl:flex flex-col gap-2">
+            <h4 className="text-sm font-black text-black bg-white border-2 border-black px-2 py-1 uppercase tracking-widest inline-block self-end">
               {t('gameRps.queue')}
             </h4>
             {rps.queue.map((id, idx) => {
@@ -198,10 +200,10 @@ export function RPSView() {
               return (
                 <div
                   key={`queue-${id}`}
-                  className="bg-amber-100 border border-amber-300 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 shadow-sm flex items-center justify-between min-w-[120px]"
+                  className="bg-yellow-300 border-4 border-black px-4 py-2 text-sm font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between min-w-[120px] "
                 >
                   <span className="truncate max-w-[80px]">{p.name}</span>
-                  <span className="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded ml-2">
+                  <span className="text-xs text-black bg-white border-2 border-black px-1.5 py-0.5 ml-2">
                     #{idx + 1}
                   </span>
                 </div>

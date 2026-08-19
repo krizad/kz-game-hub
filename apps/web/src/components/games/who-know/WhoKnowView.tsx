@@ -18,54 +18,58 @@ export function WhoKnowView() {
     <div className="relative flex-1 flex flex-col min-h-0">
       {actionLoading && <ActionLoadingOverlay />}
       {room.status === RoomStatus.WORD_SETTING && (
-        <div className="flex-1 flex flex-col items-center justify-center py-6 gap-4 min-h-[150px]">
+        <div className="flex-1 flex flex-col items-center justify-center py-6 gap-6 min-h-[150px]">
           {myRole === Role.Host ? (
-            <p className="text-slate-700 font-medium">{t('gameWhoKnow.wordSettingHost')}</p>
+            <div className="bg-yellow-300 p-8 sm:p-10 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-md text-center">
+              <p className="text-black font-black uppercase tracking-widest text-xl sm:text-2xl leading-tight">
+                {t('gameWhoKnow.wordSettingHost')}
+              </p>
+            </div>
           ) : (
-            <>
-              <div className="w-8 h-8 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
-              <p className="text-slate-700 font-medium animate-pulse">
+            <div className="bg-cyan-300 p-8 sm:p-10 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-md w-full text-center flex flex-col items-center gap-4">
+              <div className="text-5xl sm:text-6xl animate-bounce mb-2">⏳</div>
+              <p className="text-black font-black uppercase tracking-widest text-xl sm:text-2xl animate-pulse leading-tight">
                 {t('gameWhoKnow.wordSettingWaiting')}
               </p>
-            </>
+            </div>
           )}
         </div>
       )}
       {room.status === RoomStatus.QUESTIONING && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 sm:gap-6 min-h-0 py-2 sm:py-4">
-          <div className="text-center space-y-1 sm:space-y-2">
-            <h4 className="text-base sm:text-lg font-black uppercase text-teal-400 tracking-widest bg-teal-500/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-teal-500/20 inline-block mb-1 sm:mb-2">
+        <div className="flex-1 flex flex-col items-center justify-center gap-8 min-h-0 py-6">
+          <div className="text-center space-y-4">
+            <h4 className="text-3xl font-black uppercase text-black tracking-widest bg-emerald-400 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block mb-2 -">
               {t('gameWhoKnow.questioningPhase')}
             </h4>
             {myRole === Role.Host ? (
-              <p className="text-slate-700 font-medium text-xs sm:text-sm">
+              <p className="text-black font-bold text-xl bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameWhoKnow.questioningHost')}
               </p>
             ) : (
-              <p className="text-slate-700 font-medium text-xs sm:text-sm">
+              <p className="text-black font-bold text-xl bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameWhoKnow.questioningPlayers')}
               </p>
             )}
           </div>
 
-          <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-slate-800 bg-amber-50 px-6 py-4 rounded-2xl border sm:border border-amber-200 shadow-inner tracking-widest w-full max-w-sm text-center">
+          <div className="text-6xl sm:text-7xl md:text-8xl font-black text-black bg-pink-300 px-8 py-6 border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] tracking-widest w-full max-w-sm text-center animate-pulse">
             {room.endTime ? <CountdownTimer endTime={room.endTime} /> : <span>--:--</span>}
           </div>
 
           {myRole === Role.Host && (
-            <div className="flex flex-col gap-3 mt-2 w-full max-w-md">
-              <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-4 mt-6 w-full max-w-md">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => useGameStore.getState().endQuestioning(false)}
                   disabled={actionLoading}
-                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-sm shadow-teal-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-emerald-400 hover:bg-emerald-300 text-black font-black px-4 py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest text-lg sm:text-xl transition-all -"
                 >
                   {t('gameWhoKnow.wordGuessedVote')}
                 </button>
                 <button
                   onClick={() => useGameStore.getState().endQuestioning(true)}
                   disabled={actionLoading}
-                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-4 rounded-xl transition-all shadow-sm shadow-rose-900/20 active:scale-[0.98] uppercase tracking-wider text-sm sm:text-base border border-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-rose-400 hover:bg-rose-300 text-black font-black px-4 py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest text-lg sm:text-xl transition-all "
                 >
                   {t('gameWhoKnow.timesUpFail')}
                 </button>
@@ -74,7 +78,7 @@ export function WhoKnowView() {
                 <button
                   onClick={() => useGameStore.getState().stopTimer()}
                   disabled={actionLoading}
-                  className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-all shadow-sm active:scale-[0.98] uppercase tracking-wider text-sm border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-yellow-300 hover:bg-yellow-200 text-black font-black px-4 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest text-lg transition-all"
                 >
                   {t('gameWhoKnow.stopTimer')}
                 </button>
@@ -84,24 +88,24 @@ export function WhoKnowView() {
         </div>
       )}
       {room.status === RoomStatus.VOTING && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 sm:gap-6 min-h-0 py-2 sm:py-4">
-          <div className="text-center space-y-1 sm:space-y-2">
-            <h4 className="text-base sm:text-lg font-black uppercase text-orange-400 tracking-widest bg-orange-500/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-orange-500/20 inline-block mb-1 sm:mb-2">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-0 py-6">
+          <div className="text-center space-y-4">
+            <h4 className="text-3xl font-black uppercase text-black tracking-widest bg-yellow-300 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block mb-2 ">
               {t('gameWhoKnow.votingPhase')}
             </h4>
             {myRole === Role.Host ? (
-              <p className="text-slate-700 text-center font-medium text-xs sm:text-sm">
+              <p className="text-black font-bold text-xl bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                 {t('gameWhoKnow.votingHostWait')}
               </p>
             ) : (
-              <p className="text-slate-700 text-center font-medium text-xs sm:text-sm">
+              <p className="text-black font-bold text-xl bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                 {t('gameWhoKnow.votingPrompt')}
               </p>
             )}
           </div>
 
           {myRole !== Role.Host && (
-            <div className="flex flex-wrap gap-3 justify-center w-full max-w-md">
+            <div className="flex flex-col gap-4 justify-center w-full max-w-sm mt-4">
               {room.players.map((p) => {
                 if (p.socketId === room.hostPlayerId || p.socketId === socketId) return null;
 
@@ -112,7 +116,7 @@ export function WhoKnowView() {
                     key={p.id}
                     onClick={() => useGameStore.getState().submitVote(p.socketId)}
                     disabled={actionLoading}
-                    className={`px-4 py-4 rounded-xl font-bold transition-all shadow-sm active:scale-[0.98] w-full sm:w-auto flex-1 basis-[45%] border disabled:opacity-50 disabled:cursor-not-allowed ${hasVotedTarget ? 'bg-orange-600 text-white border-orange-500 shadow-orange-900/50' : 'bg-amber-100 hover:bg-amber-200 text-slate-700 border-amber-300 hover:text-slate-800'}`}
+                    className={`px-6 py-4 border-4 border-black font-black text-2xl uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none w-full disabled:opacity-50 disabled:cursor-not-allowed ${hasVotedTarget ? 'bg-cyan-300 text-black ' : 'bg-white hover:bg-slate-200 text-black -'}`}
                   >
                     {p.name}
                   </button>
@@ -124,60 +128,62 @@ export function WhoKnowView() {
       )}
 
       {room.status === RoomStatus.RESULT && (
-        <div className="flex-1 flex flex-col items-center justify-start gap-4 sm:gap-6 min-h-0 py-4 sm:py-6 w-full overflow-y-auto px-2">
-          <h4 className="text-base sm:text-lg flex-none font-black uppercase text-yellow-400 tracking-widest bg-yellow-500/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-yellow-500/20">
+        <div className="flex-1 flex flex-col items-center justify-start gap-8 min-h-0 py-6 w-full overflow-y-auto px-4">
+          <h4 className="text-3xl flex-none font-black uppercase text-black tracking-widest bg-emerald-400 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             {t('gameWhoKnow.resultsTitle')}
           </h4>
 
           {room.winner === 'TIMEOUT' ? (
-            <div className="text-center bg-rose-950/50 p-6 rounded-2xl border border-rose-900 w-full max-w-sm animate-in zoom-in-95">
-              <h5 className="text-2xl font-black text-rose-500 mb-2 uppercase tracking-wider">
+            <div className="text-center bg-rose-400 p-8 border-4 border-black w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
+              <h5 className="text-3xl font-black text-black mb-4 uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                 {t('gameWhoKnow.timeoutTitle')}
               </h5>
-              <p className="text-rose-200/80 font-medium text-sm">{t('gameWhoKnow.timeoutDesc')}</p>
+              <p className="text-black font-bold text-lg bg-white px-2 py-1 border-2 border-black inline-block">
+                {t('gameWhoKnow.timeoutDesc')}
+              </p>
             </div>
           ) : room.winner === 'INSIDER' ? (
-            <div className="text-center bg-rose-950/50 p-6 rounded-2xl border border-rose-900 w-full max-w-sm shadow-sm animate-in zoom-in-95">
-              <h5 className="text-2xl font-black text-rose-500 mb-2 uppercase tracking-wider">
+            <div className="text-center bg-rose-400 p-8 border-4 border-black w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
+              <h5 className="text-3xl font-black text-black mb-4 uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                 {t('gameWhoKnow.insiderWinsTitle')}
               </h5>
-              <p className="text-rose-200/80 font-medium text-sm">
+              <p className="text-black font-bold text-lg bg-white px-2 py-1 border-2 border-black inline-block">
                 {t('gameWhoKnow.insiderWinsDesc')}
               </p>
             </div>
           ) : room.winner === 'COMMONERS' ? (
-            <div className="text-center bg-emerald-950/50 p-6 rounded-2xl border border-emerald-900 w-full max-w-sm shadow-sm animate-in zoom-in-95">
-              <h5 className="text-2xl font-black text-emerald-500 mb-2 uppercase tracking-wider">
+            <div className="text-center bg-cyan-300 p-8 border-4 border-black w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
+              <h5 className="text-3xl font-black text-black mb-4 uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameWhoKnow.commonersWinTitle')}
               </h5>
-              <p className="text-emerald-200/80 font-medium text-sm">
+              <p className="text-black font-bold text-lg bg-white px-2 py-1 border-2 border-black - inline-block">
                 {t('gameWhoKnow.commonersWinDesc')}
               </p>
             </div>
           ) : null}
 
-          <div className="text-center flex-none bg-white/50 p-5 rounded-2xl border border-amber-200 w-full max-w-sm">
-            <p className="text-slate-600 mb-1 uppercase tracking-wide text-xs font-bold">
+          <div className="text-center flex-none bg-yellow-300 p-6 border-4 border-black w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mt-4">
+            <p className="text-black mb-2 uppercase tracking-widest text-sm font-black bg-white inline-block px-2 py-1 border-2 border-black -">
               {t('gameWhoKnow.secretWordWas')}
             </p>
-            <p className="text-2xl font-black text-rose-400 mb-4">
+            <p className="text-4xl font-black text-black mb-6 uppercase bg-white border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
               {useGameStore.getState().secretWord || 'Unknown'}
             </p>
 
-            <p className="text-slate-600 mb-1 uppercase tracking-wide text-xs font-bold">
+            <p className="text-black mb-2 uppercase tracking-widest text-sm font-black bg-white inline-block px-2 py-1 border-2 border-black ">
               {t('gameWhoKnow.insiderWas')}
             </p>
-            <p className="text-xl font-black text-slate-800">
+            <p className="text-3xl font-black text-black uppercase bg-white border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
               {room.players.find((p) => p.role === Role.Know)?.name || 'Unknown'}
             </p>
           </div>
 
           {room.votes && Object.keys(room.votes).length > 0 && (
-            <div className="w-full flex-none max-w-sm bg-white/50 p-4 rounded-2xl border border-amber-200">
-              <h5 className="text-xs font-bold text-slate-600 uppercase tracking-widest text-center mb-3">
+            <div className="w-full flex-none max-w-sm bg-pink-300 p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - mt-4">
+              <h5 className="text-lg font-black text-black uppercase tracking-widest text-center mb-6 bg-white border-4 border-black px-2 py-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block mx-auto block w-fit">
                 {t('gameWhoKnow.votingResults')}
               </h5>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {(() => {
                   const targetToVoters: Record<string, string[]> = {};
                   Object.entries(room.votes || {}).forEach(([voterId, targetId]) => {
@@ -197,33 +203,33 @@ export function WhoKnowView() {
                     return (
                       <div
                         key={targetId}
-                        className={`flex flex-col gap-1.5 p-2.5 rounded-xl border ${isMostVoted ? 'bg-orange-950/30 border-orange-900/50' : 'bg-amber-50/50 border-amber-200/80'}`}
+                        className={`flex flex-col gap-2 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${isMostVoted ? 'bg-cyan-300 ' : 'bg-white -'}`}
                       >
                         <div className="flex justify-between items-center">
                           <span
-                            className={`font-bold text-sm ${isMostVoted ? 'text-orange-400' : 'text-slate-800'}`}
+                            className={`font-black text-xl uppercase ${isMostVoted ? 'text-black' : 'text-black'}`}
                           >
                             {targetPlayer.name}
                             {isMostVoted && (
-                              <span className="ml-1.5 text-[9px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded uppercase tracking-wider font-black">
+                              <span className="ml-3 text-sm bg-yellow-300 text-black border-2 border-black px-2 py-1 uppercase tracking-widest font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] - inline-block">
                                 {t('gameWhoKnow.mostVoted')}
                               </span>
                             )}
                           </span>
                           <span
-                            className={`text-[10px] font-black border px-1.5 py-0.5 rounded ${isMostVoted ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'}`}
+                            className={`text-sm font-black border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isMostVoted ? 'bg-white text-black ' : 'bg-emerald-400 text-black -'}`}
                           >
                             {voterIds.length}{' '}
                             {voterIds.length === 1 ? t('gameWhoKnow.vote') : t('gameWhoKnow.votes')}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
+                        <div className="flex flex-wrap gap-2 mt-2">
                           {voterIds.map((voterId) => {
                             const voter = room.players.find((p) => p.socketId === voterId);
                             return voter ? (
                               <span
                                 key={voterId}
-                                className="text-[10px] text-slate-600 bg-white/80 border border-amber-300/80 px-1.5 py-0.5 rounded flex items-center gap-1"
+                                className="text-xs font-bold text-black uppercase bg-white border-2 border-black px-2 py-1"
                               >
                                 {voter.name}
                               </span>
@@ -239,11 +245,11 @@ export function WhoKnowView() {
           )}
 
           {socketId === room.roomHostId && (
-            <div className="w-full flex-none max-w-sm mt-4">
+            <div className="w-full flex-none max-w-sm mt-8">
               <button
                 onClick={() => useGameStore.getState().resetRoom()}
                 disabled={actionLoading}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-black text-lg py-4 rounded-xl transition-all uppercase tracking-widest shadow-sm shadow-yellow-900/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-emerald-400 hover:bg-emerald-300 text-black font-black text-2xl py-6 border-4 border-black transition-all uppercase tracking-widest shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('gameWhoKnow.playAgain')}
               </button>

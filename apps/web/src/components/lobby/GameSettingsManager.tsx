@@ -22,7 +22,7 @@ export function GameSettingsManager() {
   if (!hasSettings) return null;
 
   return (
-    <div className="w-full max-w-sm bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-4">
+    <div className="w-full max-w-sm bg-amber-50 border border-amber-200 p-4 space-y-4">
       {room.gameType === GameType.WHO_KNOW && <WhoKnowSettings />}
       {room.gameType === GameType.RPS && <RpsSettings />}
       {room.gameType === GameType.WHO_AM_I && <WhoAmISettings />}

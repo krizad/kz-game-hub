@@ -8,10 +8,11 @@ description: >-
 
 # Create New Game - KZ Game Hub
 
-Follow these steps to scaffold and integrate a new real-time multiplayer game into the KZ Game Hub platform. 
+Follow these steps to scaffold and integrate a new real-time multiplayer game into the KZ Game Hub platform.
 Before writing code, ALWAYS use the `create-implementation-plan` skill to plan the specific game logic with the user.
 
 ## Game Module File Structure
+
 When building a new game (e.g., `my-game`), you will be creating/modifying files across three main areas of the Turborepo:
 
 ```text
@@ -41,6 +42,7 @@ kz-game-hub/
 ```
 
 ## Step 1: Types & Boilerplate (`@repo/types`)
+
 1. Create `packages/types/src/<game>.ts`. Define your specific game state interface (e.g. `MyGameState`), private state, and any socket payloads.
 2. In `packages/types/src/core.ts`:
    - Add your game to the `GameType` enum.
@@ -49,6 +51,7 @@ kz-game-hub/
 3. **IMPORTANT**: Rebuild `@repo/types` with `pnpm build --filter=@repo/types`.
 
 ## Step 2: Server-Side Logic (`apps/api`)
+
 1. Create the folder `apps/api/src/games/<game>/`.
 2. Create the service `apps/api/src/games/<game>/<game>.service.ts`.
    - **MUST USE**: Inject `PrivateStateService` for any sensitive data (e.g. secret words, roles) instead of putting them in `RoomState`. Send private data directly via `server.to(socketId).emit()`.
@@ -60,12 +63,14 @@ kz-game-hub/
    - Add `@SubscribeMessage()` handlers for your game's specific events, extracting `socket.data.roomId` and `socket.id`.
 
 ## Step 3: Client-Side State (`apps/web`)
+
 1. In `apps/web/src/store/useGameStore.ts`:
    - Add socket event listeners inside `setupListeners()` to handle private events specific to your game.
    - Add dispatch actions (e.g. `myGameMakeMove: (data) => get().socket?.emit('my_game_event', data)`).
 2. Note: The public `RoomState` is automatically mirrored to `useGameStore`, so you don't need to manually update it for broadcasted state.
 
 ## Step 4: Client-Side UI (`apps/web`)
+
 1. Create `apps/web/src/components/games/<game>/<Game>View.tsx`.
    - Read `room.<game>State` from `useGameStore()`.
    - Render the game based on the current player's role, turn, etc.
@@ -77,10 +82,12 @@ kz-game-hub/
    - Add a game card button so users can create rooms for this game.
 
 ## Step 5: Localization
+
 1. Update `apps/web/src/i18n/dictionaries/schema.ts` with your new game's keys.
 2. Provide translations in `th.ts` and `en.ts`.
 
 ## Constraints & Rules
+
 - **Server-Authoritative**: The client NEVER mutates state directly. Always emit an action to the server, and rely on `ROOM_STATE_UPDATED` or private emits to reflect changes.
 - **No Direct API calls**: Everything uses WebSocket events. Do not add REST controllers for game logic.
 - **Single Root `.env`**: Environment variables are located at the root of the monorepo.

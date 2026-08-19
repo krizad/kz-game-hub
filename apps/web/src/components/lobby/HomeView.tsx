@@ -7,17 +7,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 import { RulesModal } from '@/components/RulesModal';
-import { LeaderboardModal } from '@/components/LeaderboardModal';
 
-const getBadgeStyle = (gameType: GameType) => {
-  if (gameType === GameType.GOBBLER_TIC_TAC_TOE || gameType === GameType.TIC_TAC_TOE) {
-    return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-  }
-  if (gameType === GameType.RPS) {
-    return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-  }
-  return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
-};
 
 const getGameName = (gameType: GameType, t: any) => {
   switch (gameType) {
@@ -49,38 +39,28 @@ export function HomeView() {
   const { t } = useTranslate();
 
   const [joinCode, setJoinCode] = useState('');
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-amber-50 text-slate-800 relative">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-[#FEF08A] text-black relative font-black overflow-x-hidden">
       <div className="w-full max-w-md lg:max-w-5xl flex justify-between items-center mb-4 sm:mb-6 z-10 px-2 sm:px-0">
-        <div className="bg-white/60 backdrop-blur-md border border-amber-200/50 rounded-xl shadow-sm">
+        <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000]">
           <LanguageSwitcher />
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowLeaderboard(true)}
-            className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-200/50 bg-white/60 backdrop-blur-md shadow-sm hover:bg-white hover:border-indigo-200 hover:shadow-indigo-500/20 text-nowrap"
-          >
-            🏆
-            <span className="hidden sm:inline">Leaderboard</span>
-          </button>
-          <div className="bg-white/60 backdrop-blur-md border border-amber-200/50 rounded-xl shadow-sm hover:bg-white hover:border-indigo-200 hover:shadow-indigo-500/20 transition-all">
-            <RulesModal />
-          </div>
+        <div className="flex">
+          <RulesModal triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center gap-2 px-4 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] text-nowrap" />
         </div>
       </div>
-      <div className="w-full max-w-md lg:max-w-5xl p-6 sm:p-8 bg-white border border-amber-200 rounded-3xl shadow-sm lg:p-10 lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
+      <div className="w-full max-w-md lg:max-w-5xl p-6 sm:p-8 bg-white border-4 border-black shadow-[8px_8px_0_0_#000] lg:p-10 lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
         {/* Left Column (PC) / Top Section (Mobile) */}
         <div className="flex flex-col h-full lg:justify-center">
           <div className="flex justify-center mb-6">
             <img
               src="/icon.png"
               alt="KZ Game Hub Logo"
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-[2rem] shadow-sm shadow-indigo-500/20 border border-amber-300"
+              className="w-24 h-24 sm:w-28 sm:h-28 shadow-[4px_4px_0_0_#000] border-4 border-black"
             />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-center mb-8 tracking-tighter bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl font-black text-center mb-8 tracking-tighter text-black uppercase">
             {t('lobby.gameLobbyTitle')}
           </h1>
 
@@ -88,7 +68,7 @@ export function HomeView() {
             <div>
               <label
                 htmlFor="lobbyNameInput"
-                className="block text-sm font-medium text-slate-600 mb-2"
+                className="block text-sm font-black text-black mb-2 uppercase"
               >
                 {t('lobby.displayName')}
               </label>
@@ -99,17 +79,17 @@ export function HomeView() {
                 type="text"
                 value={myName}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                className="w-full bg-white border-4 border-black px-4 py-3 text-black focus:outline-none focus:ring-4 focus:ring-[#8B5CF6] transition-all font-black shadow-[4px_4px_0_0_#000]"
                 placeholder={t('lobby.enterNameShort')}
               />
             </div>
 
             <div className="relative flex items-center py-2 lg:py-4">
-              <div className="flex-grow border-t border-amber-200"></div>
-              <span className="flex-shrink-0 mx-4 text-slate-500 text-sm font-medium">
+              <div className="flex-grow border-t-4 border-black"></div>
+              <span className="flex-shrink-0 mx-4 text-black text-sm font-black uppercase bg-white border-2 border-black px-2 py-1 rounded shadow-[2px_2px_0_0_#000]">
                 {t('lobby.or')}
               </span>
-              <div className="flex-grow border-t border-amber-200"></div>
+              <div className="flex-grow border-t-4 border-black"></div>
             </div>
 
             <div className="flex gap-3 mb-8 lg:mb-0">
@@ -125,14 +105,14 @@ export function HomeView() {
                     joinRoom(joinCode);
                   }
                 }}
-                className="flex-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all uppercase font-bold text-center"
+                className="flex-1 bg-white border-4 border-black px-4 py-3 text-black focus:outline-none focus:ring-4 focus:ring-[#8B5CF6] transition-all uppercase font-black text-center shadow-[4px_4px_0_0_#000]"
                 placeholder={t('lobby.roomCodePlaceholder')}
                 maxLength={6}
               />
               <button
                 onClick={() => joinRoom(joinCode)}
                 disabled={!myName || joinCode.length < 4}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-6 rounded-xl transition-colors shadow-sm"
+                className="bg-[#A855F7] hover:bg-[#9333EA] disabled:bg-gray-400 text-white font-black px-6 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black uppercase tracking-widest disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
               >
                 {t('lobby.join')}
               </button>
@@ -146,20 +126,22 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.WHO_KNOW)}
               disabled={!connected || !myName}
-              className="w-full bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🕵️</span>
-              <span className="text-xs tracking-wider text-center px-1">
+              <span className="text-xl">🕵️</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
                 {t('lobby.gameNames.whoKnow')}
               </span>
             </button>
             <button
               onClick={() => createRoom(GameType.SOUNDS_FISHY)}
               disabled={!connected || !myName}
-              className="w-full bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-purple-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#C084FC] hover:bg-[#A855F7] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🐟</span>
-              <span className="text-xs tracking-wider text-center px-1">Sounds Fishy</span>
+              <span className="text-xl">🐟</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
+                Sounds Fishy
+              </span>
             </button>
           </div>
 
@@ -167,24 +149,24 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.GOBBLER_TIC_TAC_TOE)}
               disabled={!connected || !myName}
-              className="w-full bg-blue-600/80 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-blue-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#60A5FA] hover:bg-[#3B82F6] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <div className="flex items-end justify-center gap-1.5 group-hover:scale-110 transition-transform h-7">
+              <div className="flex items-end justify-center gap-1.5 h-7">
                 <span className="text-[10px] leading-none mb-1">❌⭕️</span>
                 <span className="text-sm leading-none mb-0.5">❌⭕️</span>
                 <span className="text-xl leading-none">❌⭕️</span>
               </div>
-              <span className="text-xs tracking-wider text-center px-1">
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
                 {t('lobby.gameNames.gobbler')}
               </span>
             </button>
             <button
               onClick={() => createRoom(GameType.TIC_TAC_TOE)}
               disabled={!connected || !myName}
-              className="w-full bg-zinc-600/80 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-zinc-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#A1A1AA] hover:bg-[#71717A] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">❌⭕️</span>
-              <span className="text-xs tracking-wider text-center px-1">
+              <span className="text-xl">❌⭕️</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
                 {t('lobby.gameNames.ticTacToe')}
               </span>
             </button>
@@ -194,20 +176,22 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.RPS)}
               disabled={!connected || !myName}
-              className="w-full bg-amber-600/80 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-amber-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">✌️✊✋</span>
-              <span className="text-xs tracking-wider text-center px-1">
+              <span className="text-xl">✌️✊✋</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
                 {t('lobby.gameNames.handDuel')}
               </span>
             </button>
             <button
               onClick={() => createRoom(GameType.DETECTIVE_CLUB)}
               disabled={!connected || !myName}
-              className="w-full bg-amber-200/80 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 font-bold py-3 rounded-xl transition-colors shadow-sm border border-amber-400/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#FDE047] hover:bg-[#FACC15] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🔍</span>
-              <span className="text-xs tracking-wider text-center px-1">Detective Club</span>
+              <span className="text-xl">🔍</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
+                Detective Club
+              </span>
             </button>
           </div>
 
@@ -215,18 +199,18 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.WHO_AM_I)}
               disabled={!connected || !myName}
-              className="w-full bg-pink-600/80 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-pink-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#F472B6] hover:bg-[#EC4899] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🤔❓</span>
-              <span className="text-xs tracking-wider text-center px-1">Who Am I</span>
+              <span className="text-xl">🤔❓</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">Who Am I</span>
             </button>
             <button
               onClick={() => createRoom(GameType.WHO_FIRST)}
               disabled={!connected || !myName}
-              className="w-full bg-emerald-600/80 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-emerald-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#34D399] hover:bg-[#10B981] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🛎️</span>
-              <span className="text-xs tracking-wider text-center px-1">Who First</span>
+              <span className="text-xl">🛎️</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">Who First</span>
             </button>
           </div>
 
@@ -234,32 +218,34 @@ export function HomeView() {
             <button
               onClick={() => createRoom(GameType.MUSIC_TRIVIA)}
               disabled={!connected || !myName}
-              className="w-full bg-indigo-500/80 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-indigo-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🎵</span>
-              <span className="text-xs tracking-wider text-center px-1">Music Trivia</span>
+              <span className="text-xl">🎵</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
+                Music Trivia
+              </span>
             </button>
             <button
               onClick={() => createRoom(GameType.THE_MIND)}
               disabled={!connected || !myName}
-              className="w-full bg-cyan-600/80 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors shadow-sm border border-cyan-500/50 flex flex-col items-center justify-center gap-1 group"
+              className="w-full bg-[#22D3EE] hover:bg-[#06B6D4] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">🧠</span>
-              <span className="text-xs tracking-wider text-center px-1">The Mind</span>
+              <span className="text-xl">🧠</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">The Mind</span>
             </button>
           </div>
 
           {availableRooms.length > 0 && (
             <div className="mt-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col">
               <div className="flex items-center gap-4 mb-4">
-                <div className="h-px bg-amber-100 flex-1"></div>
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <div className="h-px bg-black flex-1 border-t-2 border-black"></div>
+                <h3 className="text-xs font-black text-black uppercase tracking-widest flex items-center gap-2">
                   {t('lobby.publicLobbies')}
-                  <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-md shadow-sm">
+                  <span className="bg-[#FEF08A] text-black border-2 border-black px-2 py-0.5 rounded-md shadow-[2px_2px_0_0_#000]">
                     {availableRooms.length}
                   </span>
                 </h3>
-                <div className="h-px bg-amber-100 flex-1"></div>
+                <div className="h-px bg-black flex-1 border-t-2 border-black"></div>
               </div>
 
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
@@ -274,18 +260,18 @@ export function HomeView() {
                       setJoinCode(r.code);
                       joinRoom(r.code);
                     }}
-                    className="w-full bg-slate-50/50 border border-amber-200/80 hover:border-indigo-500/50 hover:bg-white rounded-2xl p-4 text-left transition-all flex items-center justify-between group shadow-sm hover:shadow-indigo-500/10 hover:-translate-y-0.5"
+                    className="w-full bg-white border-2 border-black hover:bg-[#FEF08A] p-4 text-left transition-all flex items-center justify-between group shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
                   >
                     <div>
-                      <div className="text-slate-800 font-bold tracking-widest text-lg leading-none mb-1 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                      <div className="text-black font-black tracking-widest text-lg leading-none mb-1 flex items-center gap-2">
                         {r.code}
                         <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded border leading-none ml-2 tracking-normal font-sans ${getBadgeStyle(r.gameType)}`}
+                          className={`text-[9px] px-1.5 py-0.5 rounded border border-black leading-none ml-2 tracking-normal font-sans text-black font-bold bg-[#A3E635]`}
                         >
                           {getGameName(r.gameType, t)}
                         </span>
                       </div>
-                      <div className="text-slate-500 text-[10px] font-medium uppercase mt-0.5 tracking-wider flex items-center gap-1.5">
+                      <div className="text-black text-[10px] font-black uppercase mt-0.5 tracking-wider flex items-center gap-1.5">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="10"
@@ -296,17 +282,17 @@ export function HomeView() {
                           strokeWidth="3"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="text-indigo-400"
+                          className="text-black"
                         >
                           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                         </svg>
                         {t('lobby.host')}{' '}
-                        <span className="text-slate-700 normal-case font-bold">{r.hostName}</span>
+                        <span className="text-black normal-case font-black">{r.hostName}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm group-hover:border-indigo-500/30 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-black text-black bg-white px-2.5 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] group-hover:shadow-[1px_1px_0_0_#000]"
                         title={t('lobby.playersInRoom')}
                       >
                         {r.playerCount}
@@ -317,16 +303,16 @@ export function HomeView() {
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="2"
+                          strokeWidth="3"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="text-slate-500 group-hover:text-indigo-500 transition-colors"
+                          className="text-black"
                         >
                           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                           <circle cx="12" cy="7" r="4" />
                         </svg>
                       </div>
-                      <div className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] uppercase font-black px-4 py-2 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100 border border-indigo-500/50">
+                      <div className="bg-[#A855F7] text-white border-2 border-black text-[10px] uppercase font-black px-4 py-2 shadow-[2px_2px_0_0_#000] opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
                         {t('lobby.join')}
                       </div>
                     </div>
@@ -337,9 +323,6 @@ export function HomeView() {
           )}
         </div>
       </div>
-      {showLeaderboard && (
-        <LeaderboardModal onClose={() => setShowLeaderboard(false)} isOpen={showLeaderboard} />
-      )}
     </main>
   );
 }

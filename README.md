@@ -53,7 +53,9 @@ kz-game-hub/
 This repository is optimized for development alongside AI Coding Assistants (e.g., Antigravity, GitHub Copilot). It contains an `.agents/` directory that instructs AI tools on project conventions, architecture, and deployment constraints.
 
 ### Adding a New Game
+
 If you are using Antigravity IDE or a similar agent framework, you can simply ask:
+
 > "สร้างเกมใหม่ชื่อ [ชื่อเกม]" (Create a new game called [Game Name])
 
 The agent will automatically load the `create-new-game` skill, scaffolding the types, backend logic, frontend UI, and Zustand store correctly according to the strict privacy guidelines and server-authoritative architecture of KZ Game Hub.

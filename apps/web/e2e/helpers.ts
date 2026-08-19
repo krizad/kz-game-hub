@@ -14,7 +14,7 @@ export async function waitForConnection(page: Page) {
 }
 
 export async function switchToEnglish(page: Page) {
-  await page.getByText('EN').click();
+  await page.getByText('EN', { exact: true }).click();
   await page.waitForTimeout(300);
 }
 

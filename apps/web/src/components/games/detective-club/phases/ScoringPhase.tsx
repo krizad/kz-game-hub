@@ -21,41 +21,43 @@ export function ScoringPhase() {
   ).length;
 
   return (
-    <div className="flex-1 flex flex-col space-y-6 relative">
+    <div className="flex-1 flex flex-col space-y-6 relative font-mono">
       {actionLoading && <ActionLoadingOverlay />}
-      <div className="bg-white border border-amber-200 rounded-xl p-8 text-center w-full shadow-sm">
-        <h2 className="text-4xl font-black mb-4 uppercase tracking-widest bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+      <div className="bg-white border-8 border-black p-8 text-center w-full shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] ">
+        <h2 className="text-4xl sm:text-5xl font-black mb-6 uppercase tracking-widest text-black bg-yellow-300 px-6 py-2 border-4 border-black inline-block - shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           {t('gameDetectiveClub.roundOver')}
         </h2>
-        <p className="text-slate-700 text-lg mb-2">
+        <p className="text-black text-xl font-bold mb-4 bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
           {t('gameDetectiveClub.conspiratorWas')}{' '}
-          <span className="text-rose-400 font-bold">{conspiratorName}</span>
+          <span className="text-white bg-black px-2 py-1 uppercase tracking-widest">
+            {conspiratorName}
+          </span>
         </p>
 
         {votesAgainstConspirator > 0 ? (
-          <div className="mt-4 bg-emerald-950/30 border border-emerald-900/50 p-4 rounded-xl">
-            <p className="text-emerald-400 font-bold uppercase tracking-widest mb-1">
+          <div className="mt-6 bg-emerald-400 border-4 border-black p-4 inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+            <p className="text-black font-black uppercase tracking-widest mb-2 text-xl bg-white px-2 py-1 border-2 border-black">
               {t('gameDetectiveClub.conspiratorCaught')}
             </p>
-            <p className="text-slate-600 text-sm">
+            <p className="text-black font-bold">
               {t('gameDetectiveClub.detectivesIdentified', { count: votesAgainstConspirator })}
             </p>
           </div>
         ) : (
-          <div className="mt-4 bg-rose-950/30 border border-rose-900/50 p-4 rounded-xl">
-            <p className="text-rose-400 font-bold uppercase tracking-widest mb-1">
+          <div className="mt-6 bg-rose-400 border-4 border-black p-4 inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+            <p className="text-black font-black uppercase tracking-widest mb-2 text-xl bg-white px-2 py-1 border-2 border-black">
               {t('gameDetectiveClub.conspiratorEscaped')}
             </p>
-            <p className="text-slate-600 text-sm">{t('gameDetectiveClub.nobodyCaught')}</p>
+            <p className="text-black font-bold">{t('gameDetectiveClub.nobodyCaught')}</p>
           </div>
         )}
       </div>
 
-      <div className="flex-1 bg-amber-50/50 border border-amber-200 rounded-xl p-4 sm:p-6 overflow-y-auto w-full md:max-w-2xl md:mx-auto">
-        <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-4 text-center">
+      <div className="flex-1 bg-cyan-300 border-8 border-black p-4 sm:p-6 overflow-y-auto w-full md:max-w-2xl md:mx-auto shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] -">
+        <h3 className="text-black font-black uppercase tracking-widest text-lg mb-6 text-center bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           {t('gameDetectiveClub.scoreboard')}
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {room.players.map((p) => {
             const pState = state.players[p.socketId];
             if (!pState) return null;
@@ -66,44 +68,48 @@ export function ScoringPhase() {
             return (
               <div
                 key={p.socketId}
-                className={`flex items-center justify-between p-4 rounded-xl border ${isMe ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-white/50 border-amber-200'}`}
+                className={`flex items-center justify-between p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white ${isMe ? 'scale-105 ' : ''}`}
               >
                 <div className="flex flex-col">
-                  <span className={`font-bold ${isMe ? 'text-indigo-300' : 'text-slate-800'}`}>
+                  <span
+                    className={`font-black text-xl mb-2 ${isMe ? 'text-black bg-yellow-300 px-2 py-1 border-2 border-black inline-block' : 'text-black'}`}
+                  >
                     {p.name} {isMe && `(${t('lobby.you')})`}
                   </span>
-                  <div className="flex flex-col gap-1 mt-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center">
                       <span
-                        className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border leading-none ${
+                        className={`text-sm uppercase font-black px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                           pState.role === 'INFORMER'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            ? 'bg-indigo-300 text-black -'
                             : pState.role === 'CONSPIRATOR'
-                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              ? 'bg-rose-300 text-black '
+                              : 'bg-emerald-300 text-black -'
                         }`}
                       >
                         {getRoleLabel(pState.role, t)}
                       </span>
                     </div>
                     {pState.votedFor && (
-                      <span className="text-xs text-slate-600 bg-amber-100/50 px-2 py-1 rounded inline-block w-fit mt-1 border border-amber-300/50 shadow-inner">
+                      <span className="text-sm font-bold text-black bg-pink-300 px-2 py-1 border-2 border-black inline-block w-fit shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                         {t('gameDetectiveClub.votedFor')}{' '}
-                        <span className="text-rose-400 font-bold">{votedFor}</span>
+                        <span className="text-white bg-black px-1 uppercase tracking-widest">
+                          {votedFor}
+                        </span>
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className="text-2xl font-black text-amber-500 leading-none">
+                  <span className="text-4xl font-black text-black bg-yellow-300 px-3 py-1 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                     {p.score}{' '}
-                    <span className="text-sm text-amber-500/50 uppercase tracking-widest">
+                    <span className="text-sm text-black uppercase tracking-widest font-bold">
                       {t('gameDetectiveClub.pts')}
                     </span>
                   </span>
                   {state.scoreDeltas && state.scoreDeltas[p.socketId] !== undefined && (
                     <span
-                      className={`text-sm font-bold mt-1 ${state.scoreDeltas[p.socketId] > 0 ? 'text-emerald-400' : 'text-slate-500'}`}
+                      className={`text-lg font-black mt-2 px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${state.scoreDeltas[p.socketId] > 0 ? 'bg-emerald-400 text-black' : 'bg-gray-300 text-black'}`}
                     >
                       {state.scoreDeltas[p.socketId] > 0 ? '+' : ''}
                       {state.scoreDeltas[p.socketId]}
@@ -117,23 +123,23 @@ export function ScoringPhase() {
       </div>
 
       {isHost ? (
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+        <div className="flex flex-col sm:flex-row gap-6 justify-center mt-8">
           <button
             onClick={() => detectiveClubNextRound()}
             disabled={actionLoading}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-4 rounded-xl transition-all shadow-sm shadow-indigo-500/20 active:scale-[0.98] uppercase tracking-wider text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto bg-emerald-400 hover:bg-emerald-300 text-black font-black px-8 py-4 border-4 border-black transition-transform shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest text-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale"
           >
             {t('gameDetectiveClub.playNextRound')}
           </button>
           <button
             onClick={() => leaveRoom()}
-            className="w-full sm:w-auto bg-rose-600/10 border border-rose-600/30 hover:bg-rose-600/20 text-rose-500 font-bold px-6 py-4 rounded-xl transition-all uppercase tracking-wider text-sm"
+            className="w-full sm:w-auto bg-rose-400 hover:bg-rose-300 text-black font-black px-6 py-4 border-4 border-black transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest text-lg -"
           >
             {t('gameDetectiveClub.endGame')}
           </button>
         </div>
       ) : (
-        <div className="text-center mt-6 text-slate-500 font-medium pb-8">
+        <div className="text-center mt-8 text-black font-black uppercase tracking-widest bg-purple-300 px-4 py-2 border-4 border-black inline-block mx-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pb-2">
           {t('gameDetectiveClub.waitingForHostNextRound')}
         </div>
       )}

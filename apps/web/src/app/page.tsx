@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, Role, GameType } from '@repo/types';
 import { RoleCard } from '@/components/RoleCard';
-import { LeaderboardModal } from '@/components/LeaderboardModal';
+
 import { Toaster } from 'react-hot-toast';
 
 import { HomeView } from '@/components/lobby/HomeView';
@@ -23,8 +23,6 @@ function GameLobby() {
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room');
   const { t } = useTranslate();
-
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     connect();
@@ -46,10 +44,10 @@ function GameLobby() {
   }
 
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center p-2 sm:p-4 md:p-6 lg:p-8 bg-amber-50 text-slate-800">
-      <div className="w-full max-w-7xl mx-auto flex flex-col gap-2 sm:gap-4 md:gap-6 flex-1 relative">
+    <main className="flex min-h-[100dvh] overflow-x-hidden overflow-y-auto flex-col items-center p-2 sm:p-4 md:p-6 lg:p-8 bg-[#FEF08A] text-black">
+      <div className="w-full max-w-7xl mx-auto flex flex-col gap-2 sm:gap-4 md:gap-6 flex-1 relative min-h-0">
         {/* Header */}
-        <RoomHeader onShowLeaderboard={() => setShowLeaderboard(true)} />
+        <RoomHeader />
 
         {/* Role Section at Top */}
         {myRole && room.gameType === GameType.WHO_KNOW && (
@@ -78,8 +76,6 @@ function GameLobby() {
 
       {/* Secret Word Setting Modal Handle */}
       {room.status === RoomStatus.WORD_SETTING && myRole === Role.Host && <SecretWordModal />}
-
-      <LeaderboardModal isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
     </main>
   );
 }

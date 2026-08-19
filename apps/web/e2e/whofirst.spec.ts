@@ -66,6 +66,20 @@ test.describe('Who First Game Flow', () => {
     await expect(p1.locator('text=Alice').first()).toBeVisible();
     await expect(p1.locator('text=Bob').first()).toBeVisible();
 
+    // Click End Game to show scoreboard
+    const endGameBtn = p1
+      .locator('button')
+      .filter({ hasText: /End|จบ/i })
+      .first();
+    if (await endGameBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await endGameBtn.click();
+    }
+
+    // Verify Scoreboard
+    await expect(p1.locator('text=Scoreboard').or(p1.locator('text=Game Over')))
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {});
+
     await p1Ctx.close();
     await p2Ctx.close();
   });

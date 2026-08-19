@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Play, RotateCcw, AlertTriangle, Users, Trophy } from 'lucide-react';
@@ -70,28 +70,28 @@ export const WhoFirstView = () => {
   if (!state || state.phase === 'LOBBY') {
     return (
       <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
-        <Card className="w-full bg-white border border-amber-200 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="bg-amber-50 border-b border-amber-200 pb-4 pt-6">
-            <CardTitle
+        <div className="w-full bg-cyan-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
+          <div className="mb-6 text-center">
+            <h2
               data-testid="lobby-title"
-              className="text-2xl font-black text-center text-indigo-600 uppercase tracking-widest"
+              className="text-3xl font-black text-black uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 - shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               {t('whoFirst.lobby.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-6">
+            </h2>
+          </div>
+          <div className="space-y-6 bg-white border-4 border-black p-4 -">
             {isHost ? (
               <>
                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 pb-2">
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <Label className="flex items-center gap-2 text-slate-700 font-bold">
-                      <Play className="w-5 h-5 text-emerald-500" />
+                  <div className="flex items-center justify-between p-3 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+                    <Label className="flex items-center gap-2 text-black font-black uppercase tracking-widest text-sm">
+                      <Play className="w-5 h-5 fill-black" />
                       {t('whoFirst.lobby.minCountdown')}
                     </Label>
                     <input
                       aria-label={t('whoFirst.lobby.minCountdown')}
                       type="number"
-                      className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
+                      className="w-16 bg-white border-2 border-black p-1 text-center font-black text-black focus:outline-none focus:ring-0"
                       value={(room.config.whoFirstMinCountdownMs || 2000) / 1000}
                       onChange={(e) =>
                         updateConfig({ whoFirstMinCountdownMs: parseInt(e.target.value) * 1000 })
@@ -99,15 +99,15 @@ export const WhoFirstView = () => {
                       min={1}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <Label className="flex items-center gap-2 text-slate-700 font-bold">
-                      <Play className="w-5 h-5 text-rose-500" />
+                  <div className="flex items-center justify-between p-3 bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                    <Label className="flex items-center gap-2 text-black font-black uppercase tracking-widest text-sm">
+                      <Play className="w-5 h-5 fill-black" />
                       {t('whoFirst.lobby.maxCountdown')}
                     </Label>
                     <input
                       aria-label={t('whoFirst.lobby.maxCountdown')}
                       type="number"
-                      className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
+                      className="w-16 bg-white border-2 border-black p-1 text-center font-black text-black - focus:outline-none focus:ring-0"
                       value={(room.config.whoFirstMaxCountdownMs || 5000) / 1000}
                       onChange={(e) =>
                         updateConfig({ whoFirstMaxCountdownMs: parseInt(e.target.value) * 1000 })
@@ -115,17 +115,17 @@ export const WhoFirstView = () => {
                       min={1}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between p-3 bg-emerald-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                     <Label
                       htmlFor="infinite-switch"
-                      className="flex items-center gap-2 text-slate-700 font-bold"
+                      className="flex items-center gap-2 text-black font-black uppercase tracking-widest text-sm"
                     >
-                      <RotateCcw className="w-5 h-5 text-indigo-500" />
+                      <RotateCcw className="w-5 h-5 fill-black" />
                       {t('whoFirst.lobby.infiniteRounds')}
                     </Label>
                     <Switch
                       id="infinite-switch"
-                      className="data-[state=checked]:bg-indigo-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
+                      className="data-[state=checked]:bg-indigo-400 data-[state=unchecked]:bg-slate-300 border-2 border-black shadow-none"
                       checked={room.config.whoFirstInfiniteRounds}
                       onCheckedChange={(checked) =>
                         updateConfig({ whoFirstInfiniteRounds: checked })
@@ -133,15 +133,15 @@ export const WhoFirstView = () => {
                     />
                   </div>
                   {!room.config.whoFirstInfiniteRounds && (
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <Label className="flex items-center gap-2 text-slate-700 font-bold">
-                        <Trophy className="w-5 h-5 text-amber-500" />
+                    <div className="flex items-center justify-between p-3 bg-indigo-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                      <Label className="flex items-center gap-2 text-white font-black uppercase tracking-widest text-sm">
+                        <Trophy className="w-5 h-5 fill-white" />
                         {t('whoFirst.lobby.roundsCount')}
                       </Label>
                       <input
                         aria-label={t('whoFirst.lobby.roundsCount')}
                         type="number"
-                        className="w-16 bg-white border border-slate-300 rounded-lg p-1 text-center font-bold text-slate-700"
+                        className="w-16 bg-white border-2 border-black p-1 text-center font-black text-black - focus:outline-none focus:ring-0"
                         value={room.config.whoFirstMaxRounds ?? room.config.maxRounds ?? 5}
                         onChange={(e) =>
                           updateConfig({ whoFirstMaxRounds: parseInt(e.target.value) })
@@ -150,70 +150,70 @@ export const WhoFirstView = () => {
                       />
                     </div>
                   )}
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between p-3 bg-pink-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                     <Label
                       htmlFor="counter-switch"
-                      className="flex items-center gap-2 text-slate-700 font-bold"
+                      className="flex items-center gap-2 text-black font-black uppercase tracking-widest text-sm"
                     >
-                      <Play className="w-5 h-5 text-emerald-500" />
+                      <Play className="w-5 h-5 fill-black" />
                       {t('whoFirst.lobby.showCounter')}
                     </Label>
                     <Switch
                       id="counter-switch"
-                      className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
+                      className="data-[state=checked]:bg-emerald-400 data-[state=unchecked]:bg-slate-300 border-2 border-black shadow-none"
                       checked={room.config.whoFirstShowCounter !== false}
                       onCheckedChange={(checked) => updateConfig({ whoFirstShowCounter: checked })}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between p-3 bg-amber-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                     <Label
                       htmlFor="penalty-switch"
-                      className="flex items-center gap-2 text-slate-700 font-bold"
+                      className="flex items-center gap-2 text-black font-black uppercase tracking-widest text-sm"
                     >
-                      <AlertTriangle className="w-5 h-5 text-amber-500" />
+                      <AlertTriangle className="w-5 h-5 fill-black" />
                       {t('whoFirst.lobby.penaltyLabel')}
                     </Label>
                     <Switch
                       id="penalty-switch"
-                      className="data-[state=checked]:bg-amber-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
+                      className="data-[state=checked]:bg-rose-400 data-[state=unchecked]:bg-slate-300 border-2 border-black shadow-none"
                       checked={room.config.whoFirstPenalty}
                       onCheckedChange={(checked) => updateConfig({ whoFirstPenalty: checked })}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between p-3 bg-cyan-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                     <Label
                       htmlFor="host-plays-switch"
-                      className="flex items-center gap-2 text-slate-700 font-bold"
+                      className="flex items-center gap-2 text-black font-black uppercase tracking-widest text-sm"
                     >
-                      <Users className="w-5 h-5 text-indigo-500" />
+                      <Users className="w-5 h-5 fill-black" />
                       {t('whoFirst.lobby.hostPlaysLabel')}
                     </Label>
                     <Switch
                       id="host-plays-switch"
-                      className="data-[state=checked]:bg-indigo-500 data-[state=unchecked]:bg-slate-300 shadow-sm"
+                      className="data-[state=checked]:bg-indigo-400 data-[state=unchecked]:bg-slate-300 border-2 border-black shadow-none"
                       checked={room.config.whoFirstHostPlays}
                       onCheckedChange={(checked) => updateConfig({ whoFirstHostPlays: checked })}
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 border-t border-slate-100 pt-4">
-                  <Label className="text-slate-500 text-sm font-bold mb-3 flex items-center gap-2">
-                    <Users className="w-4 h-4" />
+                <div className="mt-4 border-t-4 border-black pt-4">
+                  <Label className="text-black text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2 bg-yellow-300 inline-block px-2 border-2 border-black ">
+                    <Users className="w-4 h-4 inline-block -mt-1 mr-1" />
                     {t('lobby.playersInRoom')} ({room.players.filter((p) => p.connected).length})
                   </Label>
-                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-3 max-h-32 overflow-y-auto mt-2">
                     {room.players
                       .filter((p) => p.connected)
-                      .map((player) => (
+                      .map((player, idx) => (
                         <div
                           key={player.socketId}
-                          className="flex items-center gap-2 bg-slate-50 rounded-lg p-2 border border-slate-100"
+                          className={`flex items-center gap-2 bg-white p-2 border-2 border-black ${idx % 2 === 0 ? '-' : ''}`}
                         >
-                          <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                          <div className="w-6 h-6 border-2 border-black bg-indigo-400 text-white flex items-center justify-center font-black text-xs uppercase">
                             {player.name.charAt(0)}
                           </div>
-                          <span className="text-sm font-medium text-slate-700 truncate">
+                          <span className="text-sm font-black text-black truncate uppercase tracking-widest">
                             {player.name} {player.socketId === room.roomHostId && '👑'}
                           </span>
                         </div>
@@ -225,23 +225,23 @@ export const WhoFirstView = () => {
                   data-testid="start-btn"
                   onClick={() => startGame()}
                   disabled={room.players.filter((p) => p.connected).length < 2 || actionLoading}
-                  className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
+                  className="w-full mt-6 bg-emerald-400 hover:bg-emerald-300 text-black font-black py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-xl uppercase tracking-widest "
                   size="lg"
                 >
-                  <Play className="w-6 h-6 mr-2" />
+                  <Play className="w-6 h-6 mr-2 fill-black" />
                   {t('whoFirst.lobby.startBtn')}
                 </Button>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center space-y-4 py-8">
-                <div className="w-12 h-12 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
-                <div className="text-center text-slate-500 font-medium animate-pulse">
+                <div className="w-12 h-12 border-4 border-black bg-yellow-300 animate-spin"></div>
+                <div className="text-center text-black font-black uppercase tracking-widest bg-cyan-300 border-2 border-black px-4 py-2 -">
                   {t('whoFirst.lobby.waitingForHost')}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -251,19 +251,19 @@ export const WhoFirstView = () => {
   const myPress = state.presses.find((p) => p.socketId === socketId);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-white border border-amber-200 rounded-2xl p-4 sm:p-6 shadow-sm w-full max-w-2xl mx-auto space-y-8 relative overflow-hidden">
+    <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto space-y-8 relative overflow-hidden p-4">
       {/* Header Info */}
-      <div className="w-full flex justify-between items-center text-slate-600 bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm relative h-16">
-        <div className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200">
+      <div className="w-full flex justify-between items-center text-black bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative min-h-[4rem] flex-wrap gap-4">
+        <div className="font-black text-white bg-indigo-400 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest">
           Round {state.currentRound} {state.maxRounds > 0 ? `/ ${state.maxRounds}` : ''}
         </div>
         {state.phase === 'COUNTDOWN' && room.config.whoFirstShowCounter !== false && (
-          <div className="font-mono text-xl font-black text-amber-500 absolute left-1/2 -translate-x-1/2">
+          <div className="font-black text-xl sm:text-2xl text-black bg-yellow-300 border-2 border-black px-4 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] absolute left-1/2 -translate-x-1/2">
             {(countdownRemaining / 1000).toFixed(3)}s
           </div>
         )}
         {state.phase === 'ACTIVE' && room.config.whoFirstShowCounter !== false && (
-          <div className="font-mono text-xl font-black text-emerald-600 absolute left-1/2 -translate-x-1/2">
+          <div className="font-black text-xl sm:text-2xl text-white bg-emerald-400 border-2 border-black px-4 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] absolute left-1/2 -translate-x-1/2">
             {(activeTime / 1000).toFixed(3)}s
           </div>
         )}
@@ -272,7 +272,7 @@ export const WhoFirstView = () => {
             onClick={handleEndGame}
             variant="destructive"
             size="sm"
-            className="font-bold shadow-sm h-8 rounded-lg ml-auto"
+            className="font-black uppercase tracking-widest bg-rose-400 border-2 border-black text-white hover:bg-rose-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none ml-auto "
           >
             {t('whoFirst.game.endGameNow')}
           </Button>
@@ -281,11 +281,11 @@ export const WhoFirstView = () => {
 
       {/* Main Interaction Area */}
       {state.phase === 'COUNTDOWN' || state.phase === 'ACTIVE' ? (
-        <div className="flex flex-col items-center justify-center space-y-12 py-12 flex-1 w-full">
+        <div className="flex flex-col items-center justify-center space-y-12 py-12 flex-1 w-full relative">
           {state.phase === 'COUNTDOWN' && (
             <div
               data-testid="status-ready"
-              className="text-5xl md:text-7xl font-black text-amber-500 animate-pulse uppercase tracking-widest drop-shadow-sm"
+              className="text-5xl md:text-7xl font-black text-black bg-yellow-300 border-4 border-black p-4 - shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-bounce uppercase tracking-widest absolute top-0 z-10"
             >
               {t('whoFirst.game.ready')}
             </div>
@@ -293,7 +293,7 @@ export const WhoFirstView = () => {
           {state.phase === 'ACTIVE' && (
             <div
               data-testid="status-go"
-              className="text-5xl md:text-7xl font-black text-emerald-500 uppercase tracking-widest drop-shadow-sm"
+              className="text-5xl md:text-7xl font-black text-white bg-emerald-400 border-4 border-black p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest absolute top-0 z-10"
             >
               {t('whoFirst.game.go')}
             </div>
@@ -305,19 +305,19 @@ export const WhoFirstView = () => {
               onClick={handlePressButton}
               disabled={hasPressed}
               className={`
-                 relative flex items-center justify-center
-                 w-48 h-48 md:w-64 md:h-64 rounded-full border
-                 text-4xl font-black shadow-sm transition-all duration-150 active:scale-95 uppercase tracking-wider
-                 ${
-                   hasPressed
-                     ? myPress?.isPenalty
-                       ? 'bg-rose-100 text-rose-500 border-rose-300 cursor-not-allowed scale-95 opacity-80'
-                       : 'bg-slate-100 text-slate-400 border-slate-300 cursor-not-allowed scale-95 opacity-80'
-                     : state.phase === 'ACTIVE'
-                       ? 'bg-rose-500 hover:bg-rose-400 text-white border-rose-600 shadow-[0_0_50px_rgba(244,63,94,0.6)]'
-                       : 'bg-amber-500 hover:bg-amber-400 text-white border-amber-600 shadow-[0_0_30px_rgba(245,158,11,0.4)]'
-                 }
-               `}
+ relative flex items-center justify-center
+ w-48 h-48 md:w-64 md:h-64 border-8 border-black
+ text-4xl font-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all duration-150 uppercase tracking-widest mt-16
+ ${
+   hasPressed
+     ? myPress?.isPenalty
+       ? 'bg-rose-300 text-black cursor-not-allowed translate-y-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+       : 'bg-slate-300 text-slate-500 cursor-not-allowed translate-y-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+     : state.phase === 'ACTIVE'
+       ? 'bg-rose-500 text-white hover:bg-rose-400 active:translate-y-3 active:shadow-none'
+       : 'bg-amber-400 text-black hover:bg-amber-300 active:translate-y-3 active:shadow-none'
+ }
+ `}
             >
               {hasPressed
                 ? myPress?.isPenalty
@@ -328,7 +328,7 @@ export const WhoFirstView = () => {
           )}
 
           {!canPlay && (
-            <div className="text-xl text-slate-500 font-bold bg-slate-50 px-6 py-3 rounded-xl border border-slate-200">
+            <div className="text-xl text-black font-black uppercase tracking-widest bg-cyan-300 px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mt-16">
               {t('whoFirst.game.spectating')}
             </div>
           )}
@@ -337,20 +337,20 @@ export const WhoFirstView = () => {
 
       {/* Results Area */}
       {(state.phase === 'ROUND_RESULT' || state.phase === 'FINISHED') && (
-        <Card className="w-full bg-white border-indigo-200 shadow-sm overflow-hidden rounded-3xl animate-in zoom-in-95 duration-300">
-          <CardHeader className="bg-indigo-50 border-b border-indigo-100 py-6">
-            <CardTitle
+        <div className="w-full bg-pink-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - mt-8">
+          <div className="bg-white border-b-4 border-black p-4">
+            <h2
               data-testid="round-result-title"
-              className="text-2xl text-center text-indigo-700 flex items-center justify-center gap-3 font-black uppercase tracking-widest"
+              className="text-2xl text-center text-black flex items-center justify-center gap-3 font-black uppercase tracking-widest "
             >
-              <Trophy className="text-amber-500 w-8 h-8" />
+              <Trophy className="text-black w-8 h-8 fill-yellow-300" />
               {state.phase === 'FINISHED'
                 ? t('whoFirst.result.finalTitle')
                 : t('whoFirst.result.roundTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
+            </h2>
+          </div>
+          <div className="p-4 space-y-4">
+            <div className="space-y-3">
               {state.presses
                 .filter((p) => !p.isPenalty)
                 .sort((a, b) => (a.reactionTimeMs || 0) - (b.reactionTimeMs || 0))
@@ -367,26 +367,24 @@ export const WhoFirstView = () => {
                   return (
                     <div
                       key={press.socketId}
-                      className={`flex items-center justify-between p-5 ${isMe ? 'bg-indigo-50/50' : 'bg-white'}`}
+                      className={`flex items-center justify-between p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${isMe ? 'bg-indigo-300 -' : 'bg-white '}`}
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg border ${index === 0 ? 'bg-amber-100 text-amber-600 border-amber-300 shadow-sm' : index === 1 ? 'bg-slate-100 text-slate-600 border-slate-300 shadow-sm' : index === 2 ? 'bg-amber-50/50 text-amber-700 border-amber-200 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                          className={`w-12 h-12 flex items-center justify-center font-black text-2xl border-4 border-black ${index === 0 ? 'bg-yellow-300' : index === 1 ? 'bg-slate-300' : index === 2 ? 'bg-amber-500' : 'bg-white'}`}
                         >
                           {index + 1}
                         </div>
-                        <span
-                          className={`font-bold ${isMe ? 'text-indigo-600' : 'text-slate-700'} text-lg`}
-                        >
+                        <span className={`font-black uppercase tracking-widest text-black text-lg`}>
                           {player?.name || 'Unknown'} {isMe && `(${t('lobby.you')})`}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-emerald-600 font-black font-mono text-xl">
+                      <div className="text-right bg-emerald-400 border-2 border-black px-3 py-1 - shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <div className="text-black font-black text-xl">
                           {((press.reactionTimeMs || 0) / 1000).toFixed(3)}s
                         </div>
                         {index > 0 && (
-                          <div className="text-xs text-slate-500 font-mono font-bold">
+                          <div className="text-xs text-black font-black">
                             +{(diff / 1000).toFixed(3)}s
                           </div>
                         )}
@@ -403,17 +401,17 @@ export const WhoFirstView = () => {
                   return (
                     <div
                       key={press.socketId}
-                      className="flex items-center justify-between p-5 bg-rose-50/50"
+                      className="flex items-center justify-between p-4 bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] "
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-rose-100 border border-rose-200 text-rose-500">
-                          <AlertTriangle className="w-5 h-5" />
+                        <div className="w-12 h-12 flex items-center justify-center bg-black border-4 border-black">
+                          <AlertTriangle className="w-6 h-6 text-yellow-300 fill-yellow-300" />
                         </div>
-                        <span className="font-bold text-slate-500 line-through">
+                        <span className="font-black text-black line-through uppercase tracking-widest text-lg">
                           {player?.name || 'Unknown'}
                         </span>
                       </div>
-                      <div className="text-rose-500 font-bold text-sm uppercase tracking-wider bg-white px-3 py-1 rounded-full border border-rose-200 shadow-sm">
+                      <div className="text-black font-black text-sm uppercase tracking-widest bg-yellow-300 px-3 py-1 border-4 border-black -">
                         {t('whoFirst.result.earlyPress')}
                       </div>
                     </div>
@@ -431,15 +429,17 @@ export const WhoFirstView = () => {
                 .map((p) => (
                   <div
                     key={p.socketId}
-                    className="flex items-center justify-between p-5 opacity-60 bg-slate-50"
+                    className="flex items-center justify-between p-4 bg-slate-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - opacity-80"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-200 border border-slate-300 text-slate-500 font-black">
+                      <div className="w-12 h-12 flex items-center justify-center bg-slate-500 border-4 border-black text-white font-black text-2xl">
                         -
                       </div>
-                      <span className="font-bold text-slate-500">{p.name}</span>
+                      <span className="font-black text-black uppercase tracking-widest text-lg">
+                        {p.name}
+                      </span>
                     </div>
-                    <div className="text-slate-400 font-bold text-sm uppercase tracking-wider">
+                    <div className="text-black font-black text-sm uppercase tracking-widest bg-white px-3 py-1 border-2 border-black ">
                       {t('whoFirst.result.noPress')}
                     </div>
                   </div>
@@ -449,20 +449,20 @@ export const WhoFirstView = () => {
             {state.phase === 'ROUND_RESULT' &&
               state.presses.length > 0 &&
               state.presses.every((p) => p.isPenalty) && (
-                <div className="p-6 bg-rose-50 border-t border-rose-100 text-center flex flex-col items-center justify-center gap-2">
-                  <AlertTriangle className="w-10 h-10 text-rose-500 animate-bounce" />
-                  <h3 className="text-xl font-black text-rose-600 uppercase tracking-widest">
+                <div className="mt-6 p-6 bg-rose-400 border-4 border-black text-center flex flex-col items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                  <AlertTriangle className="w-12 h-12 text-black fill-yellow-300 animate-bounce" />
+                  <h3 className="text-2xl font-black text-black uppercase tracking-widest bg-white px-4 py-1 border-2 border-black -">
                     {t('whoFirst.result.allFouls')}
                   </h3>
                 </div>
               )}
 
             {isHost && state.phase === 'ROUND_RESULT' && (
-              <div className="p-6 bg-slate-50 border-t border-slate-200 text-center flex flex-col md:flex-row items-center justify-center gap-4">
+              <div className="mt-8 pt-6 border-t-4 border-black flex flex-col md:flex-row items-center justify-center gap-4">
                 <Button
                   onClick={handleNextRound}
                   size="lg"
-                  className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 px-10 rounded-xl transition-all shadow-sm active:scale-95 text-lg uppercase tracking-widest"
+                  className="w-full md:w-auto bg-emerald-400 hover:bg-emerald-300 text-black font-black py-6 px-10 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-lg uppercase tracking-widest "
                 >
                   {t('whoFirst.result.nextRoundBtn')}
                 </Button>
@@ -470,7 +470,7 @@ export const WhoFirstView = () => {
                   onClick={handleEndGame}
                   variant="outline"
                   size="lg"
-                  className="w-full md:w-auto border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-6 px-8 rounded-xl transition-all active:scale-95 text-lg uppercase tracking-widest bg-white shadow-sm"
+                  className="w-full md:w-auto bg-rose-400 hover:bg-rose-300 text-black font-black py-6 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-lg uppercase tracking-widest -"
                 >
                   {t('whoFirst.game.endGameNow')}
                 </Button>
@@ -478,20 +478,20 @@ export const WhoFirstView = () => {
             )}
 
             {isHost && state.phase === 'FINISHED' && (
-              <div className="p-6 bg-slate-50 border-t border-slate-200 text-center">
+              <div className="mt-8 pt-6 border-t-4 border-black flex items-center justify-center">
                 <Button
                   onClick={() => resetRoom()}
                   variant="outline"
                   size="lg"
-                  className="w-full md:w-auto border-slate-300 text-slate-700 hover:bg-slate-100 font-bold py-6 px-8 rounded-xl transition-all active:scale-95 text-lg uppercase tracking-widest bg-white shadow-sm"
+                  className="w-full md:w-auto bg-cyan-300 hover:bg-cyan-200 text-black font-black py-6 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-lg uppercase tracking-widest "
                 >
-                  <RotateCcw className="w-5 h-5 mr-2" />
+                  <RotateCcw className="w-5 h-5 mr-2 stroke-black" />
                   {t('whoFirst.result.endGameBtn')}
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

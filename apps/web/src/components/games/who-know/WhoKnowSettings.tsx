@@ -2,6 +2,7 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 export function WhoKnowSettings() {
   const { room } = useGameStore();
@@ -23,38 +24,37 @@ export function WhoKnowSettings() {
     }
   };
 
+  const hostSelectionOptions = [
+    { value: 'ROUND_ROBIN', label: t('lobby.roundRobin') },
+    { value: 'RANDOM', label: t('lobby.random') },
+    { value: 'FIXED', label: t('lobby.roomCreatorFixed') },
+  ];
+
   return (
     <>
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - mb-6">
+        <label className="block text-black font-black uppercase tracking-widest mb-2 text-lg">
           {t('lobby.hostSelection')}
         </label>
         {isHost ? (
-          <select
-            id="hostSelectionSelect"
-            name="hostSelection"
-            title="Host Selection"
-            aria-label="Host Selection"
+          <NeobrutalismSelect
             value={room.config?.hostSelection || 'ROUND_ROBIN'}
-            onChange={(e) =>
+            options={hostSelectionOptions}
+            onChange={(val) =>
               useGameStore.getState().updateConfig({
-                hostSelection: e.target.value as 'ROUND_ROBIN' | 'RANDOM' | 'FIXED',
+                hostSelection: val as 'ROUND_ROBIN' | 'RANDOM' | 'FIXED',
               })
             }
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 appearance-none"
-          >
-            <option value="ROUND_ROBIN">{t('lobby.roundRobin')}</option>
-            <option value="RANDOM">{t('lobby.random')}</option>
-            <option value="FIXED">{t('lobby.roomCreatorFixed')}</option>
-          </select>
+            className="bg-yellow-300"
+          />
         ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+          <div className="bg-yellow-300 border-4 border-black px-4 py-3 text-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
             {getHostSelectionLabel(room.config?.hostSelection)}
           </div>
         )}
       </div>
-      <div>
-        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+        <label className="block text-black font-black uppercase tracking-widest mb-2 text-lg">
           {t('lobby.timerMinutes')}
         </label>
         {isHost ? (
@@ -79,10 +79,10 @@ export function WhoKnowSettings() {
                 useGameStore.getState().updateConfig({ timerMin: 5 });
               }
             }}
-            className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-cyan-300 border-4 border-black px-4 py-3 text-black font-black focus:outline-none focus:bg-cyan-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           />
         ) : (
-          <div className="text-slate-700 font-medium text-sm px-3 py-2 bg-white/50 rounded-lg border border-amber-200/50">
+          <div className="bg-cyan-300 border-4 border-black px-4 py-3 text-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             {room.config?.timerMin || 5} {t('lobby.minutes')}
           </div>
         )}

@@ -12,57 +12,53 @@ export function PlayerGrid() {
   if (!room) return null;
 
   return (
-    <div className="flex-1 md:flex-1 flex flex-col bg-white border border-amber-200 rounded-2xl p-2 sm:p-4 shadow-sm overflow-hidden min-h-[100px]">
+    <div className="w-full flex flex-col bg-white border-4 border-black p-2 sm:p-4 shadow-[4px_4px_0_0_#000] overflow-hidden min-h-[100px] h-fit max-h-full">
       <div className="flex flex-none items-center justify-between mb-2 sm:mb-3">
-        <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider pl-1">
+        <h3 className="text-xs font-black text-black uppercase tracking-wider pl-1">
           {t('lobby.players')}
         </h3>
-        <span className="bg-amber-100 px-2 py-0.5 rounded-full text-[10px] text-indigo-400 font-black border border-amber-300">
+        <span className="bg-[#FEF08A] px-2 py-0.5 rounded-full text-[10px] text-black font-black border-2 border-black">
           {room.players.length}
         </span>
       </div>
 
-      <div className="flex-1 overflow-auto border border-amber-200/50 rounded-xl relative bg-amber-50/20">
+      <div className="flex-1 overflow-auto border-2 border-black relative bg-white">
         <table className="w-full text-sm text-left relative">
-          <thead className="text-[10px] text-slate-500 uppercase bg-white/90 backdrop-blur-md sticky top-0 border-b border-amber-200/80 shadow-sm">
+          <thead className="text-[10px] text-black font-black uppercase bg-[#F3F4F6] sticky top-0 border-b-2 border-black">
             <tr>
-              <th className="px-3 py-2 font-bold tracking-wider">{t('lobby.players')}</th>
-              <th className="px-3 py-2 text-right font-bold tracking-wider">{t('lobby.score')}</th>
+              <th className="px-3 py-2 font-black tracking-wider">{t('lobby.players')}</th>
+              <th className="px-3 py-2 text-right font-black tracking-wider">{t('lobby.score')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-amber-200/30">
+          <tbody className="divide-y-2 divide-black">
             {room.players.map((p) => (
-              <tr key={p.id} className="bg-amber-100/10 hover:bg-amber-100/40 transition-colors">
+              <tr key={p.id} className="bg-white hover:bg-[#FEF08A] transition-colors">
                 <td className="px-3 py-2 font-medium flex items-center gap-2.5">
                   <span
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-inner flex-shrink-0 border"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0 border-2 border-black shadow-[1px_1px_0_0_#000]"
                     style={{
-                      backgroundColor: p.color ? `${p.color}22` : '#fef3c7',
-                      borderColor: p.color || '#fcd34d',
+                      backgroundColor: p.color ? p.color : '#FEF08A',
                     }}
                     title={p.name}
                   >
                     {p.avatar || getAvatarEmoji(p.id)}
                   </span>
-                  <span
-                    className="truncate max-w-[120px] sm:max-w-[200px]"
-                    style={{ color: p.color || '#334155', fontWeight: p.color ? 800 : 500 }}
-                  >
+                  <span className="truncate max-w-[120px] sm:max-w-[200px] text-black font-black">
                     {p.name}
                     {p.connected === false && (
-                      <span className="text-[9px] font-bold text-slate-500 ml-1.5 align-middle border border-amber-300 bg-amber-100/50 px-1 py-0.5 rounded leading-none inline-flex">
+                      <span className="text-[9px] font-black text-black ml-1.5 align-middle border border-black bg-[#9CA3AF] px-1 py-0.5 rounded leading-none inline-flex">
                         ({t('lobby.offline')})
                       </span>
                     )}
                     {p.name === myName && (
-                      <span className="text-[9px] font-bold text-indigo-400 ml-1.5 align-middle">
+                      <span className="text-[9px] font-black text-indigo-600 ml-1.5 align-middle">
                         ({t('lobby.you')})
                       </span>
                     )}
                   </span>
                   {p.role === Role.Host && (
                     <span
-                      className="text-[9px] bg-amber-500/10 text-amber-500 px-1 py-0.5 rounded border border-amber-500/20 ml-auto shadow-sm leading-none flex items-center"
+                      className="text-[9px] bg-[#FDE047] text-black font-black px-1 py-0.5 rounded border border-black ml-auto leading-none flex items-center"
                       title="Game Host"
                     >
                       {t('lobby.host').toUpperCase()}
@@ -70,7 +66,7 @@ export function PlayerGrid() {
                   )}
                   {room.status === RoomStatus.VOTING && room.votes?.[p.socketId] && (
                     <span
-                      className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20 ml-auto shadow-sm leading-none flex items-center gap-1"
+                      className="text-[9px] bg-[#6EE7B7] text-black font-black px-1.5 py-0.5 rounded border border-black ml-auto leading-none flex items-center gap-1"
                       title="Locked In"
                     >
                       <svg
@@ -90,7 +86,7 @@ export function PlayerGrid() {
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right text-slate-600 font-medium">{p.score}</td>
+                <td className="px-3 py-2 text-right text-black font-black">{p.score}</td>
               </tr>
             ))}
           </tbody>

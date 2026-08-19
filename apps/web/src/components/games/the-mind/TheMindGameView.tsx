@@ -34,22 +34,20 @@ export function TheMindGameView() {
     <div className="flex-1 min-h-0 flex flex-col gap-3">
       {showSetupHand && (
         <div className="mx-auto w-full max-w-lg px-4 pt-4">
-          <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-center">
+          <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 -">
+            <h3 className="text-sm font-black text-black uppercase tracking-widest mb-3 text-center bg-yellow-300 inline-block px-2 border-2 border-black ">
               {t('gameTheMind.game.yourHand')} ({myHand.length})
             </h3>
             <div className="flex flex-wrap gap-2 justify-center">
-              {myHand.map((card) => {
+              {myHand.map((card, idx) => {
                 const isDownCard = card < 0;
 
                 return (
                   <div
                     key={card}
-                    className={`w-16 h-20 rounded-xl font-black text-xl border shadow-sm flex items-center justify-center ${
-                      isDownCard
-                        ? 'bg-rose-600 text-white border-rose-700'
-                        : 'bg-indigo-600 text-white border-indigo-700'
-                    }`}
+                    className={`w-16 h-20 font-black text-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center ${
+                      isDownCard ? 'bg-rose-400 text-black' : 'bg-indigo-400 text-white'
+                    } ${idx % 2 === 0 ? '' : '-'}`}
                   >
                     {Math.abs(card)}
                   </div>

@@ -12,6 +12,7 @@ export const en: Dictionary = {
     createOwnRoom: 'Or create your own room',
     returnToHome: 'Return to Home',
     gameLobbyTitle: 'GAME LOBBY',
+    seconds: 'seconds',
     gameNames: {
       whoKnow: 'Who Know!',
       gobbler: 'Gobbler Tic Tac Toe',
@@ -22,6 +23,7 @@ export const en: Dictionary = {
       detectiveClub: 'Detective Club',
       whoFirst: 'Who First',
       theMind: 'The Mind',
+      musicTrivia: 'Music Trivia',
     },
     or: 'OR',
     roomCodePlaceholder: 'ROOM CODE',
@@ -118,6 +120,10 @@ export const en: Dictionary = {
         'A bluffing and image interpretation game. Everyone knows the secret word except the Conspirator, who must blend in.',
       whoFirstDesc:
         'The fastest reactor wins! Compete to press the button first when the signal drops.',
+      musicTriviaDesc:
+        'Test your musical knowledge! Be the fastest to guess the song correctly to win.',
+      theMindDesc:
+        'An innovative cooperative card game where you must play cards in ascending order without communicating at all!',
     },
     whoKnow: {
       setupTitle: 'The Setup',
@@ -381,6 +387,10 @@ export const en: Dictionary = {
     gameOver: 'Game Over',
     noWinners: 'No winners this round',
     theWordsWere: 'The Words Were',
+    wins: 'WINS!',
+    theyGuessedCorrectly: 'They guessed their word correctly.',
+    noWinner: 'NO WINNER',
+    everyoneUsedGuesses: 'Everyone used all their guesses.',
     whoAreYou: 'Who Are You?',
     takeAGuessDesc:
       "Take a guess! If you're wrong, you might be eliminated or lose your chance to win.",
@@ -575,6 +585,19 @@ export const en: Dictionary = {
       yearStart: 'Start Year',
       yearEnd: 'End Year',
       answerTimeout: 'Answer Timeout (seconds)',
+      searchCriteria: 'Search Criteria',
+      searchKeywords: 'Search Keywords',
+      searchPlaceholder: 'e.g. Taylor Swift, Pop 2023',
+      searchHint: 'Leave blank to get random songs from the category',
+      anyTopic: 'Any Topic',
+      gameRules: 'Game Rules',
+      playbackHostHint: 'Host plays audio on their device (Discord/Zoom)',
+      playbackEveryoneHint: "Audio plays automatically on everyone's device",
+      answerCriteria: 'Answer Criteria',
+      sourceProvidesVideo: 'Provides Music Video',
+      sourceProvidesPreview: 'Provides 30s Preview',
+      sourceLabel: 'Music Source',
+      regionLabel: 'Region',
     },
     game: {
       viewOnAppleMusic: '🔗 View on Apple Music',

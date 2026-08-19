@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+
 import { GameType } from '@repo/types';
 import { WhoKnowRules } from './games/who-know/WhoKnowRules';
 import { TicTacToeRules } from './games/tic-tac-toe/TicTacToeRules';
@@ -16,9 +17,10 @@ import { useTranslate } from '@/hooks/useTranslate';
 interface RulesModalProps {
   defaultGameType?: GameType;
   isGameRoom?: boolean;
+  triggerClassName?: string;
 }
 
-export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
+export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: RulesModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<GameType | 'LOBBY'>(defaultGameType || 'LOBBY');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -71,7 +73,10 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="text-sm font-bold text-slate-600 hover:text-slate-800 transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent hover:border-amber-200 hover:bg-amber-100/50 text-nowrap"
+        className={
+          triggerClassName ||
+          'text-sm font-black text-black hover:bg-amber-200 bg-white transition-colors flex items-center gap-2 px-4 py-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-nowrap'
+        }
         title={t('rules.modal.title')}
       >
         <svg
@@ -93,9 +98,9 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-amber-50/80 backdrop-blur-sm p-2 pt-4 sm:p-4 text-left overflow-y-auto">
-          <div className="bg-white border border-amber-300 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 pb-2 border-b border-amber-200 flex justify-between items-center bg-white z-10 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 p-2 pt-4 sm:p-4 text-left overflow-y-auto">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 pb-2 border-b-4 border-black flex justify-between items-center bg-white z-10 shrink-0">
               <h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -137,71 +142,71 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
             </div>
 
             {!isGameRoom && (
-              <div className="bg-white pt-3 border-b border-amber-200 shrink-0">
+              <div className="bg-white pt-3 border-b-4 border-black shrink-0">
                 <div className="flex gap-2 overflow-x-auto px-6 pb-3 no-scrollbar shrink-0">
                   <button
                     onClick={() => setActiveTab('LOBBY')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === 'LOBBY' ? 'bg-purple-500/20 text-purple-400 shadow-inner border border-purple-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === 'LOBBY' ? 'bg-purple-300 text-black border-2 border-black border border-purple-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.overview')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.WHO_KNOW)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_KNOW ? 'bg-indigo-500/20 text-indigo-400 shadow-inner border border-indigo-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_KNOW ? 'bg-indigo-300 text-black border-2 border-black border border-indigo-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.whoKnow')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.GOBBLER_TIC_TAC_TOE)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.GOBBLER_TIC_TAC_TOE ? 'bg-blue-500/20 text-blue-400 shadow-inner border border-blue-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.GOBBLER_TIC_TAC_TOE ? 'bg-blue-300 text-black border-2 border-black border border-blue-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.gobbler')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.TIC_TAC_TOE)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.TIC_TAC_TOE ? 'bg-zinc-500/20 text-zinc-400 shadow-inner border border-zinc-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.TIC_TAC_TOE ? 'bg-zinc-300 text-black border-2 border-black border border-zinc-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.ticTacToe')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.RPS)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.RPS ? 'bg-amber-500/20 text-amber-400 shadow-inner border border-amber-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.RPS ? 'bg-amber-300 text-black border-2 border-black border border-amber-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.handDuel')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.SOUNDS_FISHY)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SOUNDS_FISHY ? 'bg-purple-500/20 text-purple-400 shadow-inner border border-purple-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SOUNDS_FISHY ? 'bg-purple-300 text-black border-2 border-black border border-purple-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.soundsFishy')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.WHO_AM_I)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_AM_I ? 'bg-pink-500/20 text-pink-400 shadow-inner border border-pink-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_AM_I ? 'bg-pink-300 text-black border-2 border-black border border-pink-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.whoAmI')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.DETECTIVE_CLUB)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.DETECTIVE_CLUB ? 'bg-slate-500/20 text-slate-700 shadow-inner border border-slate-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.DETECTIVE_CLUB ? 'bg-slate-300 text-black border-2 border-black border border-slate-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.detectiveClub')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.WHO_FIRST)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_FIRST ? 'bg-red-500/20 text-red-500 shadow-inner border border-red-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_FIRST ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.whoFirst')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.MUSIC_TRIVIA)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.MUSIC_TRIVIA ? 'bg-orange-500/20 text-orange-500 shadow-inner border border-orange-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.MUSIC_TRIVIA ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     {t('rules.modal.tabs.musicTrivia')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.THE_MIND)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-500/20 text-cyan-500 shadow-inner border border-cyan-500/20' : 'text-slate-600 hover:text-slate-800 hover:bg-amber-100'}`}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     The Mind
                   </button>
@@ -209,14 +214,14 @@ export function RulesModal({ defaultGameType, isGameRoom }: RulesModalProps) {
               </div>
             )}
 
-            <div ref={contentRef} className="p-6 overflow-y-auto text-slate-700 bg-white/50 flex-1">
+            <div ref={contentRef} className="p-6 overflow-y-auto text-slate-700 bg-white flex-1">
               {renderContent()}
             </div>
 
-            <div className="p-6 border-t border-amber-200 bg-white shrink-0">
+            <div className="p-6 border-t-4 border-black bg-white shrink-0">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full bg-amber-100 hover:bg-amber-200 text-slate-800 font-bold text-lg py-4 rounded-xl transition-colors shadow-sm active:scale-[0.98]"
+                className="w-full bg-red-400 hover:bg-red-300 text-black border-4 border-black font-black text-xl py-4 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest"
               >
                 {t('rules.modal.closeBtn')}
               </button>

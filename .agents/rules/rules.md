@@ -95,6 +95,7 @@ export function resetGameState(): void { ... }
 
 ### ✅ Do
 
+- สร้าง temp script (เช่น python scripts สำหรับแก้โค้ดชั่วคราว) ไว้ในโฟลเดอร์ `tmp-script/` ที่ root ของ repo เสมอ แล้วเพิ่ม rule ป้องกันใน `.gitignore` ด้วย
 - ใช้ `@repo/types` สำหรับ shared types เสมอ
 - Broadcast `ROOM_STATE_UPDATED` ทุกครั้งที่ state เปลี่ยน
 - ส่งข้อมูลลับ (role, secret word) แบบ private ด้วย `server.to(socketId).emit()`

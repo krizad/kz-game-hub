@@ -9,11 +9,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 import { RulesModal } from '@/components/RulesModal';
 
-interface RoomHeaderProps {
-  onShowLeaderboard: () => void;
-}
-
-export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
+export function RoomHeader() {
   const { room, leaveRoom } = useGameStore();
   const { t } = useTranslate();
 
@@ -24,12 +20,12 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
 
   return (
     <>
-      <header className="flex-none flex items-center justify-between gap-4 p-2 sm:p-4 bg-white border border-amber-200 rounded-2xl shadow-sm z-10 w-full">
+      <header className="flex-none flex items-center justify-between gap-4 p-2 sm:p-4 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] z-10 w-full">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full">
           <img
             src="/icon.png"
             alt="Logo"
-            className="w-8 h-8 rounded-lg shadow-sm border border-amber-300"
+            className="w-8 h-8 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000]"
           />
           <div className="flex flex-col">
             <span className="text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 hidden sm:block">
@@ -73,7 +69,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
               navigator.clipboard.writeText(inviteLink);
               toast.success(t('errors.inviteLinkCopied'));
             }}
-            className="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 font-bold px-2.5 py-1.5 rounded-lg transition-colors text-xs flex items-center gap-1.5 sm:ml-2"
+            className="bg-[#A3E635] hover:bg-[#84cc16] text-black border-2 border-black font-bold px-2.5 py-1.5 rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs flex items-center gap-1.5 sm:ml-2"
             title={t('lobby.copyLink')}
           >
             <svg
@@ -83,7 +79,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -94,7 +90,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
           </button>
           <button
             onClick={() => setShowQRModal(true)}
-            className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 hover:text-purple-300 border border-purple-500/30 font-bold px-2.5 py-1.5 rounded-lg transition-colors text-xs flex items-center gap-1.5 ml-1"
+            className="bg-[#C084FC] hover:bg-[#A855F7] text-black border-2 border-black font-bold px-2.5 py-1.5 rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs flex items-center gap-1.5 ml-1"
             title={t('lobby.qrCode')}
           >
             <svg
@@ -119,17 +115,14 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
           <LanguageSwitcher />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={onShowLeaderboard}
-            className="text-sm font-bold text-slate-600 hover:text-slate-800 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-transparent hover:border-amber-200 hover:bg-amber-100/50"
-            title="Leaderboard"
-          >
-            🏆
-          </button>
-          <RulesModal defaultGameType={room.gameType} isGameRoom={true} />
+          <RulesModal
+            defaultGameType={room.gameType}
+            isGameRoom={true}
+            triggerClassName="text-sm font-black text-black hover:bg-yellow-300 bg-white transition-colors flex items-center gap-2 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-nowrap"
+          />
           <button
             onClick={() => setShowLeaveModal(true)}
-            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm transition-colors flex items-center gap-1.5 whitespace-nowrap"
+            className="bg-[#F43F5E] hover:bg-[#E11D48] text-white border-2 border-black px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1.5 whitespace-nowrap"
             title={t('lobby.leave')}
           >
             <svg
@@ -139,7 +132,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -154,18 +147,19 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
 
       {/* Leave Room Modal */}
       {showLeaveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
-          <div className="bg-white border border-rose-500/50 rounded-3xl w-full max-w-sm shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500"></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#FEF08A] border-4 border-black w-full max-w-sm shadow-[8px_8px_0_0_#000] relative animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 md:p-8 flex flex-col gap-4 text-center">
-              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest">
+              <h3 className="text-2xl font-black text-black uppercase tracking-widest bg-white border-2 border-black py-2 rounded-md shadow-[2px_2px_0_0_#000]">
                 {t('lobby.leaveRoomTitle')}
               </h3>
-              <p className="text-slate-600 font-medium text-sm">{t('lobby.leaveRoomDesc')}</p>
+              <p className="text-black font-bold text-sm bg-white p-2 rounded border border-black/20">
+                {t('lobby.leaveRoomDesc')}
+              </p>
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => setShowLeaveModal(false)}
-                  className="flex-1 bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-all border border-amber-300"
+                  className="flex-1 bg-white hover:bg-gray-100 text-black border-2 border-black font-black py-3 px-4 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
                 >
                   {t('lobby.cancel')}
                 </button>
@@ -174,7 +168,7 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
                     leaveRoom();
                     setShowLeaveModal(false);
                   }}
-                  className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-sm shadow-rose-500/20"
+                  className="flex-1 bg-[#F43F5E] hover:bg-[#E11D48] text-white border-2 border-black font-black py-3 px-4 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
                 >
                   {t('lobby.confirmLeave')}
                 </button>
@@ -186,31 +180,32 @@ export function RoomHeader({ onShowLeaderboard }: RoomHeaderProps) {
 
       {/* QR Code Modal */}
       {showQRModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-amber-50/80 backdrop-blur-sm p-4">
-          <div className="bg-white border border-purple-500/50 rounded-3xl w-full max-w-sm shadow-sm overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#C084FC] border-4 border-black w-full max-w-sm shadow-[8px_8px_0_0_#000] relative animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 md:p-8 flex flex-col items-center gap-4 text-center">
-              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest">
+              <h3 className="text-2xl font-black text-black uppercase tracking-widest w-full bg-white border-2 border-black py-2 rounded-md shadow-[2px_2px_0_0_#000]">
                 {t('lobby.invitePlayers')}
               </h3>
-              <p className="text-slate-600 font-medium text-sm mb-2">
+              <p className="text-black font-bold text-sm bg-white p-2 rounded border border-black/20 w-full">
                 {t('lobby.scanQrCodeDesc')}{' '}
-                <span className="text-purple-400 font-bold">{room.code}</span>
+                <span className="text-black font-black bg-white px-1 border border-black rounded">
+                  {room.code}
+                </span>
               </p>
 
-              <div className="bg-white p-4 rounded-2xl shadow-inner mx-auto mb-2">
+              <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0_0_#000] mx-auto mb-2">
                 <QRCodeSVG
                   value={`${globalThis.location.origin}/?room=${room.code}`}
                   size={200}
                   bgColor={'#ffffff'}
-                  fgColor={'#0f172a'} // slate-900
+                  fgColor={'#000000'}
                   level={'H'}
                 />
               </div>
 
               <button
                 onClick={() => setShowQRModal(false)}
-                className="w-full bg-amber-100 hover:bg-amber-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-all border border-amber-300 mt-2"
+                className="w-full bg-[#A3E635] hover:bg-[#84cc16] text-black border-2 border-black font-black py-3 px-4 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] mt-2"
               >
                 {t('lobby.close')}
               </button>

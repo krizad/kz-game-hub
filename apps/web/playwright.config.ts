@@ -6,10 +6,10 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  workers: process.env.CI ? 2 : undefined,
   reporter: [['html', { open: 'never' }], ['list']],
   timeout: 60000,
   expect: { timeout: 10000 },
@@ -19,13 +19,13 @@ export default defineConfig({
       command:
         'pnpm -F @repo/database build && pnpm -F @repo/types build && PORT=3101 pnpm -F api dev',
       url: 'http://127.0.0.1:3101/health',
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 120000,
     },
     {
       command: 'NEXT_PUBLIC_API_URL=http://127.0.0.1:3101 pnpm exec next dev -p 3100',
       url: 'http://127.0.0.1:3100',
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 120000,
     },
   ],
@@ -34,6 +34,7 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:3100',
     trace: 'on-first-retry',
     screenshot: 'on',
+    video: 'on',
   },
 
   projects: [

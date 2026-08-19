@@ -32,8 +32,17 @@ test.describe('Room Creation & Join Flow', () => {
   });
 
   test('can create Who Am I room', async ({ page }) => {
-    await createRoom(page, 'GuessHost', 'Who Am I');
+    await createRoom(page, 'Alice', 'Who Am I');
     await expect(page.getByText('Waiting Room').or(page.getByText('ห้องรอ'))).toBeVisible({
+      timeout: 5000,
+    });
+  });
+
+  test('can create The Mind room', async ({ page }) => {
+    await createRoom(page, 'Alice', 'The Mind');
+    await expect(
+      page.locator('text=Ready to Sync?').or(page.getByText('พร้อมเชื่อมต่อจิตใจ?')),
+    ).toBeVisible({
       timeout: 5000,
     });
   });
