@@ -627,4 +627,22 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     return room;
   }
+
+  /** Re-point every socket-id reference to the new socket id on reconnection. */
+  remapSocketId(state: WhoAmIGameState, oldSocketId: string, newSocketId: string): void {
+    if (state.currentTurn === oldSocketId) state.currentTurn = newSocketId;
+    if (state.winner === oldSocketId) state.winner = newSocketId;
+
+    if (state.votes[oldSocketId]) {
+      state.votes[newSocketId] = state.votes[oldSocketId];
+      delete state.votes[oldSocketId];
+    }
+
+    state.eliminatedPlayers = state.eliminatedPlayers.map((id) =>
+      id === oldSocketId ? newSocketId : id,
+    );
+    state.finalGuessUsed = state.finalGuessUsed.map((id) =>
+      id === oldSocketId ? newSocketId : id,
+    );
+  }
 }

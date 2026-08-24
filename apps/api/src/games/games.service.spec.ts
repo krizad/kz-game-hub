@@ -14,6 +14,7 @@ import { TheMindService } from './the-mind/the-mind.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
+import { RoomTimerService } from './room-timer.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -25,6 +26,7 @@ describe('GamesService', () => {
   let detectiveClubService: jest.Mocked<DetectiveClubService>;
   let whoAmIService: jest.Mocked<WhoAmIService>;
   let playerSessionService: PlayerSessionService;
+  let roomTimerService: RoomTimerService;
 
   const mockGameServices = {
     whoKnow: {
@@ -36,17 +38,21 @@ describe('GamesService', () => {
       checkVoteResolution: jest.fn(),
       submitVote: jest.fn(),
       resetGame: jest.fn(),
+      // Real implementation so reconnect tests exercise actual vote migration
+      remapVotes: WhoKnowService.prototype.remapVotes,
     },
     ticTacToe: {
       joinSide: jest.fn(),
       makeMove: jest.fn(),
       reset: jest.fn(),
+      remapSocketId: TicTacToeService.prototype.remapSocketId,
     },
     rps: {
       assignRoles: jest.fn(),
       makeChoice: jest.fn(),
       nextRound: jest.fn(),
       reset: jest.fn(),
+      remapSocketId: RPSService.prototype.remapSocketId,
     },
     gobbler: {
       joinSide: jest.fn(),
@@ -59,6 +65,7 @@ describe('GamesService', () => {
           side,
           size,
         })),
+      remapSocketId: GobblerService.prototype.remapSocketId,
     },
     soundsFishy: {
       assignRoles: jest.fn(),
@@ -69,6 +76,8 @@ describe('GamesService', () => {
       eliminatePlayer: jest.fn(),
       bankPoints: jest.fn(),
       nextRound: jest.fn(),
+      reset: jest.fn(),
+      remapSocketId: SoundsFishyService.prototype.remapSocketId,
     },
     detectiveClub: {
       startGame: jest.fn(),
@@ -78,6 +87,7 @@ describe('GamesService', () => {
       submitVote: jest.fn(),
       nextRound: jest.fn(),
       reset: jest.fn(),
+      remapSocketId: DetectiveClubService.prototype.remapSocketId,
     },
     whoAmI: {
       getCategories: jest.fn(),
@@ -85,22 +95,26 @@ describe('GamesService', () => {
       startGameRandom: jest.fn(),
       startGamePlayerInput: jest.fn(),
       startGameAwaitHostInput: jest.fn(),
+      startGameAiGenerated: jest.fn(),
       submitPlayerWord: jest.fn(),
       handleGameAction: jest.fn(),
       resetGame: jest.fn(),
+      remapSocketId: WhoAmIService.prototype.remapSocketId,
     },
     whoFirst: {
       startGame: jest.fn(),
       handleGameAction: jest.fn(),
       setActive: jest.fn(),
       resetGame: jest.fn(),
+      remapSocketId: WhoFirstService.prototype.remapSocketId,
     },
     musicTrivia: {
       startGame: jest.fn(),
       handleGameAction: jest.fn(),
       finalizeCountdown: jest.fn(),
+      answerTimeout: jest.fn(),
       resetGame: jest.fn(),
-      remapSocketId: jest.fn(),
+      remapSocketId: MusicTriviaService.prototype.remapSocketId,
       deleteRoomData: jest.fn(),
     },
     theMind: {
@@ -134,6 +148,7 @@ describe('GamesService', () => {
         { provide: TheMindService, useValue: mockGameServices.theMind },
         PlayerSessionService,
         PrivateStateService,
+        RoomTimerService,
       ],
     }).compile();
 
@@ -146,6 +161,7 @@ describe('GamesService', () => {
     detectiveClubService = module.get(DetectiveClubService) as jest.Mocked<DetectiveClubService>;
     whoAmIService = module.get(WhoAmIService) as jest.Mocked<WhoAmIService>;
     playerSessionService = module.get(PlayerSessionService);
+    roomTimerService = module.get(RoomTimerService);
     (service as any).rooms.clear();
     (service as any).secretWords.clear();
     playerSessionService.clearAll();
@@ -364,25 +380,35 @@ describe('GamesService', () => {
   });
 
   describe('leaveRoom', () => {
-    it('should return null if player not found', () => {
-      expect(service.leaveRoom('unknown')).toBeNull();
+    it('should return NOT_IN_ROOM if player not found', () => {
+      expect(service.leaveRoom('unknown')).toEqual({ outcome: 'NOT_IN_ROOM' });
     });
 
-    it('should delete room if host leaves explicitly', () => {
+    it('should close room if host leaves explicitly', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
 
       const result = service.leaveRoom('host1', true);
-      expect(result).toEqual({ code: null });
+      expect(result).toEqual({ outcome: 'ROOM_CLOSED', code: room.code });
       expect(service.getRoom(room.code)).toBeUndefined();
     });
 
-    it('should delete room if host leaves from LOBBY (even on disconnect)', () => {
+    it('should clear pending room timers when the host closes the room', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      const cancelSpy = jest.spyOn(roomTimerService, 'clearRoom');
+
+      service.leaveRoom('host1', true);
+
+      expect(cancelSpy).toHaveBeenCalledWith(room.code);
+    });
+
+    it('should close room if host leaves from LOBBY (even on disconnect)', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
 
       const result = service.leaveRoom('host1', false);
-      expect(result).toEqual({ code: null });
+      expect(result).toEqual({ outcome: 'ROOM_CLOSED', code: room.code });
       expect(service.getRoom(room.code)).toBeUndefined();
     });
 
@@ -392,10 +418,11 @@ describe('GamesService', () => {
       service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
 
       const result = service.leaveRoom('p1', true);
-      expect(result).not.toBeNull();
-      const roomResult = result as RoomState;
-      expect(roomResult.players).toHaveLength(1);
-      expect(roomResult.players[0].socketId).toBe('host1');
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      if (result.outcome === 'PLAYER_LEFT') {
+        expect(result.room.players).toHaveLength(1);
+        expect(result.room.players[0].socketId).toBe('host1');
+      }
     });
 
     it('should mark player disconnected on non-explicit leave during game', () => {
@@ -406,12 +433,13 @@ describe('GamesService', () => {
       service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
 
       const result = service.leaveRoom('p1', false);
-      expect(result).not.toBeNull();
-      const roomResult = result as RoomState;
-      expect(roomResult.players[1].connected).toBe(false);
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      if (result.outcome === 'PLAYER_LEFT') {
+        expect(result.room.players[1].connected).toBe(false);
+      }
     });
 
-    it('should delete room when all players disconnected', () => {
+    it('should empty room and report its code when all players disconnected', () => {
       const room = service.createRoom('host1');
       room.status = RoomStatus.PLAYING;
       (service as any).rooms.set(room.code, room);
@@ -427,7 +455,7 @@ describe('GamesService', () => {
       (service as any).rooms.set(room.code, room);
 
       const result = service.leaveRoom('host1', false);
-      expect(result).toBeNull();
+      expect(result).toEqual({ outcome: 'ROOM_EMPTIED', code: room.code });
       expect(service.getRoom(room.code)).toBeUndefined();
     });
 
@@ -825,12 +853,12 @@ describe('GamesService', () => {
       expect(soundsFishyService.nextRound).toHaveBeenCalledWith(room, 'host1');
     });
 
-    it('should delegate reset (via nextRound)', () => {
+    it('should delegate reset', () => {
       const room = service.createRoom('host1', GameType.SOUNDS_FISHY);
-      soundsFishyService.nextRound.mockReturnValue(room);
+      soundsFishyService.reset.mockReturnValue(room);
 
       service.soundsFishyReset(room.code, 'host1');
-      expect(soundsFishyService.nextRound).toHaveBeenCalledWith(room, 'host1');
+      expect(soundsFishyService.reset).toHaveBeenCalledWith(room, 'host1');
     });
   });
 

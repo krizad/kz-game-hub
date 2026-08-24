@@ -8,7 +8,6 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 import { RulesModal } from '@/components/RulesModal';
 
-
 const getGameName = (gameType: GameType, t: any) => {
   switch (gameType) {
     case GameType.GOBBLER_TIC_TAC_TOE:

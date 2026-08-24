@@ -26,8 +26,6 @@ const SIZE_STYLES: Record<GobblerSize, { board: string; inventory: string }> = {
   },
 };
 
-
-
 export function GobblerView() {
   const {
     room,
@@ -45,7 +43,13 @@ export function GobblerView() {
   const [selectedBoardIndex, setSelectedBoardIndex] = useState<number | null>(null);
 
   // Derive mySide early so it can be used in useEffects below
-  const mySide = gb ? (gb.playerXId === socketId ? 'X' : gb.playerOId === socketId ? 'O' : null) : null;
+  const mySide = gb
+    ? gb.playerXId === socketId
+      ? 'X'
+      : gb.playerOId === socketId
+        ? 'O'
+        : null
+    : null;
 
   useEffect(() => {
     if (!gb) return;
@@ -70,7 +74,6 @@ export function GobblerView() {
   if (!gb) return null;
 
   const isMyTurn = mySide === gb.currentTurn && room.status === RoomStatus.PLAYING;
-
 
   const handleCellClick = (index: number) => {
     if (!isMyTurn || actionLoading) return;

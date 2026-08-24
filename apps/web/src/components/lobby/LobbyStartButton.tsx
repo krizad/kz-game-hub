@@ -40,7 +40,6 @@ export function LobbyStartButton() {
     }
   };
 
-
   const minPlayers = getMinPlayers();
   const notEnoughPlayers = room.players.length < minPlayers;
 

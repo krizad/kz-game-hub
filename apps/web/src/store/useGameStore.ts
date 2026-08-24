@@ -1,59 +1,34 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import {
+  GameActionType,
+  MusicTriviaAction,
+  MusicTriviaHostAnswerPayload,
+  MusicTriviaSyncPlayPayload,
+  MusicTriviaTrackAnswerPayload,
   RoomState,
   RoomStatus,
   Role,
   SOCKET_EVENTS,
   AvailableRoom,
   GameType,
+  WhoFirstGameActionType,
   WordCategory,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
+import { translateServerError } from '@/i18n/serverErrors';
 
+const STORAGE_KEYS = {
+  roomCode: 'kz-roomCode',
+  name: 'kz-name',
+  reconnectToken: 'kz-reconnectToken',
+} as const;
 
 // Helper to translate server messages
 const translateError = (message: string) => {
   const language = useI18nStore.getState().language;
-  if (language === 'en') return message;
-
-  // Thai translations for common server errors
-  const th: Record<string, string> = {
-    'The Room Host has left. Room has been closed.': 'โฮสต์ออก ห้องถูกปิดลงแล้ว',
-    'Please enter your name first': 'กรุณากรอกชื่อก่อน',
-    'Room not found or player name is already in use': 'ไม่พบห้องนี้ หรือมีคนใช้ชื่อนี้แล้ว',
-    'Room not found': 'ไม่พบห้องที่ระบุ',
-    'Internal server error': 'เกิดข้อผิดพลาดในระบบ',
-    'Invalid request payload': 'ข้อมูลไม่ถูกต้อง',
-    'Failed to submit vote.': 'ส่งผลโหวตไม่สำเร็จ',
-    'Not authorized or slot already taken.': 'ไม่มีสิทธิ์ หรือช่องถูกจองแล้ว',
-    'Invalid move.': 'การเดินไม่ถูกต้อง',
-    'Not authorized to reset game.': 'ไม่มีสิทธิ์เริ่มเกมใหม่',
-    'Invalid choice or not your turn.': 'ไม่สามารถเลือกได้ หรือยังไม่ถึงตาของคุณ',
-    'Invalid move or not your turn.': 'การเดินไม่ถูกต้อง หรือยังไม่ถึงตาของคุณ',
-    'Invalid answer or not in submission phase.': 'คำตอบไม่ถูกต้อง หรือไม่อยู่ในช่วงส่งคำตอบ',
-    'Cannot reveal player.': 'ไม่สามารถเปิดเผยผู้เล่นได้',
-    'Cannot eliminate player.': 'ไม่สามารถคัดผู้เล่นออกได้',
-    'Cannot bank points.': 'ไม่สามารถเก็บคะแนนได้',
-    'Cannot go to next round.': 'ไม่สามารถไปรอบถัดไปได้',
-    'Cannot submit word': 'ไม่สามารถส่งคำได้',
-    'Invalid card play': 'เล่นไพ่ใบนี้ไม่ได้',
-    'Cannot move to next phase': 'ไม่สามารถข้ามช่วงได้',
-    'Invalid vote': 'การโหวตไม่ถูกต้อง',
-    'Not authorized to move to next round': 'ไม่มีสิทธิ์ข้ามไปรอบถัดไป',
-    'Cannot start Host Input mode': 'ไม่สามารถเริ่มโหมดพิมพ์คำเองได้',
-    'Invalid action': 'การกระทำไม่ถูกต้อง',
-    'Game action not supported for this game type': 'เกมประเภทนี้ไม่รองรับการกระทำนี้',
-    'Cannot ready for game.': 'ไม่สามารถกดพร้อมได้',
-    'Cannot play card right now.': 'ยังไม่สามารถเล่นการ์ดได้',
-    'Cannot advance to next level.': 'ไม่สามารถไปเลเวลถัดไปได้',
-    'Cannot propose shuriken.': 'ไม่สามารถเสนอใช้ดาวกระจายได้',
-    'Cannot vote on shuriken.': 'ไม่สามารถโหวตดาวกระจายได้',
-    'Cannot cancel shuriken proposal.': 'ไม่สามารถยกเลิกการเสนอใช้ดาวกระจายได้',
-  };
-
-  return th[message] || message;
+  return translateServerError(message, language);
 };
 
 interface GameState {
@@ -70,12 +45,7 @@ interface GameState {
   categories: WordCategory[];
   isLoading: boolean;
   privateState: Record<string, unknown>;
-  musicTriviaHostAnswer: {
-    title: string;
-    artist: string;
-    artworkUrl?: string;
-    trackViewUrl?: string;
-  } | null;
+  musicTriviaHostAnswer: MusicTriviaHostAnswerPayload | null;
   actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
@@ -115,9 +85,9 @@ interface GameState {
   submitWordsWhoAmI: (playerWords: Record<string, string>) => void;
   submitPlayerWordWhoAmI: (word: string) => void;
   getCategoriesWhoAmI: (lang?: string) => void;
-  gameActionWhoAmI: (action: any) => void;
-  whoFirstGameAction: (action: any) => void;
-  musicTriviaGameAction: (action: any) => void;
+  gameActionWhoAmI: (action: { type: GameActionType } & Record<string, unknown>) => void;
+  whoFirstGameAction: (action: { type: WhoFirstGameActionType; payload?: unknown }) => void;
+  musicTriviaGameAction: (action: MusicTriviaAction) => void;
   theMindReady: () => void;
   theMindPlayCard: (card: number, pile?: 'UP' | 'DOWN') => void;
   theMindNextLevel: () => void;
@@ -126,564 +96,423 @@ interface GameState {
   theMindCancelShuriken: () => void;
   spectateJoin: (code: string) => void;
 
-  musicTriviaTrackAnswer: { roundNumber: number } | null;
-  musicTriviaSyncPlay: {
-    roundNumber: number;
-    playStartTime: number;
-    previewUrl: string;
-    sourceType: string;
-    durationMs: number;
-    artworkUrl?: string;
-  } | null;
+  musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
+  musicTriviaSyncPlay: MusicTriviaSyncPlayPayload | null;
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
-  socket: null,
-  connected: false,
-  isSpectator: false,
-  room: null,
-  myRole: null,
-  myName: '',
-  socketId: '',
-  playerId: '',
-  secretWord: null,
-  availableRooms: [],
-  categories: [],
+export const useGameStore = create<GameState>((set, get) => {
+  /**
+   * Standard game-action emitter: guards on socket/room/loading state,
+   * flips `actionLoading`, and sends `{ code, ...payload }`.
+   * Returns true when the event was actually emitted.
+   */
+  const emitGameAction = (
+    event: string,
+    options: { loading?: boolean; payload?: (room: RoomState) => Record<string, unknown> } = {},
+  ): boolean => {
+    const { socket, room, actionLoading } = get();
+    if (!socket || !room) return false;
+    const withLoading = options.loading ?? true;
+    if (withLoading && actionLoading) return false;
+    if (withLoading) set({ actionLoading: true });
+    socket.emit(event, {
+      code: room.code,
+      ...(options.payload ? options.payload(room) : {}),
+    });
+    return true;
+  };
 
-  isLoading: false,
-  privateState: {},
-  musicTriviaHostAnswer: null,
-  actionLoading: false,
-  musicTriviaTrackAnswer: null,
-  musicTriviaSyncPlay: null,
-
-  setName: (name) => set({ myName: name }),
-
-  connect: () => {
-    if (get().socket) return;
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      (typeof window !== 'undefined'
-        ? `${window.location.protocol}//${window.location.hostname}:3001`
-        : 'http://localhost:3001');
-    const socket = io(apiUrl);
-
-    socket.on('connect', () => {
-      set({ connected: true, socket, socketId: socket.id });
-
-      // Auto-reconnect if session exists
-      const savedCode = localStorage.getItem('who-know-roomCode');
-      const savedName = localStorage.getItem('who-know-name');
-      const reconnectToken = localStorage.getItem('who-know-reconnectToken');
-      if (savedCode && savedName) {
-        set({ myName: savedName });
-        socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
-          code: savedCode,
-          name: savedName,
-          ...(reconnectToken ? { reconnectToken } : {}),
-        });
-      }
-
-      // Request active rooms lobby
-      socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
+  const clearRoomSession = () =>
+    set({
+      room: null,
+      myRole: null,
+      secretWord: null,
+      privateState: {},
+      isSpectator: false,
+      playerId: '',
     });
 
-    socket.on('disconnect', () => {
-      set({ connected: false, socketId: '' });
-    });
+  return {
+    socket: null,
+    connected: false,
+    isSpectator: false,
+    room: null,
+    myRole: null,
+    myName: '',
+    socketId: '',
+    playerId: '',
+    secretWord: null,
+    availableRooms: [],
+    categories: [],
 
-    socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
-      // Check if the current player is still in the room
-      const currentName = get().myName;
-      const isMe = room.players.find((p) => p.socketId === socket.id || p.name === currentName);
+    isLoading: false,
+    privateState: {},
+    musicTriviaHostAnswer: null,
+    actionLoading: false,
+    musicTriviaTrackAnswer: null,
+    musicTriviaSyncPlay: null,
 
-      // If we're not in the room's player list, ignore this update
-      // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
-      if (!isMe && !get().isSpectator) return;
+    setName: (name) => set({ myName: name }),
 
-      if (room.status === RoomStatus.LOBBY) {
-        set({
-          room,
-          myRole: null,
-          secretWord: null,
-          privateState: {},
-          isLoading: false,
-          actionLoading: false,
-        });
-      } else {
-        // Clear host answer when state updates (if not GAME_MASTER playing)
-        if (
-          room.musicTriviaState?.phase !== 'PLAYING' &&
-          room.musicTriviaState?.phase !== 'BUZZED' &&
-          room.musicTriviaState?.phase !== 'ANSWERING'
-        ) {
-          set({ musicTriviaHostAnswer: null });
+    connect: () => {
+      if (get().socket) return;
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (typeof window !== 'undefined'
+          ? `${window.location.protocol}//${window.location.hostname}:3001`
+          : 'http://localhost:3001');
+      const socket = io(apiUrl);
+
+      socket.on('connect', () => {
+        set({ connected: true, socket, socketId: socket.id });
+
+        // Auto-reconnect if session exists
+        const savedCode = localStorage.getItem(STORAGE_KEYS.roomCode);
+        const savedName = localStorage.getItem(STORAGE_KEYS.name);
+        const reconnectToken = localStorage.getItem(STORAGE_KEYS.reconnectToken);
+        if (savedCode && savedName) {
+          set({ myName: savedName });
+          socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
+            code: savedCode,
+            name: savedName,
+            ...(reconnectToken ? { reconnectToken } : {}),
+          });
         }
 
-        set({ room, isLoading: false, actionLoading: false });
-      }
-
-      if (!get().isSpectator) {
-        localStorage.setItem('who-know-roomCode', room.code);
-        localStorage.setItem('who-know-name', currentName);
-      }
-    });
-
-    socket.on(SOCKET_EVENTS.ROLE_ASSIGNED, ({ role }: { role: Role }) => {
-      set({ myRole: role });
-    });
-
-    socket.on(
-      SOCKET_EVENTS.PRIVATE_STATE_UPDATED,
-      ({ data }: { data: Record<string, unknown> }) => {
-        set({ privateState: data ?? {} });
-      },
-    );
-
-    socket.on(
-      SOCKET_EVENTS.SESSION_ASSIGNED,
-      ({
-        code,
-        reconnectToken,
-        playerId,
-      }: {
-        code: string;
-        reconnectToken: string;
-        playerId: string;
-      }) => {
-        localStorage.setItem('who-know-roomCode', code);
-        localStorage.setItem('who-know-reconnectToken', reconnectToken);
-        set({ isSpectator: false, playerId });
-      },
-    );
-
-    socket.on(SOCKET_EVENTS.ROOM_DELETED, () => {
-      localStorage.removeItem('who-know-roomCode');
-      localStorage.removeItem('who-know-reconnectToken');
-      set({
-        room: null,
-        myRole: null,
-        secretWord: null,
-        privateState: {},
-        isSpectator: false,
-        playerId: '',
+        // Request active rooms lobby
+        socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
       });
-      toast.error(translateError('The Room Host has left. Room has been closed.'));
-    });
 
-    socket.on(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, (rooms: AvailableRoom[]) => {
-      set({ availableRooms: rooms });
-    });
-
-    socket.on(SOCKET_EVENTS.WORD_SETTING_COMPLETED, ({ word }: { word: string }) => {
-      set({ secretWord: word });
-    });
-
-    socket.on(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, (categories: WordCategory[]) => {
-      set({ categories });
-    });
-
-    socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, (answer: any) => {
-      set({ musicTriviaHostAnswer: answer });
-    });
-
-    socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
-      if (message.startsWith('Room not found')) {
-        localStorage.removeItem('who-know-roomCode');
-        localStorage.removeItem('who-know-reconnectToken');
-        set({ room: null, isSpectator: false, playerId: '' });
-      }
-      set({ isLoading: false, actionLoading: false });
-      toast.error(translateError(message));
-    });
-
-    socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_TRACK_ANSWER, (data) => {
-      set({ musicTriviaTrackAnswer: data });
-    });
-
-    socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, (data) => {
-      set({ musicTriviaSyncPlay: data });
-    });
-  },
-
-  createRoom: (gameType: GameType = GameType.WHO_KNOW) => {
-    const { socket, myName } = get();
-    if (socket && myName) {
-      socket.emit(SOCKET_EVENTS.CREATE_ROOM, { name: myName, gameType });
-    } else if (!myName) {
-      toast.error(translateError('Please enter your name first'));
-    }
-  },
-
-  joinRoom: (code: string) => {
-    const { socket, myName } = get();
-    if (socket && myName) {
-      socket.emit(SOCKET_EVENTS.JOIN_ROOM, { code, name: myName });
-    } else if (!myName) {
-      toast.error(translateError('Please enter your name first'));
-    }
-  },
-
-  startGame: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ isLoading: true, actionLoading: true });
-      socket.emit(SOCKET_EVENTS.START_GAME, { code: room.code });
-    }
-  },
-
-  setWord: (word: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SET_WORD, { code: room.code, word });
-    }
-  },
-
-  endQuestioning: (timeout: boolean = false) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.END_QUESTIONING, { code: room.code, timeout });
-    }
-  },
-
-  stopTimer: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.STOP_TIMER, { code: room.code });
-    }
-  },
-
-  submitVote: (targetId: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SUBMIT_VOTE, { code: room.code, targetId });
-    }
-  },
-
-  resetRoom: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ myRole: null, secretWord: null, actionLoading: true });
-      socket.emit(SOCKET_EVENTS.RESET_GAME, { code: room.code });
-    }
-  },
-
-  leaveRoom: () => {
-    const { socket } = get();
-    if (socket) {
-      socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
-      localStorage.removeItem('who-know-roomCode');
-      localStorage.removeItem('who-know-reconnectToken');
-      set({
-        room: null,
-        myRole: null,
-        secretWord: null,
-        privateState: {},
-        isSpectator: false,
-        playerId: '',
+      socket.on('disconnect', () => {
+        set({ connected: false, socketId: '' });
       });
-    }
-  },
 
-  updateConfig: (config: Partial<RoomState['config']>) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.UPDATE_CONFIG, { code: room.code, config });
-    }
-  },
+      socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
+        // Check if the current player is still in the room
+        const currentName = get().myName;
+        const isMe = room.players.find((p) => p.socketId === socket.id || p.name === currentName);
 
-  tttJoinSide: (side: 'X' | 'O') => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.TTT_JOIN_SIDE, { code: room.code, side });
-    }
-  },
+        // If we're not in the room's player list, ignore this update
+        // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
+        if (!isMe && !get().isSpectator) return;
 
-  tttMakeMove: (index: number) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: room.code, index });
-    }
-  },
+        if (room.status === RoomStatus.LOBBY) {
+          set({
+            room,
+            myRole: null,
+            secretWord: null,
+            privateState: {},
+            isLoading: false,
+            actionLoading: false,
+          });
+        } else {
+          // Clear host answer when state updates (if not GAME_MASTER playing)
+          if (
+            room.musicTriviaState?.phase !== 'PLAYING' &&
+            room.musicTriviaState?.phase !== 'BUZZED' &&
+            room.musicTriviaState?.phase !== 'ANSWERING'
+          ) {
+            set({ musicTriviaHostAnswer: null });
+          }
 
-  tttReset: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.TTT_RESET, { code: room.code });
-    }
-  },
+          set({ room, isLoading: false, actionLoading: false });
+        }
 
-  rpsNextRound: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.RPS_NEXT_ROUND, { code: room.code });
-    }
-  },
+        if (!get().isSpectator) {
+          localStorage.setItem(STORAGE_KEYS.roomCode, room.code);
+          localStorage.setItem(STORAGE_KEYS.name, currentName);
+        }
+      });
 
-  rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.RPS_MAKE_CHOICE, { code: room.code, choice });
-    }
-  },
+      socket.on(SOCKET_EVENTS.ROLE_ASSIGNED, ({ role }: { role: Role }) => {
+        set({ myRole: role });
+      });
 
-  rpsReset: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.RPS_RESET, { code: room.code });
-    }
-  },
+      socket.on(
+        SOCKET_EVENTS.PRIVATE_STATE_UPDATED,
+        ({ data }: { data: Record<string, unknown> }) => {
+          set({ privateState: data ?? {} });
+        },
+      );
 
-  gobblerJoinSide: (side: 'X' | 'O') => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GOBBLER_JOIN_SIDE, { code: room.code, side });
-    }
-  },
+      socket.on(
+        SOCKET_EVENTS.SESSION_ASSIGNED,
+        ({
+          code,
+          reconnectToken,
+          playerId,
+        }: {
+          code: string;
+          reconnectToken: string;
+          playerId: string;
+        }) => {
+          localStorage.setItem(STORAGE_KEYS.roomCode, code);
+          localStorage.setItem(STORAGE_KEYS.reconnectToken, reconnectToken);
+          set({ isSpectator: false, playerId });
+        },
+      );
 
-  gobblerPlacePiece: (pieceId: string, toIndex: number) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GOBBLER_PLACE, { code: room.code, pieceId, toIndex });
-    }
-  },
+      socket.on(SOCKET_EVENTS.ROOM_DELETED, () => {
+        localStorage.removeItem(STORAGE_KEYS.roomCode);
+        localStorage.removeItem(STORAGE_KEYS.reconnectToken);
+        clearRoomSession();
+        toast.error(translateError('The Room Host has left. Room has been closed.'));
+      });
 
-  gobblerMovePiece: (fromIndex: number, toIndex: number) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GOBBLER_MOVE, { code: room.code, fromIndex, toIndex });
-    }
-  },
+      socket.on(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, (rooms: AvailableRoom[]) => {
+        set({ availableRooms: rooms });
+      });
 
-  gobblerReset: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GOBBLER_RESET, { code: room.code });
-    }
-  },
+      socket.on(SOCKET_EVENTS.WORD_SETTING_COMPLETED, ({ word }: { word: string }) => {
+        set({ secretWord: word });
+      });
 
-  soundsFishyTypeAnswer: (answer: string) => {
-    const { socket, room } = get();
-    if (socket && room) {
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_TYPE_ANSWER, { code: room.code, answer });
-    }
-  },
+      socket.on(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, (categories: WordCategory[]) => {
+        set({ categories });
+      });
 
-  soundsFishySubmitAnswer: (answer: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_SUBMIT_ANSWER, { code: room.code, answer });
-    }
-  },
+      socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, (answer: MusicTriviaHostAnswerPayload) => {
+        set({ musicTriviaHostAnswer: answer });
+      });
 
-  soundsFishyRevealAnswer: (targetId: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_REVEAL_ANSWER, { code: room.code, targetId });
-    }
-  },
+      socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
+        if (message.startsWith('Room not found')) {
+          localStorage.removeItem(STORAGE_KEYS.roomCode);
+          localStorage.removeItem(STORAGE_KEYS.reconnectToken);
+          set({ room: null, isSpectator: false, playerId: '' });
+        }
+        set({ isLoading: false, actionLoading: false });
+        toast.error(translateError(message));
+      });
 
-  soundsFishyEliminatePlayer: (targetId: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_ELIMINATE_PLAYER, { code: room.code, targetId });
-    }
-  },
+      socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_TRACK_ANSWER, (data: MusicTriviaTrackAnswerPayload) => {
+        set({ musicTriviaTrackAnswer: data });
+      });
 
-  soundsFishyBankPoints: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_BANK_POINTS, { code: room.code });
-    }
-  },
+      socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, (data: MusicTriviaSyncPlayPayload) => {
+        set({ musicTriviaSyncPlay: data });
+      });
+    },
 
-  soundsFishyNextRound: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_NEXT_ROUND, { code: room.code });
-    }
-  },
+    createRoom: (gameType: GameType = GameType.WHO_KNOW) => {
+      const { socket, myName } = get();
+      if (!myName) {
+        toast.error(translateError('Please enter your name first'));
+        return;
+      }
+      if (socket) {
+        socket.emit(SOCKET_EVENTS.CREATE_ROOM, { name: myName, gameType });
+      }
+    },
 
-  soundsFishyReset: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.SOUNDS_FISHY_RESET, { code: room.code });
-    }
-  },
+    joinRoom: (code: string) => {
+      const { socket, myName } = get();
+      if (!myName) {
+        toast.error(translateError('Please enter your name first'));
+        return;
+      }
+      if (socket) {
+        socket.emit(SOCKET_EVENTS.JOIN_ROOM, { code, name: myName });
+      }
+    },
 
-  detectiveClubSubmitWord: (word: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_SUBMIT_WORD, { code: room.code, word });
-    }
-  },
+    startGame: () => {
+      if (emitGameAction(SOCKET_EVENTS.START_GAME)) set({ isLoading: true });
+    },
 
-  detectiveClubPlayCard: (cardIndex: number) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_PLAY_CARD, { code: room.code, cardIndex });
-    }
-  },
+    setWord: (word: string) => {
+      emitGameAction(SOCKET_EVENTS.SET_WORD, { payload: () => ({ word }) });
+    },
 
-  detectiveClubNextPhase: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_PHASE, { code: room.code });
-    }
-  },
+    endQuestioning: (timeout: boolean = false) => {
+      emitGameAction(SOCKET_EVENTS.END_QUESTIONING, { payload: () => ({ timeout }) });
+    },
 
-  detectiveClubVote: (targetId: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_VOTE, { code: room.code, targetId });
-    }
-  },
+    stopTimer: () => {
+      emitGameAction(SOCKET_EVENTS.STOP_TIMER);
+    },
 
-  detectiveClubNextRound: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_ROUND, { code: room.code });
-    }
-  },
+    submitVote: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.SUBMIT_VOTE, { payload: () => ({ targetId }) });
+    },
 
-  detectiveClubReset: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.DETECTIVE_CLUB_RESET, { code: room.code });
-    }
-  },
+    resetRoom: () => {
+      if (emitGameAction(SOCKET_EVENTS.RESET_GAME)) set({ myRole: null, secretWord: null });
+    },
 
-  submitWordsWhoAmI: (playerWords: Record<string, string>) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS, { code: room.code, playerWords });
-    }
-  },
+    leaveRoom: () => {
+      const { socket } = get();
+      if (socket) {
+        socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
+        localStorage.removeItem(STORAGE_KEYS.roomCode);
+        localStorage.removeItem(STORAGE_KEYS.reconnectToken);
+        clearRoomSession();
+      }
+    },
 
-  submitPlayerWordWhoAmI: (word: string) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.WHO_AM_I_SUBMIT_PLAYER_WORD, { code: room.code, word });
-    }
-  },
+    updateConfig: (config: Partial<RoomState['config']>) => {
+      emitGameAction(SOCKET_EVENTS.UPDATE_CONFIG, { payload: () => ({ config }) });
+    },
 
-  getCategoriesWhoAmI: (lang?: string) => {
-    const { socket } = get();
-    if (socket) {
-      socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang });
-    }
-  },
+    tttJoinSide: (side: 'X' | 'O') => {
+      emitGameAction(SOCKET_EVENTS.TTT_JOIN_SIDE, { payload: () => ({ side }) });
+    },
 
-  gameActionWhoAmI: (action: any) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
-    }
-  },
+    tttMakeMove: (index: number) => {
+      emitGameAction(SOCKET_EVENTS.TTT_MAKE_MOVE, { payload: () => ({ index }) });
+    },
 
-  whoFirstGameAction: (action: any) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
-    }
-  },
+    tttReset: () => {
+      emitGameAction(SOCKET_EVENTS.TTT_RESET);
+    },
 
-  musicTriviaGameAction: (action: any) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.GAME_ACTION, { code: room.code, action });
-    }
-  },
+    rpsNextRound: () => {
+      emitGameAction(SOCKET_EVENTS.RPS_NEXT_ROUND);
+    },
 
-  theMindReady: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_READY, { code: room.code });
-    }
-  },
+    rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => {
+      emitGameAction(SOCKET_EVENTS.RPS_MAKE_CHOICE, { payload: () => ({ choice }) });
+    },
 
-  theMindPlayCard: (card: number, pile?: 'UP' | 'DOWN') => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_PLAY_CARD, { code: room.code, card, pile });
-    }
-  },
+    rpsReset: () => {
+      emitGameAction(SOCKET_EVENTS.RPS_RESET);
+    },
 
-  theMindNextLevel: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_NEXT_LEVEL, { code: room.code });
-    }
-  },
+    gobblerJoinSide: (side: 'X' | 'O') => {
+      emitGameAction(SOCKET_EVENTS.GOBBLER_JOIN_SIDE, { payload: () => ({ side }) });
+    },
 
-  theMindProposeShuriken: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_PROPOSE_SHURIKEN, { code: room.code });
-    }
-  },
+    gobblerPlacePiece: (pieceId: string, toIndex: number) => {
+      emitGameAction(SOCKET_EVENTS.GOBBLER_PLACE, { payload: () => ({ pieceId, toIndex }) });
+    },
 
-  theMindVoteShuriken: (agree: boolean) => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_VOTE_SHURIKEN, { code: room.code, agree });
-    }
-  },
+    gobblerMovePiece: (fromIndex: number, toIndex: number) => {
+      emitGameAction(SOCKET_EVENTS.GOBBLER_MOVE, { payload: () => ({ fromIndex, toIndex }) });
+    },
 
-  theMindCancelShuriken: () => {
-    const { socket, room, actionLoading } = get();
-    if (socket && room && !actionLoading) {
-      set({ actionLoading: true });
-      socket.emit(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN, { code: room.code });
-    }
-  },
+    gobblerReset: () => {
+      emitGameAction(SOCKET_EVENTS.GOBBLER_RESET);
+    },
 
-  spectateJoin: (code: string) => {
-    const { socket, myName } = get();
-    if (socket && myName) {
-      set({ isLoading: true, isSpectator: true });
-      socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: code.toUpperCase(), name: myName });
-    }
-  },
-}));
+    soundsFishyTypeAnswer: (answer: string) => {
+      // Typing must stay responsive — no loading guard
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_TYPE_ANSWER, {
+        loading: false,
+        payload: () => ({ answer }),
+      });
+    },
+
+    soundsFishySubmitAnswer: (answer: string) => {
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_SUBMIT_ANSWER, { payload: () => ({ answer }) });
+    },
+
+    soundsFishyRevealAnswer: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_REVEAL_ANSWER, { payload: () => ({ targetId }) });
+    },
+
+    soundsFishyEliminatePlayer: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_ELIMINATE_PLAYER, {
+        payload: () => ({ targetId }),
+      });
+    },
+
+    soundsFishyBankPoints: () => {
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_BANK_POINTS);
+    },
+
+    soundsFishyNextRound: () => {
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_NEXT_ROUND);
+    },
+
+    soundsFishyReset: () => {
+      emitGameAction(SOCKET_EVENTS.SOUNDS_FISHY_RESET);
+    },
+
+    detectiveClubSubmitWord: (word: string) => {
+      emitGameAction(SOCKET_EVENTS.DETECTIVE_CLUB_SUBMIT_WORD, { payload: () => ({ word }) });
+    },
+
+    detectiveClubPlayCard: (cardIndex: number) => {
+      emitGameAction(SOCKET_EVENTS.DETECTIVE_CLUB_PLAY_CARD, { payload: () => ({ cardIndex }) });
+    },
+
+    detectiveClubNextPhase: () => {
+      emitGameAction(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_PHASE);
+    },
+
+    detectiveClubVote: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.DETECTIVE_CLUB_VOTE, { payload: () => ({ targetId }) });
+    },
+
+    detectiveClubNextRound: () => {
+      emitGameAction(SOCKET_EVENTS.DETECTIVE_CLUB_NEXT_ROUND);
+    },
+
+    detectiveClubReset: () => {
+      emitGameAction(SOCKET_EVENTS.DETECTIVE_CLUB_RESET);
+    },
+
+    submitWordsWhoAmI: (playerWords: Record<string, string>) => {
+      emitGameAction(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS, { payload: () => ({ playerWords }) });
+    },
+
+    submitPlayerWordWhoAmI: (word: string) => {
+      emitGameAction(SOCKET_EVENTS.WHO_AM_I_SUBMIT_PLAYER_WORD, { payload: () => ({ word }) });
+    },
+
+    getCategoriesWhoAmI: (lang?: string) => {
+      const { socket } = get();
+      if (socket) {
+        socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang });
+      }
+    },
+
+    gameActionWhoAmI: (action: { type: GameActionType } & Record<string, unknown>) => {
+      emitGameAction(SOCKET_EVENTS.GAME_ACTION, { payload: () => ({ action }) });
+    },
+
+    whoFirstGameAction: (action: { type: WhoFirstGameActionType; payload?: unknown }) => {
+      emitGameAction(SOCKET_EVENTS.GAME_ACTION, { payload: () => ({ action }) });
+    },
+
+    musicTriviaGameAction: (action: MusicTriviaAction) => {
+      emitGameAction(SOCKET_EVENTS.GAME_ACTION, { payload: () => ({ action }) });
+    },
+
+    theMindReady: () => {
+      emitGameAction(SOCKET_EVENTS.THE_MIND_READY);
+    },
+
+    theMindPlayCard: (card: number, pile?: 'UP' | 'DOWN') => {
+      emitGameAction(SOCKET_EVENTS.THE_MIND_PLAY_CARD, { payload: () => ({ card, pile }) });
+    },
+
+    theMindNextLevel: () => {
+      emitGameAction(SOCKET_EVENTS.THE_MIND_NEXT_LEVEL);
+    },
+
+    theMindProposeShuriken: () => {
+      emitGameAction(SOCKET_EVENTS.THE_MIND_PROPOSE_SHURIKEN);
+    },
+
+    theMindVoteShuriken: (agree: boolean) => {
+      emitGameAction(SOCKET_EVENTS.THE_MIND_VOTE_SHURIKEN, { payload: () => ({ agree }) });
+    },
+
+    theMindCancelShuriken: () => {
+      emitGameAction(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN);
+    },
+
+    spectateJoin: (code: string) => {
+      const { socket, myName } = get();
+      if (socket && myName) {
+        set({ isLoading: true, isSpectator: true });
+        socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: code.toUpperCase(), name: myName });
+      }
+    },
+  };
+});
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-  (window as any).__useGameStore = useGameStore;
+  (window as unknown as Record<string, unknown>).__useGameStore = useGameStore;
 }

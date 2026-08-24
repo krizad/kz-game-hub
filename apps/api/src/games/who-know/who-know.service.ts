@@ -241,4 +241,18 @@ export class WhoKnowService {
     secretWords.delete(room.code);
     return room;
   }
+
+  /** Re-point votes cast for/by the old socket id to the new socket id on reconnection. */
+  remapVotes(votes: Record<string, string>, oldSocketId: string, newSocketId: string): void {
+    if (votes[oldSocketId]) {
+      votes[newSocketId] = votes[oldSocketId];
+      delete votes[oldSocketId];
+    }
+
+    Object.entries(votes).forEach(([voterId, targetId]) => {
+      if (targetId === oldSocketId) {
+        votes[voterId] = newSocketId;
+      }
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrivateStateService } from '../private-state.service';
 import {
   MusicTriviaAction,
@@ -15,6 +15,36 @@ import { YouTubeAdapter } from './adapters/youtube.adapter';
 import { DeezerAdapter } from './adapters/deezer.adapter';
 import { SoundcloudAdapter } from './adapters/soundcloud.adapter';
 import { MusicSourceFactory, TrackResult } from './music-source-adapter';
+
+export type MusicTriviaTimerName = 'music-trivia-countdown' | 'music-trivia-answer';
+
+/**
+ * Timer instruction produced by the service and executed by the gateway.
+ * Keeps every timing decision inside the service (gateway stays transport-only).
+ */
+export type MusicTriviaTimerCommand =
+  | { kind: 'SCHEDULE'; name: MusicTriviaTimerName; deadline: number }
+  | { kind: 'CANCEL'; name: MusicTriviaTimerName };
+
+const scheduleCountdownCommand = (deadline: number): MusicTriviaTimerCommand => ({
+  kind: 'SCHEDULE',
+  name: 'music-trivia-countdown',
+  deadline,
+});
+const scheduleAnswerTimeoutCommand = (deadline: number): MusicTriviaTimerCommand => ({
+  kind: 'SCHEDULE',
+  name: 'music-trivia-answer',
+  deadline,
+});
+const cancelAnswerTimerCommand = (): MusicTriviaTimerCommand => ({
+  kind: 'CANCEL',
+  name: 'music-trivia-answer',
+});
+const cancelCountdownTimerCommand = (): MusicTriviaTimerCommand => ({
+  kind: 'CANCEL',
+  name: 'music-trivia-countdown',
+});
+
 interface TrackAnswer {
   id: string;
   title: string;
@@ -43,10 +73,15 @@ export interface MusicTriviaActionResult {
     artworkUrl?: string;
     trackViewUrl?: string;
   };
+  /** Timer schedules/cancellations the gateway must apply after this action. */
+  timerCommands?: MusicTriviaTimerCommand[];
 }
+
+const COUNTDOWN_MS = 3000;
 
 @Injectable()
 export class MusicTriviaService {
+  private readonly logger = new Logger(MusicTriviaService.name);
   private sourceFactory: MusicSourceFactory;
 
   constructor(private readonly privateState: PrivateStateService) {
@@ -207,8 +242,8 @@ export class MusicTriviaService {
     if (state.phase !== 'GET_READY') return null;
 
     state.phase = 'COUNTDOWN';
-    state.countdownEndsAt = Date.now() + 3000;
-    return { room };
+    state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
+    return { room, timerCommands: [scheduleCountdownCommand(state.countdownEndsAt)] };
   }
 
   public finalizeCountdown(room: RoomState): MusicTriviaActionResult | null {
@@ -315,7 +350,7 @@ export class MusicTriviaService {
 
       return { room };
     } catch (error) {
-      console.error('[MusicTriviaService] configureSource error:', error);
+      this.logger.error('configureSource failed', error as Error);
       state.phase = 'SETUP'; // Reset back on error
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred while configuring source';
@@ -371,11 +406,11 @@ export class MusicTriviaService {
       state.phase = 'ANSWERING';
     }
 
-    const result: MusicTriviaActionResult = { room };
-
     // The trackAnswerTo is intentionally NOT set for typing mode
-
-    return result;
+    return {
+      room,
+      timerCommands: [scheduleAnswerTimeoutCommand(now + (state.answerTimeoutMs || 15000))],
+    };
   }
 
   answerTimeout(room: RoomState): MusicTriviaActionResult | null {
@@ -385,8 +420,87 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round || !round.currentBuzzerId) return null;
 
-    // Simulate giveUp by the current buzzer
-    return this.giveUp(room, round.currentBuzzerId);
+    // The buzzer ran out of time — treat it as a give-up.
+    return this.strikeOutPlayer(room, round.currentBuzzerId, true);
+  }
+
+  /**
+   * Strike out a player and resolve the round afterwards.
+   * Works from PLAYING (manual give-up), BUZZED and ANSWERING (timeout or wrong answer).
+   */
+  private strikeOutPlayer(
+    room: RoomState,
+    clientId: string,
+    resumeMusic: boolean,
+  ): MusicTriviaActionResult {
+    const state = room.musicTriviaState!;
+    const round = state.currentRound!;
+
+    round.struckOutIds.push(clientId);
+    round.currentBuzzerId = null;
+
+    if (this.allPlayersStruckOut(room)) {
+      state.phase = 'REVEAL';
+      this.setRevealedAnswer(room);
+      return { room };
+    }
+
+    state.phase = 'PLAYING';
+    if (resumeMusic) {
+      this.resumePlayback(room);
+      return {
+        room,
+        syncPlay: this.buildSyncPlay(room),
+        timerCommands: [cancelAnswerTimerCommand()],
+      };
+    }
+    return { room };
+  }
+
+  /** Fill `revealedAnswer` from the server-side secret answers for the current round. */
+  private setRevealedAnswer(room: RoomState, successfulAnswerText?: string): void {
+    const state = room.musicTriviaState!;
+    const round = state.currentRound!;
+    const trackAnswer = this.getTrackAnswer(room, round.roundNumber);
+    if (!trackAnswer) return;
+
+    state.revealedAnswer = {
+      title: trackAnswer.title,
+      artist: trackAnswer.artist,
+      artworkUrl: round.track.artworkUrl,
+      album: trackAnswer.album,
+      releaseYear: trackAnswer.releaseYear,
+      ...(successfulAnswerText ? { successfulAnswerText } : {}),
+    };
+  }
+
+  private getTrackAnswer(room: RoomState, roundNumber: number): TrackAnswer | null {
+    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
+    return answers?.[roundNumber - 1] ?? null;
+  }
+
+  /** Undo the pause caused by a buzz so the remaining audio time stays consistent. */
+  private resumePlayback(room: RoomState): void {
+    const state = room.musicTriviaState!;
+    if (state.playStartTime && state.pausedAtMs) {
+      state.playStartTime += Date.now() - state.pausedAtMs;
+    } else {
+      state.playStartTime = Date.now();
+    }
+    state.pausedAtMs = undefined;
+  }
+
+  private buildSyncPlay(room: RoomState): MusicTriviaSyncPlayPayload {
+    const state = room.musicTriviaState!;
+    const round = state.currentRound!;
+    return {
+      roundNumber: round.roundNumber,
+      playStartTime: state.playStartTime!,
+      previewUrl: round.track.previewUrl,
+      sourceType: round.track.sourceType,
+      durationMs: round.track.durationMs,
+      artworkUrl: round.track.artworkUrl,
+    };
   }
 
   private giveUp(room: RoomState, clientId: string): MusicTriviaActionResult | null {
@@ -405,26 +519,7 @@ export class MusicTriviaService {
     // Already struck out this round
     if (round.struckOutIds.includes(clientId)) return null;
 
-    // Strike out immediately
-    round.struckOutIds.push(clientId);
-
-    if (this.allPlayersStruckOut(room)) {
-      state.phase = 'REVEAL';
-      const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
-      const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
-
-      if (trackAnswer) {
-        state.revealedAnswer = {
-          title: trackAnswer.title,
-          artist: trackAnswer.artist,
-          artworkUrl: round.track.artworkUrl,
-          album: trackAnswer.album,
-          releaseYear: trackAnswer.releaseYear,
-        };
-      }
-    }
-
-    return { room };
+    return this.strikeOutPlayer(room, clientId, false);
   }
 
   private submitAnswer(
@@ -439,10 +534,7 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round || round.currentBuzzerId !== clientId) return null;
 
-    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
-    if (!answers) return null;
-
-    const trackAnswer = answers[round.roundNumber - 1];
+    const trackAnswer = this.getTrackAnswer(room, round.roundNumber);
     if (!trackAnswer) return null;
 
     const criteria = room.config.musicTriviaAnswerCriteria || 'ANY';
@@ -468,56 +560,12 @@ export class MusicTriviaService {
       if (player) player.score = state.scores[clientId];
 
       state.phase = 'ANSWER_RESULT';
-      state.revealedAnswer = {
-        title: trackAnswer.title,
-        artist: trackAnswer.artist,
-        artworkUrl: round.track.artworkUrl,
-        album: trackAnswer.album,
-        releaseYear: trackAnswer.releaseYear,
-        successfulAnswerText: answer.trim(),
-      };
-    } else {
-      // Strike out — wrong answer
-      round.struckOutIds.push(clientId);
-      round.currentBuzzerId = null;
-
-      // Check if all eligible players are struck out
-      if (this.allPlayersStruckOut(room)) {
-        state.phase = 'REVEAL';
-        state.revealedAnswer = {
-          title: trackAnswer.title,
-          artist: trackAnswer.artist,
-          artworkUrl: round.track.artworkUrl,
-          album: trackAnswer.album,
-          releaseYear: trackAnswer.releaseYear,
-        };
-      } else {
-        // Resume music — others can buzz
-        state.phase = 'PLAYING';
-        if (state.playStartTime && state.pausedAtMs) {
-          const pauseDuration = Date.now() - state.pausedAtMs;
-          state.playStartTime += pauseDuration;
-        } else {
-          state.playStartTime = Date.now();
-        }
-        state.pausedAtMs = undefined;
-
-        const result: MusicTriviaActionResult = {
-          room,
-          syncPlay: {
-            roundNumber: round.roundNumber,
-            playStartTime: state.playStartTime,
-            previewUrl: round.track.previewUrl,
-            sourceType: round.track.sourceType,
-            durationMs: round.track.durationMs,
-            artworkUrl: round.track.artworkUrl,
-          },
-        };
-        return result;
-      }
+      this.setRevealedAnswer(room, answer.trim());
+      return { room, timerCommands: [cancelAnswerTimerCommand()] };
     }
 
-    return { room };
+    // Wrong answer — strike out and resume so others can buzz
+    return this.strikeOutPlayer(room, clientId, true);
   }
 
   private hostJudge(
@@ -534,8 +582,6 @@ export class MusicTriviaService {
     if (!round || !round.currentBuzzerId) return null;
 
     const buzzerId = round.currentBuzzerId;
-    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
-    const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
 
     if (correct) {
       round.answeredCorrectly = true;
@@ -546,57 +592,12 @@ export class MusicTriviaService {
       if (player) player.score = state.scores[buzzerId];
 
       state.phase = 'ANSWER_RESULT';
-      if (trackAnswer) {
-        state.revealedAnswer = {
-          title: trackAnswer.title,
-          artist: trackAnswer.artist,
-          artworkUrl: round.track.artworkUrl,
-          album: trackAnswer.album,
-          releaseYear: trackAnswer.releaseYear,
-        };
-      }
-    } else {
-      // Strike out
-      round.struckOutIds.push(buzzerId);
-      round.currentBuzzerId = null;
-
-      if (this.allPlayersStruckOut(room)) {
-        state.phase = 'REVEAL';
-        if (trackAnswer) {
-          state.revealedAnswer = {
-            title: trackAnswer.title,
-            artist: trackAnswer.artist,
-            artworkUrl: round.track.artworkUrl,
-            album: trackAnswer.album,
-            releaseYear: trackAnswer.releaseYear,
-          };
-        }
-      } else {
-        // Resume music
-        state.phase = 'PLAYING';
-        if (state.playStartTime && state.pausedAtMs) {
-          const pauseDuration = Date.now() - state.pausedAtMs;
-          state.playStartTime += pauseDuration;
-        } else {
-          state.playStartTime = Date.now();
-        }
-        state.pausedAtMs = undefined;
-
-        return {
-          room,
-          syncPlay: {
-            roundNumber: round.roundNumber,
-            playStartTime: state.playStartTime,
-            previewUrl: round.track.previewUrl,
-            sourceType: round.track.sourceType,
-            durationMs: round.track.durationMs,
-            artworkUrl: round.track.artworkUrl,
-          },
-        };
-      }
+      this.setRevealedAnswer(room);
+      return { room, timerCommands: [cancelAnswerTimerCommand()] };
     }
 
-    return { room };
+    // Incorrect judgment — strike out the buzzer and resume
+    return this.strikeOutPlayer(room, buzzerId, true);
   }
 
   private revealAnswer(room: RoomState, clientId: string): MusicTriviaActionResult | null {
@@ -608,21 +609,10 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round) return null;
 
-    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
-    const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
-
     state.phase = 'REVEAL';
-    if (trackAnswer) {
-      state.revealedAnswer = {
-        title: trackAnswer.title,
-        artist: trackAnswer.artist,
-        artworkUrl: round.track.artworkUrl,
-        album: trackAnswer.album,
-        releaseYear: trackAnswer.releaseYear,
-      };
-    }
+    this.setRevealedAnswer(room);
 
-    return { room };
+    return { room, timerCommands: [cancelAnswerTimerCommand()] };
   }
 
   private nextRound(room: RoomState, clientId: string): MusicTriviaActionResult | null {
@@ -649,7 +639,10 @@ export class MusicTriviaService {
     for (const p of room.players) {
       p.score = state.scores[p.socketId] || 0;
     }
-    return { room };
+    return {
+      room,
+      timerCommands: [cancelAnswerTimerCommand(), cancelCountdownTimerCommand()],
+    };
   }
 
   // ------------------------------------------------------------------
@@ -659,11 +652,11 @@ export class MusicTriviaService {
   private advanceToNextRound(room: RoomState): MusicTriviaActionResult | null {
     const state = room.musicTriviaState!;
     const round = state.currentRound;
+    const timerCommands: MusicTriviaTimerCommand[] = [cancelAnswerTimerCommand()];
 
     // Save current round to history
     if (round) {
-      const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
-      const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
+      const trackAnswer = this.getTrackAnswer(room, round.roundNumber);
 
       const historyEntry: MusicTriviaRoundHistory = {
         roundNumber: round.roundNumber,
@@ -691,43 +684,40 @@ export class MusicTriviaService {
         p.score = state.scores[p.socketId] || 0;
       }
 
-      return { room };
+      return { room, timerCommands };
     }
 
     // Load next track
-    const answers = this.privateState.get<TrackAnswer[]>(room.code, '__ROOM__', 'mtTrackAnswers');
-    if (!answers || !answers[nextRoundNumber - 1]) {
+    if (!this.getTrackAnswer(room, nextRoundNumber)) {
       // No more tracks available
       state.phase = 'FINISHED';
       room.status = RoomStatus.RESULT;
-      return { room };
+      return { room, timerCommands };
     }
 
-    // We need the full TrackResult but we only stored the answer part.
-    // The track info is on the current round's track. We need to reconstruct.
-    // Actually we need to store the full track list. Let's check if currentRound has it.
-    // We'll store full tracks in a separate map.
     const fullTracks = this.getFullTracks(room.code);
     if (!fullTracks || !fullTracks[nextRoundNumber - 1]) {
       state.phase = 'FINISHED';
       room.status = RoomStatus.RESULT;
-      return { room };
+      return { room, timerCommands };
     }
 
     const nextTrack = fullTracks[nextRoundNumber - 1];
     state.currentRound = this.createRound(nextRoundNumber, nextTrack);
     state.phase = 'COUNTDOWN';
-    state.countdownEndsAt = Date.now() + 3000;
+    state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
     state.revealedAnswer = undefined;
+    timerCommands.push(scheduleCountdownCommand(state.countdownEndsAt));
 
-    const trackAnswer = answers[nextRoundNumber - 1];
     const result: MusicTriviaActionResult = {
       room,
+      timerCommands,
     };
 
     if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
+      const trackAnswer = this.getTrackAnswer(room, nextRoundNumber);
       const hostPlayer = room.players.find((p) => p.socketId === room.roomHostId);
-      if (hostPlayer) {
+      if (hostPlayer && trackAnswer) {
         result.hostAnswerTo = {
           socketId: hostPlayer.socketId,
           title: trackAnswer.title,

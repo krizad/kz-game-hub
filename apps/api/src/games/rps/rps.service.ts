@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomState, RoomStatus, RPSChoice, GameType, Role } from '@repo/types';
+import { RoomState, RoomStatus, RPSChoice, RPSState, GameType, Role } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 
 const RPS_CHOICE_KEY = 'rpsChoice';
@@ -238,5 +238,33 @@ export class RPSService {
     room.players.forEach((p) => (p.score = 0));
 
     return room;
+  }
+
+  /** Re-point every socket-id reference to the new socket id on reconnection. */
+  remapSocketId(state: RPSState, oldSocketId: string, newSocketId: string): void {
+    const remapInArray = (ids: string[]) =>
+      ids.map((id) => (id === oldSocketId ? newSocketId : id));
+    const remapWinner = (winner: string | string[] | undefined): string | string[] | undefined => {
+      if (winner === undefined) return undefined;
+      if (Array.isArray(winner)) return remapInArray(winner);
+      return winner === oldSocketId ? newSocketId : winner;
+    };
+
+    state.activePlayers = remapInArray(state.activePlayers);
+    state.queue = remapInArray(state.queue);
+    state.choicesMade = remapInArray(state.choicesMade);
+
+    if (state.choices[oldSocketId]) {
+      state.choices[newSocketId] = state.choices[oldSocketId];
+      delete state.choices[oldSocketId];
+    }
+
+    if (state.scores[oldSocketId] !== undefined) {
+      state.scores[newSocketId] = state.scores[oldSocketId];
+      delete state.scores[oldSocketId];
+    }
+
+    state.gameWinner = remapWinner(state.gameWinner);
+    state.roundWinner = remapWinner(state.roundWinner);
   }
 }

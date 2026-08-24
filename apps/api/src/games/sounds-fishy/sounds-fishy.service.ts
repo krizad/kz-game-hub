@@ -381,6 +381,46 @@ export class SoundsFishyService {
   }
 
   nextRound(room: RoomState, requesterId: string): RoomState | null {
+    return this.backToLobby(room, requesterId);
+  }
+
+  reset(room: RoomState, requesterId: string): RoomState | null {
+    return this.backToLobby(room, requesterId);
+  }
+
+  /** Re-point every socket-id reference to the new socket id on reconnection. */
+  remapSocketId(state: SoundsFishyState, oldSocketId: string, newSocketId: string): void {
+    if (state.pickerId === oldSocketId) state.pickerId = newSocketId;
+    if (state.blueFishId === oldSocketId) state.blueFishId = newSocketId;
+
+    state.redHerringIds = state.redHerringIds.map((id) => (id === oldSocketId ? newSocketId : id));
+    state.answeredPlayerIds = state.answeredPlayerIds.map((id) =>
+      id === oldSocketId ? newSocketId : id,
+    );
+    state.eliminatedPlayers = state.eliminatedPlayers.map((id) =>
+      id === oldSocketId ? newSocketId : id,
+    );
+
+    if (state.playerAnswers[oldSocketId]) {
+      state.playerAnswers[newSocketId] = {
+        ...state.playerAnswers[oldSocketId],
+        playerId: newSocketId,
+      };
+      delete state.playerAnswers[oldSocketId];
+    }
+
+    if (state.roundPoints[oldSocketId] !== undefined) {
+      state.roundPoints[newSocketId] = state.roundPoints[oldSocketId];
+      delete state.roundPoints[oldSocketId];
+    }
+
+    if (state.typingAnswers[oldSocketId] !== undefined) {
+      state.typingAnswers[newSocketId] = state.typingAnswers[oldSocketId];
+      delete state.typingAnswers[oldSocketId];
+    }
+  }
+
+  private backToLobby(room: RoomState, requesterId: string): RoomState | null {
     if (room.status !== RoomStatus.RESULT) return null;
     if (room.roomHostId !== requesterId) return null;
 

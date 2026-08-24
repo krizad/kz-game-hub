@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { useGameStore } from '@/store/useGameStore';
 
-import { MusicTriviaActionType } from '@repo/types';
+import { MusicTriviaAction, MusicTriviaActionType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function MusicTriviaView() {
@@ -200,7 +200,10 @@ export function MusicTriviaView() {
 
   if (!state) return null;
 
-  const handleAction = (type: MusicTriviaActionType, payload: any = {}) => {
+  const handleAction = (
+    type: MusicTriviaActionType,
+    payload: Omit<Partial<MusicTriviaAction>, 'type'> = {},
+  ) => {
     musicTriviaGameAction({ type, ...payload });
   };
 

@@ -14,7 +14,7 @@ export const useI18nStore = create<I18nState>()(
       setLanguage: (language) => set({ language }),
     }),
     {
-      name: 'who-know-language',
+      name: 'kz-language',
     },
   ),
 );

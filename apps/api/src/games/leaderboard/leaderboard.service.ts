@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { prisma } from '@repo/database';
 import { LeaderboardEntry, GameResultRecord } from '@repo/types';
 
 @Injectable()
 export class LeaderboardService {
+  private readonly logger = new Logger(LeaderboardService.name);
   async recordGameResult(
     gameType: string,
     roomCode: string,
@@ -20,7 +21,7 @@ export class LeaderboardService {
         })),
       });
     } catch (error) {
-      console.error('Failed to record game result:', error);
+      this.logger.error('Failed to record game result:', error as Error);
     }
   }
 
@@ -42,7 +43,7 @@ export class LeaderboardService {
         rank: idx + 1,
       }));
     } catch (error) {
-      console.error('Failed to get leaderboard:', error);
+      this.logger.error('Failed to get leaderboard:', error as Error);
       return [];
     }
   }
@@ -89,7 +90,7 @@ export class LeaderboardService {
         })),
       };
     } catch (error) {
-      console.error('Failed to get player stats:', error);
+      this.logger.error('Failed to get player stats:', error as Error);
       return null;
     }
   }

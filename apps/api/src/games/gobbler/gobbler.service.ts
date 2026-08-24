@@ -254,4 +254,10 @@ export class GobblerService {
 
     return room;
   }
+
+  /** Re-point seat ownership to the new socket id on reconnection. */
+  remapSocketId(state: GobblerState, oldSocketId: string, newSocketId: string): void {
+    if (state.playerXId === oldSocketId) state.playerXId = newSocketId;
+    if (state.playerOId === oldSocketId) state.playerOId = newSocketId;
+  }
 }

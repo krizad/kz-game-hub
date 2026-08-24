@@ -9,8 +9,9 @@ import { AppLogger } from './app.logger';
 import { APP_VERSION } from '@repo/types';
 
 async function bootstrap() {
+  const logger = new AppLogger();
   const app = await NestFactory.create(AppModule, {
-    logger: new AppLogger(),
+    logger,
   });
   app.enableCors();
 
@@ -28,9 +29,9 @@ async function bootstrap() {
 
   const port = Number.parseInt(process.env.PORT || '3001', 10);
   await app.listen(port, '0.0.0.0');
-  console.log(`API [${APP_VERSION}] listening on http://localhost:${port}`);
+  logger.log(`API [${APP_VERSION}] listening on http://localhost:${port}`);
   if (!isProduction) {
-    console.log(`Swagger docs at http://localhost:${port}/api`);
+    logger.log(`Swagger docs at http://localhost:${port}/api`);
   }
 }
 bootstrap();

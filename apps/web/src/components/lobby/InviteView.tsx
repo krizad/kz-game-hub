@@ -1,6 +1,5 @@
 'use client';
 
-
 import { useSearchParams } from 'next/navigation';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomState, RoomStatus } from '@repo/types';
+import { RoomState, RoomStatus, WhoFirstState } from '@repo/types';
 
 type WhoFirstActionType = 'START_COUNTDOWN' | 'PRESS_BUTTON' | 'NEXT_ROUND' | 'END_GAME';
 
@@ -199,5 +199,13 @@ export class WhoFirstService {
     };
 
     return room;
+  }
+
+  /** Re-point press records to the new socket id on reconnection. */
+  remapSocketId(state: WhoFirstState, oldSocketId: string, newSocketId: string): void {
+    state.presses.forEach((press) => {
+      if (press.socketId === oldSocketId) press.socketId = newSocketId;
+    });
+    if (state.roundWinnerId === oldSocketId) state.roundWinnerId = newSocketId;
   }
 }

@@ -7,7 +7,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { UseFilters } from '@nestjs/common';
+import { Logger, UseFilters } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
@@ -15,17 +15,22 @@ import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice } from '@repo/types';
+import {
+  MusicTriviaActionResult,
+  MusicTriviaTimerCommand,
+} from './music-trivia/music-trivia.service';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
   },
 })
 export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(GamesGateway.name);
   private readonly recordedResults = new Set<string>();
 
   constructor(
@@ -36,7 +41,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    this.logger.log(`Client connected: ${client.id}`);
     client.use(([event, payload], next) => {
       if (this.isValidPayload(event, payload)) return next();
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
@@ -45,68 +50,54 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
-
-    const currentRoomCode =
-      this.gamesService.findRoomCodeBySocketId(client.id) ?? client.data.spectatingRoomCode ?? '';
+    this.logger.log(`Client disconnected: ${client.id}`);
     const result = this.gamesService.leaveRoom(client.id, false);
-    if (result && result.code === null) {
-      // Room was deleted because the host left, notify everyone in that room
-      if (currentRoomCode) {
-        this.roomTimerService.clearRoom(currentRoomCode);
-        this.server.to(currentRoomCode).emit(SOCKET_EVENTS.ROOM_DELETED);
-      }
-      this.server.emit(
-        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
-        this.gamesService.getAvailableRooms(),
-      );
-    } else if (result && 'players' in result) {
-      // Player left, room still exists
-      this.broadcastRoomState(result);
-      this.server.emit(
-        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
-        this.gamesService.getAvailableRooms(),
-      );
-    } else {
-      // Room was deleted because everyone left
-      this.server.emit(
-        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
-        this.gamesService.getAvailableRooms(),
-      );
-    }
+    this.handleLeaveResult(client, result);
   }
 
   @SubscribeMessage(SOCKET_EVENTS.LEAVE_ROOM)
   handleLeaveRoom(@ConnectedSocket() client: Socket) {
-    const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? '';
-
     const result = this.gamesService.leaveRoom(client.id, true);
-    if (result && result.code === null) {
-      if (currentRoomCode) {
-        this.roomTimerService.clearRoom(currentRoomCode);
-        this.server.to(currentRoomCode).emit(SOCKET_EVENTS.ROOM_DELETED);
-      }
-      this.server.emit(
-        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
-        this.gamesService.getAvailableRooms(),
-      );
-    } else if (result && 'players' in result) {
-      this.broadcastRoomState(result);
-      this.server.emit(
-        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
-        this.gamesService.getAvailableRooms(),
-      );
-    } else {
-      this.server.emit(
-        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
-        this.gamesService.getAvailableRooms(),
-      );
-    }
+    this.handleLeaveResult(client, result);
 
-    if (currentRoomCode) {
-      client.leave(currentRoomCode);
+    const roomCode =
+      'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
+    if (roomCode) {
+      client.leave(roomCode);
     }
     client.data.spectatingRoomCode = undefined;
+  }
+
+  /** Shared post-leave handling for both explicit leaves and disconnects. */
+  private handleLeaveResult(
+    client: Socket,
+    result:
+      | { outcome: 'ROOM_CLOSED'; code: string }
+      | { outcome: 'ROOM_EMPTIED'; code: string }
+      | { outcome: 'PLAYER_LEFT'; room: RoomState }
+      | { outcome: 'NOT_IN_ROOM' },
+  ): void {
+    switch (result.outcome) {
+      case 'ROOM_CLOSED':
+        // Host left — the service already deleted the room and its timers.
+        // Spectators may still be in the socket.io room; notify them.
+        this.server.to(result.code).emit(SOCKET_EVENTS.ROOM_DELETED);
+        this.forgetRecordedResult(result.code);
+        break;
+      case 'ROOM_EMPTIED':
+        this.forgetRecordedResult(result.code);
+        break;
+      case 'PLAYER_LEFT':
+        this.broadcastRoomState(result.room);
+        break;
+      case 'NOT_IN_ROOM':
+        break;
+    }
+    this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+  }
+
+  private forgetRecordedResult(code: string): void {
+    this.recordedResults.delete(code);
   }
 
   @SubscribeMessage(SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
@@ -786,57 +777,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
             });
         }
 
-        // Handle countdown trigger
-        const actionData = data.action as { type: string };
-        if (
-          actionData.type === 'START_COUNTDOWN' ||
-          (actionData.type === 'NEXT_ROUND' && result.room.musicTriviaState?.phase === 'COUNTDOWN')
-        ) {
-          this.roomTimerService.schedule(
-            data.code,
-            'music-trivia-countdown',
-            Date.now() + 3000,
-            () => {
-              const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
-              if (finalResult) {
-                this.broadcastRoomState(finalResult.room);
-                if (finalResult.syncPlay) {
-                  this.server
-                    .to(finalResult.room.code)
-                    .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, finalResult.syncPlay);
-                }
-              }
-            },
-          );
-        }
-
-        if (
-          actionData.type === 'PRESS_BUZZER' &&
-          result.room.musicTriviaState?.phase.match(/^(BUZZED|ANSWERING)$/)
-        ) {
-          const timeoutMs = result.room.musicTriviaState.answerTimeoutMs || 15000;
-          this.roomTimerService.schedule(
-            data.code,
-            'music-trivia-answer',
-            Date.now() + timeoutMs,
-            () => {
-              const timeoutResult = this.gamesService.musicTriviaFinalizeAnswerTimeout(data.code);
-              if (timeoutResult) {
-                this.broadcastRoomState(timeoutResult.room);
-                if (timeoutResult.syncPlay) {
-                  this.server
-                    .to(timeoutResult.room.code)
-                    .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, timeoutResult.syncPlay);
-                }
-              }
-            },
-          );
-        }
-
-        if (['SUBMIT_ANSWER', 'HOST_JUDGE', 'GIVE_UP', 'NEXT_ROUND'].includes(actionData.type)) {
-          this.roomTimerService.cancel(data.code, 'music-trivia-answer');
-        }
-
+        this.applyMusicTriviaTimers(data.code, result.timerCommands);
         this.maybeRecordGameResult(result.room);
       } else {
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
@@ -983,6 +924,33 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  /** Execute the timer schedules/cancellations decided by MusicTriviaService. */
+  private applyMusicTriviaTimers(
+    code: string,
+    commands: MusicTriviaTimerCommand[] | undefined,
+  ): void {
+    for (const command of commands ?? []) {
+      if (command.kind === 'CANCEL') {
+        this.roomTimerService.cancel(code, command.name);
+        continue;
+      }
+      this.roomTimerService.schedule(code, command.name, command.deadline, () => {
+        const result =
+          command.name === 'music-trivia-countdown'
+            ? this.gamesService.musicTriviaFinalizeCountdown(code)
+            : this.gamesService.musicTriviaFinalizeAnswerTimeout(code);
+        if (result) {
+          this.broadcastRoomState(result.room);
+          if (result.syncPlay) {
+            this.server
+              .to(result.room.code)
+              .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, result.syncPlay);
+          }
+        }
+      });
+    }
+  }
+
   private syncWhoFirstTimer(room: RoomState): void {
     const deadline = room.whoFirstState?.countdownEndTime;
     if (room.whoFirstState?.phase !== 'COUNTDOWN' || !deadline) {
@@ -1108,32 +1076,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private maybeRecordGameResult(room: RoomState) {
-    const key = room.code;
     if (room.status !== RoomStatus.RESULT) {
-      this.recordedResults.delete(key);
+      this.recordedResults.delete(room.code);
       return;
     }
-    if (this.recordedResults.has(key)) return;
-    this.recordedResults.add(key);
+    if (this.recordedResults.has(room.code)) return;
+    this.recordedResults.add(room.code);
 
-    const results = room.players
+    const results = [...room.players]
       .filter((p) => p.name)
-      .map((p) => ({
+      .sort((a, b) => b.score - a.score)
+      .map((p, idx) => ({
         playerName: p.name,
         score: p.score,
-        rank: this.calculateRank(p, room),
-      }))
-      .sort((a, b) => b.score - a.score);
-
-    results.forEach((r, idx) => {
-      r.rank = idx + 1;
-    });
+        rank: idx + 1,
+      }));
 
     this.leaderboardService.recordGameResult(room.gameType, room.code, results);
-  }
-
-  private calculateRank(player: { socketId: string; score: number }, room: RoomState): number {
-    const sorted = [...room.players].sort((a, b) => b.score - a.score);
-    return sorted.findIndex((p) => p.socketId === player.socketId) + 1;
   }
 }

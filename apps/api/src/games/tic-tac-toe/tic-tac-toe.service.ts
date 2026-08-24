@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoomState, RoomStatus, TicTacToeCell, GameType } from '@repo/types';
+import { RoomState, RoomStatus, TicTacToeCell, TicTacToeState, GameType } from '@repo/types';
 
 @Injectable()
 export class TicTacToeService {
@@ -132,5 +132,11 @@ export class TicTacToeService {
     }
 
     return room;
+  }
+
+  /** Re-point seat ownership to the new socket id on reconnection. */
+  remapSocketId(state: TicTacToeState, oldSocketId: string, newSocketId: string): void {
+    if (state.playerXId === oldSocketId) state.playerXId = newSocketId;
+    if (state.playerOId === oldSocketId) state.playerOId = newSocketId;
   }
 }

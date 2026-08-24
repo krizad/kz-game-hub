@@ -581,4 +581,20 @@ export class DetectiveClubService {
 
     return room;
   }
+
+  /** Re-point every socket-id reference to the new socket id on reconnection. */
+  remapSocketId(state: DetectiveClubState, oldSocketId: string, newSocketId: string): void {
+    if (state.players[oldSocketId]) {
+      state.players[newSocketId] = { ...state.players[oldSocketId], id: newSocketId };
+      delete state.players[oldSocketId];
+    }
+    if (state.informerId === oldSocketId) state.informerId = newSocketId;
+    if (state.conspiratorId === oldSocketId) state.conspiratorId = newSocketId;
+    if (state.activePlayerId === oldSocketId) state.activePlayerId = newSocketId;
+    if (state.round1StarterId === oldSocketId) state.round1StarterId = newSocketId;
+    state.playOrder = state.playOrder.map((id) => (id === oldSocketId ? newSocketId : id));
+    Object.values(state.players).forEach((p) => {
+      if (p.votedFor === oldSocketId) p.votedFor = newSocketId;
+    });
+  }
 }
