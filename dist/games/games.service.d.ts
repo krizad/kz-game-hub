@@ -11,6 +11,19 @@ import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/musi
 import { TheMindService } from './the-mind/the-mind.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
+import { RoomTimerService } from './room-timer.service';
+export type LeaveRoomResult = {
+    outcome: 'ROOM_CLOSED';
+    code: string;
+} | {
+    outcome: 'ROOM_EMPTIED';
+    code: string;
+} | {
+    outcome: 'PLAYER_LEFT';
+    room: RoomState;
+} | {
+    outcome: 'NOT_IN_ROOM';
+};
 export declare class GamesService {
     private readonly whoKnowService;
     private readonly ticTacToeService;
@@ -24,9 +37,10 @@ export declare class GamesService {
     private readonly theMindService;
     private readonly playerSessionService;
     private readonly privateStateService;
+    private readonly roomTimerService;
     private rooms;
     private readonly secretWords;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
@@ -34,9 +48,7 @@ export declare class GamesService {
     getReconnectToken(code: string, socketId: string): string | null;
     createRoom(hostId: string, gameType?: GameType): RoomState;
     joinRoom(code: string, user: Omit<UserState, 'score' | 'roomId' | 'role'>, reconnectToken?: string): RoomState | null;
-    leaveRoom(clientId: string, explicitLeave?: boolean): RoomState | null | {
-        code: null;
-    };
+    leaveRoom(clientId: string, explicitLeave?: boolean): LeaveRoomResult;
     private deleteRoomData;
     getAvailableRooms(): {
         code: string;
@@ -46,10 +58,15 @@ export declare class GamesService {
     }[];
     updateConfig(code: string, requesterId: string, config: Partial<RoomState['config']>): RoomState | null;
     private sanitizeRoomConfig;
+    private withRoom;
+    private withRoomResult;
+    private withRoomResultAsync;
     assignRoles(code: string, requesterId: string): Promise<{
         room: RoomState;
         roles: Record<string, Role>;
     } | null>;
+    private startWhoAmI;
+    private withRoomAsync;
     setWord(code: string, word: string, requesterId: string): RoomState | null;
     stopTimer(code: string, requesterId: string): RoomState | null;
     endQuestioning(code: string, requesterId: string, timeout?: boolean): RoomState | null;

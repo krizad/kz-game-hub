@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var MusicTriviaService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MusicTriviaService = void 0;
 const common_1 = require("@nestjs/common");
@@ -19,9 +20,29 @@ const youtube_adapter_1 = require("./adapters/youtube.adapter");
 const deezer_adapter_1 = require("./adapters/deezer.adapter");
 const soundcloud_adapter_1 = require("./adapters/soundcloud.adapter");
 const music_source_adapter_1 = require("./music-source-adapter");
-let MusicTriviaService = class MusicTriviaService {
+const scheduleCountdownCommand = (deadline) => ({
+    kind: 'SCHEDULE',
+    name: 'music-trivia-countdown',
+    deadline,
+});
+const scheduleAnswerTimeoutCommand = (deadline) => ({
+    kind: 'SCHEDULE',
+    name: 'music-trivia-answer',
+    deadline,
+});
+const cancelAnswerTimerCommand = () => ({
+    kind: 'CANCEL',
+    name: 'music-trivia-answer',
+});
+const cancelCountdownTimerCommand = () => ({
+    kind: 'CANCEL',
+    name: 'music-trivia-countdown',
+});
+const COUNTDOWN_MS = 3000;
+let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
     constructor(privateState) {
         this.privateState = privateState;
+        this.logger = new common_1.Logger(MusicTriviaService_1.name);
         this.sourceFactory = new music_source_adapter_1.MusicSourceFactory();
         this.sourceFactory.register(new itunes_adapter_1.ITunesAdapter());
         this.sourceFactory.register(new spotify_adapter_1.SpotifyAdapter());
@@ -144,8 +165,8 @@ let MusicTriviaService = class MusicTriviaService {
         if (state.phase !== 'GET_READY')
             return null;
         state.phase = 'COUNTDOWN';
-        state.countdownEndsAt = Date.now() + 3000;
-        return { room };
+        state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
+        return { room, timerCommands: [scheduleCountdownCommand(state.countdownEndsAt)] };
     }
     finalizeCountdown(room) {
         const state = room.musicTriviaState;
@@ -221,7 +242,7 @@ let MusicTriviaService = class MusicTriviaService {
             return { room };
         }
         catch (error) {
-            console.error('[MusicTriviaService] configureSource error:', error);
+            this.logger.error('configureSource failed', error);
             state.phase = 'SETUP';
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while configuring source';
             state.errorMessage = errorMessage;
@@ -266,8 +287,10 @@ let MusicTriviaService = class MusicTriviaService {
         if (state.mode === 'TYPING') {
             state.phase = 'ANSWERING';
         }
-        const result = { room };
-        return result;
+        return {
+            room,
+            timerCommands: [scheduleAnswerTimeoutCommand(now + (state.answerTimeoutMs || 15000))],
+        };
     }
     answerTimeout(room) {
         const state = room.musicTriviaState;
@@ -276,7 +299,69 @@ let MusicTriviaService = class MusicTriviaService {
         const round = state.currentRound;
         if (!round || !round.currentBuzzerId)
             return null;
-        return this.giveUp(room, round.currentBuzzerId);
+        return this.strikeOutPlayer(room, round.currentBuzzerId, true);
+    }
+    strikeOutPlayer(room, clientId, resumeMusic) {
+        const state = room.musicTriviaState;
+        const round = state.currentRound;
+        round.struckOutIds.push(clientId);
+        round.currentBuzzerId = null;
+        if (this.allPlayersStruckOut(room)) {
+            state.phase = 'REVEAL';
+            this.setRevealedAnswer(room);
+            return { room };
+        }
+        state.phase = 'PLAYING';
+        if (resumeMusic) {
+            this.resumePlayback(room);
+            return {
+                room,
+                syncPlay: this.buildSyncPlay(room),
+                timerCommands: [cancelAnswerTimerCommand()],
+            };
+        }
+        return { room };
+    }
+    setRevealedAnswer(room, successfulAnswerText) {
+        const state = room.musicTriviaState;
+        const round = state.currentRound;
+        const trackAnswer = this.getTrackAnswer(room, round.roundNumber);
+        if (!trackAnswer)
+            return;
+        state.revealedAnswer = {
+            title: trackAnswer.title,
+            artist: trackAnswer.artist,
+            artworkUrl: round.track.artworkUrl,
+            album: trackAnswer.album,
+            releaseYear: trackAnswer.releaseYear,
+            ...(successfulAnswerText ? { successfulAnswerText } : {}),
+        };
+    }
+    getTrackAnswer(room, roundNumber) {
+        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
+        return answers?.[roundNumber - 1] ?? null;
+    }
+    resumePlayback(room) {
+        const state = room.musicTriviaState;
+        if (state.playStartTime && state.pausedAtMs) {
+            state.playStartTime += Date.now() - state.pausedAtMs;
+        }
+        else {
+            state.playStartTime = Date.now();
+        }
+        state.pausedAtMs = undefined;
+    }
+    buildSyncPlay(room) {
+        const state = room.musicTriviaState;
+        const round = state.currentRound;
+        return {
+            roundNumber: round.roundNumber,
+            playStartTime: state.playStartTime,
+            previewUrl: round.track.previewUrl,
+            sourceType: round.track.sourceType,
+            durationMs: round.track.durationMs,
+            artworkUrl: round.track.artworkUrl,
+        };
     }
     giveUp(room, clientId) {
         const state = room.musicTriviaState;
@@ -293,22 +378,7 @@ let MusicTriviaService = class MusicTriviaService {
             return null;
         if (round.struckOutIds.includes(clientId))
             return null;
-        round.struckOutIds.push(clientId);
-        if (this.allPlayersStruckOut(room)) {
-            state.phase = 'REVEAL';
-            const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
-            const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
-            if (trackAnswer) {
-                state.revealedAnswer = {
-                    title: trackAnswer.title,
-                    artist: trackAnswer.artist,
-                    artworkUrl: round.track.artworkUrl,
-                    album: trackAnswer.album,
-                    releaseYear: trackAnswer.releaseYear,
-                };
-            }
-        }
-        return { room };
+        return this.strikeOutPlayer(room, clientId, false);
     }
     submitAnswer(room, clientId, answer) {
         const state = room.musicTriviaState;
@@ -319,10 +389,7 @@ let MusicTriviaService = class MusicTriviaService {
         const round = state.currentRound;
         if (!round || round.currentBuzzerId !== clientId)
             return null;
-        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
-        if (!answers)
-            return null;
-        const trackAnswer = answers[round.roundNumber - 1];
+        const trackAnswer = this.getTrackAnswer(room, round.roundNumber);
         if (!trackAnswer)
             return null;
         const criteria = room.config.musicTriviaAnswerCriteria || 'ANY';
@@ -346,53 +413,10 @@ let MusicTriviaService = class MusicTriviaService {
             if (player)
                 player.score = state.scores[clientId];
             state.phase = 'ANSWER_RESULT';
-            state.revealedAnswer = {
-                title: trackAnswer.title,
-                artist: trackAnswer.artist,
-                artworkUrl: round.track.artworkUrl,
-                album: trackAnswer.album,
-                releaseYear: trackAnswer.releaseYear,
-                successfulAnswerText: answer.trim(),
-            };
+            this.setRevealedAnswer(room, answer.trim());
+            return { room, timerCommands: [cancelAnswerTimerCommand()] };
         }
-        else {
-            round.struckOutIds.push(clientId);
-            round.currentBuzzerId = null;
-            if (this.allPlayersStruckOut(room)) {
-                state.phase = 'REVEAL';
-                state.revealedAnswer = {
-                    title: trackAnswer.title,
-                    artist: trackAnswer.artist,
-                    artworkUrl: round.track.artworkUrl,
-                    album: trackAnswer.album,
-                    releaseYear: trackAnswer.releaseYear,
-                };
-            }
-            else {
-                state.phase = 'PLAYING';
-                if (state.playStartTime && state.pausedAtMs) {
-                    const pauseDuration = Date.now() - state.pausedAtMs;
-                    state.playStartTime += pauseDuration;
-                }
-                else {
-                    state.playStartTime = Date.now();
-                }
-                state.pausedAtMs = undefined;
-                const result = {
-                    room,
-                    syncPlay: {
-                        roundNumber: round.roundNumber,
-                        playStartTime: state.playStartTime,
-                        previewUrl: round.track.previewUrl,
-                        sourceType: round.track.sourceType,
-                        durationMs: round.track.durationMs,
-                        artworkUrl: round.track.artworkUrl,
-                    },
-                };
-                return result;
-            }
-        }
-        return { room };
+        return this.strikeOutPlayer(room, clientId, true);
     }
     hostJudge(room, clientId, correct) {
         const state = room.musicTriviaState;
@@ -406,8 +430,6 @@ let MusicTriviaService = class MusicTriviaService {
         if (!round || !round.currentBuzzerId)
             return null;
         const buzzerId = round.currentBuzzerId;
-        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
-        const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
         if (correct) {
             round.answeredCorrectly = true;
             round.winnerId = buzzerId;
@@ -416,55 +438,10 @@ let MusicTriviaService = class MusicTriviaService {
             if (player)
                 player.score = state.scores[buzzerId];
             state.phase = 'ANSWER_RESULT';
-            if (trackAnswer) {
-                state.revealedAnswer = {
-                    title: trackAnswer.title,
-                    artist: trackAnswer.artist,
-                    artworkUrl: round.track.artworkUrl,
-                    album: trackAnswer.album,
-                    releaseYear: trackAnswer.releaseYear,
-                };
-            }
+            this.setRevealedAnswer(room);
+            return { room, timerCommands: [cancelAnswerTimerCommand()] };
         }
-        else {
-            round.struckOutIds.push(buzzerId);
-            round.currentBuzzerId = null;
-            if (this.allPlayersStruckOut(room)) {
-                state.phase = 'REVEAL';
-                if (trackAnswer) {
-                    state.revealedAnswer = {
-                        title: trackAnswer.title,
-                        artist: trackAnswer.artist,
-                        artworkUrl: round.track.artworkUrl,
-                        album: trackAnswer.album,
-                        releaseYear: trackAnswer.releaseYear,
-                    };
-                }
-            }
-            else {
-                state.phase = 'PLAYING';
-                if (state.playStartTime && state.pausedAtMs) {
-                    const pauseDuration = Date.now() - state.pausedAtMs;
-                    state.playStartTime += pauseDuration;
-                }
-                else {
-                    state.playStartTime = Date.now();
-                }
-                state.pausedAtMs = undefined;
-                return {
-                    room,
-                    syncPlay: {
-                        roundNumber: round.roundNumber,
-                        playStartTime: state.playStartTime,
-                        previewUrl: round.track.previewUrl,
-                        sourceType: round.track.sourceType,
-                        durationMs: round.track.durationMs,
-                        artworkUrl: round.track.artworkUrl,
-                    },
-                };
-            }
-        }
-        return { room };
+        return this.strikeOutPlayer(room, buzzerId, true);
     }
     revealAnswer(room, clientId) {
         const state = room.musicTriviaState;
@@ -475,19 +452,9 @@ let MusicTriviaService = class MusicTriviaService {
         const round = state.currentRound;
         if (!round)
             return null;
-        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
-        const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
         state.phase = 'REVEAL';
-        if (trackAnswer) {
-            state.revealedAnswer = {
-                title: trackAnswer.title,
-                artist: trackAnswer.artist,
-                artworkUrl: round.track.artworkUrl,
-                album: trackAnswer.album,
-                releaseYear: trackAnswer.releaseYear,
-            };
-        }
-        return { room };
+        this.setRevealedAnswer(room);
+        return { room, timerCommands: [cancelAnswerTimerCommand()] };
     }
     nextRound(room, clientId) {
         const state = room.musicTriviaState;
@@ -508,14 +475,17 @@ let MusicTriviaService = class MusicTriviaService {
         for (const p of room.players) {
             p.score = state.scores[p.socketId] || 0;
         }
-        return { room };
+        return {
+            room,
+            timerCommands: [cancelAnswerTimerCommand(), cancelCountdownTimerCommand()],
+        };
     }
     advanceToNextRound(room) {
         const state = room.musicTriviaState;
         const round = state.currentRound;
+        const timerCommands = [cancelAnswerTimerCommand()];
         if (round) {
-            const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
-            const trackAnswer = answers ? answers[round.roundNumber - 1] : null;
+            const trackAnswer = this.getTrackAnswer(room, round.roundNumber);
             const historyEntry = {
                 roundNumber: round.roundNumber,
                 winnerId: round.winnerId,
@@ -537,32 +507,33 @@ let MusicTriviaService = class MusicTriviaService {
             for (const p of room.players) {
                 p.score = state.scores[p.socketId] || 0;
             }
-            return { room };
+            return { room, timerCommands };
         }
-        const answers = this.privateState.get(room.code, '__ROOM__', 'mtTrackAnswers');
-        if (!answers || !answers[nextRoundNumber - 1]) {
+        if (!this.getTrackAnswer(room, nextRoundNumber)) {
             state.phase = 'FINISHED';
             room.status = types_1.RoomStatus.RESULT;
-            return { room };
+            return { room, timerCommands };
         }
         const fullTracks = this.getFullTracks(room.code);
         if (!fullTracks || !fullTracks[nextRoundNumber - 1]) {
             state.phase = 'FINISHED';
             room.status = types_1.RoomStatus.RESULT;
-            return { room };
+            return { room, timerCommands };
         }
         const nextTrack = fullTracks[nextRoundNumber - 1];
         state.currentRound = this.createRound(nextRoundNumber, nextTrack);
         state.phase = 'COUNTDOWN';
-        state.countdownEndsAt = Date.now() + 3000;
+        state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
         state.revealedAnswer = undefined;
-        const trackAnswer = answers[nextRoundNumber - 1];
+        timerCommands.push(scheduleCountdownCommand(state.countdownEndsAt));
         const result = {
             room,
+            timerCommands,
         };
         if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
+            const trackAnswer = this.getTrackAnswer(room, nextRoundNumber);
             const hostPlayer = room.players.find((p) => p.socketId === room.roomHostId);
-            if (hostPlayer) {
+            if (hostPlayer && trackAnswer) {
                 result.hostAnswerTo = {
                     socketId: hostPlayer.socketId,
                     title: trackAnswer.title,
@@ -656,7 +627,7 @@ let MusicTriviaService = class MusicTriviaService {
     }
 };
 exports.MusicTriviaService = MusicTriviaService;
-exports.MusicTriviaService = MusicTriviaService = __decorate([
+exports.MusicTriviaService = MusicTriviaService = MusicTriviaService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [private_state_service_1.PrivateStateService])
 ], MusicTriviaService);

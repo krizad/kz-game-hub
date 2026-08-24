@@ -217,6 +217,17 @@ let WhoKnowService = class WhoKnowService {
         secretWords.delete(room.code);
         return room;
     }
+    remapVotes(votes, oldSocketId, newSocketId) {
+        if (votes[oldSocketId]) {
+            votes[newSocketId] = votes[oldSocketId];
+            delete votes[oldSocketId];
+        }
+        Object.entries(votes).forEach(([voterId, targetId]) => {
+            if (targetId === oldSocketId) {
+                votes[voterId] = newSocketId;
+            }
+        });
+    }
 };
 exports.WhoKnowService = WhoKnowService;
 exports.WhoKnowService = WhoKnowService = __decorate([

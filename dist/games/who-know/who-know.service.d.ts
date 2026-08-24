@@ -18,4 +18,5 @@ export declare class WhoKnowService {
     checkVoteResolution(room: RoomState): boolean;
     submitVote(room: RoomState, voterId: string, targetId: string): RoomState | null;
     resetGame(room: RoomState, requesterId: string, secretWords: Map<string, string>): RoomState | null;
+    remapVotes(votes: Record<string, string>, oldSocketId: string, newSocketId: string): void;
 }

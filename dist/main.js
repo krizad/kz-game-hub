@@ -9,8 +9,9 @@ const app_module_1 = require("./app.module");
 const app_logger_1 = require("./app.logger");
 const types_1 = require("@repo/types");
 async function bootstrap() {
+    const logger = new app_logger_1.AppLogger();
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
-        logger: new app_logger_1.AppLogger(),
+        logger,
     });
     app.enableCors();
     const isProduction = process.env.NODE_ENV === 'production';
@@ -25,9 +26,9 @@ async function bootstrap() {
     }
     const port = Number.parseInt(process.env.PORT || '3001', 10);
     await app.listen(port, '0.0.0.0');
-    console.log(`API [${types_1.APP_VERSION}] listening on http://localhost:${port}`);
+    logger.log(`API [${types_1.APP_VERSION}] listening on http://localhost:${port}`);
     if (!isProduction) {
-        console.log(`Swagger docs at http://localhost:${port}/api`);
+        logger.log(`Swagger docs at http://localhost:${port}/api`);
     }
 }
 bootstrap();

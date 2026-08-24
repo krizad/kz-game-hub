@@ -1,5 +1,14 @@
 import { PrivateStateService } from '../private-state.service';
 import { MusicTriviaAction, MusicTriviaState, MusicTriviaSyncPlayPayload, RoomState } from '@repo/types';
+export type MusicTriviaTimerName = 'music-trivia-countdown' | 'music-trivia-answer';
+export type MusicTriviaTimerCommand = {
+    kind: 'SCHEDULE';
+    name: MusicTriviaTimerName;
+    deadline: number;
+} | {
+    kind: 'CANCEL';
+    name: MusicTriviaTimerName;
+};
 export interface MusicTriviaActionResult {
     room: RoomState;
     syncPlay?: MusicTriviaSyncPlayPayload;
@@ -14,9 +23,11 @@ export interface MusicTriviaActionResult {
         artworkUrl?: string;
         trackViewUrl?: string;
     };
+    timerCommands?: MusicTriviaTimerCommand[];
 }
 export declare class MusicTriviaService {
     private readonly privateState;
+    private readonly logger;
     private sourceFactory;
     constructor(privateState: PrivateStateService);
     startGame(room: RoomState, requesterId: string): RoomState | null;
@@ -31,6 +42,11 @@ export declare class MusicTriviaService {
     private startRound;
     private pressBuzzer;
     answerTimeout(room: RoomState): MusicTriviaActionResult | null;
+    private strikeOutPlayer;
+    private setRevealedAnswer;
+    private getTrackAnswer;
+    private resumePlayback;
+    private buildSyncPlay;
     private giveUp;
     private submitAnswer;
     private hostJudge;

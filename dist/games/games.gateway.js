@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var GamesGateway_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GamesGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
@@ -22,16 +23,17 @@ const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
-let GamesGateway = class GamesGateway {
+let GamesGateway = GamesGateway_1 = class GamesGateway {
     constructor(gamesService, leaderboardService, roomTimerService, privateStateService) {
         this.gamesService = gamesService;
         this.leaderboardService = leaderboardService;
         this.roomTimerService = roomTimerService;
         this.privateStateService = privateStateService;
+        this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
     }
     handleConnection(client) {
-        console.log(`Client connected: ${client.id}`);
+        this.logger.log(`Client connected: ${client.id}`);
         client.use(([event, payload], next) => {
             if (this.isValidPayload(event, payload))
                 return next();
@@ -40,45 +42,38 @@ let GamesGateway = class GamesGateway {
         });
     }
     handleDisconnect(client) {
-        console.log(`Client disconnected: ${client.id}`);
-        const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? client.data.spectatingRoomCode ?? '';
+        this.logger.log(`Client disconnected: ${client.id}`);
         const result = this.gamesService.leaveRoom(client.id, false);
-        if (result && result.code === null) {
-            if (currentRoomCode) {
-                this.roomTimerService.clearRoom(currentRoomCode);
-                this.server.to(currentRoomCode).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
-            }
-            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-        }
-        else if (result && 'players' in result) {
-            this.broadcastRoomState(result);
-            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-        }
-        else {
-            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-        }
+        this.handleLeaveResult(client, result);
     }
     handleLeaveRoom(client) {
-        const currentRoomCode = this.gamesService.findRoomCodeBySocketId(client.id) ?? '';
         const result = this.gamesService.leaveRoom(client.id, true);
-        if (result && result.code === null) {
-            if (currentRoomCode) {
-                this.roomTimerService.clearRoom(currentRoomCode);
-                this.server.to(currentRoomCode).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
-            }
-            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-        }
-        else if (result && 'players' in result) {
-            this.broadcastRoomState(result);
-            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-        }
-        else {
-            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-        }
-        if (currentRoomCode) {
-            client.leave(currentRoomCode);
+        this.handleLeaveResult(client, result);
+        const roomCode = 'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
+        if (roomCode) {
+            client.leave(roomCode);
         }
         client.data.spectatingRoomCode = undefined;
+    }
+    handleLeaveResult(client, result) {
+        switch (result.outcome) {
+            case 'ROOM_CLOSED':
+                this.server.to(result.code).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
+                this.forgetRecordedResult(result.code);
+                break;
+            case 'ROOM_EMPTIED':
+                this.forgetRecordedResult(result.code);
+                break;
+            case 'PLAYER_LEFT':
+                this.broadcastRoomState(result.room);
+                break;
+            case 'NOT_IN_ROOM':
+                break;
+        }
+        this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+    }
+    forgetRecordedResult(code) {
+        this.recordedResults.delete(code);
     }
     handleGetAvailableRooms(client) {
         client.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
@@ -539,39 +534,7 @@ let GamesGateway = class GamesGateway {
                         artworkUrl: result.hostAnswerTo.artworkUrl,
                     });
                 }
-                const actionData = data.action;
-                if (actionData.type === 'START_COUNTDOWN' ||
-                    (actionData.type === 'NEXT_ROUND' && result.room.musicTriviaState?.phase === 'COUNTDOWN')) {
-                    this.roomTimerService.schedule(data.code, 'music-trivia-countdown', Date.now() + 3000, () => {
-                        const finalResult = this.gamesService.musicTriviaFinalizeCountdown(data.code);
-                        if (finalResult) {
-                            this.broadcastRoomState(finalResult.room);
-                            if (finalResult.syncPlay) {
-                                this.server
-                                    .to(finalResult.room.code)
-                                    .emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, finalResult.syncPlay);
-                            }
-                        }
-                    });
-                }
-                if (actionData.type === 'PRESS_BUZZER' &&
-                    result.room.musicTriviaState?.phase.match(/^(BUZZED|ANSWERING)$/)) {
-                    const timeoutMs = result.room.musicTriviaState.answerTimeoutMs || 15000;
-                    this.roomTimerService.schedule(data.code, 'music-trivia-answer', Date.now() + timeoutMs, () => {
-                        const timeoutResult = this.gamesService.musicTriviaFinalizeAnswerTimeout(data.code);
-                        if (timeoutResult) {
-                            this.broadcastRoomState(timeoutResult.room);
-                            if (timeoutResult.syncPlay) {
-                                this.server
-                                    .to(timeoutResult.room.code)
-                                    .emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, timeoutResult.syncPlay);
-                            }
-                        }
-                    });
-                }
-                if (['SUBMIT_ANSWER', 'HOST_JUDGE', 'GIVE_UP', 'NEXT_ROUND'].includes(actionData.type)) {
-                    this.roomTimerService.cancel(data.code, 'music-trivia-answer');
-                }
+                this.applyMusicTriviaTimers(data.code, result.timerCommands);
                 this.maybeRecordGameResult(result.room);
             }
             else {
@@ -678,6 +641,27 @@ let GamesGateway = class GamesGateway {
             ?.players.find((player) => player.socketId === client.id)?.id;
         if (reconnectToken && playerId) {
             client.emit(types_1.SOCKET_EVENTS.SESSION_ASSIGNED, { code, reconnectToken, playerId });
+        }
+    }
+    applyMusicTriviaTimers(code, commands) {
+        for (const command of commands ?? []) {
+            if (command.kind === 'CANCEL') {
+                this.roomTimerService.cancel(code, command.name);
+                continue;
+            }
+            this.roomTimerService.schedule(code, command.name, command.deadline, () => {
+                const result = command.name === 'music-trivia-countdown'
+                    ? this.gamesService.musicTriviaFinalizeCountdown(code)
+                    : this.gamesService.musicTriviaFinalizeAnswerTimeout(code);
+                if (result) {
+                    this.broadcastRoomState(result.room);
+                    if (result.syncPlay) {
+                        this.server
+                            .to(result.room.code)
+                            .emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, result.syncPlay);
+                    }
+                }
+            });
         }
     }
     syncWhoFirstTimer(room) {
@@ -789,30 +773,22 @@ let GamesGateway = class GamesGateway {
         return false;
     }
     maybeRecordGameResult(room) {
-        const key = room.code;
         if (room.status !== types_1.RoomStatus.RESULT) {
-            this.recordedResults.delete(key);
+            this.recordedResults.delete(room.code);
             return;
         }
-        if (this.recordedResults.has(key))
+        if (this.recordedResults.has(room.code))
             return;
-        this.recordedResults.add(key);
-        const results = room.players
+        this.recordedResults.add(room.code);
+        const results = [...room.players]
             .filter((p) => p.name)
-            .map((p) => ({
+            .sort((a, b) => b.score - a.score)
+            .map((p, idx) => ({
             playerName: p.name,
             score: p.score,
-            rank: this.calculateRank(p, room),
-        }))
-            .sort((a, b) => b.score - a.score);
-        results.forEach((r, idx) => {
-            r.rank = idx + 1;
-        });
+            rank: idx + 1,
+        }));
         this.leaderboardService.recordGameResult(room.gameType, room.code, results);
-    }
-    calculateRank(player, room) {
-        const sorted = [...room.players].sort((a, b) => b.score - a.score);
-        return sorted.findIndex((p) => p.socketId === player.socketId) + 1;
     }
 };
 exports.GamesGateway = GamesGateway;
@@ -1186,11 +1162,11 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleSpectateJoin", null);
-exports.GamesGateway = GamesGateway = __decorate([
+exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
     (0, common_1.UseFilters)(ws_exception_filter_1.WsExceptionFilter),
     (0, websockets_1.WebSocketGateway)({
         cors: {
-            origin: '*',
+            origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
         },
     }),
     __metadata("design:paramtypes", [games_service_1.GamesService,

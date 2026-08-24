@@ -11,11 +11,14 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private readonly roomTimerService;
     private readonly privateStateService;
     server: Server;
+    private readonly logger;
     private readonly recordedResults;
     constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService);
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
     handleLeaveRoom(client: Socket): void;
+    private handleLeaveResult;
+    private forgetRecordedResult;
     handleGetAvailableRooms(client: Socket): void;
     handleCreateRoom(data: {
         name: string;
@@ -181,6 +184,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private broadcastRoomState;
     private emitPrivateStates;
     private emitSessionToken;
+    private applyMusicTriviaTimers;
     private syncWhoFirstTimer;
     private syncWhoKnowTimer;
     private syncTheMindTimer;
@@ -188,5 +192,4 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private isValidName;
     private hasSafeValues;
     private maybeRecordGameResult;
-    private calculateRank;
 }

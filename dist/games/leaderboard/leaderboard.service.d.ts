@@ -1,5 +1,6 @@
 import { LeaderboardEntry, GameResultRecord } from '@repo/types';
 export declare class LeaderboardService {
+    private readonly logger;
     recordGameResult(gameType: string, roomCode: string, results: {
         playerName: string;
         score: number;

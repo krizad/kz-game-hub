@@ -187,6 +187,14 @@ let WhoFirstService = class WhoFirstService {
         };
         return room;
     }
+    remapSocketId(state, oldSocketId, newSocketId) {
+        state.presses.forEach((press) => {
+            if (press.socketId === oldSocketId)
+                press.socketId = newSocketId;
+        });
+        if (state.roundWinnerId === oldSocketId)
+            state.roundWinnerId = newSocketId;
+    }
 };
 exports.WhoFirstService = WhoFirstService;
 exports.WhoFirstService = WhoFirstService = __decorate([

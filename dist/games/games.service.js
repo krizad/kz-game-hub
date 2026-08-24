@@ -25,8 +25,9 @@ const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
+const room_timer_service_1 = require("./room-timer.service");
 let GamesService = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, playerSessionService, privateStateService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, playerSessionService, privateStateService, roomTimerService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -39,6 +40,7 @@ let GamesService = class GamesService {
         this.theMindService = theMindService;
         this.playerSessionService = playerSessionService;
         this.privateStateService = privateStateService;
+        this.roomTimerService = roomTimerService;
         this.rooms = new Map();
         this.secretWords = new Map();
     }
@@ -161,130 +163,28 @@ let GamesService = class GamesService {
             if (room.roomHostId === oldSocketId) {
                 room.roomHostId = user.socketId;
             }
-            if (room.votes) {
-                if (room.votes[oldSocketId]) {
-                    room.votes[user.socketId] = room.votes[oldSocketId];
-                    delete room.votes[oldSocketId];
-                }
-                Object.entries(room.votes).forEach(([voterId, targetId]) => {
-                    if (targetId === oldSocketId) {
-                        room.votes[voterId] = user.socketId;
-                    }
-                });
-            }
+            if (room.votes)
+                this.whoKnowService.remapVotes(room.votes, oldSocketId, user.socketId);
             if (room.ticTacToeState) {
-                if (room.ticTacToeState.playerXId === oldSocketId)
-                    room.ticTacToeState.playerXId = user.socketId;
-                if (room.ticTacToeState.playerOId === oldSocketId)
-                    room.ticTacToeState.playerOId = user.socketId;
+                this.ticTacToeService.remapSocketId(room.ticTacToeState, oldSocketId, user.socketId);
             }
             if (room.rpsState) {
-                const idx = room.rpsState.activePlayers.indexOf(oldSocketId);
-                if (idx !== -1)
-                    room.rpsState.activePlayers[idx] = user.socketId;
-                const qIdx = room.rpsState.queue.indexOf(oldSocketId);
-                if (qIdx !== -1)
-                    room.rpsState.queue[qIdx] = user.socketId;
-                if (room.rpsState.choices[oldSocketId]) {
-                    room.rpsState.choices[user.socketId] = room.rpsState.choices[oldSocketId];
-                    delete room.rpsState.choices[oldSocketId];
-                }
-                if (room.rpsState.scores[oldSocketId] !== undefined) {
-                    room.rpsState.scores[user.socketId] = room.rpsState.scores[oldSocketId];
-                    delete room.rpsState.scores[oldSocketId];
-                }
-                if (room.rpsState.gameWinner === oldSocketId)
-                    room.rpsState.gameWinner = user.socketId;
-                else if (Array.isArray(room.rpsState.gameWinner)) {
-                    const wIdx = room.rpsState.gameWinner.indexOf(oldSocketId);
-                    if (wIdx !== -1)
-                        room.rpsState.gameWinner[wIdx] = user.socketId;
-                }
-                if (room.rpsState.roundWinner === oldSocketId)
-                    room.rpsState.roundWinner = user.socketId;
-                else if (Array.isArray(room.rpsState.roundWinner)) {
-                    const wIdx = room.rpsState.roundWinner.indexOf(oldSocketId);
-                    if (wIdx !== -1)
-                        room.rpsState.roundWinner[wIdx] = user.socketId;
-                }
+                this.rpsService.remapSocketId(room.rpsState, oldSocketId, user.socketId);
             }
             if (room.gobblerState) {
-                if (room.gobblerState.playerXId === oldSocketId)
-                    room.gobblerState.playerXId = user.socketId;
-                if (room.gobblerState.playerOId === oldSocketId)
-                    room.gobblerState.playerOId = user.socketId;
+                this.gobblerService.remapSocketId(room.gobblerState, oldSocketId, user.socketId);
             }
             if (room.soundsFishyState) {
-                if (room.soundsFishyState.pickerId === oldSocketId)
-                    room.soundsFishyState.pickerId = user.socketId;
-                if (room.soundsFishyState.blueFishId === oldSocketId)
-                    room.soundsFishyState.blueFishId = user.socketId;
-                const rhIdx = room.soundsFishyState.redHerringIds.indexOf(oldSocketId);
-                if (rhIdx !== -1)
-                    room.soundsFishyState.redHerringIds[rhIdx] = user.socketId;
-                const epIdx = room.soundsFishyState.eliminatedPlayers.indexOf(oldSocketId);
-                if (epIdx !== -1)
-                    room.soundsFishyState.eliminatedPlayers[epIdx] = user.socketId;
-                if (room.soundsFishyState.playerAnswers[oldSocketId]) {
-                    room.soundsFishyState.playerAnswers[user.socketId] =
-                        room.soundsFishyState.playerAnswers[oldSocketId];
-                    room.soundsFishyState.playerAnswers[user.socketId].playerId = user.socketId;
-                    delete room.soundsFishyState.playerAnswers[oldSocketId];
-                }
-                if (room.soundsFishyState.roundPoints[oldSocketId] !== undefined) {
-                    room.soundsFishyState.roundPoints[user.socketId] =
-                        room.soundsFishyState.roundPoints[oldSocketId];
-                    delete room.soundsFishyState.roundPoints[oldSocketId];
-                }
-                if (room.soundsFishyState.typingAnswers[oldSocketId]) {
-                    room.soundsFishyState.typingAnswers[user.socketId] =
-                        room.soundsFishyState.typingAnswers[oldSocketId];
-                    delete room.soundsFishyState.typingAnswers[oldSocketId];
-                }
+                this.soundsFishyService.remapSocketId(room.soundsFishyState, oldSocketId, user.socketId);
             }
             if (room.detectiveClubState) {
-                const dcState = room.detectiveClubState;
-                if (dcState.players[oldSocketId]) {
-                    dcState.players[user.socketId] = dcState.players[oldSocketId];
-                    dcState.players[user.socketId].id = user.socketId;
-                    delete dcState.players[oldSocketId];
-                }
-                if (dcState.informerId === oldSocketId)
-                    dcState.informerId = user.socketId;
-                if (dcState.conspiratorId === oldSocketId)
-                    dcState.conspiratorId = user.socketId;
-                if (dcState.activePlayerId === oldSocketId)
-                    dcState.activePlayerId = user.socketId;
-                if (dcState.round1StarterId === oldSocketId)
-                    dcState.round1StarterId = user.socketId;
-                dcState.playOrder = dcState.playOrder.map((id) => id === oldSocketId ? user.socketId : id);
-                Object.values(dcState.players).forEach((p) => {
-                    if (p.votedFor === oldSocketId)
-                        p.votedFor = user.socketId;
-                });
+                this.detectiveClubService.remapSocketId(room.detectiveClubState, oldSocketId, user.socketId);
             }
             if (room.whoAmIState) {
-                const waState = room.whoAmIState;
-                if (waState.currentTurn === oldSocketId)
-                    waState.currentTurn = user.socketId;
-                if (waState.votes[oldSocketId]) {
-                    waState.votes[user.socketId] = waState.votes[oldSocketId];
-                    delete waState.votes[oldSocketId];
-                }
-                if (waState.winner === oldSocketId)
-                    waState.winner = user.socketId;
-                const elimIdx = waState.eliminatedPlayers.indexOf(oldSocketId);
-                if (elimIdx !== -1)
-                    waState.eliminatedPlayers[elimIdx] = user.socketId;
-                const fgIdx = waState.finalGuessUsed.indexOf(oldSocketId);
-                if (fgIdx !== -1)
-                    waState.finalGuessUsed[fgIdx] = user.socketId;
+                this.whoAmIService.remapSocketId(room.whoAmIState, oldSocketId, user.socketId);
             }
             if (room.whoFirstState) {
-                room.whoFirstState.presses.forEach((p) => {
-                    if (p.socketId === oldSocketId)
-                        p.socketId = user.socketId;
-                });
+                this.whoFirstService.remapSocketId(room.whoFirstState, oldSocketId, user.socketId);
             }
             if (room.musicTriviaState) {
                 this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
@@ -321,57 +221,56 @@ let GamesService = class GamesService {
     leaveRoom(clientId, explicitLeave = false) {
         for (const [code, room] of this.rooms.entries()) {
             const playerIndex = room.players.findIndex((p) => p.socketId === clientId);
-            if (playerIndex !== -1) {
-                if (room.roomHostId === clientId) {
-                    if (explicitLeave || room.status === types_1.RoomStatus.LOBBY) {
-                        this.deleteRoomData(code);
-                        return { code: null };
-                    }
-                }
-                if (explicitLeave || room.status === types_1.RoomStatus.LOBBY) {
-                    this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
-                    room.players.splice(playerIndex, 1);
-                    this.privateStateService.clearSocket(code, clientId);
-                    if (room.ticTacToeState) {
-                        if (room.ticTacToeState.playerXId === clientId)
-                            room.ticTacToeState.playerXId = undefined;
-                        if (room.ticTacToeState.playerOId === clientId)
-                            room.ticTacToeState.playerOId = undefined;
-                    }
-                    if (room.gobblerState) {
-                        if (room.gobblerState.playerXId === clientId)
-                            room.gobblerState.playerXId = undefined;
-                        if (room.gobblerState.playerOId === clientId)
-                            room.gobblerState.playerOId = undefined;
-                    }
-                }
-                else {
-                    room.players[playerIndex].connected = false;
-                    this.privateStateService.clearSocket(code, clientId);
-                }
-                if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
-                    this.whoKnowService.checkVoteResolution(room);
-                }
-                if (room.gameType === types_1.GameType.SOUNDS_FISHY && room.status === types_1.RoomStatus.QUESTIONING) {
-                    this.soundsFishyService.checkAnswerResolution(room);
-                }
-                if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
-                    this.detectiveClubService.handlePlayerDisconnect(room, clientId);
-                }
-                const activePlayers = room.players.filter((p) => p.connected !== false).length;
-                if (activePlayers === 0) {
-                    this.deleteRoomData(code);
-                    return null;
-                }
-                this.rooms.set(code, room);
-                return room;
+            if (playerIndex === -1)
+                continue;
+            if (room.roomHostId === clientId && (explicitLeave || room.status === types_1.RoomStatus.LOBBY)) {
+                this.deleteRoomData(code);
+                return { outcome: 'ROOM_CLOSED', code };
             }
+            if (explicitLeave || room.status === types_1.RoomStatus.LOBBY) {
+                this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
+                room.players.splice(playerIndex, 1);
+                this.privateStateService.clearSocket(code, clientId);
+                if (room.ticTacToeState) {
+                    if (room.ticTacToeState.playerXId === clientId)
+                        room.ticTacToeState.playerXId = undefined;
+                    if (room.ticTacToeState.playerOId === clientId)
+                        room.ticTacToeState.playerOId = undefined;
+                }
+                if (room.gobblerState) {
+                    if (room.gobblerState.playerXId === clientId)
+                        room.gobblerState.playerXId = undefined;
+                    if (room.gobblerState.playerOId === clientId)
+                        room.gobblerState.playerOId = undefined;
+                }
+            }
+            else {
+                room.players[playerIndex].connected = false;
+                this.privateStateService.clearSocket(code, clientId);
+            }
+            if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
+                this.whoKnowService.checkVoteResolution(room);
+            }
+            if (room.gameType === types_1.GameType.SOUNDS_FISHY && room.status === types_1.RoomStatus.QUESTIONING) {
+                this.soundsFishyService.checkAnswerResolution(room);
+            }
+            if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
+                this.detectiveClubService.handlePlayerDisconnect(room, clientId);
+            }
+            const activePlayers = room.players.filter((p) => p.connected !== false).length;
+            if (activePlayers === 0) {
+                this.deleteRoomData(code);
+                return { outcome: 'ROOM_EMPTIED', code };
+            }
+            this.rooms.set(code, room);
+            return { outcome: 'PLAYER_LEFT', room };
         }
-        return null;
+        return { outcome: 'NOT_IN_ROOM' };
     }
     deleteRoomData(code) {
         this.rooms.delete(code);
         this.secretWords.delete(code);
+        this.roomTimerService.clearRoom(code);
         this.playerSessionService.clearRoom(code);
         this.musicTriviaService.deleteRoomData(code);
         this.privateStateService.clearRoom(code);
@@ -462,137 +361,116 @@ let GamesService = class GamesService {
         copyInteger('theMindMaxLevel', 1, 20);
         return result;
     }
+    withRoom(code, mutate) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const updatedRoom = mutate(room);
+        if (updatedRoom)
+            this.rooms.set(code, updatedRoom);
+        return updatedRoom;
+    }
+    withRoomResult(code, action) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const result = action(room);
+        if (result)
+            this.rooms.set(code, result.room);
+        return result;
+    }
+    async withRoomResultAsync(code, action) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const result = await action(room);
+        if (result)
+            this.rooms.set(code, result.room);
+        return result;
+    }
     async assignRoles(code, requesterId) {
         const room = this.rooms.get(code);
         if (!room)
             return null;
         if (room.gameType === types_1.GameType.SOUNDS_FISHY) {
-            const result = await this.soundsFishyService.assignRoles(room, requesterId);
-            if (result)
-                this.rooms.set(code, result.room);
-            return result;
+            return this.withRoomResultAsync(code, (r) => this.soundsFishyService.assignRoles(r, requesterId));
         }
         if (room.gameType === types_1.GameType.RPS) {
-            const result = this.rpsService.assignRoles(room, requesterId);
-            if (result)
-                this.rooms.set(code, result.room);
-            return result;
+            return this.withRoomResult(code, (r) => this.rpsService.assignRoles(r, requesterId));
         }
         if (room.gameType === types_1.GameType.DETECTIVE_CLUB) {
-            const updatedRoom = this.detectiveClubService.startGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+            const startedRoom = this.withRoom(code, (r) => this.detectiveClubService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
         if (room.gameType === types_1.GameType.WHO_AM_I) {
-            let updatedRoom = null;
-            if (room.config.wordMode === 'HOST_INPUT') {
-                updatedRoom = this.whoAmIService.startGameAwaitHostInput(room, requesterId);
-            }
-            else if (room.config.wordMode === 'RANDOM') {
-                updatedRoom = await this.whoAmIService.startGameRandom(room, requesterId);
-            }
-            else if (room.config.wordMode === 'AI_GENERATED') {
-                updatedRoom = await this.whoAmIService.startGameAiGenerated(room, requesterId);
-            }
-            else if (room.config.wordMode === 'PLAYER_INPUT') {
-                updatedRoom = this.whoAmIService.startGamePlayerInput(room, requesterId);
-            }
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+            const startedRoom = await this.withRoomAsync(code, (r) => this.startWhoAmI(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
         if (room.gameType === types_1.GameType.WHO_FIRST) {
-            const updatedRoom = this.whoFirstService.startGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+            const startedRoom = this.withRoom(code, (r) => this.whoFirstService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
         if (room.gameType === types_1.GameType.MUSIC_TRIVIA) {
-            const updatedRoom = this.musicTriviaService.startGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+            const startedRoom = this.withRoom(code, (r) => this.musicTriviaService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
         if (room.gameType === types_1.GameType.THE_MIND) {
-            const updatedRoom = this.theMindService.startGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom ? { room: updatedRoom, roles: {} } : null;
+            const startedRoom = this.withRoom(code, (r) => this.theMindService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
-        const result = this.whoKnowService.assignRoles(room, requesterId);
-        if (result)
-            this.rooms.set(code, result.room);
-        return result;
+        return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
+    }
+    async startWhoAmI(room, requesterId) {
+        switch (room.config.wordMode) {
+            case 'HOST_INPUT':
+                return this.whoAmIService.startGameAwaitHostInput(room, requesterId);
+            case 'RANDOM':
+                return this.whoAmIService.startGameRandom(room, requesterId);
+            case 'AI_GENERATED':
+                return this.whoAmIService.startGameAiGenerated(room, requesterId);
+            case 'PLAYER_INPUT':
+                return this.whoAmIService.startGamePlayerInput(room, requesterId);
+            default:
+                return null;
+        }
+    }
+    async withRoomAsync(code, action) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        const updatedRoom = await action(room);
+        if (updatedRoom)
+            this.rooms.set(code, updatedRoom);
+        return updatedRoom;
     }
     setWord(code, word, requesterId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoKnowService.setWord(room, word, requesterId, this.secretWords);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoKnowService.setWord(room, word, requesterId, this.secretWords));
     }
     stopTimer(code, requesterId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoKnowService.stopTimer(room, requesterId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoKnowService.stopTimer(room, requesterId));
     }
     endQuestioning(code, requesterId, timeout = false) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoKnowService.endQuestioning(room, requesterId, timeout);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoKnowService.endQuestioning(room, requesterId, timeout));
     }
     submitVote(code, voterId, targetId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoKnowService.submitVote(room, voterId, targetId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoKnowService.submitVote(room, voterId, targetId));
     }
     resetGame(code, requesterId) {
         const room = this.rooms.get(code);
         if (!room)
             return null;
-        if (room.gameType === types_1.GameType.WHO_AM_I) {
-            const updatedRoom = this.whoAmIService.resetGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom;
+        switch (room.gameType) {
+            case types_1.GameType.WHO_AM_I:
+                return this.withRoom(code, (r) => this.whoAmIService.resetGame(r, requesterId));
+            case types_1.GameType.WHO_FIRST:
+                return this.withRoom(code, (r) => this.whoFirstService.resetGame(r, requesterId));
+            case types_1.GameType.MUSIC_TRIVIA:
+                return this.withRoom(code, (r) => this.musicTriviaService.resetGame(r, requesterId));
+            case types_1.GameType.THE_MIND:
+                return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
+            default:
+                return this.withRoom(code, (r) => this.whoKnowService.resetGame(r, requesterId, this.secretWords));
         }
-        if (room.gameType === types_1.GameType.WHO_FIRST) {
-            const updatedRoom = this.whoFirstService.resetGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom;
-        }
-        if (room.gameType === types_1.GameType.MUSIC_TRIVIA) {
-            const updatedRoom = this.musicTriviaService.resetGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom;
-        }
-        if (room.gameType === types_1.GameType.THE_MIND) {
-            const updatedRoom = this.theMindService.resetGame(room, requesterId);
-            if (updatedRoom)
-                this.rooms.set(code, updatedRoom);
-            return updatedRoom;
-        }
-        const updatedRoom = this.whoKnowService.resetGame(room, requesterId, this.secretWords);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
     }
     getSecretWord(code) {
         return this.secretWords.get(code);
@@ -602,220 +480,76 @@ let GamesService = class GamesService {
         return data['wkRole'] ?? data['sfRole'];
     }
     whoKnowServerTimeout(code) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoKnowService.handleQuestioningTimeout(room);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoKnowService.handleQuestioningTimeout(room));
     }
     tttJoinSide(code, clientId, side) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.ticTacToeService.joinSide(room, clientId, side);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.ticTacToeService.joinSide(room, clientId, side));
     }
     tttMakeMove(code, clientId, index) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.ticTacToeService.makeMove(room, clientId, index);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
     }
     tttReset(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.ticTacToeService.reset(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
     }
     rpsMakeChoice(code, clientId, choice) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.rpsService.makeChoice(room, clientId, choice);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.rpsService.makeChoice(room, clientId, choice));
     }
     rpsNextRound(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.rpsService.nextRound(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.rpsService.nextRound(room, clientId));
     }
     rpsReset(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.rpsService.reset(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.rpsService.reset(room, clientId));
     }
     gobblerJoinSide(code, clientId, side) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.gobblerService.joinSide(room, clientId, side);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.gobblerService.joinSide(room, clientId, side));
     }
     gobblerPlacePiece(code, clientId, pieceId, toIndex) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.gobblerService.placePiece(room, clientId, pieceId, toIndex);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.gobblerService.placePiece(room, clientId, pieceId, toIndex));
     }
     gobblerMovePiece(code, clientId, fromIndex, toIndex) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.gobblerService.movePiece(room, clientId, fromIndex, toIndex);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.gobblerService.movePiece(room, clientId, fromIndex, toIndex));
     }
     gobblerReset(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.gobblerService.reset(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.gobblerService.reset(room, clientId));
     }
     soundsFishyTypeAnswer(code, clientId, answer) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.typeAnswer(room, clientId, answer);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.typeAnswer(room, clientId, answer));
     }
     soundsFishySubmitAnswer(code, clientId, answer) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.submitAnswer(room, clientId, answer);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.submitAnswer(room, clientId, answer));
     }
     soundsFishyRevealPlayer(code, clientId, targetId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.revealPlayer(room, clientId, targetId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.revealPlayer(room, clientId, targetId));
     }
     soundsFishyEliminatePlayer(code, clientId, targetId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.eliminatePlayer(room, clientId, targetId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.eliminatePlayer(room, clientId, targetId));
     }
     soundsFishyBankPoints(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.bankPoints(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.bankPoints(room, clientId));
     }
     soundsFishyNextRound(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.nextRound(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.nextRound(room, clientId));
     }
     soundsFishyReset(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.soundsFishyService.nextRound(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.soundsFishyService.reset(room, clientId));
     }
     detectiveClubSubmitWord(code, clientId, word) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.detectiveClubService.submitWord(room, clientId, word);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.detectiveClubService.submitWord(room, clientId, word));
     }
     detectiveClubPlayCard(code, clientId, cardIndex) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.detectiveClubService.playCard(room, clientId, cardIndex);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.detectiveClubService.playCard(room, clientId, cardIndex));
     }
     detectiveClubNextPhase(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.detectiveClubService.nextPhase(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.detectiveClubService.nextPhase(room, clientId));
     }
     detectiveClubVote(code, clientId, targetId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.detectiveClubService.submitVote(room, clientId, targetId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.detectiveClubService.submitVote(room, clientId, targetId));
     }
     detectiveClubNextRound(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.detectiveClubService.nextRound(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.detectiveClubService.nextRound(room, clientId));
     }
     detectiveClubReset(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.detectiveClubService.reset(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.detectiveClubService.reset(room, clientId));
     }
     whoAmISubmitPlayerWord(code, clientId, word) {
         const room = this.rooms.get(code);
@@ -827,43 +561,19 @@ let GamesService = class GamesService {
         return result;
     }
     whoAmIGameAction(code, clientId, action) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoAmIService.handleGameAction(room, clientId, action);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoAmIService.handleGameAction(room, clientId, action));
     }
     whoFirstGameAction(code, clientId, action) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoFirstService.handleGameAction(room, clientId, action);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoFirstService.handleGameAction(room, clientId, action));
     }
     whoFirstSetActive(code) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoFirstService.setActive(room);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoFirstService.setActive(room));
     }
     whoAmICategoriesList(lang) {
         return this.whoAmIService.getCategories(lang);
     }
     whoAmIStartHostInput(code, clientId, playerWords) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.whoAmIService.startGameHostInput(room, clientId, playerWords);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.whoAmIService.startGameHostInput(room, clientId, playerWords));
     }
     async musicTriviaGameAction(code, clientId, action) {
         const room = this.rooms.get(code);
@@ -893,82 +603,46 @@ let GamesService = class GamesService {
         return result;
     }
     theMindReady(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const playerId = this.getPlayerId(room, clientId);
-        if (!playerId)
-            return null;
-        const updatedRoom = this.theMindService.ready(room, playerId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => {
+            const playerId = this.getPlayerId(room, clientId);
+            return playerId ? this.theMindService.ready(room, playerId) : null;
+        });
     }
     theMindPlayCard(code, clientId, card, pile) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const playerId = this.getPlayerId(room, clientId);
-        if (!playerId)
-            return null;
-        const updatedRoom = this.theMindService.playCard(room, playerId, card, pile);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => {
+            const playerId = this.getPlayerId(room, clientId);
+            return playerId ? this.theMindService.playCard(room, playerId, card, pile) : null;
+        });
     }
     theMindNextLevel(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const updatedRoom = this.theMindService.nextLevel(room, clientId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => this.theMindService.nextLevel(room, clientId));
     }
     theMindProposeShuriken(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const playerId = this.getPlayerId(room, clientId);
-        if (!playerId)
-            return null;
-        const updatedRoom = this.theMindService.proposeShuriken(room, playerId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => {
+            const playerId = this.getPlayerId(room, clientId);
+            return playerId ? this.theMindService.proposeShuriken(room, playerId) : null;
+        });
     }
     theMindVoteShuriken(code, clientId, agree) {
-        const room = this.rooms.get(code);
-        if (!room)
-            return null;
-        const playerId = this.getPlayerId(room, clientId);
-        if (!playerId)
-            return null;
-        const updatedRoom = this.theMindService.voteShuriken(room, playerId, agree);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => {
+            const playerId = this.getPlayerId(room, clientId);
+            return playerId ? this.theMindService.voteShuriken(room, playerId, agree) : null;
+        });
     }
     theMindCancelShuriken(code, clientId) {
-        const room = this.rooms.get(code);
-        if (!room || room.gameType !== types_1.GameType.THE_MIND)
-            return null;
-        const playerId = this.getPlayerId(room, clientId);
-        if (!playerId)
-            return null;
-        const updatedRoom = this.theMindService.cancelShurikenProposal(room, playerId);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => {
+            if (room.gameType !== types_1.GameType.THE_MIND)
+                return null;
+            const playerId = this.getPlayerId(room, clientId);
+            return playerId ? this.theMindService.cancelShurikenProposal(room, playerId) : null;
+        });
     }
     theMindServerTimeout(code) {
-        const room = this.rooms.get(code);
-        if (!room || room.gameType !== types_1.GameType.THE_MIND)
-            return null;
-        const updatedRoom = this.theMindService.handleTimeout(room);
-        if (updatedRoom)
-            this.rooms.set(code, updatedRoom);
-        return updatedRoom;
+        return this.withRoom(code, (room) => {
+            if (room.gameType !== types_1.GameType.THE_MIND)
+                return null;
+            return this.theMindService.handleTimeout(room);
+        });
     }
     getPlayerId(room, socketId) {
         return room.players.find((player) => player.socketId === socketId)?.id ?? null;
@@ -988,6 +662,7 @@ exports.GamesService = GamesService = __decorate([
         music_trivia_service_1.MusicTriviaService,
         the_mind_service_1.TheMindService,
         player_session_service_1.PlayerSessionService,
-        private_state_service_1.PrivateStateService])
+        private_state_service_1.PrivateStateService,
+        room_timer_service_1.RoomTimerService])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map

@@ -1,4 +1,4 @@
-import { RoomState } from '@repo/types';
+import { RoomState, WhoFirstState } from '@repo/types';
 export declare class WhoFirstService {
     private getCountdownRange;
     private startCountdown;
@@ -11,4 +11,5 @@ export declare class WhoFirstService {
         payload?: unknown;
     }): RoomState | null;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
+    remapSocketId(state: WhoFirstState, oldSocketId: string, newSocketId: string): void;
 }

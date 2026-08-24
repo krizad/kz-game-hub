@@ -1,4 +1,4 @@
-import { RoomState, WordCategory } from '@repo/types';
+import { RoomState, WhoAmIGameState, WordCategory } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 export declare class WhoAmIService {
     private readonly privateState;
@@ -25,4 +25,5 @@ export declare class WhoAmIService {
     private enterFinalGuessPhase;
     handleGameAction(room: RoomState, requesterId: string, action: Record<string, unknown>): RoomState | null;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
+    remapSocketId(state: WhoAmIGameState, oldSocketId: string, newSocketId: string): void;
 }

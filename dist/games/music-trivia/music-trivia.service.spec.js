@@ -158,5 +158,73 @@ describe('MusicTriviaService', () => {
         expect(result).toBeNull();
         expect(room.musicTriviaState.readyPlayerIds).toEqual([]);
     });
+    describe('answerTimeout', () => {
+        function createAnsweringRoom() {
+            const room = {
+                id: 'room-1',
+                gameType: types_1.GameType.MUSIC_TRIVIA,
+                code: 'ABCDEF',
+                status: types_1.RoomStatus.PLAYING,
+                roomHostId: 'host-1',
+                players: [
+                    { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' },
+                    { id: '2', socketId: 'player-2', name: 'Player2', score: 0, roomId: 'room-1' },
+                    { id: '3', socketId: 'player-3', name: 'Player3', score: 0, roomId: 'room-1' },
+                ],
+                createdAt: new Date(),
+                config: {
+                    hostSelection: 'FIXED',
+                    timerMin: 5,
+                    musicTriviaMode: 'TYPING',
+                    musicTriviaSource: 'ITUNES',
+                    musicTriviaRounds: 10,
+                    musicTriviaHostPlays: false,
+                    musicTriviaAnswerTimeoutMs: 15000,
+                },
+            };
+            service.startGame(room, 'host-1');
+            const state = room.musicTriviaState;
+            state.phase = 'ANSWERING';
+            state.playStartTime = Date.now();
+            state.currentRound = {
+                roundNumber: 1,
+                track: {
+                    id: 't1',
+                    previewUrl: 'https://example.com/preview.m4a',
+                    sourceType: 'ITUNES',
+                    durationMs: 30000,
+                },
+                buzzerPresses: [],
+                currentBuzzerId: 'player-2',
+                struckOutIds: [],
+                answeredCorrectly: false,
+                winnerId: null,
+            };
+            return room;
+        }
+        it('strikes out the buzzer and resumes playing when the answer timer fires', () => {
+            const room = createAnsweringRoom();
+            const result = service.answerTimeout(room);
+            expect(result).not.toBeNull();
+            expect(result.room.musicTriviaState.phase).toBe('PLAYING');
+            const round = result.room.musicTriviaState.currentRound;
+            expect(round.struckOutIds).toContain('player-2');
+            expect(round.currentBuzzerId).toBeNull();
+            expect(result.syncPlay).toBeDefined();
+        });
+        it('reveals the answer when the timeout strikes out the last eligible player', () => {
+            const room = createAnsweringRoom();
+            room.players.find((p) => p.socketId === 'player-3').connected = false;
+            room.musicTriviaState.currentRound.struckOutIds.push('player-3');
+            const result = service.answerTimeout(room);
+            expect(result).not.toBeNull();
+            expect(result.room.musicTriviaState.phase).toBe('REVEAL');
+        });
+        it('returns null when no round is active', () => {
+            const room = createAnsweringRoom();
+            room.musicTriviaState.currentRound = null;
+            expect(service.answerTimeout(room)).toBeNull();
+        });
+    });
 });
 //# sourceMappingURL=music-trivia.service.spec.js.map

@@ -1,4 +1,4 @@
-import { RoomState, Role } from '@repo/types';
+import { RoomState, SoundsFishyState, Role } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 export declare class SoundsFishyService {
     private readonly privateState;
@@ -20,4 +20,7 @@ export declare class SoundsFishyService {
     eliminatePlayer(room: RoomState, pickerId: string, targetId: string): RoomState | null;
     bankPoints(room: RoomState, pickerId: string): RoomState | null;
     nextRound(room: RoomState, requesterId: string): RoomState | null;
+    reset(room: RoomState, requesterId: string): RoomState | null;
+    remapSocketId(state: SoundsFishyState, oldSocketId: string, newSocketId: string): void;
+    private backToLobby;
 }

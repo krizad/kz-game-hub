@@ -223,6 +223,29 @@ let RPSService = class RPSService {
         room.players.forEach((p) => (p.score = 0));
         return room;
     }
+    remapSocketId(state, oldSocketId, newSocketId) {
+        const remapInArray = (ids) => ids.map((id) => (id === oldSocketId ? newSocketId : id));
+        const remapWinner = (winner) => {
+            if (winner === undefined)
+                return undefined;
+            if (Array.isArray(winner))
+                return remapInArray(winner);
+            return winner === oldSocketId ? newSocketId : winner;
+        };
+        state.activePlayers = remapInArray(state.activePlayers);
+        state.queue = remapInArray(state.queue);
+        state.choicesMade = remapInArray(state.choicesMade);
+        if (state.choices[oldSocketId]) {
+            state.choices[newSocketId] = state.choices[oldSocketId];
+            delete state.choices[oldSocketId];
+        }
+        if (state.scores[oldSocketId] !== undefined) {
+            state.scores[newSocketId] = state.scores[oldSocketId];
+            delete state.scores[oldSocketId];
+        }
+        state.gameWinner = remapWinner(state.gameWinner);
+        state.roundWinner = remapWinner(state.roundWinner);
+    }
 };
 exports.RPSService = RPSService;
 exports.RPSService = RPSService = __decorate([

@@ -1,4 +1,4 @@
-import { RoomState, GobblerPiece, PlayerSide } from '@repo/types';
+import { RoomState, GobblerPiece, GobblerState, PlayerSide } from '@repo/types';
 export declare class GobblerService {
     createInitialInventory(side: PlayerSide): GobblerPiece[];
     private isMember;
@@ -11,4 +11,5 @@ export declare class GobblerService {
     movePiece(room: RoomState, clientId: string, fromIndex: number, toIndex: number): RoomState | null;
     private handlePostMove;
     reset(room: RoomState, clientId: string): RoomState | null;
+    remapSocketId(state: GobblerState, oldSocketId: string, newSocketId: string): void;
 }

@@ -223,6 +223,12 @@ let GobblerService = class GobblerService {
         }
         return room;
     }
+    remapSocketId(state, oldSocketId, newSocketId) {
+        if (state.playerXId === oldSocketId)
+            state.playerXId = newSocketId;
+        if (state.playerOId === oldSocketId)
+            state.playerOId = newSocketId;
+    }
 };
 exports.GobblerService = GobblerService;
 exports.GobblerService = GobblerService = __decorate([

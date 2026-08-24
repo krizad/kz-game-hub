@@ -1,4 +1,4 @@
-import { RoomState, RPSChoice, Role } from '@repo/types';
+import { RoomState, RPSChoice, RPSState, Role } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 export declare class RPSService {
     private readonly privateState;
@@ -14,4 +14,5 @@ export declare class RPSService {
     private resolveAllAtOnceRound;
     nextRound(room: RoomState, clientId: string): RoomState | null;
     reset(room: RoomState, clientId: string): RoomState | null;
+    remapSocketId(state: RPSState, oldSocketId: string, newSocketId: string): void;
 }

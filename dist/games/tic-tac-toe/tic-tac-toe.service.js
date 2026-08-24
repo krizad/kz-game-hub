@@ -129,6 +129,12 @@ let TicTacToeService = class TicTacToeService {
         }
         return room;
     }
+    remapSocketId(state, oldSocketId, newSocketId) {
+        if (state.playerXId === oldSocketId)
+            state.playerXId = newSocketId;
+        if (state.playerOId === oldSocketId)
+            state.playerOId = newSocketId;
+    }
 };
 exports.TicTacToeService = TicTacToeService;
 exports.TicTacToeService = TicTacToeService = __decorate([

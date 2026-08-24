@@ -546,6 +546,18 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         this.clearRoomPrivateData(room);
         return room;
     }
+    remapSocketId(state, oldSocketId, newSocketId) {
+        if (state.currentTurn === oldSocketId)
+            state.currentTurn = newSocketId;
+        if (state.winner === oldSocketId)
+            state.winner = newSocketId;
+        if (state.votes[oldSocketId]) {
+            state.votes[newSocketId] = state.votes[oldSocketId];
+            delete state.votes[oldSocketId];
+        }
+        state.eliminatedPlayers = state.eliminatedPlayers.map((id) => id === oldSocketId ? newSocketId : id);
+        state.finalGuessUsed = state.finalGuessUsed.map((id) => id === oldSocketId ? newSocketId : id);
+    }
 };
 exports.WhoAmIService = WhoAmIService;
 exports.WhoAmIService = WhoAmIService = __decorate([

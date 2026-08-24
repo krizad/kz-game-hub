@@ -1,4 +1,4 @@
-import { RoomState } from '@repo/types';
+import { RoomState, DetectiveClubState } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 export declare class DetectiveClubService {
     private readonly privateState;
@@ -31,4 +31,5 @@ export declare class DetectiveClubService {
     handlePlayerDisconnect(room: RoomState, socketId: string): void;
     nextRound(room: RoomState, requesterId: string): RoomState | null;
     reset(room: RoomState, requesterId: string): RoomState | null;
+    remapSocketId(state: DetectiveClubState, oldSocketId: string, newSocketId: string): void;
 }

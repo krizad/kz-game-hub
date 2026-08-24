@@ -313,6 +313,36 @@ let SoundsFishyService = class SoundsFishyService {
         return room;
     }
     nextRound(room, requesterId) {
+        return this.backToLobby(room, requesterId);
+    }
+    reset(room, requesterId) {
+        return this.backToLobby(room, requesterId);
+    }
+    remapSocketId(state, oldSocketId, newSocketId) {
+        if (state.pickerId === oldSocketId)
+            state.pickerId = newSocketId;
+        if (state.blueFishId === oldSocketId)
+            state.blueFishId = newSocketId;
+        state.redHerringIds = state.redHerringIds.map((id) => (id === oldSocketId ? newSocketId : id));
+        state.answeredPlayerIds = state.answeredPlayerIds.map((id) => id === oldSocketId ? newSocketId : id);
+        state.eliminatedPlayers = state.eliminatedPlayers.map((id) => id === oldSocketId ? newSocketId : id);
+        if (state.playerAnswers[oldSocketId]) {
+            state.playerAnswers[newSocketId] = {
+                ...state.playerAnswers[oldSocketId],
+                playerId: newSocketId,
+            };
+            delete state.playerAnswers[oldSocketId];
+        }
+        if (state.roundPoints[oldSocketId] !== undefined) {
+            state.roundPoints[newSocketId] = state.roundPoints[oldSocketId];
+            delete state.roundPoints[oldSocketId];
+        }
+        if (state.typingAnswers[oldSocketId] !== undefined) {
+            state.typingAnswers[newSocketId] = state.typingAnswers[oldSocketId];
+            delete state.typingAnswers[oldSocketId];
+        }
+    }
+    backToLobby(room, requesterId) {
         if (room.status !== types_1.RoomStatus.RESULT)
             return null;
         if (room.roomHostId !== requesterId)
