@@ -1,12 +1,55 @@
 import { test, expect } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from './helpers';
 
-// SlowMo 600ms for human-readable demo videos
+/**
+ * Full Game Demos — every demo plays its match to the REAL end state:
+ * - Tic-Tac-Toe / Gobbler: victory banner for both players
+ * - Hand Duel (RPS): best-of-3 played until "Wins the Match!"
+ * - Who Am I: words collected -> guess -> RESULT verification -> Game Over reveal
+ * - Who First: all configured rounds played -> Final Result
+ * - Who Know: full insider round with real voting -> Game Results
+ * - Sounds Fishy: answers -> eliminate -> Bank Points & End Round -> Round Over
+ * - The Mind: Max Level 2 configured, cards played in ascending order -> You Win!
+ * - Detective Club: word -> all cards played -> voting -> Round Over + Scoreboard
+ * - Music Trivia: ready -> song -> buzz/answer -> skip -> End Game -> Game Over!
+ *
+ * SlowMo 600ms keeps the recorded videos human-readable.
+ */
 test.use({ launchOptions: { slowMo: 600 } });
 // 4 minutes timeout per demo
 test.setTimeout(240000);
 
 const videoDir = 'test-results/demo-videos';
+
+/**
+ * Waits until one of the locators (possibly on DIFFERENT pages) is visible.
+ * Locator.or() cannot combine locators across pages.
+ */
+async function waitForAnyVisible(locators: Locator[], timeoutMs = 10000): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  do {
+    for (let i = 0; i < locators.length; i++) {
+      if (await locators[i].isVisible().catch(() => false)) return i;
+    }
+    await locators[0].page().waitForTimeout(150);
+  } while (Date.now() < deadline);
+  throw new Error('None of the locators became visible within timeout');
+}
+
+/** Returns the lowest enabled numeric card button value on the page (The Mind). */
+async function lowestEnabledCard(page: Page): Promise<number | null> {
+  const btns = page.locator('button').filter({ hasText: /^\d+$/ });
+  const n = await btns.count();
+  let best: number | null = null;
+  for (let i = 0; i < n; i++) {
+    const b = btns.nth(i);
+    if (!(await b.isEnabled().catch(() => false))) continue;
+    const v = parseInt((await b.innerText()).trim(), 10);
+    if (!Number.isNaN(v) && (best === null || v < best)) best = v;
+  }
+  return best;
+}
 
 test.describe('Full Game Demos', () => {
   // ─── 1. Tic-Tac-Toe ──────────────────────────────────────────────────────
@@ -41,9 +84,10 @@ test.describe('Full Game Demos', () => {
       await move.page.waitForTimeout(500);
     }
 
-    // Wait for winner banner
-    await expect(p1.getByText('wins', { exact: false }).first()).toBeVisible({ timeout: 8000 });
-    await p1.waitForTimeout(2000);
+    // Match over — winner banner visible to BOTH players
+    await expect(p1.getByText(/wins/i).first()).toBeVisible({ timeout: 8000 });
+    await expect(p2.getByText(/wins/i).first()).toBeVisible({ timeout: 8000 });
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -71,17 +115,28 @@ test.describe('Full Game Demos', () => {
       await startBtn.click();
     }
 
-    // Both players choose — P2 (Paper) beats P1 (Rock)
+    // Best of 3 -> first to 2 wins. Paper (P2) takes both rounds.
+    // Round 1: Rock vs Paper
     await expect(p1.locator('button', { hasText: '✊' })).toBeVisible({ timeout: 8000 });
     await p1.locator('button', { hasText: '✊' }).click();
     await p2.locator('button', { hasText: '✋' }).click();
+    await expect(p1.getByText('Paper Wins the Round!')).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Paper Wins the Round!')).toBeVisible({ timeout: 5000 });
 
-    // Wait for result + Next Round button
-    const nextBtn = p1
-      .locator('button', { hasText: /Next Round|Play Again|เล่นอีกครั้ง|รอบต่อไป/i })
-      .first();
-    await expect(nextBtn).toBeVisible({ timeout: 10000 });
-    await p1.waitForTimeout(2000);
+    // Host advances to round 2
+    const nextRound = p1.getByRole('button', { name: /Next Round/i });
+    await expect(nextRound).toBeVisible({ timeout: 5000 });
+    await nextRound.click();
+
+    // Round 2: Scissors vs Rock -> match point
+    await expect(p2.locator('button', { hasText: '✊' })).toBeVisible({ timeout: 8000 });
+    await p1.locator('button', { hasText: '✌️' }).click();
+    await p2.locator('button', { hasText: '✊' }).click();
+
+    // Match over — trophy banner on BOTH screens
+    await expect(p1.getByText(/Wins the Match!/i)).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText(/Wins the Match!/i)).toBeVisible({ timeout: 5000 });
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -133,9 +188,10 @@ test.describe('Full Game Demos', () => {
     await p1.locator('[data-testid="gobbler-inventory-X-stack-0"]').click();
     await p1.locator('[data-testid="gobbler-cell-8"]').click(); // X wins!
 
-    // Wait for winner banner
+    // Match over — winner banner visible to BOTH players
     await p1.locator('[data-testid="winner-banner"]').waitFor({ state: 'visible', timeout: 10000 });
-    await p1.waitForTimeout(2000);
+    await p2.locator('[data-testid="winner-banner"]').waitFor({ state: 'visible', timeout: 10000 });
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -154,99 +210,59 @@ test.describe('Full Game Demos', () => {
 
     await p1.waitForTimeout(1500);
 
-    // Switch to PLAYER_INPUT mode (custom select: click wrapper button then option)
+    // Switch to PLAYER_INPUT mode via the custom dropdown
+    const modeTrigger = p1
+      .getByRole('button')
+      .filter({ hasText: /Host Picks|Random \(DB\)|Players Write|AI Generate/ })
+      .first();
+    await modeTrigger.click();
     await p1
-      .locator('text=Word Mode')
-      .or(p1.locator('text=โหมด'))
-      .locator('..')
-      .locator('button')
-      .first()
-      .click();
-    await p1.locator('button', { hasText: /Player|ผู้เล่น/i }).click();
-
-    // Start game
-    const startBtn = p1.locator('button', { hasText: /start game|เริ่มเกม/i }).first();
-    await startBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await startBtn.click();
-
-    // Both submit words
-    const p1Input = p1.locator('input').first();
-    await p1Input.waitFor({ state: 'visible', timeout: 10000 });
-    await p1Input.fill('Elephant');
-    await p1
-      .locator('button', { hasText: /Submit Word|ส่งคำปริศนา/i })
-      .first()
-      .click();
-
-    const p2Input = p2.locator('input').first();
-    await p2Input.waitFor({ state: 'visible', timeout: 10000 });
-    await p2Input.fill('Tiger');
-    await p2
-      .locator('button', { hasText: /Submit Word|ส่งคำปริศนา/i })
-      .first()
-      .click();
-
-    await p1.waitForTimeout(2000);
-
-    // Find who is the active guesser
-    let activePage = p1;
-    let otherPage = p2;
-    const p2IsActive = await p2
-      .locator('button')
-      .filter({ hasText: /Guess|ทาย/i })
-      .first()
-      .waitFor({ state: 'visible', timeout: 5000 })
-      .then(() => true)
-      .catch(() => false);
-    if (p2IsActive) {
-      activePage = p2;
-      otherPage = p1;
-    }
-
-    // Make a guess
-    await activePage
-      .locator('button')
-      .filter({ hasText: /Guess|ทาย/i })
-      .first()
-      .click();
-    const guessInput = activePage.locator('input').last();
-    await guessInput.waitFor({ state: 'visible', timeout: 8000 });
-    await guessInput.fill('Tiger');
-    await activePage
-      .locator('button')
-      .filter({ hasText: /Submit|ส่งคำตอบ/i })
+      .getByRole('button')
+      .filter({ hasText: /Players Write/i })
       .last()
       .click();
 
-    // Other player votes Yes
-    const yesBtn = otherPage
-      .locator('button')
-      .filter({ hasText: /Yes|ใช่/i })
-      .first();
-    await yesBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await yesBtn.click();
+    // Start game
+    const startBtn = p1.getByRole('button', { name: /Start Game/i }).first();
+    await expect(startBtn).toBeEnabled({ timeout: 10000 });
+    await startBtn.click();
 
-    // Host ends match
-    const endBtn = p1
-      .locator('button')
-      .filter({ hasText: /End Match|จบเกม/i })
-      .first();
-    if (
-      await endBtn
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false)
-    ) {
-      await endBtn.click();
-    }
+    // Both submit secret words; last submission moves everyone into ASKING
+    await expect(p1.locator('#playerWordInput')).toBeVisible({ timeout: 10000 });
+    await expect(p2.locator('#playerWordInput')).toBeVisible({ timeout: 10000 });
 
-    // Wait for scoreboard
-    await p1
-      .locator('text=Scoreboard')
-      .or(p1.locator('text=Match Ended'))
-      .waitFor({ state: 'visible', timeout: 10000 })
-      .catch(() => {});
-    await p1.waitForTimeout(2000);
+    await p1.locator('#playerWordInput').fill('Elephant');
+    await p1.getByRole('button', { name: /Submit Word/i }).click();
+    await expect(p1.getByText('Word submitted!')).toBeVisible({ timeout: 5000 });
+
+    await p2.locator('#playerWordInput').fill('Tiger');
+    await p2.getByRole('button', { name: /Submit Word/i }).click();
+
+    // Find who is the active guesser
+    const guessBtnP1 = p1.getByRole('button', { name: /Guess the Word!/i });
+    const guessBtnP2 = p2.getByRole('button', { name: /Guess the Word!/i });
+    await waitForAnyVisible([guessBtnP1, guessBtnP2]);
+    const activePage = (await guessBtnP1.isVisible().catch(() => false)) ? p1 : p2;
+    const voterPage = activePage === p1 ? p2 : p1;
+
+    // Active player opens the modal and guesses
+    await activePage.getByRole('button', { name: /Guess the Word!/i }).click();
+    const guessInput = activePage.locator('#guessWordInput');
+    await guessInput.waitFor({ state: 'visible', timeout: 8000 });
+    await guessInput.fill('My Secret Word');
+    await activePage.getByRole('button', { name: /Submit Guess/i }).click();
+
+    // RESULT phase: votes were wiped by the guess — voter verifies YES
+    await expect(activePage.getByText('Word Guess')).toBeVisible({ timeout: 10000 });
+    await voterPage.getByRole('button', { name: /YES/i }).click();
+
+    // Majority YES ends the match -> Game Over with revealed words
+    await activePage.getByRole('button', { name: /Continue/i }).click();
+    await expect(p1.getByText('Game Over')).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Game Over')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('Elephant').first()).toBeVisible();
+    await expect(p1.getByText('Tiger').first()).toBeVisible();
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -265,7 +281,12 @@ test.describe('Full Game Demos', () => {
 
     await p1.waitForTimeout(1000);
 
-    // Enable host plays if needed
+    // Fast 1s countdowns and exactly 2 rounds so the match finishes on screen
+    await p1.getByLabel('Min Countdown (s)').fill('1');
+    await p1.getByLabel('Max Countdown (s)').fill('1');
+    await p1.getByLabel('Number of Rounds').fill('2');
+
+    // Enable host plays so both players compete
     const hostPlaysSwitch = p1.locator('#host-plays-switch');
     if (
       await hostPlaysSwitch
@@ -280,39 +301,29 @@ test.describe('Full Game Demos', () => {
     // Start game
     await p1.getByTestId('start-btn').click();
 
-    // Wait for GO!! signal
-    await p1.getByTestId('status-go').waitFor({ state: 'visible', timeout: 10000 });
-    await p2.getByTestId('status-go').waitFor({ state: 'visible', timeout: 10000 });
+    // Play every configured round
+    for (let round = 1; round <= 2; round++) {
+      await p1.getByTestId('status-go').waitFor({ state: 'visible', timeout: 20000 });
+      await p2.getByTestId('status-go').waitFor({ state: 'visible', timeout: 20000 });
 
-    // Both press button
-    await p1.getByTestId('press-btn').click();
-    await p1.waitForTimeout(300);
-    await p2.getByTestId('press-btn').click();
+      await p1.getByTestId('press-btn').click();
+      await p1.waitForTimeout(400);
+      await p2.getByTestId('press-btn').click();
 
-    // Wait for round result
-    await expect(p1.getByTestId('round-result-title')).toBeVisible({ timeout: 8000 });
-    await p1.waitForTimeout(1000);
+      await expect(p1.getByTestId('round-result-title')).toBeVisible({ timeout: 8000 });
+      await p1.waitForTimeout(1200);
 
-    // End game to show scoreboard
-    const endBtn = p1
-      .locator('button')
-      .filter({ hasText: /End|จบ/i })
-      .first();
-    if (
-      await endBtn
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false)
-    ) {
-      await endBtn.click();
+      if (round < 2) {
+        await p1.getByRole('button', { name: /Next Round/i }).click();
+        await p1.waitForTimeout(1000);
+      }
     }
 
-    // Wait for scoreboard
-    await p1
-      .getByText(/Scoreboard|Game Over|ตารางคะแนน|จบเกม/i)
-      .waitFor({ state: 'visible', timeout: 8000 })
-      .catch(() => {});
-    await p1.waitForTimeout(2000);
+    // After the final round the host advances to the scoreboard
+    await p1.getByRole('button', { name: /Next Round/i }).click();
+    await expect(p1.getByText('Final Result')).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Final Result')).toBeVisible({ timeout: 5000 });
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -355,7 +366,7 @@ test.describe('Full Game Demos', () => {
         .click();
     }
 
-    // Set timer to 1 min
+    // Short timer keeps the demo snappy
     const timerInput = p1.locator('input[name="timerMin"]');
     if (
       await timerInput
@@ -379,20 +390,19 @@ test.describe('Full Game Demos', () => {
 
     await p1.waitForTimeout(2000);
 
-    // Host ends round
+    // Host confirms the word was guessed -> straight to voting
     const endBtn = p1
       .locator('button')
-      .filter({ hasText: /Word Guessed|Time's Up|ทายถูกแล้ว|หมดเวลา/i })
+      .filter({ hasText: /Word Guessed/i })
       .first();
     await endBtn.waitFor({ state: 'visible', timeout: 15000 });
     await endBtn.click();
-    await p1.waitForTimeout(2000);
 
-    // Players vote
+    // Every non-host player votes for a suspect
     for (const page of [p2, p3, p4]) {
       const voteBtn = page
         .locator('button')
-        .filter({ hasText: /P1|P2|P3|Host/i })
+        .filter({ hasText: /^P[123]$/ })
         .first();
       if (
         await voteBtn
@@ -404,12 +414,14 @@ test.describe('Full Game Demos', () => {
       }
     }
 
-    // Wait for result
-    await p1
-      .getByText(/Game Over|Scoreboard|Commoners|Insider|จบเกม|ตารางคะแนน|คนทั่วไป|คนวงใน/i)
-      .waitFor({ state: 'visible', timeout: 15000 })
-      .catch(() => {});
-    await p1.waitForTimeout(2000);
+    // Voting complete -> results screen with insider verdict
+    for (const page of [p1, p2, p3, p4]) {
+      await expect(page.getByText('Game Results')).toBeVisible({ timeout: 15000 });
+    }
+    await expect(p1.getByText(/Insider Wins!|Commoners Win!/i).first()).toBeVisible({
+      timeout: 10000,
+    });
+    await p1.waitForTimeout(2500);
 
     await Promise.all(ctxs.map((c) => c.close()));
   });
@@ -440,63 +452,93 @@ test.describe('Full Game Demos', () => {
     await startBtn.click();
     await p1.waitForTimeout(2000);
 
-    // Submit answers
+    // Submit answers — the Blue Fish must type the exact true answer shown on screen
     for (const page of [p1, p2, p3]) {
-      const input = page.locator('input').first();
+      const input = page.locator('#answerInput');
       if (
-        await input
+        !(await input
           .waitFor({ state: 'visible', timeout: 5000 })
           .then(() => true)
+          .catch(() => false))
+      ) {
+        continue; // Picker waits for the fish instead
+      }
+
+      let answerText = 'This is obviously a lie';
+      if (
+        await page
+          .getByText(/MUST enter the true answer/i)
+          .isVisible()
           .catch(() => false)
       ) {
-        await input.fill('This is the truth');
-        const submitBtn = page
-          .locator('button')
-          .filter({ hasText: /Submit/ })
-          .first();
-        if (
-          await submitBtn
-            .waitFor({ state: 'visible', timeout: 3000 })
-            .then(() => true)
-            .catch(() => false)
-        ) {
-          await submitBtn.click();
-        }
+        const block = page
+          .locator('span')
+          .filter({ hasText: 'The True Answer' })
+          .first()
+          .locator('..');
+        answerText = (await block.locator('p').innerText()).trim();
       }
+      await input.fill(answerText);
+      await page
+        .locator('button')
+        .filter({ hasText: /Submit Answer/i })
+        .first()
+        .click();
+      // Confirmed either by the panel, or by the game moving on to the reveal phase
+      // once every fish has submitted (the panel is then replaced by "???" cards)
+      await waitForAnyVisible(
+        [page.getByText('Answer Submitted!'), page.getByText('???').first()],
+        8000,
+      );
     }
     await p1.waitForTimeout(2000);
 
-    // Picker eliminates + banks
-    let pickerPage = null;
+    // Picker reveals each hidden answer, eliminates one, and banks the pot
+    let pickerPage: Page | null = null;
     for (const page of [p1, p2, p3]) {
+      const revealBtn = page
+        .locator('button')
+        .filter({ hasText: /Reveal Answer/i })
+        .first();
       const eliminateBtn = page
         .locator('button')
         .filter({ hasText: /Eliminate|กำจัด/i })
         .first();
       if (
-        await eliminateBtn
+        (await revealBtn
           .waitFor({ state: 'visible', timeout: 3000 })
           .then(() => true)
-          .catch(() => false)
+          .catch(() => false)) ||
+        (await eliminateBtn.isVisible().catch(() => false))
       ) {
         pickerPage = page;
         break;
       }
     }
     if (pickerPage) {
-      await pickerPage
+      // Answers stay hidden ("???") until the picker flips them one by one
+      for (let i = 0; i < 5; i++) {
+        const revealBtns = pickerPage.locator('button').filter({ hasText: /Reveal Answer/i });
+        if ((await revealBtns.count()) === 0) break;
+        await revealBtns.first().click();
+        await pickerPage.waitForTimeout(1500);
+      }
+
+      const eliminateBtn = pickerPage
         .locator('button')
         .filter({ hasText: /Eliminate|กำจัด/i })
-        .first()
-        .click();
-      await pickerPage.waitForTimeout(1500);
+        .first();
+      await expect(eliminateBtn).toBeVisible({ timeout: 10000 });
+      await eliminateBtn.click();
+
+      // Catching the last Red Herring auto-banks; otherwise bank manually
       const bankBtn = pickerPage
         .locator('button')
         .filter({ hasText: /Bank|รับคะแนน/i })
         .first();
       if (
         await bankBtn
-          .waitFor({ state: 'visible', timeout: 3000 })
+          .waitFor({ state: 'visible', timeout: 4000 })
           .then(() => true)
           .catch(() => false)
       ) {
@@ -504,12 +546,11 @@ test.describe('Full Game Demos', () => {
       }
     }
 
-    // Wait for round results
-    await p1
-      .getByText(/Round Results|Scoreboard|ผลลัพธ์รอบนี้|ตารางคะแนน/i)
-      .waitFor({ state: 'visible', timeout: 10000 })
-      .catch(() => {});
-    await p1.waitForTimeout(2000);
+    // The single-round match always resolves after an elimination -> scoring
+    for (const page of [p1, p2, p3]) {
+      await expect(page.getByText('Round Over!')).toBeVisible({ timeout: 10000 });
+    }
+    await p1.waitForTimeout(2500);
 
     await Promise.all(ctxs.map((c) => c.close()));
   });
@@ -526,20 +567,16 @@ test.describe('Full Game Demos', () => {
     await joinRoom(p2, origin, roomCode, 'P1');
     await p1.waitForTimeout(1000);
 
-    // Click Ready for both
-    for (const page of [p1, p2]) {
-      const readyBtn = page
-        .locator('button')
-        .filter({ hasText: /Ready|พร้อม/i })
-        .first();
-      if (
-        await readyBtn
-          .waitFor({ state: 'visible', timeout: 5000 })
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        await readyBtn.click();
-      }
+    // Configure Max Level = 2 so the match is winnable inside the demo
+    const maxLevelTrigger = p1.locator('button', { hasText: /^Auto$/ }).first();
+    if (
+      await maxLevelTrigger
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      await maxLevelTrigger.click();
+      await p1.locator('button', { hasText: /^2$/ }).last().click();
     }
 
     // Start game
@@ -547,59 +584,69 @@ test.describe('Full Game Demos', () => {
       .locator('button')
       .filter({ hasText: /Start Game|เริ่มเกม/i })
       .first();
-    if (
-      await startBtn
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false)
-    ) {
-      await startBtn.click();
+    await startBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await startBtn.click();
+
+    // SETUP phase: both players confirm they are ready
+    for (const page of [p1, p2]) {
+      const readyBtn = page.locator('button', { hasText: /^Ready$/ }).first();
+      await readyBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await readyBtn.click();
     }
-    await p1.waitForTimeout(2000);
+    await p1.waitForTimeout(1500);
 
-    // Play cards until Game Over or You Won
-    for (let i = 0; i < 20; i++) {
-      const isOver = await p1
-        .getByText(/Game Over|You Win|จบเกม|คุณชนะ/i)
-        .isVisible()
-        .catch(() => false);
-      if (isOver) break;
+    // PLAYING loop: always play the globally lowest card so no lives are lost.
+    // Handles level transitions ("Next Level") and per-level Ready screens
+    // until the match is won.
+    for (let i = 0; i < 60; i++) {
+      if (
+        await p1
+          .getByText('You Win!')
+          .isVisible()
+          .catch(() => false)
+      )
+        break;
 
-      const nextLvlBtn = p1
-        .locator('button')
-        .filter({ hasText: /Next Level|ระดับถัดไป/i })
-        .first();
-      if (await nextLvlBtn.isVisible().catch(() => false)) {
-        await nextLvlBtn.click().catch(() => {});
+      const nextLevelBtn = p1.locator('button', { hasText: /Next Level/i }).first();
+      if (await nextLevelBtn.isVisible().catch(() => false)) {
+        await nextLevelBtn.click();
+        await p1.waitForTimeout(1500);
+        continue;
       }
 
+      // Every new level starts in SETUP — both players must ready up again
       for (const page of [p1, p2]) {
-        const cardBtns = page.locator('button').filter({ hasText: /^[0-9]+$/ });
-        if ((await cardBtns.count()) > 0) {
-          await cardBtns
-            .first()
-            .click()
-            .catch(() => {});
-          await page.waitForTimeout(400);
-          const playCardBtn = page
-            .locator('button')
-            .filter({ hasText: /Play Card|ลงไพ่/i })
-            .first();
-          if (await playCardBtn.isVisible().catch(() => false)) {
-            await playCardBtn.click().catch(() => {});
-          }
+        const readyBtn = page.locator('button', { hasText: /^Ready$/ }).first();
+        if (await readyBtn.isVisible().catch(() => false)) {
+          await readyBtn.click();
         }
       }
-      await p1.waitForTimeout(800);
+
+      const c1 = await lowestEnabledCard(p1);
+      const c2 = await lowestEnabledCard(p2);
+      if (c1 === null && c2 === null) {
+        await p1.waitForTimeout(700);
+        continue;
+      }
+      if (c1 !== null && (c2 === null || c1 < c2)) {
+        await p1
+          .locator('button', { hasText: new RegExp(`^${c1}$`) })
+          .first()
+          .click();
+      } else {
+        await p2
+          .locator('button', { hasText: new RegExp(`^${c2}$`) })
+          .first()
+          .click();
+      }
+      await p1.waitForTimeout(900);
     }
 
-    // Wait for end screen
-    await p1
-      .locator('text=Game Over')
-      .or(p1.locator('text=You Won'))
-      .waitFor({ state: 'visible', timeout: 10000 })
-      .catch(() => {});
-    await p1.waitForTimeout(2000);
+    // All levels cleared -> victory screen on BOTH players
+    await expect(p1.getByText('You Win!')).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('You Win!')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('Final Scores')).toBeVisible({ timeout: 5000 });
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -655,13 +702,17 @@ test.describe('Full Game Demos', () => {
     }
     await p1.waitForTimeout(2000);
 
-    // Playing phase — players take turns
-    for (let round = 0; round < 6; round++) {
+    // Playing phase — keep playing turns until Discussion appears
+    for (let turn = 0; turn < 15; turn++) {
+      const discussionReady = p1.locator('button', { hasText: /Start Voting|เริ่มโหวต/i }).first();
+      if (await discussionReady.isVisible().catch(() => false)) break;
+
+      let played = false;
       for (const page of [p1, p2, p3]) {
         const activeIndicator = page.getByText(/Your Turn - Play a Card|ตาคุณ/i);
         if (
           await activeIndicator
-            .waitFor({ state: 'visible', timeout: 3000 })
+            .waitFor({ state: 'visible', timeout: 2500 })
             .then(() => true)
             .catch(() => false)
         ) {
@@ -676,9 +727,11 @@ test.describe('Full Game Demos', () => {
           await playBtn.waitFor({ state: 'visible', timeout: 3000 });
           await playBtn.click();
           await page.waitForTimeout(1000);
+          played = true;
           break;
         }
       }
+      if (!played) await p1.waitForTimeout(800);
     }
 
     // Continue to voting (Discussion phase)
@@ -694,19 +747,20 @@ test.describe('Full Game Demos', () => {
       }
     }
 
-    // Voting phase
+    // Voting phase — everyone locks in a suspect
     for (const page of [p1, p2, p3]) {
+      const playerBtn = page
+        .locator('button')
+        .filter({ hasText: /D1|D2|DetHost/i })
+        .first();
       const voteBtn = page.locator('button', { hasText: /Confirm Vote|ยืนยันการโหวต/i }).first();
       if (
-        await voteBtn
+        (await playerBtn
           .waitFor({ state: 'visible', timeout: 3000 })
           .then(() => true)
-          .catch(() => false)
+          .catch(() => false)) &&
+        (await voteBtn.isVisible().catch(() => false))
       ) {
-        const playerBtn = page
-          .locator('button')
-          .filter({ hasText: /D1|D2|DetHost/i })
-          .first();
         await playerBtn.click();
         await page.waitForTimeout(500);
         await voteBtn.click();
@@ -714,12 +768,12 @@ test.describe('Full Game Demos', () => {
       }
     }
 
-    // Wait for round results
-    await p1
-      .getByText(/Round Results|Scoreboard|ผลลัพธ์รอบนี้|ตารางคะแนน/i)
-      .waitFor({ state: 'visible', timeout: 15000 })
-      .catch(() => {});
-    await p1.waitForTimeout(2000);
+    // All votes in -> scoring screen with roles revealed and scoreboard
+    for (const page of [p1, p2, p3]) {
+      await expect(page.getByText(/Round Over/).first()).toBeVisible({ timeout: 15000 });
+    }
+    await expect(p1.getByText('Scoreboard').first()).toBeVisible({ timeout: 5000 });
+    await p1.waitForTimeout(2500);
 
     await Promise.all(ctxs.map((c) => c.close()));
   });
@@ -771,35 +825,21 @@ test.describe('Full Game Demos', () => {
     await startBtn.waitFor({ state: 'visible', timeout: 10000 });
     await startBtn.click();
 
-    // Both players ready
-    await p1
-      .getByText(/I'm Ready!|ฉันพร้อมแล้ว/i)
-      .waitFor({ state: 'visible', timeout: 30000 })
-      .catch(() => {});
-    await p2
-      .getByText(/I'm Ready!|ฉันพร้อมแล้ว/i)
-      .waitFor({ state: 'visible', timeout: 30000 })
-      .catch(() => {});
-    await p1
-      .getByText(/I'm Ready!|ฉันพร้อมแล้ว/i)
-      .click()
-      .catch(() => {});
-    await p2
-      .getByText(/I'm Ready!|ฉันพร้อมแล้ว/i)
-      .click()
-      .catch(() => {});
+    // Both players ready up
+    for (const page of [p1, p2]) {
+      const readyBtn = page.getByText(/I'm Ready!|ฉันพร้อมแล้ว/i);
+      await readyBtn.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
+      await readyBtn.click().catch(() => {});
+    }
 
-    // Host starts song
+    // Host starts song countdown
     const startSongBtn = p1.getByText('Start Song (Countdown)');
     await startSongBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     await startSongBtn.click().catch(() => {});
     await p1.waitForTimeout(5000);
 
-    // P1 buzzes and answers
-    const buzzBtn = p1
-      .locator('button')
-      .filter({ hasText: /BUZZ!|X/i })
-      .first();
+    // Guest buzzes and answers (host cannot buzz by default)
+    const buzzBtn = p2.locator('button').filter({ hasText: /BUZZ!/i }).first();
     if (
       await buzzBtn
         .waitFor({ state: 'visible', timeout: 15000 })
@@ -807,24 +847,37 @@ test.describe('Full Game Demos', () => {
         .catch(() => false)
     ) {
       await buzzBtn.click();
-      const answerInput = p1.getByPlaceholder(/Type answer/i);
-      if (
-        await answerInput
-          .waitFor({ state: 'visible', timeout: 5000 })
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        await answerInput.fill('My Pop Answer');
-        await p1.keyboard.press('Enter');
-      }
+      const answerInput = p2.getByPlaceholder(/Type answer/i);
+      await answerInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await answerInput.fill('Some Song Guess');
+      await p2.keyboard.press('Enter');
     }
 
-    // Wait for result
-    await p1
-      .getByText(/Scoreboard|Round|Correct|ตารางคะแนน|รอบ|ถูกต้อง/i)
-      .waitFor({ state: 'visible', timeout: 15000 })
-      .catch(() => {});
-    await p1.waitForTimeout(3000);
+    // Wrong answer strikes the guest out; host reveals the answer to close the round
+    const revealBtn = p1
+      .locator('button')
+      .filter({ hasText: /Skip Question/i })
+      .first();
+    if (
+      await revealBtn
+        .waitFor({ state: 'visible', timeout: 10000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      await revealBtn.click();
+    }
+
+    // Host ends the match from the header -> FINISHED screen
+    const endGameBtn = p1
+      .locator('button')
+      .filter({ hasText: /End Game/i })
+      .first();
+    await endGameBtn.waitFor({ state: 'visible', timeout: 10000 });
+    await endGameBtn.click();
+
+    await expect(p1.getByText('Game Over!')).toBeVisible({ timeout: 15000 });
+    await expect(p2.getByText('Game Over!')).toBeVisible({ timeout: 5000 });
+    await p1.waitForTimeout(2500);
 
     await p1Ctx.close();
     await p2Ctx.close();
