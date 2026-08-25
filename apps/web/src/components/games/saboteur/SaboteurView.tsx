@@ -196,10 +196,10 @@ export function SaboteurView() {
             onClick={() => handleBoardCellClick(x, y)}
             disabled={!ghostHere && !targetable}
             className={clsx(
-              'relative aspect-square transition-all',
+              'relative aspect-[7/10] transition-all',
               isGoal
-                ? 'rounded-t-[1.4rem] rounded-b-lg' // cave-arch silhouette
-                : 'rounded-xl',
+                ? 'rounded-t-[1.2rem] rounded-b-lg' // cave-arch silhouette
+                : 'rounded-lg',
               !cell &&
                 !ghostHere &&
                 !targetable &&
@@ -241,7 +241,7 @@ export function SaboteurView() {
     }
     return (
       <div
-        className="grid gap-1.5 sm:gap-2 bg-[#6b3410] p-2.5 sm:p-3 rounded-2xl border-4 border-black shadow-[6px_6px_0_0_#000] bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_60%)]"
+        className="grid gap-1.5 sm:gap-2 bg-[#6b3410] p-2.5 sm:p-3 rounded-2xl border-4 border-black shadow-[6px_6px_0_0_#000] bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_60%)] w-full max-w-[600px] mx-auto"
         style={{ gridTemplateColumns: 'repeat(9, minmax(0, 1fr))' }}
       >
         {cells}

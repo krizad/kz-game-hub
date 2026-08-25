@@ -914,27 +914,33 @@ test.describe('Full Game Demos', () => {
     // Mine board renders with the start card at (0,2)
     await expect(p1.locator('[data-testid="saboteur-cell-0,2"]')).toBeVisible({ timeout: 20000 });
     await p1.waitForTimeout(1500);
-
-    /** Clicks the enabled board cell closest to the middle goal row (8,2). */
-    async function clickBestCell(page: Page): Promise<string | null> {
+    /** Clicks the enabled board cell closest to the middle goal row (8,2).
+     *  Junk tiles (dead ends / pass-throughs) go to the LOW-x rear so they
+     *  never block the frontier corridor. */
+    async function clickBestCell(page: Page, junk: boolean): Promise<string | null> {
       // Single in-page pass: score cells and click the winner (fast under slowMo).
       const best = await page
-        .evaluate(() => {
-          const cells = Array.from(
-            document.querySelectorAll<HTMLButtonElement>(
-              '[data-testid^="saboteur-cell-"]:not([disabled])',
-            ),
-          );
-          if (cells.length === 0) return null;
-          let winner: { id: string; score: number } | null = null;
-          for (const el of cells) {
-            const id = el.getAttribute('data-testid') ?? '';
-            const [xs, ys] = id.replace('saboteur-cell-', '').split(',');
-            const score = parseInt(xs ?? '0', 10) * 10 - Math.abs(parseInt(ys ?? '0', 10) - 2);
-            if (!winner || score > winner.score) winner = { id, score };
-          }
-          return winner?.id ?? null;
-        })
+        .evaluate(
+          ({ junk }: { junk: boolean }) => {
+            const cells = Array.from(
+              document.querySelectorAll<HTMLButtonElement>(
+                '[data-testid^="saboteur-cell-"]:not([disabled])',
+              ),
+            );
+            if (cells.length === 0) return null;
+            let winner: { id: string; score: number } | null = null;
+            for (const el of cells) {
+              const id = el.getAttribute('data-testid') ?? '';
+              const [xs, ys] = id.replace('saboteur-cell-', '').split(',');
+              const x = parseInt(xs ?? '0', 10);
+              const y = parseInt(ys ?? '0', 10);
+              const score = junk ? -x * 10 - Math.abs(y - 2) : x * 10 - Math.abs(y - 2);
+              if (!winner || score > winner.score) winner = { id, score };
+            }
+            return winner?.id ?? null;
+          },
+          { junk },
+        )
         .catch(() => null);
       if (!best) return null;
       await page.locator(`[data-testid="${best}"]`).click();
@@ -955,6 +961,7 @@ test.describe('Full Game Demos', () => {
               phase: s.currentPhase as string,
               hand: (st.privateState?.sbHand ?? []).map((c: any) => c.cardId) as string[],
               broken: (s.players?.[st.socketId]?.brokenTools ?? []) as string[],
+              peeked: Object.keys((st.privateState?.sbPeekedGoals ?? {}) as object).length,
             };
           })
           .catch(() => null);
@@ -990,12 +997,15 @@ test.describe('Full Game Demos', () => {
 
         const handBtns = page.locator('[data-testid^="saboteur-hand-"]');
         for (const { cardId, idx } of order) {
+          // Never burn turns on redundant map peeks
+          if (cardId === 'action-map' && store.peeked >= 3) continue;
+          const junk = cardId.startsWith('path-') && !cardId.endsWith('c');
           const card = handBtns.nth(idx);
           if (!(await card.isEnabled().catch(() => false))) continue;
           await card.click();
           await page.waitForTimeout(120);
 
-          const cellId = await clickBestCell(page);
+          const cellId = await clickBestCell(page, junk);
           if (cellId) {
             console.log(`[act] ${store.me.slice(-4)} card=${cardId} -> ${cellId}`);
             return true;
@@ -1005,7 +1015,7 @@ test.describe('Full Game Demos', () => {
           if (await rotateBtn.isVisible().catch(() => false)) {
             await rotateBtn.click();
             await page.waitForTimeout(100);
-            const rotId = await clickBestCell(page);
+            const rotId = await clickBestCell(page, junk);
             if (rotId) {
               console.log(`[act] ${store.me.slice(-4)} card=${cardId} rot -> ${rotId}`);
               return true;
