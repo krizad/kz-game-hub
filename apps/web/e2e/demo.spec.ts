@@ -13,6 +13,7 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
  * - The Mind: Max Level 2 configured, cards played in ascending order -> You Win!
  * - Detective Club: word -> all cards played -> voting -> Round Over + Scoreboard
  * - Music Trivia: ready -> song -> buzz/answer -> skip -> End Game -> Game Over!
+ * - Saboteur: 3 miners dig to the gold -> gold pick -> all 3 rounds -> Game Over
  *
  * SlowMo 600ms keeps the recorded videos human-readable.
  */
@@ -881,5 +882,125 @@ test.describe('Full Game Demos', () => {
 
     await p1Ctx.close();
     await p2Ctx.close();
+  });
+
+  // ─── 11. Saboteur ────────────────────────────────────────────────────────
+  test('Saboteur Demo', async ({ browser }) => {
+    test.setTimeout(420000); // three full rounds
+    // Saboteur requires minimum 3 players
+    const ctxs = await Promise.all([
+      browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p1` } }),
+      browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p2` } }),
+      browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p3` } }),
+    ]);
+    const [p1, p2, p3] = await Promise.all(ctxs.map((c) => c.newPage()));
+    const pages = [p1, p2, p3];
+
+    const roomCode = await createRoom(p1, 'MinHost', 'Saboteur');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Digger');
+    await joinRoom(p3, origin, roomCode, 'Sneaky');
+    for (const name of ['Digger', 'Sneaky']) {
+      await expect(p1.getByText(name, { exact: true })).toBeVisible({ timeout: 10000 });
+    }
+
+    // Start the match
+    const startBtn = p1.locator('button').filter({ hasText: /Start Game|เริ่มเกม/i }).first();
+    await startBtn.waitFor({ state: 'visible', timeout: 8000 });
+    await startBtn.click();
+
+    // Mine board renders with the start card at (0,2)
+    await expect(p1.locator('[data-testid="saboteur-cell-0,2"]')).toBeVisible({ timeout: 20000 });
+    await p1.waitForTimeout(1500);
+
+    /** Performs one board/hand action for whichever page currently has the turn. */
+    async function playOneTurn(): Promise<boolean> {
+      for (const page of pages) {
+        const handBtns = page.locator('[data-testid^="saboteur-hand-"]');
+        if ((await handBtns.count()) === 0) continue;
+        const firstCard = handBtns.first();
+        if (!(await firstCard.isEnabled().catch(() => false))) continue;
+
+        // Try every card: pick it, then look for an enabled board cell.
+        for (let i = 0; i < (await handBtns.count()); i++) {
+          const card = handBtns.nth(i);
+          if (!(await card.isEnabled().catch(() => false))) continue;
+          await card.click();
+          await page.waitForTimeout(400);
+
+          let enabledCell = page.locator('[data-testid^="saboteur-cell-"]:not([disabled])');
+          if ((await enabledCell.count()) === 0) {
+            // Path cards may need the 180° rotation to fit anywhere
+            const rotateBtn = page.locator('button', { hasText: /180°/ }).first();
+            if (await rotateBtn.isVisible().catch(() => false)) {
+              await rotateBtn.click();
+              await page.waitForTimeout(300);
+            }
+          }
+          enabledCell = page.locator('[data-testid^="saboteur-cell-"]:not([disabled])');
+          if ((await enabledCell.count()) > 0) {
+            await enabledCell.first().click(); // place tile / map peek / rockfall
+            return true;
+          }
+        }
+
+        // Nothing placeable — discard the selected card instead
+        const discardBtn = page.locator('button').filter({ hasText: /Discard|ทิ้ง/i }).first();
+        if (!(await discardBtn.isVisible().catch(() => false))) {
+          await handBtns.first().click(); // select card 0 to reveal its actions
+          await discardBtn.waitFor({ state: 'visible', timeout: 3000 });
+        }
+        await discardBtn.click();
+        return true;
+      }
+      return false;
+    }
+
+    /** Handles GOLD_PICK overlay; returns true when someone picked. */
+    async function tryPickGold(): Promise<boolean> {
+      for (const page of pages) {
+        const goldBtn = page.locator('[data-testid^="saboteur-gold-"]').first();
+        if (!(await goldBtn.isVisible().catch(() => false))) continue;
+        if (!(await goldBtn.isEnabled().catch(() => false))) continue;
+        await goldBtn.click();
+        return true;
+      }
+      return false;
+    }
+
+    // Drive the whole match: 3 rounds of digging until Game Over
+    for (let step = 0; step < 400; step++) {
+      if (await p1.getByText(/Game Over|จบเกม/i).first().isVisible().catch(() => false)) break;
+
+      if (await tryPickGold()) {
+        await p1.waitForTimeout(700);
+        continue;
+      }
+
+      const nextRoundBtn = p1.locator('button').filter({ hasText: /Next Round|เริ่มรอบถัดไป/i }).first();
+      if (await nextRoundBtn.isVisible().catch(() => false)) {
+        await nextRoundBtn.click();
+        await p1.waitForTimeout(1200);
+        continue;
+      }
+
+      if (!(await playOneTurn())) {
+        await p1.waitForTimeout(600);
+      }
+    }
+
+    // Match finished -> scoreboard visible to everyone
+    for (const page of pages) {
+      await expect(page.getByText(/Game Over|จบเกม/i).first()).toBeVisible({ timeout: 20000 });
+    }
+    await expect(p1.getByText(/Back to Lobby|กลับห้องล็อบบี้/i)).toBeVisible({ timeout: 8000 });
+    await p1.waitForTimeout(2000);
+
+    // Host wraps up the demo back in the lobby
+    await p1.locator('button').filter({ hasText: /Back to Lobby|กลับห้องล็อบบี้/i }).click();
+    await expect(p1.getByText(/Waiting Room|ห้องรอ/i)).toBeVisible({ timeout: 10000 });
+    await p1.waitForTimeout(2500);
+
+    await Promise.all(ctxs.map((c) => c.close()));
   });
 });

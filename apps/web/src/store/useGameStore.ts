@@ -14,6 +14,7 @@ import {
   GameType,
   WhoFirstGameActionType,
   WordCategory,
+  SaboteurTool,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -94,6 +95,19 @@ interface GameState {
   theMindProposeShuriken: () => void;
   theMindVoteShuriken: (agree: boolean) => void;
   theMindCancelShuriken: () => void;
+  saboteurPlacePath: (cardIndex: number, x: number, y: number, rotation: 0 | 180) => void;
+  saboteurPlayAction: (payload: {
+    cardIndex: number;
+    targetPlayerId?: string;
+    repairTool?: SaboteurTool;
+    goalIndex?: number;
+    targetX?: number;
+    targetY?: number;
+  }) => void;
+  saboteurDiscard: (cardIndex: number) => void;
+  saboteurPickGold: (poolIndex: number) => void;
+  saboteurNextRound: () => void;
+  saboteurReset: () => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -501,6 +515,32 @@ export const useGameStore = create<GameState>((set, get) => {
 
     theMindCancelShuriken: () => {
       emitGameAction(SOCKET_EVENTS.THE_MIND_CANCEL_SHURIKEN);
+    },
+
+    saboteurPlacePath: (cardIndex, x, y, rotation) => {
+      emitGameAction(SOCKET_EVENTS.SABOTEUR_PLACE_PATH, {
+        payload: () => ({ cardIndex, x, y, rotation }),
+      });
+    },
+
+    saboteurPlayAction: (payload) => {
+      emitGameAction(SOCKET_EVENTS.SABOTEUR_PLAY_ACTION, { payload: () => payload });
+    },
+
+    saboteurDiscard: (cardIndex) => {
+      emitGameAction(SOCKET_EVENTS.SABOTEUR_DISCARD, { payload: () => ({ cardIndex }) });
+    },
+
+    saboteurPickGold: (poolIndex) => {
+      emitGameAction(SOCKET_EVENTS.SABOTEUR_PICK_GOLD, { payload: () => ({ poolIndex }) });
+    },
+
+    saboteurNextRound: () => {
+      emitGameAction(SOCKET_EVENTS.SABOTEUR_NEXT_ROUND);
+    },
+
+    saboteurReset: () => {
+      emitGameAction(SOCKET_EVENTS.SABOTEUR_RESET);
     },
 
     spectateJoin: (code: string) => {

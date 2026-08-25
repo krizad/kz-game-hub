@@ -12,6 +12,7 @@ import { WhoAmIRules } from './games/who-am-i/WhoAmIRules';
 import { WhoFirstRules } from './games/who-first/WhoFirstRules';
 import { MusicTriviaRules } from './games/music-trivia/MusicTriviaRules';
 import { TheMindRules } from './games/the-mind/TheMindRules';
+import { SaboteurRules } from './games/saboteur/SaboteurRules';
 import { useTranslate } from '@/hooks/useTranslate';
 
 interface RulesModalProps {
@@ -64,6 +65,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <MusicTriviaRules />;
       case GameType.THE_MIND:
         return <TheMindRules />;
+      case GameType.SABOTEUR:
+        return <SaboteurRules />;
       default:
         return null;
     }
@@ -209,6 +212,12 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                     className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     The Mind
+                  </button>
+                  <button
+                    onClick={() => setActiveTab(GameType.SABOTEUR)}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SABOTEUR ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                  >
+                    Saboteur
                   </button>
                 </div>
               </div>

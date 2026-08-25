@@ -11,6 +11,7 @@ import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
+import { SaboteurService } from './saboteur/saboteur.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -89,6 +90,18 @@ describe('GamesService', () => {
       reset: jest.fn(),
       remapSocketId: DetectiveClubService.prototype.remapSocketId,
     },
+    saboteur: {
+      startGame: jest.fn(),
+      placePath: jest.fn(),
+      playAction: jest.fn(),
+      discard: jest.fn(),
+      pickGold: jest.fn(),
+      nextRound: jest.fn(),
+      autoPass: jest.fn(),
+      reset: jest.fn(),
+      handlePlayerDisconnect: jest.fn(),
+      remapSocketId: SaboteurService.prototype.remapSocketId,
+    },
     whoAmI: {
       getCategories: jest.fn(),
       startGameHostInput: jest.fn(),
@@ -146,6 +159,7 @@ describe('GamesService', () => {
         { provide: WhoFirstService, useValue: mockGameServices.whoFirst },
         { provide: MusicTriviaService, useValue: mockGameServices.musicTrivia },
         { provide: TheMindService, useValue: mockGameServices.theMind },
+        { provide: SaboteurService, useValue: mockGameServices.saboteur },
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

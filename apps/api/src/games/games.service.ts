@@ -22,6 +22,7 @@ import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
+import { SaboteurService } from './saboteur/saboteur.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -49,6 +50,7 @@ export class GamesService {
     private readonly whoFirstService: WhoFirstService,
     private readonly musicTriviaService: MusicTriviaService,
     private readonly theMindService: TheMindService,
+    private readonly saboteurService: SaboteurService,
     private readonly playerSessionService: PlayerSessionService,
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
@@ -150,6 +152,10 @@ export class GamesService {
       room.config.musicTriviaAnswerTimeoutMs = 15000;
     } else if (gameType === GameType.THE_MIND) {
       // TheMindState is initialized when the game starts via assignRoles
+    } else if (gameType === GameType.SABOTEUR) {
+      room.config.saboteurTurnTimerEnabled = false;
+      room.config.saboteurTurnTimerSeconds = 60;
+      // SaboteurState is initialized when the game starts via assignRoles
     }
 
     this.rooms.set(code, room);
@@ -212,6 +218,9 @@ export class GamesService {
       }
       if (room.musicTriviaState) {
         this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
+      }
+      if (room.saboteurState) {
+        this.saboteurService.remapSocketId(room.saboteurState, oldSocketId, user.socketId);
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
@@ -285,6 +294,9 @@ export class GamesService {
       }
       if (room.gameType === GameType.DETECTIVE_CLUB && room.detectiveClubState) {
         this.detectiveClubService.handlePlayerDisconnect(room, clientId);
+      }
+      if (room.gameType === GameType.SABOTEUR && room.saboteurState) {
+        this.saboteurService.handlePlayerDisconnect(room, clientId);
       }
 
       const activePlayers = room.players.filter((p) => p.connected !== false).length;
@@ -407,6 +419,8 @@ export class GamesService {
     copyEnum('theMindMode', ['NORMAL', 'EXTREME']);
     copyBoolean('theMindTimeAttack');
     copyInteger('theMindMaxLevel', 1, 20);
+    copyBoolean('saboteurTurnTimerEnabled');
+    copyInteger('saboteurTurnTimerSeconds', 5, 300);
 
     return result;
   }
@@ -493,6 +507,13 @@ export class GamesService {
 
     if (room.gameType === GameType.THE_MIND) {
       const startedRoom = this.withRoom(code, (r) => this.theMindService.startGame(r, requesterId));
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
+    if (room.gameType === GameType.SABOTEUR) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.saboteurService.startGame(r, requesterId),
+      );
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
@@ -708,6 +729,56 @@ export class GamesService {
 
   detectiveClubReset(code: string, clientId: string): RoomState | null {
     return this.withRoom(code, (room) => this.detectiveClubService.reset(room, clientId));
+  }
+
+  // --- Saboteur Actions ---
+
+  saboteurPlacePath(
+    code: string,
+    clientId: string,
+    cardIndex: number,
+    x: number,
+    y: number,
+    rotation: 0 | 180,
+  ): RoomState | null {
+    return this.withRoom(code, (room) =>
+      this.saboteurService.placePath(room, clientId, cardIndex, x, y, rotation),
+    );
+  }
+
+  saboteurPlayAction(
+    code: string,
+    clientId: string,
+    payload: {
+      cardIndex: number;
+      targetPlayerId?: string;
+      repairTool?: import('@repo/types').SaboteurTool;
+      goalIndex?: number;
+      targetX?: number;
+      targetY?: number;
+    },
+  ): RoomState | null {
+    return this.withRoom(code, (room) => this.saboteurService.playAction(room, clientId, payload));
+  }
+
+  saboteurDiscard(code: string, clientId: string, cardIndex: number): RoomState | null {
+    return this.withRoom(code, (room) => this.saboteurService.discard(room, clientId, cardIndex));
+  }
+
+  saboteurPickGold(code: string, clientId: string, poolIndex: number): RoomState | null {
+    return this.withRoom(code, (room) => this.saboteurService.pickGold(room, clientId, poolIndex));
+  }
+
+  saboteurNextRound(code: string, clientId: string): RoomState | null {
+    return this.withRoom(code, (room) => this.saboteurService.nextRound(room, clientId));
+  }
+
+  saboteurReset(code: string, clientId: string): RoomState | null {
+    return this.withRoom(code, (room) => this.saboteurService.reset(room, clientId));
+  }
+
+  saboteurAutoPass(code: string, clientId: string): RoomState | null {
+    return this.withRoom(code, (room) => this.saboteurService.autoPass(room, clientId));
   }
 
   // --- Who Am I / Who First Actions ---

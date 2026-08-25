@@ -8,6 +8,7 @@ import { WhoAmIGameState } from './who-am-i';
 import { WhoFirstState } from './who-first';
 import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-trivia';
 import { TheMindState } from './the-mind';
+import { SaboteurState } from './saboteur';
 
 export const APP_VERSION = 'v1.0.0';
 
@@ -31,6 +32,7 @@ export enum GameType {
   WHO_FIRST = 'WHO_FIRST',
   MUSIC_TRIVIA = 'MUSIC_TRIVIA',
   THE_MIND = 'THE_MIND',
+  SABOTEUR = 'SABOTEUR',
 }
 
 // Socket Constants
@@ -105,6 +107,13 @@ export const SOCKET_EVENTS = {
   THE_MIND_PROPOSE_SHURIKEN: 'the_mind_propose_shuriken',
   THE_MIND_VOTE_SHURIKEN: 'the_mind_vote_shuriken',
   THE_MIND_CANCEL_SHURIKEN: 'the_mind_cancel_shuriken',
+  // Saboteur specific events
+  SABOTEUR_PLACE_PATH: 'saboteur_place_path',
+  SABOTEUR_PLAY_ACTION: 'saboteur_play_action',
+  SABOTEUR_DISCARD: 'saboteur_discard',
+  SABOTEUR_PICK_GOLD: 'saboteur_pick_gold',
+  SABOTEUR_NEXT_ROUND: 'saboteur_next_round',
+  SABOTEUR_RESET: 'saboteur_reset',
 } as const;
 
 export interface UserState {
@@ -158,6 +167,9 @@ export interface RoomConfig {
   theMindMode?: 'NORMAL' | 'EXTREME';
   theMindTimeAttack?: boolean;
   theMindMaxLevel?: number;
+  // Saboteur config
+  saboteurTurnTimerEnabled?: boolean;
+  saboteurTurnTimerSeconds?: number;
 }
 
 export interface RoomState {
@@ -182,6 +194,7 @@ export interface RoomState {
   whoFirstState?: WhoFirstState;
   musicTriviaState?: MusicTriviaState;
   theMindState?: TheMindState;
+  saboteurState?: SaboteurState;
 }
 
 export interface AvailableRoom {

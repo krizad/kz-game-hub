@@ -670,8 +670,113 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // --- Who Am I Actions ---
+  // --- Saboteur Actions ---
 
+  @SubscribeMessage(SOCKET_EVENTS.SABOTEUR_PLACE_PATH)
+  handleSaboteurPlacePath(
+    @MessageBody()
+    data: { code: string; cardIndex: number; x: number; y: number; rotation: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const rotation: 0 | 180 = data.rotation === 180 ? 180 : 0;
+    const room = this.gamesService.saboteurPlacePath(
+      data.code,
+      client.id,
+      data.cardIndex,
+      data.x,
+      data.y,
+      rotation,
+    );
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid tile placement' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SABOTEUR_PLAY_ACTION)
+  handleSaboteurPlayAction(
+    @MessageBody()
+    data: {
+      code: string;
+      cardIndex: number;
+      targetPlayerId?: string;
+      repairTool?: string;
+      goalIndex?: number;
+      targetX?: number;
+      targetY?: number;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.saboteurPlayAction(data.code, client.id, {
+      cardIndex: data.cardIndex,
+      targetPlayerId: data.targetPlayerId,
+      repairTool: data.repairTool as import('@repo/types').SaboteurTool | undefined,
+      goalIndex: data.goalIndex,
+      targetX: data.targetX,
+      targetY: data.targetY,
+    });
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action card' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SABOTEUR_DISCARD)
+  handleSaboteurDiscard(
+    @MessageBody() data: { code: string; cardIndex: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.saboteurDiscard(data.code, client.id, data.cardIndex);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot discard card' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SABOTEUR_PICK_GOLD)
+  handleSaboteurPickGold(
+    @MessageBody() data: { code: string; poolIndex: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.saboteurPickGold(data.code, client.id, data.poolIndex);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot pick gold' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SABOTEUR_NEXT_ROUND)
+  handleSaboteurNextRound(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.saboteurNextRound(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to move to next round' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SABOTEUR_RESET)
+  handleSaboteurReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.saboteurReset(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
+    }
+  }
+
+  // --- Who Am I Actions ---
   @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS)
   handleWhoAmISubmitWords(
     @MessageBody() data: { code: string; playerWords: Record<string, string> },
@@ -905,6 +1010,40 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private broadcastRoomState(room: RoomState): void {
     this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
     this.emitPrivateStates(room);
+    if (room.gameType === GameType.SABOTEUR) {
+      this.syncSaboteurTimer(room);
+    }
+  }
+
+  /** Per-turn auto-pass timer for Saboteur (config-gated). */
+  private syncSaboteurTimer(room: RoomState): void {
+    const state = room.saboteurState;
+    const enabled = room.config.saboteurTurnTimerEnabled;
+    const seconds = room.config.saboteurTurnTimerSeconds ?? 60;
+
+    if (!enabled || !state || state.currentPhase !== 'PLAYING' || !state.activePlayerId) {
+      this.roomTimerService.cancel(room.code, 'saboteur');
+      return;
+    }
+
+    const activePlayerId = state.activePlayerId;
+    const deadline = Date.now() + seconds * 1000;
+    this.roomTimerService.schedule(room.code, 'saboteur', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      const currentState = currentRoom?.saboteurState;
+      if (
+        !currentRoom ||
+        !currentState ||
+        currentState.currentPhase !== 'PLAYING' ||
+        currentState.activePlayerId !== activePlayerId
+      ) {
+        return; // turn already advanced elsewhere
+      }
+      const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
+      if (updatedRoom) {
+        this.broadcastRoomState(updatedRoom);
+      }
+    });
   }
 
   private emitPrivateStates(room: RoomState): void {
@@ -1049,6 +1188,32 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     if (event === SOCKET_EVENTS.GAME_ACTION) {
       return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
+    }
+    const isSmallInt = (v: unknown): v is number =>
+      typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
+    if (event === SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
+      return (
+        isSmallInt(data.cardIndex) &&
+        isSmallInt(data.x) &&
+        isSmallInt(data.y) &&
+        (data.rotation === 0 || data.rotation === 180)
+      );
+    }
+    if (event === SOCKET_EVENTS.SABOTEUR_PLAY_ACTION) {
+      return (
+        isSmallInt(data.cardIndex) &&
+        (data.targetPlayerId === undefined || typeof data.targetPlayerId === 'string') &&
+        (data.repairTool === undefined || typeof data.repairTool === 'string') &&
+        (data.goalIndex === undefined || isSmallInt(data.goalIndex)) &&
+        (data.targetX === undefined || isSmallInt(data.targetX)) &&
+        (data.targetY === undefined || isSmallInt(data.targetY))
+      );
+    }
+    if (event === SOCKET_EVENTS.SABOTEUR_DISCARD) {
+      return isSmallInt(data.cardIndex);
+    }
+    if (event === SOCKET_EVENTS.SABOTEUR_PICK_GOLD) {
+      return isSmallInt(data.poolIndex);
     }
     return true;
   }

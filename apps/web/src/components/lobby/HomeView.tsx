@@ -28,6 +28,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return 'WHO FIRST';
     case GameType.THE_MIND:
       return 'THE MIND';
+    case GameType.SABOTEUR:
+      return 'SABOTEUR';
     default:
       return t('lobby.gameNames.whoKnow').toUpperCase();
   }
@@ -232,6 +234,18 @@ export function HomeView() {
               <span className="text-xl">🧠</span>
               <span className="text-xs tracking-wider text-center px-1 uppercase">The Mind</span>
             </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <button
+              onClick={() => createRoom(GameType.SABOTEUR)}
+              disabled={!connected || !myName}
+              className="w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+            >
+              <span className="text-xl">⛏️💣</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">Saboteur</span>
+            </button>
+            <div />
           </div>
 
           {availableRooms.length > 0 && (

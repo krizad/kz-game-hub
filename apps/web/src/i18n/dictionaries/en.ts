@@ -748,6 +748,64 @@ export const en: Dictionary = {
         'Adds a time limit to each level. If the timer runs out before you finish, you lose 1 life immediately!',
     },
   },
+  gameSaboteur: {
+    round: 'Round',
+    stock: 'Deck',
+    discard: 'Discard',
+    emptyHand: 'No cards in hand',
+    cancel: 'Cancel',
+    waitingFor: "Waiting for {name}'s turn",
+    brokenToolCanNotBuild: 'Broken tool! Repair it before building tunnels',
+    chooseBreakTarget: 'Choose a player whose tool to break',
+    chooseRepairTarget: 'Choose a player whose tool to repair',
+    chooseGoalToPeek: 'Click a goal card to peek at it',
+    chooseRockfallCell: 'Click a tunnel tile to remove (start/goals are safe)',
+    choosePlacement: 'Click a green cell to build (⟳ to rotate)',
+    selectCardHint: 'Pick a card from your hand',
+    handSize: 'Cards in hand',
+    players: 'Players',
+    goldPickTitle: 'Gold found! Pick your nugget',
+    yourPick: 'Your turn — click a gold card!',
+    pickingNow: 'Now picking: {name}',
+    minersWin: 'Miners win!',
+    saboteursWin: 'Saboteurs win!',
+    nextRound: 'Next round',
+    waitingHostNextRound: 'Waiting for the host to start the next round...',
+    gameOver: 'Game over! Winner(s)',
+    backToLobby: 'Back to lobby',
+    turnTimer: 'Turn timer',
+    timerOn: 'On',
+    timerOff: 'Off',
+    secondsPerTurn: 'Seconds per turn',
+    rules: {
+      overviewTitle: 'Overview',
+      overviewDesc:
+        'Saboteur is a hidden-role mining game. Players are secretly Miners or Saboteurs. Miners cooperate to dig a tunnel from the start card to the gold; Saboteurs secretly sabotage them without being caught. Play 3 rounds — the player with the most gold wins.',
+      rolesTitle: 'Roles',
+      minerRole: '⛏️ Miner: wins as a team by connecting a path to the gold goal card',
+      saboteurRole:
+        '💣 Saboteur: wins as a team if the round ends without the gold being found (3 gold each, or 4 for a lone saboteur)',
+      hiddenRoles:
+        'The number of roles depends on the player count and is re-dealt every round, with one leftover role card kept hidden — nobody knows exactly how many enemies are out there.',
+      turnTitle: 'On your turn, do exactly one of these',
+      turnPath:
+        'Play a path card: the tunnel must stay connected to the start, and openings must match on every touching side (rotate 180° as needed). You cannot build while any of your tools is broken.',
+      turnAction: 'Play an action card on a player or the board.',
+      turnDiscard: 'Discard one card and draw a replacement (while stock lasts).',
+      actionTitle: 'Action cards',
+      actionBreak:
+        '🔨 Break: break one tool (🔦 lantern / 🛒 cart / ⛏️ pickaxe) of a target — a player with any broken tool cannot play path cards.',
+      actionRepair:
+        '🔧 Repair: fix a matching broken tool. Dual-tool repairs fix only one chosen tool.',
+      actionMap:
+        '🗺️ Map: privately peek at one goal card to see whether it hides gold or stone (only you see it).',
+      actionRockfall:
+        '🪨 Rockfall: remove one placed path tile from the board (start and goal cards are protected).',
+      scoringTitle: 'Scoring',
+      scoringDesc:
+        'When a path reaches the gold card, it is revealed. The miners flip as many gold nugget cards as there are miners: the finder picks first, then picks continue counter-clockwise. After 3 rounds the richest player wins. If the deck runs dry first, the saboteurs win instantly.',
+    },
+  },
   gameWhoKnow: {
     wordSettingHost: 'Please set the secret word using the popup.',
     wordSettingWaiting: 'Waiting for the Game Host to pick a word...',

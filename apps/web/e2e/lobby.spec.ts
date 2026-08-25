@@ -41,9 +41,9 @@ test.describe('Lobby Page', () => {
     await goToLobbyInEnglish(page);
     await page.locator('#lobbyNameInput').fill('TestPlayer');
     await page.locator('#roomCodeInput').fill('ABC123');
-    await expect(
-      page.getByRole('button', { name: 'Join', exact: true }),
-    ).toBeEnabled({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeEnabled({
+      timeout: 5000,
+    });
   });
 
   test('join room button stays disabled for short codes', async ({ page }) => {
