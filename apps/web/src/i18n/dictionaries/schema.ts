@@ -710,6 +710,11 @@ export interface Dictionary {
     roleMinerDesc: string;
     roleSaboteur: string;
     roleSaboteurDesc: string;
+    roleHidden: string;
+    roleHiddenDesc: string;
+    showRole: string;
+    hideRole: string;
+    stoneEndsRound: string;
     tool_lantern: string;
     tool_cart: string;
     tool_pickaxe: string;

@@ -30,38 +30,59 @@ export function SaboteurSettings() {
     useGameStore.getState().updateConfig({ saboteurTurnTimerSeconds: seconds });
   };
 
+  const stoneEnds = room.config?.saboteurStoneEndsRound ?? false;
+  const setStoneEnds = (value: boolean) => {
+    useGameStore.getState().updateConfig({ saboteurStoneEndsRound: value });
+  };
+
+  const boolToggle = (
+    label: string,
+    value: boolean,
+    onChange: (v: boolean) => void,
+    onLabel: string,
+    offLabel: string,
+  ) => (
+    <div className="font-mono">
+      <label className="block text-sm font-black text-black uppercase tracking-wider mb-2">
+        {label}
+      </label>
+      {isHost ? (
+        <div className="flex gap-2">
+          {[true, false].map((option) => (
+            <button
+              key={String(option)}
+              onClick={() => onChange(option)}
+              className={clsx(
+                'flex-1 border-4 border-black py-2 text-sm font-black transition-all',
+                value === option
+                  ? option
+                    ? 'bg-lime-300'
+                    : 'bg-red-300'
+                  : 'bg-white hover:bg-gray-100',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+              )}
+            >
+              {option ? onLabel : offLabel}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="text-black font-bold px-3 py-2 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          {value ? onLabel : offLabel}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <div className="font-mono">
-        <label className="block text-sm font-black text-black uppercase tracking-wider mb-2">
-          {t('gameSaboteur.turnTimer')}
-        </label>
-        {isHost ? (
-          <div className="flex gap-2">
-            {[true, false].map((option) => (
-              <button
-                key={String(option)}
-                onClick={() => setEnabled(option)}
-                className={clsx(
-                  'flex-1 border-4 border-black py-2 text-sm font-black transition-all',
-                  enabled === option
-                    ? option
-                      ? 'bg-lime-300'
-                      : 'bg-red-300'
-                    : 'bg-white hover:bg-gray-100',
-                  'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
-                )}
-              >
-                {option ? t('gameSaboteur.timerOn') : t('gameSaboteur.timerOff')}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="text-black font-bold px-3 py-2 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            {enabled ? t('gameSaboteur.timerOn') : t('gameSaboteur.timerOff')}
-          </div>
-        )}
-      </div>
+      {boolToggle(
+        t('gameSaboteur.turnTimer'),
+        enabled,
+        setEnabled,
+        t('gameSaboteur.timerOn'),
+        t('gameSaboteur.timerOff'),
+      )}
 
       {enabled && (
         <div className="font-mono">
@@ -93,6 +114,14 @@ export function SaboteurSettings() {
             </div>
           )}
         </div>
+      )}
+
+      {boolToggle(
+        t('gameSaboteur.stoneEndsRound'),
+        stoneEnds,
+        setStoneEnds,
+        t('gameSaboteur.timerOn'),
+        t('gameSaboteur.timerOff'),
       )}
     </>
   );

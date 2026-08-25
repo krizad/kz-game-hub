@@ -143,8 +143,8 @@ function tunnelSegment(edge: number, deadEnd: boolean) {
 
 function tunnelCore(edge: number, deadEnd: boolean) {
   const [mx, my] = EDGE_MIDPOINTS[edge];
-  const ex = mx + (CX - mx) * (deadEnd ? 0.6 : 1);
-  const ey = my + (CY - my) * (deadEnd ? 0.6 : 1);
+  const ex = mx + (CX - mx) * (deadEnd ? 0.52 : 1);
+  const ey = my + (CY - my) * (deadEnd ? 0.52 : 1);
   return (
     <g key={`core-${edge}`}>
       <line
@@ -156,29 +156,46 @@ function tunnelCore(edge: number, deadEnd: boolean) {
         strokeWidth={20}
         strokeLinecap="round"
       />
-      <line
-        x1={mx * 0.85 + ex * 0.15}
-        y1={my * 0.85 + ey * 0.15}
-        x2={ex * 0.9 + mx * 0.1}
-        y2={ey * 0.9 + my * 0.1}
-        stroke={TUNNEL_GLOW}
-        strokeWidth={6}
-        strokeLinecap="round"
-        opacity="0.6"
-      />
+      {!deadEnd && (
+        <line
+          x1={mx * 0.85 + ex * 0.15}
+          y1={my * 0.85 + ey * 0.15}
+          x2={ex * 0.9 + mx * 0.1}
+          y2={ey * 0.9 + my * 0.1}
+          stroke={TUNNEL_GLOW}
+          strokeWidth={6}
+          strokeLinecap="round"
+          opacity="0.6"
+        />
+      )}
     </g>
   );
 }
 
+/** Three stones lined up ACROSS the tunnel mouth — never overlapping. */
 function DeadEndRubble({ edge }: { edge: number }) {
   const [mx, my] = EDGE_MIDPOINTS[edge];
-  const cx = mx + (CX - mx) * 0.55;
-  const cy = my + (CY - my) * 0.55;
+  const cx = mx + (CX - mx) * 0.48;
+  const cy = my + (CY - my) * 0.48;
+  const vertical = edge === 0 || edge === 2; // tunnel runs vertically
+  const stones = [
+    { o: -9.5, r: 4.4, fill: '#8d8a84' },
+    { o: 0, r: 5.4, fill: '#a8a29e' },
+    { o: 9.5, r: 4.1, fill: '#78716c' },
+  ];
   return (
     <g>
-      <circle cx={cx - 4} cy={cy + 2} r="4.5" fill="#8d8a84" stroke="#57534e" strokeWidth="1.4" />
-      <circle cx={cx + 4} cy={cy - 1} r="3.8" fill="#a8a29e" stroke="#57534e" strokeWidth="1.4" />
-      <circle cx={cx + 1} cy={cy + 5} r="2.8" fill="#78716c" stroke="#57534e" strokeWidth="1.1" />
+      {stones.map((s, i) => (
+        <circle
+          key={i}
+          cx={vertical ? cx + s.o : cx}
+          cy={vertical ? cy : cy + s.o}
+          r={s.r}
+          fill={s.fill}
+          stroke="#57534e"
+          strokeWidth="1.4"
+        />
+      ))}
     </g>
   );
 }

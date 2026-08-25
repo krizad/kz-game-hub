@@ -259,6 +259,24 @@ describe('SaboteurService', () => {
       expect(room.saboteurState!.activePlayerId).toBe('p2');
     });
 
+    it('ends the round immediately when stone-ends-round is enabled and a STONE goal is revealed', () => {
+      setRoles(room, { p1: SaboteurRole.MINER, p2: SaboteurRole.MINER, p3: SaboteurRole.SABOTEUR });
+      room.config.saboteurStoneEndsRound = true;
+      setGoalContents(room, ['STONE', 'STONE', 'GOLD']);
+      setHand(room, 'p1', ['path-24c']);
+
+      const result = service.placePath(room, 'p1', 0, 7, 2, 0);
+      expect(result).not.toBeNull();
+      const state = room.saboteurState!;
+      expect(state.currentPhase).toBe(SaboteurPhase.ROUND_END);
+      expect(state.revealedGoals[1]).toBe('STONE');
+      expect(state.roundResult!.winnerRole).toBe(SaboteurRole.SABOTEUR);
+      // lone saboteur bonus
+      expect(state.players['p3'].score).toBe(4);
+      // turn did NOT advance: round is over
+      expect(state.activePlayerId).toBe('p1');
+    });
+
     it('enters GOLD_PICK when miners connect the GOLD goal', () => {
       setHand(room, 'p1', ['path-24c']);
       const result = service.placePath(room, 'p1', 0, 7, 2, 0);

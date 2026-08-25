@@ -556,7 +556,9 @@ export class SaboteurService {
     this.syncHandSizes(room);
 
     const contents = this.getGoalContents(room);
+    const stoneEndsRound = room.config.saboteurStoneEndsRound === true;
     let goldGoalIndex: number | null = null;
+    let revealedStone = false;
     for (const key of revealedGoalKeys) {
       const idx = state.goalCells.findIndex((g) => saboteurCellKey(g.x, g.y) === key);
       if (idx === -1) continue;
@@ -567,10 +569,19 @@ export class SaboteurService {
         goldGoalIndex = idx;
         break;
       }
+      if (state.revealedGoals[idx] === 'STONE') {
+        revealedStone = true;
+      }
     }
 
     if (goldGoalIndex !== null) {
       this.beginGoldPick(room, playerId, goldGoalIndex);
+      return room;
+    }
+
+    // Sudden-death variant: a wrong (stone) goal immediately ends the round.
+    if (revealedStone && stoneEndsRound) {
+      this.endRoundSaboteursWin(room);
       return room;
     }
 

@@ -170,6 +170,8 @@ export interface RoomConfig {
   // Saboteur config
   saboteurTurnTimerEnabled?: boolean;
   saboteurTurnTimerSeconds?: number;
+  /** Sudden-death variant: revealing a STONE goal immediately ends the round (saboteurs win). */
+  saboteurStoneEndsRound?: boolean;
 }
 
 export interface RoomState {

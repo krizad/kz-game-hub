@@ -55,6 +55,7 @@ export function SaboteurView() {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [rotation, setRotation] = useState<0 | 180>(0);
   const [targeting, setTargeting] = useState<Targeting>(null);
+  const [roleHidden, setRoleHidden] = useState(false);
 
   const state = room?.saboteurState;
   if (!room || !state) return null;
@@ -391,25 +392,47 @@ export function SaboteurView() {
       <div
         className={clsx(
           'flex items-center gap-2 rounded-xl border-4 border-black px-3 py-1.5 shadow-[3px_3px_0_0_#000]',
-          miner ? 'bg-amber-300' : 'bg-rose-400 text-white',
+          roleHidden ? 'bg-stone-300' : miner ? 'bg-amber-300' : 'bg-rose-400 text-white',
         )}
         data-testid="saboteur-my-role"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={miner ? SABOTEUR_IMG.pickaxe : SABOTEUR_IMG.dynamite}
-          alt={miner ? 'miner' : 'saboteur'}
-          draggable={false}
-          className="w-8 h-8 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
-        />
+        {roleHidden ? (
+          <span className="text-2xl leading-none" title={t('gameSaboteur.showRole')}>
+            ❔
+          </span>
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={miner ? SABOTEUR_IMG.pickaxe : SABOTEUR_IMG.dynamite}
+            alt={miner ? 'miner' : 'saboteur'}
+            draggable={false}
+            className="w-8 h-8 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+          />
+        )}
         <div className="leading-tight">
           <div className="text-xs font-black uppercase tracking-wider">
-            {miner ? t('gameSaboteur.roleMiner') : t('gameSaboteur.roleSaboteur')}
+            {roleHidden
+              ? t('gameSaboteur.roleHidden')
+              : miner
+                ? t('gameSaboteur.roleMiner')
+                : t('gameSaboteur.roleSaboteur')}
           </div>
           <div className="text-[10px] font-bold opacity-80">
-            {miner ? t('gameSaboteur.roleMinerDesc') : t('gameSaboteur.roleSaboteurDesc')}
+            {roleHidden
+              ? t('gameSaboteur.roleHiddenDesc')
+              : miner
+                ? t('gameSaboteur.roleMinerDesc')
+                : t('gameSaboteur.roleSaboteurDesc')}
           </div>
         </div>
+        <button
+          onClick={() => setRoleHidden((v) => !v)}
+          title={roleHidden ? t('gameSaboteur.showRole') : t('gameSaboteur.hideRole')}
+          data-testid="saboteur-role-toggle"
+          className="ml-1 text-sm bg-white/90 hover:bg-white border-2 border-black rounded-lg px-1.5 py-0.5 shadow-[2px_2px_0_0_#000] leading-none"
+        >
+          {roleHidden ? '👁️' : '🙈'}
+        </button>
       </div>
     );
   };

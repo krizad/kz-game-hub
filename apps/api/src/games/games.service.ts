@@ -155,6 +155,7 @@ export class GamesService {
     } else if (gameType === GameType.SABOTEUR) {
       room.config.saboteurTurnTimerEnabled = false;
       room.config.saboteurTurnTimerSeconds = 60;
+      room.config.saboteurStoneEndsRound = false;
       // SaboteurState is initialized when the game starts via assignRoles
     }
 
@@ -421,6 +422,7 @@ export class GamesService {
     copyInteger('theMindMaxLevel', 1, 20);
     copyBoolean('saboteurTurnTimerEnabled');
     copyInteger('saboteurTurnTimerSeconds', 5, 300);
+    copyBoolean('saboteurStoneEndsRound');
 
     return result;
   }

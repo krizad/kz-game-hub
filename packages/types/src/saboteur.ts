@@ -196,10 +196,11 @@ export const SABOTEUR_TOTAL_ROUNDS = 3;
 // Board geometry
 export const SABOTEUR_BOARD_BOUNDS = { minX: 0, maxX: 8, minY: 0, maxY: 4 } as const;
 export const SABOTEUR_START_POS = { x: 0, y: 2 } as const;
+/** Goals sit on rows 1 / 3 / 5 (1-based) => y = 0 / 2 / 4. */
 export const SABOTEUR_GOAL_POSITIONS: ReadonlyArray<{ x: number; y: number }> = [
-  { x: 8, y: 1 },
+  { x: 8, y: 0 },
   { x: 8, y: 2 },
-  { x: 8, y: 3 },
+  { x: 8, y: 4 },
 ];
 
 // ---------- Public state ----------
