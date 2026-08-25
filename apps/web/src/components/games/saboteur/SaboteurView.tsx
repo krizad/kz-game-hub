@@ -19,15 +19,16 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import clsx from 'clsx';
-import { ActionCardFace, GoldNuggetValue, GoalRevealFace, PathTileSvg } from './PathTileSvg';
+import {
+  ActionCardFace,
+  GoldNuggetValue,
+  GoalRevealFace,
+  PathTileSvg,
+  SABOTEUR_IMG,
+  ToolImg,
+} from './PathTileSvg';
 
 type Targeting = 'BREAK' | 'REPAIR' | 'MAP' | 'ROCKFALL' | null;
-
-const TOOL_ICONS: Record<SaboteurTool, string> = {
-  [SaboteurTool.LANTERN]: '🔦',
-  [SaboteurTool.CART]: '🛒',
-  [SaboteurTool.PICKAXE]: '⛏️',
-};
 
 const TARGETING_STYLE: Record<Exclude<Targeting, null>, string> = {
   BREAK: 'bg-red-200 border-red-500 text-red-900',
@@ -289,13 +290,14 @@ export function SaboteurView() {
                     title={
                       broken ? `${toolWord(tool)}: ${t('gameSaboteur.broken')}` : toolWord(tool)
                     }
-                    className={clsx(
-                      'text-xs leading-none px-0.5 rounded',
-                      broken &&
-                        'opacity-60 line-through decoration-red-600 decoration-[3px] bg-red-100',
-                    )}
+                    className={clsx('relative inline-flex', broken && 'opacity-70')}
                   >
-                    {TOOL_ICONS[tool]}
+                    <ToolImg tool={tool} className={clsx('w-4 h-4', broken && 'grayscale')} />
+                    {broken && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="w-[135%] h-[2.5px] bg-red-600 -rotate-[28deg] rounded-full shadow-[0_0_2px_rgba(0,0,0,0.4)]" />
+                      </span>
+                    )}
                   </span>
                 );
               })}
@@ -310,13 +312,21 @@ export function SaboteurView() {
     });
 
   const renderHand = () => (
-    <div className="flex gap-2 items-end overflow-x-auto pb-1 min-h-[6.5rem]">
+    // pt-5 leaves headroom inside the scroll box for the lifted selected card
+    // (overflow-x-auto forces overflow-y to clip, so the space must be internal).
+    <div className="flex gap-2 items-end overflow-x-auto pt-5 pb-1 min-h-[7rem]">
       {myHand.map((handCard, index) => {
         const isSelected = selectedCardIndex === index;
         const def = saboteurGetCardDef(handCard.cardId);
         const pathBlocked = def?.kind === 'PATH' && toolsBroken;
         return (
-          <div key={index} className="flex flex-col items-center gap-1 flex-shrink-0">
+          <div
+            key={index}
+            className={clsx(
+              'flex flex-col items-center gap-1 flex-shrink-0',
+              isSelected && 'relative z-20',
+            )}
+          >
             <button
               data-testid={`saboteur-hand-${index}`}
               onClick={() => handleHandClick(index)}
@@ -385,7 +395,13 @@ export function SaboteurView() {
         )}
         data-testid="saboteur-my-role"
       >
-        <span className="text-lg leading-none">{miner ? '⛏️' : '💣'}</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={miner ? SABOTEUR_IMG.pickaxe : SABOTEUR_IMG.dynamite}
+          alt={miner ? 'miner' : 'saboteur'}
+          draggable={false}
+          className="w-8 h-8 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+        />
         <div className="leading-tight">
           <div className="text-xs font-black uppercase tracking-wider">
             {miner ? t('gameSaboteur.roleMiner') : t('gameSaboteur.roleSaboteur')}
@@ -400,13 +416,17 @@ export function SaboteurView() {
 
   const renderBlockedBanner = () => {
     if (!toolsBroken || state.currentPhase !== SaboteurPhase.PLAYING) return null;
-    const brokenIcons = (me?.brokenTools ?? []).map((tool) => TOOL_ICONS[tool]).join(' ');
     return (
       <div className="flex items-center gap-2 bg-red-200 border-4 border-red-500 rounded-xl px-3 py-1.5 shadow-[3px_3px_0_0_#000]">
         <span className="text-base">🚫</span>
-        <div className="text-[11px] font-black text-red-900 leading-tight">
-          {t('gameSaboteur.blockedBanner', { tools: brokenIcons })}
+        <div className="text-[11px] font-black text-red-900 leading-tight flex-1">
+          {t('gameSaboteur.blockedBanner')}
         </div>
+        <span className="flex gap-1">
+          {(me?.brokenTools ?? []).map((tool) => (
+            <ToolImg key={tool} tool={tool} className="w-6 h-6 grayscale opacity-80" />
+          ))}
+        </span>
       </div>
     );
   };
@@ -453,6 +473,7 @@ export function SaboteurView() {
       const target = e.targetId ? playerName(e.targetId) : '';
       let icon = '•';
       let text = '';
+      let tool: SaboteurTool | undefined;
       switch (e.kind) {
         case 'PLACE':
           icon = '🛠️';
@@ -460,19 +481,13 @@ export function SaboteurView() {
           break;
         case 'BREAK':
           icon = '🔨';
-          text = t('gameSaboteur.logBreak', {
-            name,
-            target,
-            tool: e.tool ? TOOL_ICONS[e.tool] : '',
-          });
+          tool = e.tool;
+          text = t('gameSaboteur.logBreak', { name, target });
           break;
         case 'REPAIR':
           icon = '🔧';
-          text = t('gameSaboteur.logRepair', {
-            name,
-            target,
-            tool: e.tool ? TOOL_ICONS[e.tool] : '',
-          });
+          tool = e.tool;
+          text = t('gameSaboteur.logRepair', { name, target });
           break;
         case 'MAP':
           icon = '🗺️';
@@ -507,6 +522,7 @@ export function SaboteurView() {
         <div key={e.seq} className="flex items-start gap-1.5 text-[10px] font-bold leading-snug">
           <span className="flex-shrink-0">{icon}</span>
           <span className="text-stone-700">{text}</span>
+          {tool && <ToolImg tool={tool} className="w-3.5 h-3.5 flex-shrink-0 mt-px" />}
         </div>
       );
     };

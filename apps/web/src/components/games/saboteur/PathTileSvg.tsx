@@ -296,18 +296,49 @@ const TOOL_ICONS: Record<SaboteurTool, string> = {
   [SaboteurTool.PICKAXE]: '⛏️',
 };
 
+/** 3D icon art from thiings.co (free AI-generated icon library). */
+export const SABOTEUR_IMG = {
+  goldIngot: '/images/saboteur/gold-ingot.png',
+  lantern: '/images/saboteur/lantern.png',
+  pickaxe: '/images/saboteur/pickaxe.png',
+  cart: '/images/saboteur/wheelbarrow.png',
+  hammer: '/images/saboteur/hammer.png',
+  wrench: '/images/saboteur/wrench.png',
+  map: '/images/saboteur/treasure-map.png',
+  rock: '/images/saboteur/rock.png',
+  chest: '/images/saboteur/treasure-chest.png',
+  dynamite: '/images/saboteur/dynamite.png',
+} as const;
+
+export function saboteurToolImg(tool: SaboteurTool): string {
+  switch (tool) {
+    case SaboteurTool.LANTERN:
+      return SABOTEUR_IMG.lantern;
+    case SaboteurTool.CART:
+      return SABOTEUR_IMG.cart;
+    default:
+      return SABOTEUR_IMG.pickaxe;
+  }
+}
+
+/** Inline tool image (replaces the old emoji icons). */
+export function ToolImg({ tool, className }: { tool: SaboteurTool; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={saboteurToolImg(tool)}
+      alt={tool}
+      draggable={false}
+      className={`inline-block object-contain ${className ?? 'w-4 h-4'}`}
+    />
+  );
+}
+
 const KIND_THEME = {
   [SaboteurActionKind.BREAK]: { band: '#ef4444', bandDark: '#991b1b', badge: '#fee2e2' },
   [SaboteurActionKind.REPAIR]: { band: '#22c55e', bandDark: '#15803d', badge: '#dcfce7' },
   [SaboteurActionKind.MAP]: { band: '#0ea5e9', bandDark: '#0369a1', badge: '#e0f2fe' },
   [SaboteurActionKind.ROCKFALL]: { band: '#f97316', bandDark: '#c2410c', badge: '#ffedd5' },
-} as const;
-
-const KIND_EMOJI = {
-  [SaboteurActionKind.BREAK]: '🔨',
-  [SaboteurActionKind.REPAIR]: '🔧',
-  [SaboteurActionKind.MAP]: '🗺️',
-  [SaboteurActionKind.ROCKFALL]: '🪨',
 } as const;
 
 interface ActionCardFaceProps {
@@ -342,9 +373,21 @@ export function ActionCardFace({ cardId, className }: ActionCardFaceProps) {
       <rect x="0" y="0" width={W} height="18" fill={theme.band} />
       <rect x="0" y="16" width={W} height="4" fill={theme.bandDark} />
       {/* kind glyph on the band */}
-      <text x={CX} y="13.5" textAnchor="middle" fontSize="11">
-        {KIND_EMOJI[kind]}
-      </text>
+      <image
+        href={
+          kind === SaboteurActionKind.BREAK
+            ? SABOTEUR_IMG.hammer
+            : kind === SaboteurActionKind.REPAIR
+              ? SABOTEUR_IMG.wrench
+              : kind === SaboteurActionKind.MAP
+                ? SABOTEUR_IMG.map
+                : SABOTEUR_IMG.rock
+        }
+        x={CX - 6}
+        y="3"
+        width="12"
+        height="12"
+      />
       {/* corner rivets */}
       {[
         [6, 26],
@@ -358,15 +401,31 @@ export function ActionCardFace({ cardId, className }: ActionCardFaceProps) {
       <circle cx={CX} cy="50" r="16" fill={theme.badge} stroke={theme.bandDark} strokeWidth="2.5" />
       {kind === SaboteurActionKind.BREAK || kind === SaboteurActionKind.REPAIR ? (
         <>
-          <text x={CX} y="56" textAnchor="middle" fontSize="15">
-            {tools.length === 1 ? TOOL_ICONS[tools[0]] : '🧰'}
-          </text>
+          <image
+            href={
+              tools.length === 1
+                ? saboteurToolImg(tools[0])
+                : kind === SaboteurActionKind.BREAK
+                  ? SABOTEUR_IMG.hammer
+                  : SABOTEUR_IMG.wrench
+            }
+            x={CX - 10}
+            y="40"
+            width="20"
+            height="20"
+          />
           {/* secondary tools row */}
-          {tools.length > 1 && (
-            <text x={CX} y="78" textAnchor="middle" fontSize="10">
-              {tools.map((t) => TOOL_ICONS[t]).join(' ')}
-            </text>
-          )}
+          {tools.length > 1 &&
+            tools.map((t, ti) => (
+              <image
+                key={t}
+                href={saboteurToolImg(t)}
+                x={CX - tools.length * 7 + ti * 14 + 1}
+                y="68"
+                width="12"
+                height="12"
+              />
+            ))}
           {kind === SaboteurActionKind.BREAK && (
             <g stroke="#dc2626" strokeWidth="2.4" strokeLinecap="round">
               <line x1="22" y1="38" x2="48" y2="62" />
@@ -381,9 +440,7 @@ export function ActionCardFace({ cardId, className }: ActionCardFaceProps) {
         </>
       ) : kind === SaboteurActionKind.MAP ? (
         <>
-          <text x={CX} y="57" textAnchor="middle" fontSize="17">
-            🗺️
-          </text>
+          <image href={SABOTEUR_IMG.map} x={CX - 11} y="38" width="22" height="22" />
           <path
             d="M14 82 Q24 74 30 80 T52 78"
             fill="none"
@@ -396,15 +453,7 @@ export function ActionCardFace({ cardId, className }: ActionCardFaceProps) {
         </>
       ) : (
         <>
-          <text x="28" y="56" textAnchor="middle" fontSize="13" transform="rotate(-12 28 56)">
-            🪨
-          </text>
-          <text x="42" y="62" textAnchor="middle" fontSize="10" transform="rotate(14 42 62)">
-            🪨
-          </text>
-          <text x={CX} y="43" textAnchor="middle" fontSize="8">
-            💥
-          </text>
+          <image href={SABOTEUR_IMG.rock} x={CX - 11} y="40" width="22" height="22" />
           <g stroke={theme.bandDark} strokeWidth="1.8" strokeLinecap="round" opacity="0.7">
             <line x1="24" y1="70" x2="24" y2="78" />
             <line x1={CX} y1="72" x2={CX} y2="82" />
@@ -429,9 +478,7 @@ export function GoalRevealFace({ content }: { content: Exclude<SaboteurGoalConte
       {gold ? (
         <>
           <rect width={W} height={H} fill="url(#sb-gold)" />
-          <text x={CX} y="64" textAnchor="middle" fontSize="34">
-            💰
-          </text>
+          <image href={SABOTEUR_IMG.chest} x={CX - 21} y="26" width="42" height="42" />
           <text x="13" y="30" fontSize="12" opacity="0.9">
             ✨
           </text>
@@ -442,19 +489,7 @@ export function GoalRevealFace({ content }: { content: Exclude<SaboteurGoalConte
       ) : (
         <>
           <rect width={W} height={H} fill="#6b7280" />
-          <ellipse
-            cx={CX}
-            cy="66"
-            rx="19"
-            ry="14"
-            fill="#9ca3af"
-            stroke="#4b5563"
-            strokeWidth="2.5"
-          />
-          <circle cx="25" cy="48" r="8" fill="#a8a29e" stroke="#4b5563" strokeWidth="2" />
-          <circle cx="42" cy="44" r="10" fill="#b3aea8" stroke="#4b5563" strokeWidth="2" />
-          <circle cx="34" cy="34" r="7" fill="#c7c2bb" stroke="#4b5563" strokeWidth="1.8" />
-          <ellipse cx="31" cy="30" rx="3" ry="1.8" fill="#f5f5f4" opacity="0.8" />
+          <image href={SABOTEUR_IMG.rock} x={CX - 20} y="28" width="40" height="40" />
         </>
       )}
     </svg>
@@ -468,9 +503,13 @@ export function GoldNuggetValue({ value, className }: { value: number; className
       style={{ background: 'linear-gradient(160deg,#fde68a 0%,#f59e0b 55%,#b45309 100%)' }}
     >
       <span className="absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(255,255,255,0.55),transparent_55%)]" />
-      <span className="relative text-lg leading-none drop-shadow-[0_1px_0_rgba(0,0,0,0.35)]">
-        💰
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={SABOTEUR_IMG.goldIngot}
+        alt="gold"
+        draggable={false}
+        className="relative w-7 h-7 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
+      />
       <span className="relative text-xs font-black leading-none text-amber-950">×{value}</span>
     </div>
   );

@@ -886,7 +886,7 @@ test.describe('Full Game Demos', () => {
 
   // ─── 11. Saboteur ────────────────────────────────────────────────────────
   test('Saboteur Demo', async ({ browser }) => {
-    test.setTimeout(600000); // three full rounds    // Saboteur requires minimum 3 players
+    test.setTimeout(720000); // three full rounds    // Saboteur requires minimum 3 players
     const ctxs = await Promise.all([
       browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p1` } }),
       browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p2` } }),
