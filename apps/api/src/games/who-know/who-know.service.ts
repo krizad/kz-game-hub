@@ -38,7 +38,9 @@ export class WhoKnowService {
     if (room.status !== RoomStatus.LOBBY && room.status !== RoomStatus.RESULT) return null;
     if (room.roomHostId !== requesterId) return null;
 
-    const connectedPlayers = room.players.filter((p) => p.connected !== false);
+    const connectedPlayers = room.players.filter(
+      (p) => p.connected !== false && !p.isViewer,
+    );
     if (connectedPlayers.length < 4) return null;
 
     room.status = RoomStatus.WORD_SETTING;
@@ -148,7 +150,7 @@ export class WhoKnowService {
 
     const votes = this.privateState.getRoomData<string>(room.code, WK_VOTE);
     const playingCount = room.players.filter(
-      (p) => this.getRole(room, p.socketId) !== Role.Host && p.connected !== false,
+      (p) => !p.isViewer && this.getRole(room, p.socketId) !== Role.Host && p.connected !== false,
     ).length;
     const votesCast = votes.size;
 
@@ -178,6 +180,7 @@ export class WhoKnowService {
       if (isInsiderCaught) {
         room.winner = 'COMMONERS';
         room.players.forEach((p) => {
+          if (p.isViewer) return;
           const role = this.getRole(room, p.socketId);
           if (role !== Role.Know && role !== Role.Host) p.score += 1;
         });
@@ -202,12 +205,12 @@ export class WhoKnowService {
     if (room.status !== RoomStatus.VOTING) return null;
 
     const voter = room.players.find((p) => p.socketId === voterId);
-    if (!voter || voter.connected === false) return null;
+    if (!voter || voter.connected === false || voter.isViewer) return null;
     if (this.getRole(room, voterId) === Role.Host) return null;
     if (this.privateState.has(room.code, voterId, WK_VOTE)) return null;
 
     const target = room.players.find((p) => p.socketId === targetId);
-    if (!target || target.connected === false) return null;
+    if (!target || target.connected === false || target.isViewer) return null;
     if (targetId === voterId) return null;
     if (this.getRole(room, targetId) === Role.Host) return null;
 

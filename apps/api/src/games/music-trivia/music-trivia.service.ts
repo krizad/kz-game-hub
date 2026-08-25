@@ -376,7 +376,7 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round) return null;
 
-    const isPlayer = room.players.some((p) => p.socketId === clientId);
+    const isPlayer = room.players.some((p) => p.socketId === clientId && !p.isViewer);
     if (!isPlayer) return null;
 
     const isHost = room.roomHostId === clientId;
@@ -510,7 +510,7 @@ export class MusicTriviaService {
     const round = state.currentRound;
     if (!round) return null;
 
-    const isPlayer = room.players.some((p) => p.socketId === clientId);
+    const isPlayer = room.players.some((p) => p.socketId === clientId && !p.isViewer);
     if (!isPlayer) return null;
 
     const isHost = room.roomHostId === clientId;
@@ -757,7 +757,7 @@ export class MusicTriviaService {
     const round = state.currentRound!;
 
     const eligiblePlayers = room.players.filter((p) => {
-      if (p.connected === false) return false;
+      if (p.connected === false || p.isViewer) return false;
       if (!state.hostPlays && p.socketId === room.roomHostId) return false;
       return true;
     });

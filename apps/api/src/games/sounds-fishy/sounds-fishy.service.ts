@@ -34,7 +34,7 @@ export class SoundsFishyService {
   }
 
   private isMember(room: RoomState, socketId: string): boolean {
-    return room.players.some((p) => p.socketId === socketId);
+    return room.players.some((p) => p.socketId === socketId && !p.isViewer);
   }
 
   private getTrueAnswer(room: RoomState): string {
@@ -191,7 +191,7 @@ export class SoundsFishyService {
     const state = room.soundsFishyState;
 
     const requiredAnswersCount = room.players.filter(
-      (p) => p.socketId !== state.pickerId && p.connected !== false,
+      (p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false,
     ).length;
     const answeredCount = this.privateState.getRoomData(room.code, SF_MY_ANSWER).size;
     if (answeredCount >= requiredAnswersCount && requiredAnswersCount > 0) {
@@ -277,7 +277,7 @@ export class SoundsFishyService {
     if (state.eliminatedPlayers.includes(targetId)) return null;
 
     const nonPickerIds = room.players
-      .filter((p) => p.connected !== false)
+      .filter((p) => p.connected !== false && !p.isViewer)
       .map((p) => p.socketId)
       .filter((id) => id !== state.pickerId);
     if (!nonPickerIds.includes(targetId)) return null;

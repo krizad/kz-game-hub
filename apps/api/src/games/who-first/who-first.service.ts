@@ -32,7 +32,9 @@ export class WhoFirstService {
 
   private getExpectedCount(room: RoomState): number {
     const hostPlays = room.config.whoFirstHostPlays ?? false;
-    return room.players.filter((p) => p.connected).length - (hostPlays ? 0 : 1);
+    return (
+      room.players.filter((p) => p.connected && !p.isViewer).length - (hostPlays ? 0 : 1)
+    );
   }
 
   private resolveRoundWinner(room: RoomState): void {
@@ -90,7 +92,7 @@ export class WhoFirstService {
     if (!VALID_ACTIONS.includes(action.type as WhoFirstActionType)) return null;
 
     const isHost = room.roomHostId === clientId;
-    const isPlayer = room.players.some((p) => p.socketId === clientId);
+    const isPlayer = room.players.some((p) => p.socketId === clientId && !p.isViewer);
 
     const penaltyEnabled = room.config.whoFirstPenalty ?? false;
     const hostPlays = room.config.whoFirstHostPlays ?? false;

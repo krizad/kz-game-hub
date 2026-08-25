@@ -19,7 +19,9 @@ export class RPSService {
 
     if (!room.rpsState) return null;
 
-    const connectedIds = room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+    const connectedIds = room.players
+      .filter((p) => p.connected !== false && !p.isViewer)
+      .map((p) => p.socketId);
     if (connectedIds.length < 2) return null;
 
     room.status = RoomStatus.PLAYING;

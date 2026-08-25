@@ -45,6 +45,11 @@ export function PlayerGrid() {
                   </span>
                   <span className="truncate max-w-[120px] sm:max-w-[200px] text-black font-black">
                     {p.name}
+                    {p.isViewer && (
+                      <span className="text-[9px] font-black text-black ml-1.5 align-middle border border-black bg-[#BAE6FD] px-1 py-0.5 rounded leading-none inline-flex">
+                        👁 {t('lobby.viewer')}
+                      </span>
+                    )}
                     {p.connected === false && (
                       <span className="text-[9px] font-black text-black ml-1.5 align-middle border border-black bg-[#9CA3AF] px-1 py-0.5 rounded leading-none inline-flex">
                         ({t('lobby.offline')})

@@ -70,7 +70,12 @@ export class DetectiveClubService {
   }
 
   private isMember(room: RoomState, socketId: string): boolean {
-    return room.players.some((p) => p.socketId === socketId);
+    return room.players.some((p) => p.socketId === socketId && !p.isViewer);
+  }
+
+  /** Players who participate in the current game (connected non-viewers). */
+  private participatingIds(room: RoomState): string[] {
+    return room.players.filter((p) => p.connected !== false && !p.isViewer).map((p) => p.socketId);
   }
 
   private getRole(room: RoomState, socketId: string): DetectiveClubRole | undefined {
@@ -229,18 +234,18 @@ export class DetectiveClubService {
 
     this.setSecretWord(room, trimmed);
 
-    // Deliver the word to everyone EXCEPT the conspirator
+    // Deliver the word to everyone EXCEPT the conspirator (viewers never get it)
     const conspiratorId = this.getConspiratorId(room);
     for (const p of room.players) {
-      if (p.connected === false) continue;
+      if (p.connected === false || p.isViewer) continue;
       if (p.socketId === conspiratorId) continue;
       this.privateState.set(room.code, p.socketId, DC_WORD, trimmed);
     }
 
     state.currentPhase = DetectiveClubPhase.PLAYING_ROUND_1;
 
-    // Generate play order starting from Informer
-    const playerIds = room.players.map((p) => p.socketId);
+    // Generate play order starting from Informer (participants only)
+    const playerIds = this.participatingIds(room);
     const informerIndex = playerIds.indexOf(state.informerId);
     state.playOrder = [];
     for (let i = 0; i < playerIds.length; i++) {
@@ -284,10 +289,8 @@ export class DetectiveClubService {
     let nextIndex = (currentIndex + 1) % state.playOrder.length;
     let nextPlayerId = state.playOrder[nextIndex];
 
-    // Skip disconnected players to avoid soft-lock
-    const activePlayerIds = new Set(
-      room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
-    );
+    // Skip disconnected players and viewers to avoid soft-lock
+    const activePlayerIds = new Set(this.participatingIds(room));
     let skippedCount = 0;
     while (!activePlayerIds.has(nextPlayerId) && skippedCount < state.playOrder.length) {
       nextIndex = (nextIndex + 1) % state.playOrder.length;
@@ -344,10 +347,8 @@ export class DetectiveClubService {
 
     player.votedFor = targetId;
 
-    // Only wait for players who are still connected to prevent softlocks
-    const activePlayerIds = new Set(
-      room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
-    );
+    // Only wait for participants (connected non-viewers) to prevent softlocks
+    const activePlayerIds = new Set(this.participatingIds(room));
     const votingPlayers = Object.values(state.players).filter(
       (p) => p.id !== state.informerId && activePlayerIds.has(p.id),
     );
@@ -375,9 +376,7 @@ export class DetectiveClubService {
     }
 
     let conspiratorVotes = 0;
-    const activePlayerIds = new Set(
-      room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
-    );
+    const activePlayerIds = new Set(this.participatingIds(room));
     const votingPlayers = Object.values(state.players).filter(
       (p) => p.id !== state.informerId && activePlayerIds.has(p.id),
     );
@@ -434,9 +433,7 @@ export class DetectiveClubService {
     const state = room.detectiveClubState;
     if (!state) return;
 
-    const connectedIds = room.players
-      .filter((p) => p.connected !== false && p.socketId !== socketId)
-      .map((p) => p.socketId);
+    const connectedIds = this.participatingIds(room).filter((id) => id !== socketId);
 
     if (state.currentPhase === DetectiveClubPhase.SETUP) {
       if (state.informerId === socketId && connectedIds.length > 0) {
@@ -467,18 +464,14 @@ export class DetectiveClubService {
         state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_2) &&
       state.activePlayerId === socketId
     ) {
-      const activePlayerIds = new Set(
-        room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
-      );
+      const activePlayerIds = new Set(this.participatingIds(room));
       state.activePlayerId =
         state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
       return;
     }
 
     if (state.currentPhase === DetectiveClubPhase.VOTING) {
-      const activePlayerIds = new Set(
-        room.players.filter((p) => p.connected !== false).map((p) => p.socketId),
-      );
+      const activePlayerIds = new Set(this.participatingIds(room));
       const votingPlayers = Object.values(state.players).filter(
         (p) => p.id !== state.informerId && activePlayerIds.has(p.id),
       );
@@ -496,7 +489,8 @@ export class DetectiveClubService {
     const state = room.detectiveClubState;
     if (state.currentPhase !== DetectiveClubPhase.SCORING) return null;
 
-    const connectedIds = room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+    // Rotate roles among participants only (viewers never play)
+    const connectedIds = this.participatingIds(room);
 
     // Rotate Informer among connected players only
     let nextInformerId = state.informerId!;

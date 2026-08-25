@@ -39,6 +39,7 @@ export interface Dictionary {
     score: string;
     offline: string;
     you: string;
+    viewer: string;
     locked: string;
     waitingRoom: string;
     hostSelection: string;

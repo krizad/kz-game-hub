@@ -41,6 +41,7 @@ export const th: Dictionary = {
     score: 'คะแนน',
     offline: 'ออฟไลน์',
     you: 'คุณ',
+    viewer: 'ผู้ชม',
     locked: 'ล็อกแล้ว',
     waitingRoom: 'ห้องรอ',
     hostSelection: 'การเลือกโฮสต์',

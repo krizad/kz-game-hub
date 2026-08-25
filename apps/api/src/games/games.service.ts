@@ -252,6 +252,10 @@ export class GamesService {
       });
 
       const newPlayer = room.players[room.players.length - 1];
+      // Joining after the game started → spectator for the rest of this game
+      if (room.status !== RoomStatus.LOBBY) {
+        newPlayer.isViewer = true;
+      }
       this.playerSessionService.issue(code, newPlayer.id, user.socketId);
     }
 
@@ -322,9 +326,10 @@ export class GamesService {
 
   /** Hand room ownership to the first remaining connected player after the host lost connection. */
   private transferHost(room: RoomState, formerHostSocketId: string): void {
-    const nextHost = room.players.find(
+    const candidates = room.players.filter(
       (p) => p.connected !== false && p.socketId !== formerHostSocketId,
     );
+    const nextHost = candidates.find((p) => !p.isViewer) ?? candidates[0];
     if (!nextHost) return;
     room.roomHostId = nextHost.socketId;
   }
@@ -446,12 +451,26 @@ export class GamesService {
 
   // --- Helpers ---
 
+  /** Viewers joined mid-game: they may watch but never act. */
+  private isViewerClient(room: RoomState, socketId: string): boolean {
+    return room.players.some((p) => p.socketId === socketId && p.isViewer === true);
+  }
+
+  /** Guard for client-triggered gameplay actions; returns null when the client is a viewer. */
+  private rejectViewer(code: string, clientId: string): boolean {
+    const room = this.rooms.get(code);
+    return !room || this.isViewerClient(room, clientId);
+  }
+
   /** Load the room, run the mutation, and persist the returned room state. */
   private withRoom(code: string, mutate: (room: RoomState) => RoomState | null): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
     const updatedRoom = mutate(room);
-    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    if (updatedRoom) {
+      this.clearViewerFlagsOnLobby(updatedRoom);
+      this.rooms.set(code, updatedRoom);
+    }
     return updatedRoom;
   }
 
@@ -463,7 +482,10 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const result = action(room);
-    if (result) this.rooms.set(code, result.room);
+    if (result) {
+      this.clearViewerFlagsOnLobby(result.room);
+      this.rooms.set(code, result.room);
+    }
     return result;
   }
 
@@ -475,8 +497,17 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const result = await action(room);
-    if (result) this.rooms.set(code, result.room);
+    if (result) {
+      this.clearViewerFlagsOnLobby(result.room);
+      this.rooms.set(code, result.room);
+    }
     return result;
+  }
+
+  /** Back in the lobby → everyone may play the next game again. */
+  private clearViewerFlagsOnLobby(room: RoomState): void {
+    if (room.status !== RoomStatus.LOBBY) return;
+    for (const p of room.players) delete p.isViewer;
   }
 
   // --- Delegation to Game Services ---
@@ -563,7 +594,10 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const updatedRoom = await action(room);
-    if (updatedRoom) this.rooms.set(code, updatedRoom);
+    if (updatedRoom) {
+      this.clearViewerFlagsOnLobby(updatedRoom);
+      this.rooms.set(code, updatedRoom);
+    }
     return updatedRoom;
   }
 
@@ -584,6 +618,7 @@ export class GamesService {
   }
 
   submitVote(code: string, voterId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, voterId)) return null;
     return this.withRoom(code, (room) => this.whoKnowService.submitVote(room, voterId, targetId));
   }
 
@@ -623,34 +658,41 @@ export class GamesService {
   // --- Tic-Tac-Toe Logic ---
 
   tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.ticTacToeService.joinSide(room, clientId, side));
   }
 
   tttMakeMove(code: string, clientId: string, index: number): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
   }
 
   tttReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
   }
 
   // --- RPS Logic ---
 
   rpsMakeChoice(code: string, clientId: string, choice: RPSChoice): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.rpsService.makeChoice(room, clientId, choice));
   }
 
   rpsNextRound(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.rpsService.nextRound(room, clientId));
   }
 
   rpsReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.rpsService.reset(room, clientId));
   }
 
   // --- Gobbler Tic-Tac-Toe Logic ---
 
   gobblerJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.gobblerService.joinSide(room, clientId, side));
   }
 
@@ -660,6 +702,7 @@ export class GamesService {
     pieceId: string,
     toIndex: number,
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.gobblerService.placePiece(room, clientId, pieceId, toIndex),
     );
@@ -671,82 +714,97 @@ export class GamesService {
     fromIndex: number,
     toIndex: number,
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.gobblerService.movePiece(room, clientId, fromIndex, toIndex),
     );
   }
 
   gobblerReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.gobblerService.reset(room, clientId));
   }
 
   // --- Sounds Fishy Logic ---
 
   soundsFishyTypeAnswer(code: string, clientId: string, answer: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.soundsFishyService.typeAnswer(room, clientId, answer),
     );
   }
 
   soundsFishySubmitAnswer(code: string, clientId: string, answer: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.soundsFishyService.submitAnswer(room, clientId, answer),
     );
   }
 
   soundsFishyRevealPlayer(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.soundsFishyService.revealPlayer(room, clientId, targetId),
     );
   }
 
   soundsFishyEliminatePlayer(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.soundsFishyService.eliminatePlayer(room, clientId, targetId),
     );
   }
 
   soundsFishyBankPoints(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.soundsFishyService.bankPoints(room, clientId));
   }
 
   soundsFishyNextRound(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.soundsFishyService.nextRound(room, clientId));
   }
 
   soundsFishyReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.soundsFishyService.reset(room, clientId));
   }
 
   // --- Detective Club Actions ---
 
   detectiveClubSubmitWord(code: string, clientId: string, word: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.detectiveClubService.submitWord(room, clientId, word),
     );
   }
 
   detectiveClubPlayCard(code: string, clientId: string, cardIndex: number): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.detectiveClubService.playCard(room, clientId, cardIndex),
     );
   }
 
   detectiveClubNextPhase(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.detectiveClubService.nextPhase(room, clientId));
   }
 
   detectiveClubVote(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.detectiveClubService.submitVote(room, clientId, targetId),
     );
   }
 
   detectiveClubNextRound(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.detectiveClubService.nextRound(room, clientId));
   }
 
   detectiveClubReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.detectiveClubService.reset(room, clientId));
   }
 
@@ -760,6 +818,7 @@ export class GamesService {
     y: number,
     rotation: 0 | 180,
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.saboteurService.placePath(room, clientId, cardIndex, x, y, rotation),
     );
@@ -777,26 +836,32 @@ export class GamesService {
       targetY?: number;
     },
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.playAction(room, clientId, payload));
   }
 
   saboteurDiscard(code: string, clientId: string, cardIndex: number): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.discard(room, clientId, cardIndex));
   }
 
   saboteurPickGold(code: string, clientId: string, poolIndex: number): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.pickGold(room, clientId, poolIndex));
   }
 
   saboteurNextRound(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.nextRound(room, clientId));
   }
 
   saboteurReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.reset(room, clientId));
   }
 
   saboteurAutoPass(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.autoPass(room, clientId));
   }
 
@@ -807,6 +872,7 @@ export class GamesService {
     clientId: string,
     word: string,
   ): { room: RoomState; error?: string } | null {
+    if (this.rejectViewer(code, clientId)) return null;
     const room = this.rooms.get(code);
     if (!room) return null;
     const result = this.whoAmIService.submitPlayerWord(room, clientId, word);
@@ -819,6 +885,7 @@ export class GamesService {
     clientId: string,
     action: Record<string, unknown>,
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.whoAmIService.handleGameAction(room, clientId, action),
     );
@@ -829,6 +896,7 @@ export class GamesService {
     clientId: string,
     action: { type: string; payload?: unknown },
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
       this.whoFirstService.handleGameAction(
         room,
@@ -864,6 +932,7 @@ export class GamesService {
     clientId: string,
     action: { type: string; payload?: unknown },
   ): Promise<MusicTriviaActionResult | null> {
+    if (this.rejectViewer(code, clientId)) return null;
     const room = this.rooms.get(code);
     if (!room) return null;
     const result = await this.musicTriviaService.handleGameAction(
@@ -894,6 +963,7 @@ export class GamesService {
   // --- The Mind Logic ---
 
   theMindReady(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => {
       const playerId = this.getPlayerId(room, clientId);
       return playerId ? this.theMindService.ready(room, playerId) : null;
@@ -906,6 +976,7 @@ export class GamesService {
     card: number,
     pile?: 'UP' | 'DOWN',
   ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => {
       const playerId = this.getPlayerId(room, clientId);
       return playerId ? this.theMindService.playCard(room, playerId, card, pile) : null;
@@ -913,10 +984,12 @@ export class GamesService {
   }
 
   theMindNextLevel(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.theMindService.nextLevel(room, clientId));
   }
 
   theMindProposeShuriken(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => {
       const playerId = this.getPlayerId(room, clientId);
       return playerId ? this.theMindService.proposeShuriken(room, playerId) : null;
@@ -924,6 +997,7 @@ export class GamesService {
   }
 
   theMindVoteShuriken(code: string, clientId: string, agree: boolean): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => {
       const playerId = this.getPlayerId(room, clientId);
       return playerId ? this.theMindService.voteShuriken(room, playerId, agree) : null;
@@ -931,6 +1005,7 @@ export class GamesService {
   }
 
   theMindCancelShuriken(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => {
       if (room.gameType !== GameType.THE_MIND) return null;
       const playerId = this.getPlayerId(room, clientId);

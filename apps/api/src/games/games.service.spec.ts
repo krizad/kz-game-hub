@@ -540,6 +540,116 @@ describe('GamesService', () => {
     });
   });
 
+  describe('viewer mode', () => {
+    const startPlayingRoom = () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      room.status = RoomStatus.PLAYING;
+      (service as any).rooms.set(room.code, room);
+      return room;
+    };
+
+    it('should mark players who join mid-game as viewers', () => {
+      const room = startPlayingRoom();
+
+      const updated = service.joinRoom(room.code, {
+        id: 'p1',
+        name: 'Late Joiner',
+        socketId: 'p1',
+      })!;
+
+      expect(updated.players.find((p) => p.socketId === 'p1')!.isViewer).toBe(true);
+    });
+
+    it('should not mark lobby joiners as viewers', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+
+      const updated = service.joinRoom(room.code, {
+        id: 'p1',
+        name: 'Player1',
+        socketId: 'p1',
+      })!;
+
+      expect(updated.players.find((p) => p.socketId === 'p1')!.isViewer).toBeUndefined();
+    });
+
+    it('should keep viewer status when a viewer reconnects', () => {
+      const room = startPlayingRoom();
+      service.joinRoom(room.code, { id: 'p1', name: 'Late Joiner', socketId: 'p1' });
+      const reconnectToken = service.getReconnectToken(room.code, 'p1')!;
+
+      const updated = service.joinRoom(
+        room.code,
+        { id: 'p2', name: 'Late Joiner', socketId: 'p2' },
+        reconnectToken,
+      )!;
+
+      expect(updated.players.find((p) => p.socketId === 'p2')!.isViewer).toBe(true);
+    });
+
+    it('should block gameplay actions from viewers', () => {
+      const room = startPlayingRoom();
+      service.joinRoom(room.code, { id: 'p1', name: 'Late Joiner', socketId: 'p1' });
+
+      expect(service.tttMakeMove(room.code, 'p1', 0)).toBeNull();
+      expect(ticTacToeService.makeMove).not.toHaveBeenCalled();
+
+      expect(service.submitVote(room.code, 'p1', 'host1')).toBeNull();
+      expect(whoKnowService.submitVote).not.toHaveBeenCalled();
+
+      expect(service.theMindReady(room.code, 'p1')).toBeNull();
+      expect(mockGameServices.theMind.ready).not.toHaveBeenCalled();
+    });
+
+    it('should still allow the same actions for regular players', () => {
+      const room = startPlayingRoom();
+      mockGameServices.theMind.ready.mockReturnValue(room);
+
+      expect(service.theMindReady(room.code, 'host1')).not.toBeNull();
+      expect(mockGameServices.theMind.ready).toHaveBeenCalled();
+    });
+
+    it('should hand host to a viewer when only viewers remain', () => {
+      const room = startPlayingRoom();
+      service.joinRoom(room.code, { id: 'p1', name: 'Late Joiner', socketId: 'p1' });
+
+      const result = service.leaveRoom('host1', false);
+
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      if (result.outcome === 'PLAYER_LEFT') {
+        expect(result.room.roomHostId).toBe('p1');
+      }
+    });
+
+    it('should prefer non-viewer players when transferring host', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      room.status = RoomStatus.PLAYING;
+      (service as any).rooms.set(room.code, room);
+      service.joinRoom(room.code, { id: 'v1', name: 'Early Viewer', socketId: 'v1' });
+
+      const result = service.leaveRoom('host1', false);
+
+      if (result.outcome === 'PLAYER_LEFT') {
+        expect(result.room.roomHostId).toBe('p1');
+      }
+    });
+
+    it('should clear viewer flags when the game returns to LOBBY', () => {
+      const room = startPlayingRoom();
+      service.joinRoom(room.code, { id: 'p1', name: 'Late Joiner', socketId: 'p1' });
+      whoKnowService.resetGame.mockReturnValue({ ...room, status: RoomStatus.LOBBY });
+
+      const updated = service.resetGame(room.code, 'host1')!;
+
+      expect(updated.status).toBe(RoomStatus.LOBBY);
+      expect(updated.players.find((p) => p.socketId === 'p1')!.isViewer).toBeUndefined();
+      expect(service.getRoom(room.code)!.players.every((p) => !p.isViewer)).toBe(true);
+    });
+  });
+
   describe('getAvailableRooms', () => {
     it('should return only LOBBY rooms', () => {
       const lobbyRoom = service.createRoom('host1');

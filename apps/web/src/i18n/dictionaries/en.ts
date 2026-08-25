@@ -41,6 +41,7 @@ export const en: Dictionary = {
     score: 'Score',
     offline: 'OFFLINE',
     you: 'YOU',
+    viewer: 'VIEWER',
     locked: 'LOCKED',
     waitingRoom: 'Waiting Room',
     hostSelection: 'Host Selection',
