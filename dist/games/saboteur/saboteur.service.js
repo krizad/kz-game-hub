@@ -435,7 +435,9 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
         this.drawCard(room, playerId);
         this.syncHandSizes(room);
         const contents = this.getGoalContents(room);
+        const stoneEndsRound = room.config.saboteurStoneEndsRound === true;
         let goldGoalIndex = null;
+        let revealedStone = false;
         for (const key of revealedGoalKeys) {
             const idx = state.goalCells.findIndex((g) => (0, types_1.saboteurCellKey)(g.x, g.y) === key);
             if (idx === -1)
@@ -447,9 +449,16 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
                 goldGoalIndex = idx;
                 break;
             }
+            if (state.revealedGoals[idx] === 'STONE') {
+                revealedStone = true;
+            }
         }
         if (goldGoalIndex !== null) {
             this.beginGoldPick(room, playerId, goldGoalIndex);
+            return room;
+        }
+        if (revealedStone && stoneEndsRound) {
+            this.endRoundSaboteursWin(room);
             return room;
         }
         if (this.checkExhaustionEnd(room))

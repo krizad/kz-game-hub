@@ -145,6 +145,7 @@ let GamesService = class GamesService {
         else if (gameType === types_1.GameType.SABOTEUR) {
             room.config.saboteurTurnTimerEnabled = false;
             room.config.saboteurTurnTimerSeconds = 60;
+            room.config.saboteurStoneEndsRound = false;
         }
         this.rooms.set(code, room);
         return room;
@@ -373,6 +374,7 @@ let GamesService = class GamesService {
         copyInteger('theMindMaxLevel', 1, 20);
         copyBoolean('saboteurTurnTimerEnabled');
         copyInteger('saboteurTurnTimerSeconds', 5, 300);
+        copyBoolean('saboteurStoneEndsRound');
         return result;
     }
     withRoom(code, mutate) {
