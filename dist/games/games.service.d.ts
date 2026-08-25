@@ -61,9 +61,12 @@ export declare class GamesService {
     }[];
     updateConfig(code: string, requesterId: string, config: Partial<RoomState['config']>): RoomState | null;
     private sanitizeRoomConfig;
+    private isViewerClient;
+    private rejectViewer;
     private withRoom;
     private withRoomResult;
     private withRoomResultAsync;
+    private clearViewerFlagsOnLobby;
     assignRoles(code: string, requesterId: string): Promise<{
         room: RoomState;
         roles: Record<string, Role>;

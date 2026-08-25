@@ -8,6 +8,7 @@ export declare class DetectiveClubService {
     private shuffleArray;
     private loadAvailableCards;
     private isMember;
+    private participatingIds;
     private getRole;
     private setRole;
     private getHand;

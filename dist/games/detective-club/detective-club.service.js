@@ -64,7 +64,10 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         }
     }
     isMember(room, socketId) {
-        return room.players.some((p) => p.socketId === socketId);
+        return room.players.some((p) => p.socketId === socketId && !p.isViewer);
+    }
+    participatingIds(room) {
+        return room.players.filter((p) => p.connected !== false && !p.isViewer).map((p) => p.socketId);
     }
     getRole(room, socketId) {
         return this.privateState.get(room.code, socketId, DC_ROLE);
@@ -201,14 +204,14 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         this.setSecretWord(room, trimmed);
         const conspiratorId = this.getConspiratorId(room);
         for (const p of room.players) {
-            if (p.connected === false)
+            if (p.connected === false || p.isViewer)
                 continue;
             if (p.socketId === conspiratorId)
                 continue;
             this.privateState.set(room.code, p.socketId, DC_WORD, trimmed);
         }
         state.currentPhase = types_1.DetectiveClubPhase.PLAYING_ROUND_1;
-        const playerIds = room.players.map((p) => p.socketId);
+        const playerIds = this.participatingIds(room);
         const informerIndex = playerIds.indexOf(state.informerId);
         state.playOrder = [];
         for (let i = 0; i < playerIds.length; i++) {
@@ -242,7 +245,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         const currentIndex = state.playOrder.indexOf(playerId);
         let nextIndex = (currentIndex + 1) % state.playOrder.length;
         let nextPlayerId = state.playOrder[nextIndex];
-        const activePlayerIds = new Set(room.players.filter((p) => p.connected !== false).map((p) => p.socketId));
+        const activePlayerIds = new Set(this.participatingIds(room));
         let skippedCount = 0;
         while (!activePlayerIds.has(nextPlayerId) && skippedCount < state.playOrder.length) {
             nextIndex = (nextIndex + 1) % state.playOrder.length;
@@ -299,7 +302,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         if (player.votedFor !== null)
             return null;
         player.votedFor = targetId;
-        const activePlayerIds = new Set(room.players.filter((p) => p.connected !== false).map((p) => p.socketId));
+        const activePlayerIds = new Set(this.participatingIds(room));
         const votingPlayers = Object.values(state.players).filter((p) => p.id !== state.informerId && activePlayerIds.has(p.id));
         const allVoted = votingPlayers.every((p) => p.votedFor !== null);
         if (allVoted && votingPlayers.length > 0) {
@@ -318,7 +321,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
             player.role = this.getRole(room, socketId) ?? types_1.DetectiveClubRole.DETECTIVE;
         }
         let conspiratorVotes = 0;
-        const activePlayerIds = new Set(room.players.filter((p) => p.connected !== false).map((p) => p.socketId));
+        const activePlayerIds = new Set(this.participatingIds(room));
         const votingPlayers = Object.values(state.players).filter((p) => p.id !== state.informerId && activePlayerIds.has(p.id));
         votingPlayers.forEach((p) => {
             if (p.votedFor === conspiratorId) {
@@ -362,9 +365,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         const state = room.detectiveClubState;
         if (!state)
             return;
-        const connectedIds = room.players
-            .filter((p) => p.connected !== false && p.socketId !== socketId)
-            .map((p) => p.socketId);
+        const connectedIds = this.participatingIds(room).filter((id) => id !== socketId);
         if (state.currentPhase === types_1.DetectiveClubPhase.SETUP) {
             if (state.informerId === socketId && connectedIds.length > 0) {
                 const newInformerId = connectedIds[0];
@@ -391,13 +392,13 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         if ((state.currentPhase === types_1.DetectiveClubPhase.PLAYING_ROUND_1 ||
             state.currentPhase === types_1.DetectiveClubPhase.PLAYING_ROUND_2) &&
             state.activePlayerId === socketId) {
-            const activePlayerIds = new Set(room.players.filter((p) => p.connected !== false).map((p) => p.socketId));
+            const activePlayerIds = new Set(this.participatingIds(room));
             state.activePlayerId =
                 state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
             return;
         }
         if (state.currentPhase === types_1.DetectiveClubPhase.VOTING) {
-            const activePlayerIds = new Set(room.players.filter((p) => p.connected !== false).map((p) => p.socketId));
+            const activePlayerIds = new Set(this.participatingIds(room));
             const votingPlayers = Object.values(state.players).filter((p) => p.id !== state.informerId && activePlayerIds.has(p.id));
             const allVoted = votingPlayers.every((p) => p.votedFor !== null);
             if (allVoted && votingPlayers.length > 0) {
@@ -413,7 +414,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         const state = room.detectiveClubState;
         if (state.currentPhase !== types_1.DetectiveClubPhase.SCORING)
             return null;
-        const connectedIds = room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+        const connectedIds = this.participatingIds(room);
         let nextInformerId = state.informerId;
         const currentIndex = connectedIds.indexOf(state.informerId);
         if (currentIndex !== -1) {

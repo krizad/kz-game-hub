@@ -61,7 +61,7 @@ let TheMindService = class TheMindService {
     getHands(room) {
         const hands = {};
         for (const player of room.players) {
-            if (player.connected === false)
+            if (player.connected === false || player.isViewer)
                 continue;
             hands[player.id] = this.getHand(room, player.id);
         }
@@ -117,7 +117,7 @@ let TheMindService = class TheMindService {
     startGame(room, requesterId) {
         if (room.roomHostId !== requesterId)
             return null;
-        const playerCount = room.players.filter((p) => p.connected).length;
+        const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
         if (playerCount < 2)
             return null;
         this.setDeck(room, this.buildDeck(room));
@@ -149,7 +149,9 @@ let TheMindService = class TheMindService {
         const state = room.theMindState;
         if (!state)
             return;
-        const playerIds = room.players.filter((p) => p.connected).map((p) => p.id);
+        const playerIds = room.players
+            .filter((p) => p.connected && !p.isViewer)
+            .map((p) => p.id);
         const cardsPerPlayer = state.level;
         const deck = this.getDeck(room);
         playerIds.forEach((id) => {
@@ -181,7 +183,7 @@ let TheMindService = class TheMindService {
         if (!state.readyPlayers.includes(clientId)) {
             state.readyPlayers.push(clientId);
         }
-        const playerCount = room.players.filter((p) => p.connected).length;
+        const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
         if (state.readyPlayers.length >= playerCount) {
             state.phase = types_1.TheMindPhase.PLAYING;
             this.resetLevelEndTime(room);
@@ -406,7 +408,8 @@ let TheMindService = class TheMindService {
                 state.discardedCards = {};
                 state.failedPlayerId = null;
                 const deck = this.getDeck(room);
-                if (deck.length < state.level * room.players.filter((p) => p.connected).length) {
+                const deckSize = room.players.filter((p) => p.connected && !p.isViewer).length;
+                if (deck.length < state.level * deckSize) {
                     this.setDeck(room, this.buildDeck(room));
                 }
                 else {
@@ -432,7 +435,8 @@ let TheMindService = class TheMindService {
             state.level += 1;
             state.phase = types_1.TheMindPhase.SETUP;
             const deck = this.getDeck(room);
-            if (deck.length < state.level * room.players.filter((p) => p.connected).length) {
+            const deckSize = room.players.filter((p) => p.connected && !p.isViewer).length;
+            if (deck.length < state.level * deckSize) {
                 this.setDeck(room, this.buildDeck(room));
             }
             else {
@@ -462,7 +466,7 @@ let TheMindService = class TheMindService {
         if (state.phase !== types_1.TheMindPhase.SHURIKEN_VOTE)
             return null;
         state.shurikenVotes[clientId] = agree;
-        const playerCount = room.players.filter((p) => p.connected).length;
+        const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
         const voteCount = Object.keys(state.shurikenVotes).length;
         if (voteCount >= playerCount) {
             const allAgree = Object.values(state.shurikenVotes).every((v) => v);

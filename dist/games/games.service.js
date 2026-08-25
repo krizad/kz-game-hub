@@ -223,6 +223,9 @@ let GamesService = class GamesService {
                 avatar,
             });
             const newPlayer = room.players[room.players.length - 1];
+            if (room.status !== types_1.RoomStatus.LOBBY) {
+                newPlayer.isViewer = true;
+            }
             this.playerSessionService.issue(code, newPlayer.id, user.socketId);
         }
         this.rooms.set(code, room);
@@ -285,7 +288,8 @@ let GamesService = class GamesService {
         return { outcome: 'NOT_IN_ROOM' };
     }
     transferHost(room, formerHostSocketId) {
-        const nextHost = room.players.find((p) => p.connected !== false && p.socketId !== formerHostSocketId);
+        const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId);
+        const nextHost = candidates.find((p) => !p.isViewer) ?? candidates[0];
         if (!nextHost)
             return;
         room.roomHostId = nextHost.socketId;
@@ -387,13 +391,22 @@ let GamesService = class GamesService {
         copyBoolean('saboteurStoneEndsRound');
         return result;
     }
+    isViewerClient(room, socketId) {
+        return room.players.some((p) => p.socketId === socketId && p.isViewer === true);
+    }
+    rejectViewer(code, clientId) {
+        const room = this.rooms.get(code);
+        return !room || this.isViewerClient(room, clientId);
+    }
     withRoom(code, mutate) {
         const room = this.rooms.get(code);
         if (!room)
             return null;
         const updatedRoom = mutate(room);
-        if (updatedRoom)
+        if (updatedRoom) {
+            this.clearViewerFlagsOnLobby(updatedRoom);
             this.rooms.set(code, updatedRoom);
+        }
         return updatedRoom;
     }
     withRoomResult(code, action) {
@@ -401,8 +414,10 @@ let GamesService = class GamesService {
         if (!room)
             return null;
         const result = action(room);
-        if (result)
+        if (result) {
+            this.clearViewerFlagsOnLobby(result.room);
             this.rooms.set(code, result.room);
+        }
         return result;
     }
     async withRoomResultAsync(code, action) {
@@ -410,9 +425,17 @@ let GamesService = class GamesService {
         if (!room)
             return null;
         const result = await action(room);
-        if (result)
+        if (result) {
+            this.clearViewerFlagsOnLobby(result.room);
             this.rooms.set(code, result.room);
+        }
         return result;
+    }
+    clearViewerFlagsOnLobby(room) {
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return;
+        for (const p of room.players)
+            delete p.isViewer;
     }
     async assignRoles(code, requesterId) {
         const room = this.rooms.get(code);
@@ -469,8 +492,10 @@ let GamesService = class GamesService {
         if (!room)
             return null;
         const updatedRoom = await action(room);
-        if (updatedRoom)
+        if (updatedRoom) {
+            this.clearViewerFlagsOnLobby(updatedRoom);
             this.rooms.set(code, updatedRoom);
+        }
         return updatedRoom;
     }
     setWord(code, word, requesterId) {
@@ -483,6 +508,8 @@ let GamesService = class GamesService {
         return this.withRoom(code, (room) => this.whoKnowService.endQuestioning(room, requesterId, timeout));
     }
     submitVote(code, voterId, targetId) {
+        if (this.rejectViewer(code, voterId))
+            return null;
         return this.withRoom(code, (room) => this.whoKnowService.submitVote(room, voterId, targetId));
     }
     resetGame(code, requesterId) {
@@ -513,96 +540,158 @@ let GamesService = class GamesService {
         return this.withRoom(code, (room) => this.whoKnowService.handleQuestioningTimeout(room));
     }
     tttJoinSide(code, clientId, side) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.ticTacToeService.joinSide(room, clientId, side));
     }
     tttMakeMove(code, clientId, index) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
     }
     tttReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
     }
     rpsMakeChoice(code, clientId, choice) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.rpsService.makeChoice(room, clientId, choice));
     }
     rpsNextRound(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.rpsService.nextRound(room, clientId));
     }
     rpsReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.rpsService.reset(room, clientId));
     }
     gobblerJoinSide(code, clientId, side) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.gobblerService.joinSide(room, clientId, side));
     }
     gobblerPlacePiece(code, clientId, pieceId, toIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.gobblerService.placePiece(room, clientId, pieceId, toIndex));
     }
     gobblerMovePiece(code, clientId, fromIndex, toIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.gobblerService.movePiece(room, clientId, fromIndex, toIndex));
     }
     gobblerReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.gobblerService.reset(room, clientId));
     }
     soundsFishyTypeAnswer(code, clientId, answer) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.typeAnswer(room, clientId, answer));
     }
     soundsFishySubmitAnswer(code, clientId, answer) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.submitAnswer(room, clientId, answer));
     }
     soundsFishyRevealPlayer(code, clientId, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.revealPlayer(room, clientId, targetId));
     }
     soundsFishyEliminatePlayer(code, clientId, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.eliminatePlayer(room, clientId, targetId));
     }
     soundsFishyBankPoints(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.bankPoints(room, clientId));
     }
     soundsFishyNextRound(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.nextRound(room, clientId));
     }
     soundsFishyReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.soundsFishyService.reset(room, clientId));
     }
     detectiveClubSubmitWord(code, clientId, word) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.detectiveClubService.submitWord(room, clientId, word));
     }
     detectiveClubPlayCard(code, clientId, cardIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.detectiveClubService.playCard(room, clientId, cardIndex));
     }
     detectiveClubNextPhase(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.detectiveClubService.nextPhase(room, clientId));
     }
     detectiveClubVote(code, clientId, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.detectiveClubService.submitVote(room, clientId, targetId));
     }
     detectiveClubNextRound(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.detectiveClubService.nextRound(room, clientId));
     }
     detectiveClubReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.detectiveClubService.reset(room, clientId));
     }
     saboteurPlacePath(code, clientId, cardIndex, x, y, rotation) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.placePath(room, clientId, cardIndex, x, y, rotation));
     }
     saboteurPlayAction(code, clientId, payload) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.playAction(room, clientId, payload));
     }
     saboteurDiscard(code, clientId, cardIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.discard(room, clientId, cardIndex));
     }
     saboteurPickGold(code, clientId, poolIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.pickGold(room, clientId, poolIndex));
     }
     saboteurNextRound(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.nextRound(room, clientId));
     }
     saboteurReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.reset(room, clientId));
     }
     saboteurAutoPass(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.saboteurService.autoPass(room, clientId));
     }
     whoAmISubmitPlayerWord(code, clientId, word) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         const room = this.rooms.get(code);
         if (!room)
             return null;
@@ -612,9 +701,13 @@ let GamesService = class GamesService {
         return result;
     }
     whoAmIGameAction(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.whoAmIService.handleGameAction(room, clientId, action));
     }
     whoFirstGameAction(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.whoFirstService.handleGameAction(room, clientId, action));
     }
     whoFirstSetActive(code) {
@@ -627,6 +720,8 @@ let GamesService = class GamesService {
         return this.withRoom(code, (room) => this.whoAmIService.startGameHostInput(room, clientId, playerWords));
     }
     async musicTriviaGameAction(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         const room = this.rooms.get(code);
         if (!room)
             return null;
@@ -654,33 +749,45 @@ let GamesService = class GamesService {
         return result;
     }
     theMindReady(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => {
             const playerId = this.getPlayerId(room, clientId);
             return playerId ? this.theMindService.ready(room, playerId) : null;
         });
     }
     theMindPlayCard(code, clientId, card, pile) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => {
             const playerId = this.getPlayerId(room, clientId);
             return playerId ? this.theMindService.playCard(room, playerId, card, pile) : null;
         });
     }
     theMindNextLevel(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => this.theMindService.nextLevel(room, clientId));
     }
     theMindProposeShuriken(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => {
             const playerId = this.getPlayerId(room, clientId);
             return playerId ? this.theMindService.proposeShuriken(room, playerId) : null;
         });
     }
     theMindVoteShuriken(code, clientId, agree) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => {
             const playerId = this.getPlayerId(room, clientId);
             return playerId ? this.theMindService.voteShuriken(room, playerId, agree) : null;
         });
     }
     theMindCancelShuriken(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
         return this.withRoom(code, (room) => {
             if (room.gameType !== types_1.GameType.THE_MIND)
                 return null;

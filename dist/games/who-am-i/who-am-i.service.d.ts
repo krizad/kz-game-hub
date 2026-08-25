@@ -21,6 +21,7 @@ export declare class WhoAmIService {
         error?: string;
     } | null;
     private assignShuffledWords;
+    private eligiblePlayers;
     private findNextPlayer;
     private enterFinalGuessPhase;
     handleGameAction(room: RoomState, requesterId: string, action: Record<string, unknown>): RoomState | null;

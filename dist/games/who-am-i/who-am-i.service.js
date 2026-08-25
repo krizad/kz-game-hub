@@ -328,7 +328,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         if (!gameState.wordSubmittedIds.includes(socketId)) {
             gameState.wordSubmittedIds.push(socketId);
         }
-        const connectedPlayers = room.players.filter((p) => p.connected !== false);
+        const connectedPlayers = room.players.filter((p) => p.connected !== false && !p.isViewer);
         const allSubmitted = connectedPlayers.every((p) => this.privateState.has(room.code, p.socketId, WAI_SUBMITTED));
         if (allSubmitted) {
             this.assignShuffledWords(room, gameState);
@@ -336,7 +336,9 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         return { room };
     }
     assignShuffledWords(room, gameState) {
-        const playerIds = room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+        const playerIds = this.eligiblePlayers(room)
+            .filter((p) => p.connected !== false)
+            .map((p) => p.socketId);
         const words = playerIds.map((id) => this.privateState.get(room.code, id, WAI_SUBMITTED));
         let shuffled;
         let attempts = 0;
@@ -354,13 +356,17 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         });
         gameState.phase = 'ASKING';
         gameState.wordSubmittedIds = [];
-        const shuffledPlayers = this.shuffleArray(room.players);
+        const shuffledPlayers = this.shuffleArray(this.eligiblePlayers(room).filter((p) => p.connected !== false));
         gameState.currentTurn = shuffledPlayers[0].socketId;
     }
-    findNextPlayer(room, gameState, afterSocketId) {
-        const players = room.config.wordMode === 'HOST_INPUT'
+    eligiblePlayers(room) {
+        const base = room.config?.wordMode === 'HOST_INPUT'
             ? room.players.filter((p) => p.socketId !== room.roomHostId)
             : room.players;
+        return base.filter((p) => !p.isViewer);
+    }
+    findNextPlayer(room, gameState, afterSocketId) {
+        const players = this.eligiblePlayers(room);
         const currentIndex = players.findIndex((p) => p.socketId === afterSocketId);
         if (currentIndex === -1) {
             for (const p of players) {
@@ -384,9 +390,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         return null;
     }
     enterFinalGuessPhase(room, gameState) {
-        const players = room.config.wordMode === 'HOST_INPUT'
-            ? room.players.filter((p) => p.socketId !== room.roomHostId)
-            : room.players;
+        const players = this.eligiblePlayers(room);
         gameState.phase = 'FINAL_GUESS';
         const firstPlayer = this.findNextPlayer(room, gameState, players[players.length - 1].socketId);
         if (!firstPlayer) {
@@ -419,7 +423,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
                 return null;
             if (gameState.turnStatus !== 'VOTING' && gameState.turnStatus !== 'RESULT')
                 return null;
-            if (!room.players.find((p) => p.socketId === requesterId))
+            if (!room.players.find((p) => p.socketId === requesterId && !p.isViewer))
                 return null;
             gameState.votes[requesterId] = action.vote;
             return room;
@@ -431,9 +435,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
                 return null;
             if (gameState.phase === 'FINAL_GUESS')
                 return null;
-            const players = room.config.wordMode === 'HOST_INPUT'
-                ? room.players.filter((p) => p.socketId !== room.roomHostId)
-                : room.players;
+            const players = this.eligiblePlayers(room);
             const currentIndex = players.findIndex((p) => p.socketId === gameState.currentTurn);
             let nextIndex = (currentIndex + 1) % players.length;
             let checked = 0;
@@ -502,10 +504,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             }
             else {
                 gameState.eliminatedPlayers.push(gameState.currentTurn);
-                const players = room.config.wordMode === 'HOST_INPUT'
-                    ? room.players.filter((p) => p.socketId !== room.roomHostId)
-                    : room.players;
-                const activePlayers = players.filter((p) => !gameState.eliminatedPlayers.includes(p.socketId));
+                const activePlayers = this.eligiblePlayers(room).filter((p) => !gameState.eliminatedPlayers.includes(p.socketId));
                 if (activePlayers.length === 0) {
                     this.finishGame(room, gameState, null);
                     return room;
@@ -515,6 +514,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
                     this.finishGame(room, gameState, null);
                 }
                 else {
+                    const players = this.eligiblePlayers(room);
                     const nextIndex = players.findIndex((p) => p.socketId === nextPlayer);
                     const currentIndex = players.findIndex((p) => p.socketId === gameState.currentTurn);
                     if (nextIndex <= currentIndex) {

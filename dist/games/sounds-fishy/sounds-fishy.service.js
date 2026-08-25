@@ -35,7 +35,7 @@ let SoundsFishyService = class SoundsFishyService {
         return a;
     }
     isMember(room, socketId) {
-        return room.players.some((p) => p.socketId === socketId);
+        return room.players.some((p) => p.socketId === socketId && !p.isViewer);
     }
     getTrueAnswer(room) {
         return this.privateState.get(room.code, ROOM_KEY, SF_ROOM_TRUE_ANSWER) ?? '';
@@ -154,7 +154,7 @@ let SoundsFishyService = class SoundsFishyService {
         if (!room.soundsFishyState || room.soundsFishyState.currentPhase !== types_1.SoundsFishyPhase.SETUP)
             return false;
         const state = room.soundsFishyState;
-        const requiredAnswersCount = room.players.filter((p) => p.socketId !== state.pickerId && p.connected !== false).length;
+        const requiredAnswersCount = room.players.filter((p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false).length;
         const answeredCount = this.privateState.getRoomData(room.code, SF_MY_ANSWER).size;
         if (answeredCount >= requiredAnswersCount && requiredAnswersCount > 0) {
             state.currentPhase = types_1.SoundsFishyPhase.THE_PITCH;
@@ -231,7 +231,7 @@ let SoundsFishyService = class SoundsFishyService {
         if (state.eliminatedPlayers.includes(targetId))
             return null;
         const nonPickerIds = room.players
-            .filter((p) => p.connected !== false)
+            .filter((p) => p.connected !== false && !p.isViewer)
             .map((p) => p.socketId)
             .filter((id) => id !== state.pickerId);
         if (!nonPickerIds.includes(targetId))

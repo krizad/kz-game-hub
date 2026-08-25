@@ -119,7 +119,9 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
         }
     }
     connectedPlayerIds(room) {
-        return room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
+        return room.players
+            .filter((p) => p.connected !== false && !p.isViewer)
+            .map((p) => p.socketId);
     }
     pushLog(room, entry) {
         const state = room.saboteurState;

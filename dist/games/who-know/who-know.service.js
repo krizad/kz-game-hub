@@ -43,7 +43,7 @@ let WhoKnowService = class WhoKnowService {
             return null;
         if (room.roomHostId !== requesterId)
             return null;
-        const connectedPlayers = room.players.filter((p) => p.connected !== false);
+        const connectedPlayers = room.players.filter((p) => p.connected !== false && !p.isViewer);
         if (connectedPlayers.length < 4)
             return null;
         room.status = types_1.RoomStatus.WORD_SETTING;
@@ -135,7 +135,7 @@ let WhoKnowService = class WhoKnowService {
         if (room.status !== types_1.RoomStatus.VOTING)
             return false;
         const votes = this.privateState.getRoomData(room.code, WK_VOTE);
-        const playingCount = room.players.filter((p) => this.getRole(room, p.socketId) !== types_1.Role.Host && p.connected !== false).length;
+        const playingCount = room.players.filter((p) => !p.isViewer && this.getRole(room, p.socketId) !== types_1.Role.Host && p.connected !== false).length;
         const votesCast = votes.size;
         if (playingCount === 0 || (votesCast >= playingCount && playingCount > 0)) {
             room.status = types_1.RoomStatus.RESULT;
@@ -159,6 +159,8 @@ let WhoKnowService = class WhoKnowService {
             if (isInsiderCaught) {
                 room.winner = 'COMMONERS';
                 room.players.forEach((p) => {
+                    if (p.isViewer)
+                        return;
                     const role = this.getRole(room, p.socketId);
                     if (role !== types_1.Role.Know && role !== types_1.Role.Host)
                         p.score += 1;
@@ -182,14 +184,14 @@ let WhoKnowService = class WhoKnowService {
         if (room.status !== types_1.RoomStatus.VOTING)
             return null;
         const voter = room.players.find((p) => p.socketId === voterId);
-        if (!voter || voter.connected === false)
+        if (!voter || voter.connected === false || voter.isViewer)
             return null;
         if (this.getRole(room, voterId) === types_1.Role.Host)
             return null;
         if (this.privateState.has(room.code, voterId, WK_VOTE))
             return null;
         const target = room.players.find((p) => p.socketId === targetId);
-        if (!target || target.connected === false)
+        if (!target || target.connected === false || target.isViewer)
             return null;
         if (targetId === voterId)
             return null;
