@@ -225,6 +225,31 @@ export interface SaboteurLastAction {
   detail?: string;
 }
 
+/** One entry in the public game log. Secrets (card faces) are never included. */
+export interface SaboteurLogEntry {
+  seq: number;
+  playerId: string;
+  kind:
+    | 'PLACE'
+    | 'BREAK'
+    | 'REPAIR'
+    | 'MAP'
+    | 'ROCKFALL'
+    | 'DISCARD'
+    | 'PASS'
+    | 'PICK_GOLD'
+    | 'MINERS_WIN'
+    | 'SABOTEURS_WIN';
+  cardId?: string;
+  tool?: SaboteurTool;
+  targetId?: string;
+  x?: number;
+  y?: number;
+  rotation?: 0 | 180;
+  goalIndex?: number;
+  value?: number;
+}
+
 export interface SaboteurRoundResult {
   winnerRole: SaboteurRole;
   /** Index into SABOTEUR_GOAL_POSITIONS / revealedGoals when miners reached a goal. */
@@ -259,6 +284,8 @@ export interface SaboteurState {
   stockCount: number;
   players: Record<string, SaboteurPlayerState>;
   lastAction?: SaboteurLastAction | null;
+  /** Public play log, newest last. Reset each round. */
+  log: SaboteurLogEntry[];
   roundResult?: SaboteurRoundResult | null;
   finalResults?: SaboteurFinalResults | null;
 }

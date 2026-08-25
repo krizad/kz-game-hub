@@ -11,6 +11,7 @@ import {
   SaboteurGoalContent,
   SaboteurCardDef,
   SaboteurBoardCell,
+  SaboteurLogEntry,
   SABOTEUR_DRAW_CARDS,
   SABOTEUR_START_CARD,
   SABOTEUR_GOAL_CARD,
@@ -163,6 +164,12 @@ export class SaboteurService {
     return room.players.filter((p) => p.connected !== false).map((p) => p.socketId);
   }
 
+  /** Append a public log entry (newest last, capped). */
+  private pushLog(room: RoomState, entry: Omit<SaboteurLogEntry, 'seq'>): void {
+    const state = room.saboteurState!;
+    state.log = [...(state.log ?? []), { ...entry, seq: (state.log?.length ?? 0) + 1 }].slice(-60);
+  }
+
   /** Deal roles for one round using the official role table (+1 secret leftover).
    * Physical deck: 7 MINER + 4 SABOTEUR cards for up to 10 players. */
   private assignRoles(room: RoomState, playerIds: string[]): void {
@@ -255,6 +262,7 @@ export class SaboteurService {
       revealedGoals: [null, null, null],
       stockCount: deck.length,
       players: {},
+      log: [],
       lastAction: null,
       roundResult: null,
       finalResults: null,
@@ -355,6 +363,7 @@ export class SaboteurService {
     this.setHand(room, playerId, hand);
     state.board[saboteurCellKey(x, y)] = { cardId, rotation };
     state.lastAction = { playerId, kind: 'PLACE', detail: `${cardId}@${x},${y}` };
+    this.pushLog(room, { playerId, kind: 'PLACE', cardId, x, y, rotation });
 
     return this.afterPlayResolved(room, playerId, check.revealedGoalKeys);
   }
@@ -390,6 +399,7 @@ export class SaboteurService {
     this.drawCard(room, playerId);
     this.syncHandSizes(room);
     state.lastAction = { playerId, kind: 'ACTION', detail: cardId };
+    this.pushActionLog(room, playerId, def, payload);
 
     if (this.checkExhaustionEnd(room)) return room;
     this.advanceTurn(room);
@@ -458,6 +468,50 @@ export class SaboteurService {
     }
   }
 
+  private pushActionLog(
+    room: RoomState,
+    playerId: string,
+    def: SaboteurCardDef,
+    payload: {
+      targetPlayerId?: string;
+      repairTool?: SaboteurTool;
+      goalIndex?: number;
+      targetX?: number;
+      targetY?: number;
+    },
+  ): void {
+    const action = def.action!;
+    switch (action.kind) {
+      case SaboteurActionKind.BREAK:
+        this.pushLog(room, {
+          playerId,
+          kind: 'BREAK',
+          tool: action.tools![0],
+          targetId: payload.targetPlayerId,
+        });
+        break;
+      case SaboteurActionKind.REPAIR:
+        this.pushLog(room, {
+          playerId,
+          kind: 'REPAIR',
+          tool: payload.repairTool ?? action.tools![0],
+          targetId: payload.targetPlayerId,
+        });
+        break;
+      case SaboteurActionKind.MAP:
+        this.pushLog(room, { playerId, kind: 'MAP', goalIndex: payload.goalIndex });
+        break;
+      case SaboteurActionKind.ROCKFALL:
+        this.pushLog(room, {
+          playerId,
+          kind: 'ROCKFALL',
+          x: payload.targetX,
+          y: payload.targetY,
+        });
+        break;
+    }
+  }
+
   discard(room: RoomState, playerId: string, cardIndex: number): RoomState | null {
     const state = room.saboteurState;
     if (!state || state.currentPhase !== SaboteurPhase.PLAYING) return null;
@@ -471,6 +525,7 @@ export class SaboteurService {
     this.drawCard(room, playerId);
     this.syncHandSizes(room);
     state.lastAction = { playerId, kind: 'DISCARD' };
+    this.pushLog(room, { playerId, kind: 'DISCARD', cardId: hand[cardIndex]?.cardId });
 
     if (this.checkExhaustionEnd(room)) return room;
     this.advanceTurn(room);
@@ -484,6 +539,7 @@ export class SaboteurService {
     if (state.activePlayerId !== playerId) return null;
 
     state.lastAction = { playerId, kind: 'PASS' };
+    this.pushLog(room, { playerId, kind: 'PASS' });
     this.advanceTurn(room);
     return room;
   }
@@ -554,6 +610,11 @@ export class SaboteurService {
       currentPickerId: pickOrder[0] ?? null,
       picks: {},
     };
+    this.pushLog(room, {
+      playerId: finderId,
+      kind: 'MINERS_WIN',
+      goalIndex: revealedGoalIndex,
+    });
   }
 
   pickGold(room: RoomState, playerId: string, poolIndex: number): RoomState | null {
@@ -571,6 +632,7 @@ export class SaboteurService {
 
     const player = state.players[playerId];
     if (player) player.score += value;
+    this.pushLog(room, { playerId, kind: 'PICK_GOLD', value });
 
     const remaining = (result.pickOrder ?? []).filter((id) => result.picks![id] === undefined);
     result.currentPickerId = remaining[0] ?? null;
@@ -597,6 +659,9 @@ export class SaboteurService {
     for (const id of saboteurs) {
       const player = state.players[id];
       if (player) player.score += bonus;
+    }
+    for (const id of saboteurs) {
+      this.pushLog(room, { playerId: id, kind: 'SABOTEURS_WIN' });
     }
     this.finalizeRound(room);
   }

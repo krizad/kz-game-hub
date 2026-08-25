@@ -50,10 +50,11 @@ export function PathTileSvg({ cardId, rotation = 0, className }: PathTileSvgProp
 
   if (cardId === 'goal') {
     return (
-      <svg viewBox="0 0 100 100" className={className}>
-        <rect width="100" height="100" rx="8" fill="#57534e" />
-        <rect x="6" y="6" width="88" height="88" rx="6" fill="#78716c" />
-        <text x="50" y="66" textAnchor="middle" fontSize="48">
+      <svg viewBox="0 0 100 100" className={className} preserveAspectRatio="none">
+        <rect width="100" height="100" fill="#57534e" />
+        <path d="M0 100 L0 55 Q50 5 100 55 L100 100 Z" fill="#78716c" />
+        <path d="M0 100 L0 70 Q50 30 100 70 L100 100 Z" fill="#8a8580" opacity="0.7" />
+        <text x="50" y="82" textAnchor="middle" fontSize="34">
           ❓
         </text>
       </svg>
@@ -148,11 +149,22 @@ export function ActionCardFace({ cardId, className }: ActionCardFaceProps) {
 }
 
 export function GoalRevealFace({ content }: { content: Exclude<SaboteurGoalContent, null> }) {
+  const gold = content === 'GOLD';
   return (
-    <div className="w-full h-full flex items-center justify-center">
-      <span className="text-xl">{content === 'GOLD' ? '💰' : '🪨'}</span>
+    <div
+      className={clsxSafe(
+        'w-full h-full flex items-center justify-center',
+        gold ? 'bg-yellow-400' : 'bg-stone-500',
+      )}
+    >
+      <span className="text-2xl">{gold ? '💰' : '🪨'}</span>
     </div>
   );
+}
+
+// tiny helper so this module stays dependency-free
+function clsxSafe(...classes: Array<string | false | undefined>): string {
+  return classes.filter(Boolean).join(' ');
 }
 
 export function GoldNuggetValue({ value, className }: { value: number; className?: string }) {

@@ -17,7 +17,7 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
  *
  * SlowMo 600ms keeps the recorded videos human-readable.
  */
-test.use({ launchOptions: { slowMo: 600 } });
+test.use({ launchOptions: { slowMo: 400 } });
 // 4 minutes timeout per demo
 test.setTimeout(240000);
 
@@ -886,8 +886,7 @@ test.describe('Full Game Demos', () => {
 
   // ─── 11. Saboteur ────────────────────────────────────────────────────────
   test('Saboteur Demo', async ({ browser }) => {
-    test.setTimeout(420000); // three full rounds
-    // Saboteur requires minimum 3 players
+    test.setTimeout(600000); // three full rounds    // Saboteur requires minimum 3 players
     const ctxs = await Promise.all([
       browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p1` } }),
       browser.newContext({ recordVideo: { dir: `${videoDir}/saboteur-p2` } }),
@@ -905,7 +904,10 @@ test.describe('Full Game Demos', () => {
     }
 
     // Start the match
-    const startBtn = p1.locator('button').filter({ hasText: /Start Game|เริ่มเกม/i }).first();
+    const startBtn = p1
+      .locator('button')
+      .filter({ hasText: /Start Game|เริ่มเกม/i })
+      .first();
     await startBtn.waitFor({ state: 'visible', timeout: 8000 });
     await startBtn.click();
 
@@ -913,44 +915,115 @@ test.describe('Full Game Demos', () => {
     await expect(p1.locator('[data-testid="saboteur-cell-0,2"]')).toBeVisible({ timeout: 20000 });
     await p1.waitForTimeout(1500);
 
+    /** Clicks the enabled board cell closest to the middle goal row (8,2). */
+    async function clickBestCell(page: Page): Promise<string | null> {
+      // Single in-page pass: score cells and click the winner (fast under slowMo).
+      const best = await page
+        .evaluate(() => {
+          const cells = Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+              '[data-testid^="saboteur-cell-"]:not([disabled])',
+            ),
+          );
+          if (cells.length === 0) return null;
+          let winner: { id: string; score: number } | null = null;
+          for (const el of cells) {
+            const id = el.getAttribute('data-testid') ?? '';
+            const [xs, ys] = id.replace('saboteur-cell-', '').split(',');
+            const score = parseInt(xs ?? '0', 10) * 10 - Math.abs(parseInt(ys ?? '0', 10) - 2);
+            if (!winner || score > winner.score) winner = { id, score };
+          }
+          return winner?.id ?? null;
+        })
+        .catch(() => null);
+      if (!best) return null;
+      await page.locator(`[data-testid="${best}"]`).click();
+      return best;
+    }
+
     /** Performs one board/hand action for whichever page currently has the turn. */
     async function playOneTurn(): Promise<boolean> {
       for (const page of pages) {
-        const handBtns = page.locator('[data-testid^="saboteur-hand-"]');
-        if ((await handBtns.count()) === 0) continue;
-        const firstCard = handBtns.first();
-        if (!(await firstCard.isEnabled().catch(() => false))) continue;
+        const store = await page
+          .evaluate(() => {
+            const st = (window as any).__useGameStore?.getState?.();
+            const s = st?.room?.saboteurState;
+            if (!s) return null;
+            return {
+              me: st.socketId as string,
+              active: s.activePlayerId as string,
+              phase: s.currentPhase as string,
+              hand: (st.privateState?.sbHand ?? []).map((c: any) => c.cardId) as string[],
+              broken: (s.players?.[st.socketId]?.brokenTools ?? []) as string[],
+            };
+          })
+          .catch(() => null);
+        if (!store || store.phase !== 'PLAYING' || store.active !== store.me) continue;
+        if (store.hand.length === 0) continue;
 
-        // Try every card: pick it, then look for an enabled board cell.
-        for (let i = 0; i < (await handBtns.count()); i++) {
-          const card = handBtns.nth(i);
-          if (!(await card.isEnabled().catch(() => false))) continue;
-          await card.click();
-          await page.waitForTimeout(400);
-
-          let enabledCell = page.locator('[data-testid^="saboteur-cell-"]:not([disabled])');
-          if ((await enabledCell.count()) === 0) {
-            // Path cards may need the 180° rotation to fit anywhere
-            const rotateBtn = page.locator('button', { hasText: /180°/ }).first();
-            if (await rotateBtn.isVisible().catch(() => false)) {
-              await rotateBtn.click();
-              await page.waitForTimeout(300);
-            }
-          }
-          enabledCell = page.locator('[data-testid^="saboteur-cell-"]:not([disabled])');
-          if ((await enabledCell.count()) > 0) {
-            await enabledCell.first().click(); // place tile / map peek / rockfall
+        // Blocked? Repair our own tool first so we can build again.
+        if (store.broken.length > 0) {
+          const repairIdx = store.hand.findIndex((id) => {
+            if (!id.startsWith('action-repair')) return false;
+            const tools = id.replace('action-repair-', '').split('-');
+            return store.broken.some((tool) =>
+              tools.some((t) => t.toLowerCase().startsWith(tool.slice(0, 4).toLowerCase())),
+            );
+          });
+          if (repairIdx >= 0) {
+            await page.locator(`[data-testid="saboteur-hand-${repairIdx}"]`).click();
+            await page.waitForTimeout(120);
+            await page.locator(`[data-testid="saboteur-player-${store.me}"]`).click();
+            console.log(`[act] ${store.me.slice(-4)} repair-self ${store.hand[repairIdx]}`);
             return true;
           }
         }
 
+        // Try path cards first — building toward the gold is the fastest route.
+        const order = store.hand
+          .map((cardId, idx) => ({ cardId, idx }))
+          .sort((a, b) => {
+            const aPath = a.cardId.startsWith('path-') ? 0 : 1;
+            const bPath = b.cardId.startsWith('path-') ? 0 : 1;
+            return aPath - bPath;
+          });
+
+        const handBtns = page.locator('[data-testid^="saboteur-hand-"]');
+        for (const { cardId, idx } of order) {
+          const card = handBtns.nth(idx);
+          if (!(await card.isEnabled().catch(() => false))) continue;
+          await card.click();
+          await page.waitForTimeout(120);
+
+          const cellId = await clickBestCell(page);
+          if (cellId) {
+            console.log(`[act] ${store.me.slice(-4)} card=${cardId} -> ${cellId}`);
+            return true;
+          }
+          // Path cards may need the 180° rotation to fit anywhere
+          const rotateBtn = page.locator('button', { hasText: /180°/ }).first();
+          if (await rotateBtn.isVisible().catch(() => false)) {
+            await rotateBtn.click();
+            await page.waitForTimeout(100);
+            const rotId = await clickBestCell(page);
+            if (rotId) {
+              console.log(`[act] ${store.me.slice(-4)} card=${cardId} rot -> ${rotId}`);
+              return true;
+            }
+          }
+        }
+
         // Nothing placeable — discard the selected card instead
-        const discardBtn = page.locator('button').filter({ hasText: /Discard|ทิ้ง/i }).first();
+        const discardBtn = page
+          .locator('button')
+          .filter({ hasText: /Discard|ทิ้ง/i })
+          .first();
         if (!(await discardBtn.isVisible().catch(() => false))) {
           await handBtns.first().click(); // select card 0 to reveal its actions
           await discardBtn.waitFor({ state: 'visible', timeout: 3000 });
         }
         await discardBtn.click();
+        console.log(`[act] ${store.me.slice(-4)} discard ${store.hand[0]}`);
         return true;
       }
       return false;
@@ -969,23 +1042,70 @@ test.describe('Full Game Demos', () => {
     }
 
     // Drive the whole match: 3 rounds of digging until Game Over
+    let sameTurnStreak = 0;
+    let lastActive = '';
     for (let step = 0; step < 400; step++) {
-      if (await p1.getByText(/Game Over|จบเกม/i).first().isVisible().catch(() => false)) break;
+      if (
+        await p1
+          .getByText(/Game Over|จบเกม/i)
+          .first()
+          .isVisible()
+          .catch(() => false)
+      )
+        break;
 
       if (await tryPickGold()) {
-        await p1.waitForTimeout(700);
+        await p1.waitForTimeout(400);
         continue;
       }
 
-      const nextRoundBtn = p1.locator('button').filter({ hasText: /Next Round|เริ่มรอบถัดไป/i }).first();
+      const nextRoundBtn = p1
+        .locator('button')
+        .filter({ hasText: /Next Round|เริ่มรอบถัดไป/i })
+        .first();
       if (await nextRoundBtn.isVisible().catch(() => false)) {
         await nextRoundBtn.click();
-        await p1.waitForTimeout(1200);
+        await p1.waitForTimeout(700);
         continue;
       }
 
       if (!(await playOneTurn())) {
         await p1.waitForTimeout(600);
+        continue;
+      }
+
+      await p1.waitForTimeout(300);
+      const active = await p1
+        .evaluate(() => {
+          const st = (window as any).__useGameStore?.getState?.();
+          return `${st?.room?.saboteurState?.activePlayerId}|${st?.room?.saboteurState?.stockCount}`;
+        })
+        .catch(() => 'eval-err');
+      if (active === lastActive) {
+        sameTurnStreak++;
+        if (sameTurnStreak >= 6) {
+          const dump = await p1
+            .evaluate(() => {
+              const st = (window as any).__useGameStore?.getState?.();
+              const s = st?.room?.saboteurState;
+              return {
+                active: s?.activePlayerId,
+                phase: s?.currentPhase,
+                board: s?.board,
+                lastAction: s?.lastAction,
+                toasts: Array.from(document.querySelectorAll('[class*="toast"]')).map(
+                  (t) => t.textContent,
+                ),
+              };
+            })
+            .catch(() => null);
+          throw new Error(
+            `Turn stalled on ${active} — server rejecting actions. Dump: ${JSON.stringify(dump)}`,
+          );
+        }
+      } else {
+        sameTurnStreak = 0;
+        lastActive = active;
       }
     }
 
@@ -997,7 +1117,10 @@ test.describe('Full Game Demos', () => {
     await p1.waitForTimeout(2000);
 
     // Host wraps up the demo back in the lobby
-    await p1.locator('button').filter({ hasText: /Back to Lobby|กลับห้องล็อบบี้/i }).click();
+    await p1
+      .locator('button')
+      .filter({ hasText: /Back to Lobby|กลับห้องล็อบบี้/i })
+      .click();
     await expect(p1.getByText(/Waiting Room|ห้องรอ/i)).toBeVisible({ timeout: 10000 });
     await p1.waitForTimeout(2500);
 
