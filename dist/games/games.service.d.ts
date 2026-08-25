@@ -9,6 +9,7 @@ import { WhoAmIService } from './who-am-i/who-am-i.service';
 import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
+import { SaboteurService } from './saboteur/saboteur.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -35,12 +36,13 @@ export declare class GamesService {
     private readonly whoFirstService;
     private readonly musicTriviaService;
     private readonly theMindService;
+    private readonly saboteurService;
     private readonly playerSessionService;
     private readonly privateStateService;
     private readonly roomTimerService;
     private rooms;
     private readonly secretWords;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
@@ -98,6 +100,20 @@ export declare class GamesService {
     detectiveClubVote(code: string, clientId: string, targetId: string): RoomState | null;
     detectiveClubNextRound(code: string, clientId: string): RoomState | null;
     detectiveClubReset(code: string, clientId: string): RoomState | null;
+    saboteurPlacePath(code: string, clientId: string, cardIndex: number, x: number, y: number, rotation: 0 | 180): RoomState | null;
+    saboteurPlayAction(code: string, clientId: string, payload: {
+        cardIndex: number;
+        targetPlayerId?: string;
+        repairTool?: import('@repo/types').SaboteurTool;
+        goalIndex?: number;
+        targetX?: number;
+        targetY?: number;
+    }): RoomState | null;
+    saboteurDiscard(code: string, clientId: string, cardIndex: number): RoomState | null;
+    saboteurPickGold(code: string, clientId: string, poolIndex: number): RoomState | null;
+    saboteurNextRound(code: string, clientId: string): RoomState | null;
+    saboteurReset(code: string, clientId: string): RoomState | null;
+    saboteurAutoPass(code: string, clientId: string): RoomState | null;
     whoAmISubmitPlayerWord(code: string, clientId: string, word: string): {
         room: RoomState;
         error?: string;

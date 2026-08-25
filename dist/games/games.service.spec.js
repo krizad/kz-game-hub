@@ -12,6 +12,7 @@ const who_am_i_service_1 = require("./who-am-i/who-am-i.service");
 const who_first_service_1 = require("./who-first/who-first.service");
 const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
+const saboteur_service_1 = require("./saboteur/saboteur.service");
 const types_1 = require("@repo/types");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
@@ -86,6 +87,18 @@ describe('GamesService', () => {
             reset: jest.fn(),
             remapSocketId: detective_club_service_1.DetectiveClubService.prototype.remapSocketId,
         },
+        saboteur: {
+            startGame: jest.fn(),
+            placePath: jest.fn(),
+            playAction: jest.fn(),
+            discard: jest.fn(),
+            pickGold: jest.fn(),
+            nextRound: jest.fn(),
+            autoPass: jest.fn(),
+            reset: jest.fn(),
+            handlePlayerDisconnect: jest.fn(),
+            remapSocketId: saboteur_service_1.SaboteurService.prototype.remapSocketId,
+        },
         whoAmI: {
             getCategories: jest.fn(),
             startGameHostInput: jest.fn(),
@@ -141,6 +154,7 @@ describe('GamesService', () => {
                 { provide: who_first_service_1.WhoFirstService, useValue: mockGameServices.whoFirst },
                 { provide: music_trivia_service_1.MusicTriviaService, useValue: mockGameServices.musicTrivia },
                 { provide: the_mind_service_1.TheMindService, useValue: mockGameServices.theMind },
+                { provide: saboteur_service_1.SaboteurService, useValue: mockGameServices.saboteur },
                 player_session_service_1.PlayerSessionService,
                 private_state_service_1.PrivateStateService,
                 room_timer_service_1.RoomTimerService,

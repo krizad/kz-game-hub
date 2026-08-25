@@ -457,6 +457,69 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
         }
     }
+    handleSaboteurPlacePath(data, client) {
+        const rotation = data.rotation === 180 ? 180 : 0;
+        const room = this.gamesService.saboteurPlacePath(data.code, client.id, data.cardIndex, data.x, data.y, rotation);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid tile placement' });
+        }
+    }
+    handleSaboteurPlayAction(data, client) {
+        const room = this.gamesService.saboteurPlayAction(data.code, client.id, {
+            cardIndex: data.cardIndex,
+            targetPlayerId: data.targetPlayerId,
+            repairTool: data.repairTool,
+            goalIndex: data.goalIndex,
+            targetX: data.targetX,
+            targetY: data.targetY,
+        });
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid action card' });
+        }
+    }
+    handleSaboteurDiscard(data, client) {
+        const room = this.gamesService.saboteurDiscard(data.code, client.id, data.cardIndex);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot discard card' });
+        }
+    }
+    handleSaboteurPickGold(data, client) {
+        const room = this.gamesService.saboteurPickGold(data.code, client.id, data.poolIndex);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot pick gold' });
+        }
+    }
+    handleSaboteurNextRound(data, client) {
+        const room = this.gamesService.saboteurNextRound(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to move to next round' });
+        }
+    }
+    handleSaboteurReset(data, client) {
+        const room = this.gamesService.saboteurReset(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
+        }
+    }
     handleWhoAmISubmitWords(data, client) {
         const room = this.gamesService.whoAmIStartHostInput(data.code, client.id, data.playerWords);
         if (room) {
@@ -627,6 +690,34 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     broadcastRoomState(room) {
         this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
         this.emitPrivateStates(room);
+        if (room.gameType === types_1.GameType.SABOTEUR) {
+            this.syncSaboteurTimer(room);
+        }
+    }
+    syncSaboteurTimer(room) {
+        const state = room.saboteurState;
+        const enabled = room.config.saboteurTurnTimerEnabled;
+        const seconds = room.config.saboteurTurnTimerSeconds ?? 60;
+        if (!enabled || !state || state.currentPhase !== 'PLAYING' || !state.activePlayerId) {
+            this.roomTimerService.cancel(room.code, 'saboteur');
+            return;
+        }
+        const activePlayerId = state.activePlayerId;
+        const deadline = Date.now() + seconds * 1000;
+        this.roomTimerService.schedule(room.code, 'saboteur', deadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            const currentState = currentRoom?.saboteurState;
+            if (!currentRoom ||
+                !currentState ||
+                currentState.currentPhase !== 'PLAYING' ||
+                currentState.activePlayerId !== activePlayerId) {
+                return;
+            }
+            const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
+            if (updatedRoom) {
+                this.broadcastRoomState(updatedRoom);
+            }
+        });
     }
     emitPrivateStates(room) {
         for (const player of room.players) {
@@ -747,6 +838,27 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (event === types_1.SOCKET_EVENTS.GAME_ACTION) {
             return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
+        }
+        const isSmallInt = (v) => typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
+        if (event === types_1.SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
+            return (isSmallInt(data.cardIndex) &&
+                isSmallInt(data.x) &&
+                isSmallInt(data.y) &&
+                (data.rotation === 0 || data.rotation === 180));
+        }
+        if (event === types_1.SOCKET_EVENTS.SABOTEUR_PLAY_ACTION) {
+            return (isSmallInt(data.cardIndex) &&
+                (data.targetPlayerId === undefined || typeof data.targetPlayerId === 'string') &&
+                (data.repairTool === undefined || typeof data.repairTool === 'string') &&
+                (data.goalIndex === undefined || isSmallInt(data.goalIndex)) &&
+                (data.targetX === undefined || isSmallInt(data.targetX)) &&
+                (data.targetY === undefined || isSmallInt(data.targetY)));
+        }
+        if (event === types_1.SOCKET_EVENTS.SABOTEUR_DISCARD) {
+            return isSmallInt(data.cardIndex);
+        }
+        if (event === types_1.SOCKET_EVENTS.SABOTEUR_PICK_GOLD) {
+            return isSmallInt(data.poolIndex);
         }
         return true;
     }
@@ -1066,6 +1178,54 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleDetectiveClubReset", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SABOTEUR_PLACE_PATH),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleSaboteurPlacePath", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SABOTEUR_PLAY_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleSaboteurPlayAction", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SABOTEUR_DISCARD),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleSaboteurDiscard", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SABOTEUR_PICK_GOLD),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleSaboteurPickGold", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SABOTEUR_NEXT_ROUND),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleSaboteurNextRound", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SABOTEUR_RESET),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleSaboteurReset", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS),
     __param(0, (0, websockets_1.MessageBody)()),

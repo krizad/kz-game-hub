@@ -138,6 +138,36 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleDetectiveClubReset(data: {
         code: string;
     }, client: Socket): void;
+    handleSaboteurPlacePath(data: {
+        code: string;
+        cardIndex: number;
+        x: number;
+        y: number;
+        rotation: number;
+    }, client: Socket): void;
+    handleSaboteurPlayAction(data: {
+        code: string;
+        cardIndex: number;
+        targetPlayerId?: string;
+        repairTool?: string;
+        goalIndex?: number;
+        targetX?: number;
+        targetY?: number;
+    }, client: Socket): void;
+    handleSaboteurDiscard(data: {
+        code: string;
+        cardIndex: number;
+    }, client: Socket): void;
+    handleSaboteurPickGold(data: {
+        code: string;
+        poolIndex: number;
+    }, client: Socket): void;
+    handleSaboteurNextRound(data: {
+        code: string;
+    }, client: Socket): void;
+    handleSaboteurReset(data: {
+        code: string;
+    }, client: Socket): void;
     handleWhoAmISubmitWords(data: {
         code: string;
         playerWords: Record<string, string>;
@@ -182,6 +212,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         name: string;
     }, client: Socket): void;
     private broadcastRoomState;
+    private syncSaboteurTimer;
     private emitPrivateStates;
     private emitSessionToken;
     private applyMusicTriviaTimers;

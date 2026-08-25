@@ -23,11 +23,12 @@ const who_am_i_service_1 = require("./who-am-i/who-am-i.service");
 const who_first_service_1 = require("./who-first/who-first.service");
 const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
+const saboteur_service_1 = require("./saboteur/saboteur.service");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
 let GamesService = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, playerSessionService, privateStateService, roomTimerService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, playerSessionService, privateStateService, roomTimerService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -38,6 +39,7 @@ let GamesService = class GamesService {
         this.whoFirstService = whoFirstService;
         this.musicTriviaService = musicTriviaService;
         this.theMindService = theMindService;
+        this.saboteurService = saboteurService;
         this.playerSessionService = playerSessionService;
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
@@ -140,6 +142,10 @@ let GamesService = class GamesService {
         }
         else if (gameType === types_1.GameType.THE_MIND) {
         }
+        else if (gameType === types_1.GameType.SABOTEUR) {
+            room.config.saboteurTurnTimerEnabled = false;
+            room.config.saboteurTurnTimerSeconds = 60;
+        }
         this.rooms.set(code, room);
         return room;
     }
@@ -188,6 +194,9 @@ let GamesService = class GamesService {
             }
             if (room.musicTriviaState) {
                 this.musicTriviaService.remapSocketId(room.musicTriviaState, oldSocketId, user.socketId);
+            }
+            if (room.saboteurState) {
+                this.saboteurService.remapSocketId(room.saboteurState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -256,6 +265,9 @@ let GamesService = class GamesService {
             }
             if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
                 this.detectiveClubService.handlePlayerDisconnect(room, clientId);
+            }
+            if (room.gameType === types_1.GameType.SABOTEUR && room.saboteurState) {
+                this.saboteurService.handlePlayerDisconnect(room, clientId);
             }
             const activePlayers = room.players.filter((p) => p.connected !== false).length;
             if (activePlayers === 0) {
@@ -359,6 +371,8 @@ let GamesService = class GamesService {
         copyEnum('theMindMode', ['NORMAL', 'EXTREME']);
         copyBoolean('theMindTimeAttack');
         copyInteger('theMindMaxLevel', 1, 20);
+        copyBoolean('saboteurTurnTimerEnabled');
+        copyInteger('saboteurTurnTimerSeconds', 5, 300);
         return result;
     }
     withRoom(code, mutate) {
@@ -416,6 +430,10 @@ let GamesService = class GamesService {
         }
         if (room.gameType === types_1.GameType.THE_MIND) {
             const startedRoom = this.withRoom(code, (r) => this.theMindService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
+        if (room.gameType === types_1.GameType.SABOTEUR) {
+            const startedRoom = this.withRoom(code, (r) => this.saboteurService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
         return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
@@ -551,6 +569,27 @@ let GamesService = class GamesService {
     detectiveClubReset(code, clientId) {
         return this.withRoom(code, (room) => this.detectiveClubService.reset(room, clientId));
     }
+    saboteurPlacePath(code, clientId, cardIndex, x, y, rotation) {
+        return this.withRoom(code, (room) => this.saboteurService.placePath(room, clientId, cardIndex, x, y, rotation));
+    }
+    saboteurPlayAction(code, clientId, payload) {
+        return this.withRoom(code, (room) => this.saboteurService.playAction(room, clientId, payload));
+    }
+    saboteurDiscard(code, clientId, cardIndex) {
+        return this.withRoom(code, (room) => this.saboteurService.discard(room, clientId, cardIndex));
+    }
+    saboteurPickGold(code, clientId, poolIndex) {
+        return this.withRoom(code, (room) => this.saboteurService.pickGold(room, clientId, poolIndex));
+    }
+    saboteurNextRound(code, clientId) {
+        return this.withRoom(code, (room) => this.saboteurService.nextRound(room, clientId));
+    }
+    saboteurReset(code, clientId) {
+        return this.withRoom(code, (room) => this.saboteurService.reset(room, clientId));
+    }
+    saboteurAutoPass(code, clientId) {
+        return this.withRoom(code, (room) => this.saboteurService.autoPass(room, clientId));
+    }
     whoAmISubmitPlayerWord(code, clientId, word) {
         const room = this.rooms.get(code);
         if (!room)
@@ -661,6 +700,7 @@ exports.GamesService = GamesService = __decorate([
         who_first_service_1.WhoFirstService,
         music_trivia_service_1.MusicTriviaService,
         the_mind_service_1.TheMindService,
+        saboteur_service_1.SaboteurService,
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
         room_timer_service_1.RoomTimerService])
