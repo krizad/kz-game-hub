@@ -264,7 +264,11 @@ export class GamesService {
       const playerIndex = room.players.findIndex((p) => p.socketId === clientId);
       if (playerIndex === -1) continue;
 
-      if (room.roomHostId === clientId && (explicitLeave || room.status === RoomStatus.LOBBY)) {
+      const isHost = room.roomHostId === clientId;
+
+      // Only an explicit leave by the host closes the room. A lost connection
+      // keeps it alive and hands ownership to a remaining connected player.
+      if (isHost && explicitLeave) {
         this.deleteRoomData(code);
         return { outcome: 'ROOM_CLOSED', code };
       }
@@ -285,6 +289,10 @@ export class GamesService {
       } else {
         room.players[playerIndex].connected = false;
         this.privateStateService.clearSocket(code, clientId);
+      }
+
+      if (isHost && !explicitLeave) {
+        this.transferHost(room, clientId);
       }
 
       if (room.gameType === GameType.WHO_KNOW && room.status === RoomStatus.VOTING) {
@@ -310,6 +318,15 @@ export class GamesService {
       return { outcome: 'PLAYER_LEFT', room };
     }
     return { outcome: 'NOT_IN_ROOM' };
+  }
+
+  /** Hand room ownership to the first remaining connected player after the host lost connection. */
+  private transferHost(room: RoomState, formerHostSocketId: string): void {
+    const nextHost = room.players.find(
+      (p) => p.connected !== false && p.socketId !== formerHostSocketId,
+    );
+    if (!nextHost) return;
+    room.roomHostId = nextHost.socketId;
   }
 
   private deleteRoomData(code: string): void {
