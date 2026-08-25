@@ -22,6 +22,7 @@ export declare class SaboteurService {
     private drawCard;
     private syncHandSizes;
     private connectedPlayerIds;
+    private pushLog;
     private assignRoles;
     private buildInitialBoard;
     private initPlayers;
@@ -39,6 +40,7 @@ export declare class SaboteurService {
         targetY?: number;
     }): RoomState | null;
     private applyAction;
+    private pushActionLog;
     discard(room: RoomState, playerId: string, cardIndex: number): RoomState | null;
     autoPass(room: RoomState, playerId: string): RoomState | null;
     private afterPlayResolved;
