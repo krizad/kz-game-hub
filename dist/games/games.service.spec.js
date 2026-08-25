@@ -355,11 +355,49 @@ describe('GamesService', () => {
             service.leaveRoom('host1', true);
             expect(cancelSpy).toHaveBeenCalledWith(room.code);
         });
-        it('should close room if host leaves from LOBBY (even on disconnect)', () => {
+        it('should empty room when host alone in LOBBY loses connection', () => {
             const room = service.createRoom('host1');
             service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
             const result = service.leaveRoom('host1', false);
-            expect(result).toEqual({ outcome: 'ROOM_CLOSED', code: room.code });
+            expect(result).toEqual({ outcome: 'ROOM_EMPTIED', code: room.code });
+            expect(service.getRoom(room.code)).toBeUndefined();
+        });
+        it('should keep room and transfer host to a remaining player on host disconnect from LOBBY', () => {
+            const room = service.createRoom('host1');
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            service.joinRoom(room.code, { id: 'p2', name: 'Player2', socketId: 'p2' });
+            const result = service.leaveRoom('host1', false);
+            expect(result.outcome).toBe('PLAYER_LEFT');
+            if (result.outcome === 'PLAYER_LEFT') {
+                expect(result.room.roomHostId).toBe('p1');
+                expect(result.room.players.map((p) => p.socketId)).toEqual(['p1', 'p2']);
+            }
+            expect(service.getRoom(room.code)).toBeDefined();
+        });
+        it('should transfer host to a connected player when host disconnects mid-game', () => {
+            const room = service.createRoom('host1');
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            room.status = types_1.RoomStatus.PLAYING;
+            service.rooms.set(room.code, room);
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            const result = service.leaveRoom('host1', false);
+            expect(result.outcome).toBe('PLAYER_LEFT');
+            if (result.outcome === 'PLAYER_LEFT') {
+                expect(result.room.roomHostId).toBe('p1');
+                expect(result.room.players[0].connected).toBe(false);
+            }
+            expect(service.getRoom(room.code)).toBeDefined();
+        });
+        it('should not transfer host to disconnected players', () => {
+            const room = service.createRoom('host1');
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            room.status = types_1.RoomStatus.PLAYING;
+            service.rooms.set(room.code, room);
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            service.leaveRoom('p1', false);
+            const result = service.leaveRoom('host1', false);
+            expect(result).toEqual({ outcome: 'ROOM_EMPTIED', code: room.code });
             expect(service.getRoom(room.code)).toBeUndefined();
         });
         it('should remove player on explicit leave', () => {

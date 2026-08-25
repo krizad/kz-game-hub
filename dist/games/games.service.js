@@ -233,7 +233,8 @@ let GamesService = class GamesService {
             const playerIndex = room.players.findIndex((p) => p.socketId === clientId);
             if (playerIndex === -1)
                 continue;
-            if (room.roomHostId === clientId && (explicitLeave || room.status === types_1.RoomStatus.LOBBY)) {
+            const isHost = room.roomHostId === clientId;
+            if (isHost && explicitLeave) {
                 this.deleteRoomData(code);
                 return { outcome: 'ROOM_CLOSED', code };
             }
@@ -258,6 +259,9 @@ let GamesService = class GamesService {
                 room.players[playerIndex].connected = false;
                 this.privateStateService.clearSocket(code, clientId);
             }
+            if (isHost && !explicitLeave) {
+                this.transferHost(room, clientId);
+            }
             if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
                 this.whoKnowService.checkVoteResolution(room);
             }
@@ -279,6 +283,12 @@ let GamesService = class GamesService {
             return { outcome: 'PLAYER_LEFT', room };
         }
         return { outcome: 'NOT_IN_ROOM' };
+    }
+    transferHost(room, formerHostSocketId) {
+        const nextHost = room.players.find((p) => p.connected !== false && p.socketId !== formerHostSocketId);
+        if (!nextHost)
+            return;
+        room.roomHostId = nextHost.socketId;
     }
     deleteRoomData(code) {
         this.rooms.delete(code);

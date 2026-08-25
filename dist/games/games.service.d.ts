@@ -51,6 +51,7 @@ export declare class GamesService {
     createRoom(hostId: string, gameType?: GameType): RoomState;
     joinRoom(code: string, user: Omit<UserState, 'score' | 'roomId' | 'role'>, reconnectToken?: string): RoomState | null;
     leaveRoom(clientId: string, explicitLeave?: boolean): LeaveRoomResult;
+    private transferHost;
     private deleteRoomData;
     getAvailableRooms(): {
         code: string;
