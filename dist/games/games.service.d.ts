@@ -40,6 +40,7 @@ export declare class GamesService {
     private readonly playerSessionService;
     private readonly privateStateService;
     private readonly roomTimerService;
+    private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
     constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
@@ -51,6 +52,10 @@ export declare class GamesService {
     createRoom(hostId: string, gameType?: GameType): RoomState;
     joinRoom(code: string, user: Omit<UserState, 'score' | 'roomId' | 'role'>, reconnectToken?: string): RoomState | null;
     leaveRoom(clientId: string, explicitLeave?: boolean): LeaveRoomResult;
+    private removeExpiredPlayer;
+    private scheduleReconnectGrace;
+    private removePlayerFromRoom;
+    private runDisconnectHooks;
     private transferHost;
     private deleteRoomData;
     getAvailableRooms(): {

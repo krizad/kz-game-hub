@@ -1328,6 +1328,8 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
         cors: {
             origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
         },
+        pingInterval: 20_000,
+        pingTimeout: 60_000,
     }),
     __metadata("design:paramtypes", [games_service_1.GamesService,
         leaderboard_service_1.LeaderboardService,

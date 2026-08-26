@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var GamesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GamesService = void 0;
 const common_1 = require("@nestjs/common");
@@ -27,7 +28,8 @@ const saboteur_service_1 = require("./saboteur/saboteur.service");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
-let GamesService = class GamesService {
+const RECONNECT_GRACE_TIMER = 'reconnect-grace';
+let GamesService = GamesService_1 = class GamesService {
     constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, playerSessionService, privateStateService, roomTimerService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
@@ -167,6 +169,7 @@ let GamesService = class GamesService {
             const oldSocketId = existingPlayer.socketId;
             existingPlayer.socketId = user.socketId;
             existingPlayer.connected = true;
+            this.roomTimerService.cancel(code, `${RECONNECT_GRACE_TIMER}:${existingPlayer.id}`);
             if (room.roomHostId === oldSocketId) {
                 room.roomHostId = user.socketId;
             }
@@ -241,51 +244,82 @@ let GamesService = class GamesService {
                 this.deleteRoomData(code);
                 return { outcome: 'ROOM_CLOSED', code };
             }
-            if (explicitLeave || room.status === types_1.RoomStatus.LOBBY) {
-                this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
-                room.players.splice(playerIndex, 1);
-                this.privateStateService.clearSocket(code, clientId);
-                if (room.ticTacToeState) {
-                    if (room.ticTacToeState.playerXId === clientId)
-                        room.ticTacToeState.playerXId = undefined;
-                    if (room.ticTacToeState.playerOId === clientId)
-                        room.ticTacToeState.playerOId = undefined;
-                }
-                if (room.gobblerState) {
-                    if (room.gobblerState.playerXId === clientId)
-                        room.gobblerState.playerXId = undefined;
-                    if (room.gobblerState.playerOId === clientId)
-                        room.gobblerState.playerOId = undefined;
+            if (explicitLeave) {
+                this.removePlayerFromRoom(code, room, playerIndex);
+                const activePlayers = room.players.filter((p) => p.connected !== false).length;
+                if (activePlayers === 0) {
+                    this.deleteRoomData(code);
+                    return { outcome: 'ROOM_EMPTIED', code };
                 }
             }
             else {
-                room.players[playerIndex].connected = false;
+                const dropped = room.players[playerIndex];
+                dropped.connected = false;
                 this.privateStateService.clearSocket(code, clientId);
+                this.scheduleReconnectGrace(code, dropped.id);
+                this.runDisconnectHooks(code, room, clientId);
             }
             if (isHost && !explicitLeave) {
                 this.transferHost(room, clientId);
-            }
-            if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
-                this.whoKnowService.checkVoteResolution(room);
-            }
-            if (room.gameType === types_1.GameType.SOUNDS_FISHY && room.status === types_1.RoomStatus.QUESTIONING) {
-                this.soundsFishyService.checkAnswerResolution(room);
-            }
-            if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
-                this.detectiveClubService.handlePlayerDisconnect(room, clientId);
-            }
-            if (room.gameType === types_1.GameType.SABOTEUR && room.saboteurState) {
-                this.saboteurService.handlePlayerDisconnect(room, clientId);
-            }
-            const activePlayers = room.players.filter((p) => p.connected !== false).length;
-            if (activePlayers === 0) {
-                this.deleteRoomData(code);
-                return { outcome: 'ROOM_EMPTIED', code };
             }
             this.rooms.set(code, room);
             return { outcome: 'PLAYER_LEFT', room };
         }
         return { outcome: 'NOT_IN_ROOM' };
+    }
+    removeExpiredPlayer(code, playerId) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return;
+        const playerIndex = room.players.findIndex((p) => p.id === playerId);
+        if (playerIndex === -1 || room.players[playerIndex].connected !== false)
+            return;
+        const socketId = room.players[playerIndex].socketId;
+        const wasHost = room.roomHostId === socketId;
+        this.removePlayerFromRoom(code, room, playerIndex);
+        if (wasHost) {
+            this.transferHost(room, socketId);
+        }
+        if (!room.players.some((p) => p.connected !== false)) {
+            this.deleteRoomData(code);
+            return;
+        }
+        this.rooms.set(code, room);
+    }
+    scheduleReconnectGrace(code, playerId) {
+        this.roomTimerService.schedule(code, `${RECONNECT_GRACE_TIMER}:${playerId}`, Date.now() + GamesService_1.RECONNECT_GRACE_MS, () => this.removeExpiredPlayer(code, playerId));
+    }
+    removePlayerFromRoom(code, room, playerIndex) {
+        const [player] = room.players.splice(playerIndex, 1);
+        this.playerSessionService.revokePlayer(code, player.id);
+        this.privateStateService.clearSocket(code, player.socketId);
+        if (room.ticTacToeState) {
+            if (room.ticTacToeState.playerXId === player.socketId)
+                room.ticTacToeState.playerXId = undefined;
+            if (room.ticTacToeState.playerOId === player.socketId)
+                room.ticTacToeState.playerOId = undefined;
+        }
+        if (room.gobblerState) {
+            if (room.gobblerState.playerXId === player.socketId)
+                room.gobblerState.playerXId = undefined;
+            if (room.gobblerState.playerOId === player.socketId)
+                room.gobblerState.playerOId = undefined;
+        }
+        this.runDisconnectHooks(code, room, player.socketId);
+    }
+    runDisconnectHooks(code, room, socketId) {
+        if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
+            this.whoKnowService.checkVoteResolution(room);
+        }
+        if (room.gameType === types_1.GameType.SOUNDS_FISHY && room.status === types_1.RoomStatus.QUESTIONING) {
+            this.soundsFishyService.checkAnswerResolution(room);
+        }
+        if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
+            this.detectiveClubService.handlePlayerDisconnect(room, socketId);
+        }
+        if (room.gameType === types_1.GameType.SABOTEUR && room.saboteurState) {
+            this.saboteurService.handlePlayerDisconnect(room, socketId);
+        }
     }
     transferHost(room, formerHostSocketId) {
         const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId);
@@ -807,7 +841,8 @@ let GamesService = class GamesService {
     }
 };
 exports.GamesService = GamesService;
-exports.GamesService = GamesService = __decorate([
+GamesService.RECONNECT_GRACE_MS = 60_000;
+exports.GamesService = GamesService = GamesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [who_know_service_1.WhoKnowService,
         tic_tac_toe_service_1.TicTacToeService,
