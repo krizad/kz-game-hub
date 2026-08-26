@@ -34,8 +34,14 @@ export type LeaveRoomResult =
   | { outcome: 'PLAYER_LEFT'; room: RoomState }
   | { outcome: 'NOT_IN_ROOM' };
 
+/** RoomTimerService timer name prefix for per-player reconnect grace windows. */
+const RECONNECT_GRACE_TIMER = 'reconnect-grace';
+
 @Injectable()
 export class GamesService {
+  /** How long a dropped connection may reclaim its seat before being removed. */
+  private static readonly RECONNECT_GRACE_MS = 60_000;
+
   private rooms: Map<string, RoomState> = new Map();
   private readonly secretWords: Map<string, string> = new Map();
 
@@ -186,6 +192,12 @@ export class GamesService {
       existingPlayer.socketId = user.socketId;
       existingPlayer.connected = true;
 
+      // Player made it back within the grace window — cancel pending removal.
+      this.roomTimerService.cancel(
+        code,
+        `${RECONNECT_GRACE_TIMER}:${existingPlayer.id}`,
+      );
+
       if (room.roomHostId === oldSocketId) {
         room.roomHostId = user.socketId;
       }
@@ -277,51 +289,108 @@ export class GamesService {
         return { outcome: 'ROOM_CLOSED', code };
       }
 
-      if (explicitLeave || room.status === RoomStatus.LOBBY) {
-        this.playerSessionService.revokePlayer(code, room.players[playerIndex].id);
-        room.players.splice(playerIndex, 1);
-        this.privateStateService.clearSocket(code, clientId);
+      if (explicitLeave) {
+        this.removePlayerFromRoom(code, room, playerIndex);
 
-        if (room.ticTacToeState) {
-          if (room.ticTacToeState.playerXId === clientId) room.ticTacToeState.playerXId = undefined;
-          if (room.ticTacToeState.playerOId === clientId) room.ticTacToeState.playerOId = undefined;
-        }
-        if (room.gobblerState) {
-          if (room.gobblerState.playerXId === clientId) room.gobblerState.playerXId = undefined;
-          if (room.gobblerState.playerOId === clientId) room.gobblerState.playerOId = undefined;
+        const activePlayers = room.players.filter((p) => p.connected !== false).length;
+        if (activePlayers === 0) {
+          this.deleteRoomData(code);
+          return { outcome: 'ROOM_EMPTIED', code };
         }
       } else {
-        room.players[playerIndex].connected = false;
+        // Lost connection (network blip, app backgrounded, ...): keep the
+        // seat — and its session token — alive for a short grace window so
+        // the player can silently rejoin instead of being kicked.
+        const dropped = room.players[playerIndex];
+        dropped.connected = false;
         this.privateStateService.clearSocket(code, clientId);
+        this.scheduleReconnectGrace(code, dropped.id);
+        this.runDisconnectHooks(code, room, clientId);
       }
 
       if (isHost && !explicitLeave) {
         this.transferHost(room, clientId);
       }
 
-      if (room.gameType === GameType.WHO_KNOW && room.status === RoomStatus.VOTING) {
-        this.whoKnowService.checkVoteResolution(room);
-      }
-      if (room.gameType === GameType.SOUNDS_FISHY && room.status === RoomStatus.QUESTIONING) {
-        this.soundsFishyService.checkAnswerResolution(room);
-      }
-      if (room.gameType === GameType.DETECTIVE_CLUB && room.detectiveClubState) {
-        this.detectiveClubService.handlePlayerDisconnect(room, clientId);
-      }
-      if (room.gameType === GameType.SABOTEUR && room.saboteurState) {
-        this.saboteurService.handlePlayerDisconnect(room, clientId);
-      }
-
-      const activePlayers = room.players.filter((p) => p.connected !== false).length;
-      if (activePlayers === 0) {
-        this.deleteRoomData(code);
-        return { outcome: 'ROOM_EMPTIED', code };
-      }
-
       this.rooms.set(code, room);
       return { outcome: 'PLAYER_LEFT', room };
     }
     return { outcome: 'NOT_IN_ROOM' };
+  }
+
+  /** Remove a player whose reconnect grace window expired without a rejoin. */
+  private removeExpiredPlayer(code: string, playerId: string): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+
+    const playerIndex = room.players.findIndex((p) => p.id === playerId);
+    if (playerIndex === -1 || room.players[playerIndex].connected !== false) return;
+
+    const socketId = room.players[playerIndex].socketId;
+    const wasHost = room.roomHostId === socketId;
+    this.removePlayerFromRoom(code, room, playerIndex);
+
+    if (wasHost) {
+      this.transferHost(room, socketId);
+    }
+
+    if (!room.players.some((p) => p.connected !== false)) {
+      this.deleteRoomData(code);
+      return;
+    }
+
+    this.rooms.set(code, room);
+  }
+
+  private scheduleReconnectGrace(code: string, playerId: string): void {
+    this.roomTimerService.schedule(
+      code,
+      `${RECONNECT_GRACE_TIMER}:${playerId}`,
+      Date.now() + GamesService.RECONNECT_GRACE_MS,
+      () => this.removeExpiredPlayer(code, playerId),
+    );
+  }
+
+  /** Shared post-removal cleanup: tokens, slots and game-specific handlers. */
+  private removePlayerFromRoom(
+    code: string,
+    room: RoomState,
+    playerIndex: number,
+  ): void {
+    const [player] = room.players.splice(playerIndex, 1);
+    this.playerSessionService.revokePlayer(code, player.id);
+    this.privateStateService.clearSocket(code, player.socketId);
+
+    if (room.ticTacToeState) {
+      if (room.ticTacToeState.playerXId === player.socketId)
+        room.ticTacToeState.playerXId = undefined;
+      if (room.ticTacToeState.playerOId === player.socketId)
+        room.ticTacToeState.playerOId = undefined;
+    }
+    if (room.gobblerState) {
+      if (room.gobblerState.playerXId === player.socketId)
+        room.gobblerState.playerXId = undefined;
+      if (room.gobblerState.playerOId === player.socketId)
+        room.gobblerState.playerOId = undefined;
+    }
+
+    this.runDisconnectHooks(code, room, player.socketId);
+  }
+
+  /** Let each game reconcile its state after one of its players dropped. */
+  private runDisconnectHooks(code: string, room: RoomState, socketId: string): void {
+    if (room.gameType === GameType.WHO_KNOW && room.status === RoomStatus.VOTING) {
+      this.whoKnowService.checkVoteResolution(room);
+    }
+    if (room.gameType === GameType.SOUNDS_FISHY && room.status === RoomStatus.QUESTIONING) {
+      this.soundsFishyService.checkAnswerResolution(room);
+    }
+    if (room.gameType === GameType.DETECTIVE_CLUB && room.detectiveClubState) {
+      this.detectiveClubService.handlePlayerDisconnect(room, socketId);
+    }
+    if (room.gameType === GameType.SABOTEUR && room.saboteurState) {
+      this.saboteurService.handlePlayerDisconnect(room, socketId);
+    }
   }
 
   /** Hand room ownership to the first remaining connected player after the host lost connection. */

@@ -25,6 +25,10 @@ import {
   cors: {
     origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
   },
+  // Tolerate flaky mobile networks: give clients up to ~80s of silence
+  // (interval + timeout) before the server declares the connection dead.
+  pingInterval: 20_000,
+  pingTimeout: 60_000,
 })
 export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

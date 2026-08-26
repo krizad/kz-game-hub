@@ -394,6 +394,10 @@ describe('GamesService', () => {
   });
 
   describe('leaveRoom', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should return NOT_IN_ROOM if player not found', () => {
       expect(service.leaveRoom('unknown')).toEqual({ outcome: 'NOT_IN_ROOM' });
     });
@@ -417,12 +421,17 @@ describe('GamesService', () => {
       expect(cancelSpy).toHaveBeenCalledWith(room.code);
     });
 
-    it('should empty room when host alone in LOBBY loses connection', () => {
+    it('should hold the seat of a lobby host who loses connection, then remove them after grace', () => {
+      jest.useFakeTimers();
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
 
       const result = service.leaveRoom('host1', false);
-      expect(result).toEqual({ outcome: 'ROOM_EMPTIED', code: room.code });
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(result.outcome === 'PLAYER_LEFT' && result.room.players[0].connected).toBe(false);
+      expect(service.getRoom(room.code)).toBeDefined();
+
+      jest.advanceTimersByTime(60_000);
       expect(service.getRoom(room.code)).toBeUndefined();
     });
 
@@ -436,7 +445,8 @@ describe('GamesService', () => {
       expect(result.outcome).toBe('PLAYER_LEFT');
       if (result.outcome === 'PLAYER_LEFT') {
         expect(result.room.roomHostId).toBe('p1');
-        expect(result.room.players.map((p) => p.socketId)).toEqual(['p1', 'p2']);
+        expect(result.room.players.map((p) => p.socketId)).toEqual(['host1', 'p1', 'p2']);
+        expect(result.room.players[0].connected).toBe(false);
       }
       expect(service.getRoom(room.code)).toBeDefined();
     });
@@ -458,6 +468,7 @@ describe('GamesService', () => {
     });
 
     it('should not transfer host to disconnected players', () => {
+      jest.useFakeTimers();
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
       room.status = RoomStatus.PLAYING;
@@ -468,7 +479,11 @@ describe('GamesService', () => {
       service.leaveRoom('p1', false);
       const result = service.leaveRoom('host1', false);
 
-      expect(result).toEqual({ outcome: 'ROOM_EMPTIED', code: room.code });
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(service.getRoom(room.code)).toBeDefined();
+
+      // Once every grace window expires without a rejoin, the room is deleted.
+      jest.advanceTimersByTime(60_000);
       expect(service.getRoom(room.code)).toBeUndefined();
     });
 
@@ -499,7 +514,8 @@ describe('GamesService', () => {
       }
     });
 
-    it('should empty room and report its code when all players disconnected', () => {
+    it('should keep the room alive while all disconnected players are within grace', () => {
+      jest.useFakeTimers();
       const room = service.createRoom('host1');
       room.status = RoomStatus.PLAYING;
       (service as any).rooms.set(room.code, room);
@@ -515,8 +531,47 @@ describe('GamesService', () => {
       (service as any).rooms.set(room.code, room);
 
       const result = service.leaveRoom('host1', false);
-      expect(result).toEqual({ outcome: 'ROOM_EMPTIED', code: room.code });
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(service.getRoom(room.code)).toBeDefined();
+
+      jest.advanceTimersByTime(60_000);
       expect(service.getRoom(room.code)).toBeUndefined();
+    });
+
+    it('should remove a lobby player once their reconnect grace expires', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+
+      service.leaveRoom('p1', false);
+      expect(room.players).toHaveLength(2);
+
+      jest.advanceTimersByTime(60_000);
+      expect(room.players.map((p) => p.socketId)).toEqual(['host1']);
+      expect(service.getRoom(room.code)).toBeDefined();
+    });
+
+    it('should restore the seat when the player rejoins within the grace window', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const token = service.getReconnectToken(room.code, 'p1')!;
+
+      service.leaveRoom('p1', false);
+
+      const rejoined = service.joinRoom(
+        room.code,
+        { id: 'p1-new', name: 'Player1', socketId: 'p1-new' },
+        token,
+      );
+      expect(rejoined).not.toBeNull();
+      expect(rejoined!.players.find((p) => p.name === 'Player1')!.connected).toBe(true);
+
+      jest.advanceTimersByTime(60_000);
+      expect(rejoined!.players).toHaveLength(2);
+      expect(service.getRoom(room.code)).toBeDefined();
     });
 
     it('should trigger WhoKnow vote resolution on disconnect during VOTING', () => {
