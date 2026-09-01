@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from './helpers';
 
-// YOUTUBE: youtube-sr web scraper is unreliable — needs migration to YouTube Data API
+// YOUTUBE: uses youtubei.js (InnerTube) — searchable but depends on flaky network; keep out of CI
 // DEEZER: free public API works but game auto-completes rounds — server-side timing bug
 const sources = ['ITUNES', 'SOUNDCLOUD'];
 

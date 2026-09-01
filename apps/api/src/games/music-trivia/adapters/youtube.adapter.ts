@@ -1,22 +1,36 @@
+import type { Innertube, YTNodes } from 'youtubei.js';
 import { MusicSourceType } from '@repo/types';
 import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../music-source-adapter';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const YouTube = require('youtube-sr').default;
 
-interface YouTubeVideo {
-  id?: string;
-  title?: string;
-  duration?: number;
-  url?: string;
-  channel?: { name?: string };
-  thumbnail?: { url?: string };
-}
+const MAX_DURATION_MS = 10 * 60 * 1000;
+const DEFAULT_DURATION_MS = 180000;
 
 export class YouTubeAdapter implements MusicSourceAdapter {
   readonly sourceType: MusicSourceType = 'YOUTUBE';
 
+  private innertube: Innertube | null = null;
+  private creating: Promise<Innertube> | null = null;
+
   async init() {
-    // youtube-sr does not require initialization
+    await this.getInnertube();
+  }
+
+  /**
+   * Lazily create the InnerTube session once and memoize it so repeated
+   * searches reuse the same session (no API key / quota required).
+   */
+  private async getInnertube(): Promise<Innertube> {
+    if (this.innertube) return this.innertube;
+    if (!this.creating) {
+      // Dynamic import keeps the ESM-only package out of module-eval, so the
+      // adapter (and its tests) load cleanly under CommonJS.
+      const { Innertube } = await import('youtubei.js');
+      this.creating = Innertube.create().then((yt) => {
+        this.innertube = yt;
+        return yt;
+      });
+    }
+    return this.creating;
   }
 
   async search(
@@ -35,20 +49,21 @@ export class YouTubeAdapter implements MusicSourceAdapter {
     console.log(`[YouTubeAdapter] Searching YouTube for: ${searchQuery} (Limit: ${limit})`);
 
     try {
-      // Search for videos. We append 'official audio' or 'lyrics' optionally but just query is fine
-      // youtube-sr handles normal youtube search which yields highly embeddable videos
-      const videos: YouTubeVideo[] = await YouTube.search(searchQuery, {
-        type: 'video',
-        limit: limit + 5,
-      });
+      const yt = await this.getInnertube();
+      const search = await yt.search(searchQuery, { type: 'video' });
 
-      if (!videos || videos.length === 0) {
+      const videos = search.results.filter((r): r is YTNodes.Video => r.type === 'Video');
+
+      if (videos.length === 0) {
         console.warn('[YouTubeAdapter] No videos found on YouTube:', searchQuery);
         return [];
       }
 
       // Filter out overly long videos (mixes, full albums) - keep it under 10 minutes
-      let results = videos.filter((video) => video.duration && video.duration < 600000);
+      let results = videos.filter((video) => {
+        const seconds = video.duration?.seconds;
+        return !seconds || seconds * 1000 < MAX_DURATION_MS;
+      });
 
       // If filtering removed everything, just fallback to whatever we found
       if (results.length === 0) {
@@ -59,23 +74,20 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       console.log(`[YouTubeAdapter] Search completed. Returning ${results.length} videos.`);
 
       return results.map((item) => {
-        const title = item.title || 'Unknown Title';
-        const artist = item.channel?.name || 'Unknown Artist';
-        const videoId = item.id;
+        const title = item.title?.toString() || 'Unknown Title';
+        const artist = item.author?.name || 'Unknown Artist';
+        const videoId = item.video_id;
 
-        let artworkUrl = '';
-        if (item.thumbnail && item.thumbnail.url) {
-          artworkUrl = item.thumbnail.url;
-        }
+        const thumbnail = item.best_thumbnail || item.thumbnails?.[0];
 
         return {
           id: videoId || Math.random().toString(),
           title: title,
           artist: artist,
           previewUrl: videoId || '',
-          durationMs: item.duration || 180000,
-          artworkUrl: artworkUrl,
-          trackViewUrl: item.url || `https://www.youtube.com/watch?v=${videoId}`,
+          durationMs: item.duration?.seconds ? item.duration.seconds * 1000 : DEFAULT_DURATION_MS,
+          artworkUrl: thumbnail?.url,
+          trackViewUrl: `https://www.youtube.com/watch?v=${videoId}`,
           sourceType: this.sourceType,
         };
       });

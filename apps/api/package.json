@@ -39,7 +39,7 @@
     "soundcloud-scraper": "^5.0.3",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.1",
-    "youtube-sr": "^4.3.12",
+    "youtubei.js": "^18.0.0",
     "ytmusic-api": "^5.3.1"
   },
   "devDependencies": {
