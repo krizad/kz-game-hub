@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CoupHelpModal } from './CoupHelpModal';
-import { CoupRole } from '@repo/types';
+import { CoupRole, CoupActionType } from '@repo/types';
+import { toast } from 'react-hot-toast';
 
 const roleEmoji: Record<string, string> = {
   DUKE: '👑',
@@ -14,14 +16,17 @@ const roleEmoji: Record<string, string> = {
 };
 
 export function CoupView() {
-  const { room, socketId, privateState, resetRoom } = useGameStore();
+  const { room, socketId, privateState, resetRoom, coupDeclare } = useGameStore();
   const { t } = useTranslate();
+  const [coupTarget, setCoupTarget] = useState<string>('');
 
   if (!room || !room.coupState) return <div className="p-6 font-black">Loading Coup...</div>;
   const state = room.coupState;
   const hand = (privateState as any)?.coupHand as CoupRole[] | undefined;
   const isMyTurn = state.currentTurn === socketId;
   const myCoins = state.coins[socketId] ?? 0;
+  const forcedCoup = myCoins >= 10;
+  const aliveTargets = room.players.filter((p) => p.socketId !== socketId && (state.influences[p.socketId]?.count ?? 0) > 0);
 
   return (
     <div className="flex flex-col gap-4 bg-white border-4 border-black p-4 shadow-[4px_4px_0_0_#000]">
@@ -75,13 +80,41 @@ export function CoupView() {
         <div className="text-xs font-bold mt-2">{t('gameCoup.yourCoins')}: {myCoins} 💰 {isMyTurn && <span className="bg-[#EF4444] text-white px-1 ml-1">{t('gameCoup.yourTurn')}</span>}</div>
       </div>
 
+      {!state.winnerId && state.phase === 'PLAYING' && (
+        <div className="border-4 border-black p-3 bg-white">
+          <div className="text-xs font-black uppercase mb-2">{isMyTurn ? t('gameCoup.yourTurn') : `${t('gameCoup.waitingFor')} ${room.players.find(p=> p.socketId===state.currentTurn)?.name ?? '...'}`} {forcedCoup && isMyTurn && <span className="bg-red-500 text-white px-1">Must Coup (10+)</span>}</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={!isMyTurn || forcedCoup} onClick={() => coupDeclare(CoupActionType.INCOME)} className="border-4 border-black bg-[#A3E635] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none">{t('gameCoup.actionIncome')}</button>
+            <button disabled={!isMyTurn || forcedCoup} onClick={() => coupDeclare(CoupActionType.FOREIGN_AID)} className="border-4 border-black bg-[#60A5FA] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none">{t('gameCoup.actionForeignAid')}</button>
+            <button disabled={!isMyTurn || forcedCoup} onClick={() => coupDeclare(CoupActionType.TAX)} className="border-4 border-black bg-[#FBBF24] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none">{t('gameCoup.actionTax')}</button>
+            <div className="flex gap-1">
+              <select value={coupTarget} onChange={(e)=> setCoupTarget(e.target.value)} disabled={!isMyTurn} className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100">
+                <option value="">target</option>
+                {aliveTargets.map(p=> <option key={p.socketId} value={p.socketId}>{p.name}</option>)}
+              </select>
+              <button
+                disabled={!isMyTurn || !coupTarget || myCoins < 7}
+                onClick={() => {
+                  if (!coupTarget) { toast.error('Pick target'); return; }
+                  coupDeclare(CoupActionType.COUP, coupTarget);
+                }}
+                className="bg-[#EF4444] border-4 border-black text-white disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+              >
+                {t('gameCoup.actionCoup')} (7)
+              </button>
+            </div>
+          </div>
+          {forcedCoup && isMyTurn && <div className="text-[10px] font-bold text-red-600 mt-1">You have 10+ coins — you must Coup!</div>}
+        </div>
+      )}
+
       {state.winnerId && (
         <div className="border-4 border-black bg-[#A7F3D0] p-3 text-center font-black">
           Winner: {room.players.find(p=> p.socketId===state.winnerId)?.name ?? state.winnerId}
         </div>
       )}
 
-      {!state.winnerId && !isMyTurn && (
+      {!state.winnerId && !isMyTurn && state.phase !== 'PLAYING' && (
         <div className="text-xs font-bold text-center opacity-60">{t('gameCoup.waitingFor')} {room.players.find(p=> p.socketId===state.currentTurn)?.name ?? '...'}</div>
       )}
     </div>

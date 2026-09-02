@@ -14,7 +14,7 @@ import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { WsExceptionFilter } from './ws-exception.filter';
-import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice } from '@repo/types';
+import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice, CoupActionType } from '@repo/types';
 import {
   MusicTriviaActionResult,
   MusicTriviaTimerCommand,
@@ -782,6 +782,33 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // --- Coup Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.COUP_DECLARE)
+  handleCoupDeclare(
+    @MessageBody() data: { code: string; type: CoupActionType; targetId?: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.coupDeclare(data.code, client.id, data.type, data.targetId);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid Coup action' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.COUP_RESET)
+  handleCoupReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.resetGame(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
+    }
+  }
+
   // --- Who Am I Actions ---
   @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS)
   handleWhoAmISubmitWords(
@@ -1220,6 +1247,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     if (event === SOCKET_EVENTS.SABOTEUR_PICK_GOLD) {
       return isSmallInt(data.poolIndex);
+    }
+    if (event === SOCKET_EVENTS.COUP_DECLARE) {
+      return (
+        typeof data.type === 'string' &&
+        ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(data.type) &&
+        (data.targetId === undefined || typeof data.targetId === 'string')
+      );
     }
     return true;
   }

@@ -15,6 +15,7 @@ import {
   WhoFirstGameActionType,
   WordCategory,
   SaboteurTool,
+  CoupActionType,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -108,6 +109,7 @@ interface GameState {
   saboteurPickGold: (poolIndex: number) => void;
   saboteurNextRound: () => void;
   saboteurReset: () => void;
+  coupDeclare: (type: CoupActionType, targetId?: string) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -541,6 +543,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
     saboteurReset: () => {
       emitGameAction(SOCKET_EVENTS.SABOTEUR_RESET);
+    },
+
+    coupDeclare: (type: CoupActionType, targetId?: string) => {
+      emitGameAction(SOCKET_EVENTS.COUP_DECLARE, { payload: () => ({ type, ...(targetId ? { targetId } : {}) }) });
     },
 
     spectateJoin: (code: string) => {

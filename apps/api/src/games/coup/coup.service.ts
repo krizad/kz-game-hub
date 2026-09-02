@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CoupRole, CoupState, CoupPhase, GameType, RoomState, RoomStatus } from '@repo/types';
+import { CoupRole, CoupState, CoupPhase, CoupActionType, GameType, RoomState, RoomStatus } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 import { RoomTimerService } from '../room-timer.service';
 
@@ -100,6 +100,110 @@ export class CoupService {
       if (state.pendingAction.targetId === oldSocketId) state.pendingAction.targetId = newSocketId;
     }
     // PrivateStateService remap is done by GamesService, not here
+  }
+
+  private isAlive(state: CoupState, socketId: string): boolean {
+    return (state.influences[socketId]?.count ?? 0) > 0;
+  }
+
+  private aliveIds(room: RoomState, state: CoupState): string[] {
+    return room.players.filter((p) => this.isAlive(state, p.socketId)).map((p) => p.socketId);
+  }
+
+  private advanceTurn(room: RoomState, state: CoupState): void {
+    const order = room.players.map((p) => p.socketId);
+    const currentIdx = order.indexOf(state.currentTurn ?? '');
+    for (let i = 1; i <= order.length; i++) {
+      const nextIdx = (currentIdx + i) % order.length;
+      const candidate = order[nextIdx];
+      if (this.isAlive(state, candidate)) {
+        state.currentTurn = candidate;
+        return;
+      }
+    }
+  }
+
+  private checkWinner(room: RoomState, state: CoupState): void {
+    const alive = this.aliveIds(room, state);
+    if (alive.length === 1) {
+      state.winnerId = alive[0];
+      state.phase = CoupPhase.RESULT;
+      room.status = RoomStatus.RESULT;
+      const winner = room.players.find((p) => p.socketId === alive[0]);
+      if (winner) winner.score += 1;
+    } else if (alive.length === 0) {
+      state.phase = CoupPhase.RESULT;
+      room.status = RoomStatus.RESULT;
+    }
+  }
+
+  private loseInfluence(room: RoomState, state: CoupState, targetId: string): void {
+    const inf = state.influences[targetId];
+    if (!inf || inf.count <= 0) return;
+    const hand = this.privateStateService.get<CoupRole[]>(room.code, targetId, 'coupHand') ?? [];
+    // auto-pick first card for scaffold (later tickets allow choice)
+    const lost = hand.shift();
+    if (lost) {
+      inf.revealed.push(lost);
+      state.deadPile.push(lost);
+      this.privateStateService.set(room.code, targetId, 'coupHand', hand);
+    }
+    inf.count = Math.max(0, inf.count - 1);
+  }
+
+  declareAction(
+    room: RoomState,
+    actorId: string,
+    type: CoupActionType,
+    targetId?: string,
+  ): RoomState | null {
+    if (room.gameType !== GameType.COUP || !room.coupState) return null;
+    const state = room.coupState;
+    if (room.status !== RoomStatus.PLAYING || state.phase !== CoupPhase.PLAYING) return null;
+    if (state.currentTurn !== actorId) return null;
+    if (!this.isAlive(state, actorId)) return null;
+    if (!room.players.some((p) => p.socketId === actorId)) return null;
+
+    const coins = state.coins[actorId] ?? 0;
+
+    // forced Coup at 10+
+    if (coins >= 10 && type !== CoupActionType.COUP) return null;
+
+    switch (type) {
+      case CoupActionType.INCOME: {
+        state.coins[actorId] = coins + 1;
+        break;
+      }
+      case CoupActionType.FOREIGN_AID: {
+        state.coins[actorId] = coins + 2;
+        break;
+      }
+      case CoupActionType.TAX: {
+        // In 02 no challenge, always succeeds as Duke
+        state.coins[actorId] = coins + 3;
+        break;
+      }
+      case CoupActionType.COUP: {
+        if (!targetId) return null;
+        if (!room.players.some((p) => p.socketId === targetId)) return null;
+        if (targetId === actorId) return null;
+        if (!this.isAlive(state, targetId)) return null;
+        if (coins < 7) return null;
+        state.coins[actorId] = coins - 7;
+        this.loseInfluence(room, state, targetId);
+        this.checkWinner(room, state);
+        if ((state.phase as string) === CoupPhase.RESULT) return room;
+        break;
+      }
+      default:
+        // STEAL/ASSASSINATE/EXCHANGE not yet in 02
+        return null;
+    }
+
+    if ((state.phase as string) !== CoupPhase.RESULT) {
+      this.advanceTurn(room, state);
+    }
+    return room;
   }
 
   handlePlayerDisconnect(room: RoomState, socketId: string): void {

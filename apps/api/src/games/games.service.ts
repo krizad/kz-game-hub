@@ -10,6 +10,7 @@ import {
   WordCategory,
   PLAYER_COLORS,
   ANIMAL_EMOJIS,
+  CoupActionType,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -946,6 +947,18 @@ export class GamesService {
   saboteurAutoPass(code: string, clientId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.saboteurService.autoPass(room, clientId));
+  }
+
+  // --- Coup Actions ---
+
+  coupDeclare(
+    code: string,
+    clientId: string,
+    type: CoupActionType,
+    targetId?: string,
+  ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.coupService.declareAction(room, clientId, type, targetId));
   }
 
   // --- Who Am I / Who First Actions ---
