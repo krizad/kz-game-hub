@@ -12,6 +12,7 @@ import { MusicTriviaView } from '@/components/games/music-trivia/MusicTriviaView
 import { WhoFirstView } from '@/components/games/who-first/WhoFirstView';
 import { TheMindGameView } from '@/components/games/the-mind/TheMindGameView';
 import { SaboteurView } from '@/components/games/saboteur/SaboteurView';
+import { CoupView } from '@/components/games/coup/CoupView';
 import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
@@ -40,6 +41,7 @@ export function GameViewManager() {
     if (room.gameType === GameType.THE_MIND) return <TheMindGameView />;
     if (room.gameType === GameType.SABOTEUR && room.status !== RoomStatus.LOBBY)
       return <SaboteurView />;
+    if (room.gameType === GameType.COUP && room.status !== RoomStatus.LOBBY) return <CoupView />;
 
     return (
       <div className="flex-1 flex flex-col bg-white border-4 border-black p-2 sm:p-4 shadow-[4px_4px_0_0_#000] min-h-[300px] overflow-y-auto">

@@ -12,6 +12,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
+import { CoupService } from './coup/coup.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -141,6 +142,11 @@ describe('GamesService', () => {
       resetGame: jest.fn(),
       handleTimeout: jest.fn(),
     },
+    coup: {
+      startGame: jest.fn(),
+      resetGame: jest.fn(),
+      remapSocketId: CoupService.prototype.remapSocketId,
+    },
   };
 
   beforeEach(async () => {
@@ -160,6 +166,7 @@ describe('GamesService', () => {
         { provide: MusicTriviaService, useValue: mockGameServices.musicTrivia },
         { provide: TheMindService, useValue: mockGameServices.theMind },
         { provide: SaboteurService, useValue: mockGameServices.saboteur },
+        { provide: CoupService, useValue: mockGameServices.coup },
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

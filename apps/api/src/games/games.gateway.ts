@@ -210,6 +210,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         msg = 'Cannot start game. Need at least 2 players and a music query.';
       } else if (gameType === GameType.DETECTIVE_CLUB) {
         msg = 'Cannot start game. Need at least 3 players.';
+      } else if (gameType === GameType.COUP) {
+        msg = 'Cannot start game. Need 3-6 players for Coup.';
       }
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
     }

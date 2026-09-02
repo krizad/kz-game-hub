@@ -10,4 +10,5 @@ export * from './who-first';
 export * from './music-trivia';
 export * from './the-mind';
 export * from './saboteur';
+export * from './coup';
 export * from './utils';

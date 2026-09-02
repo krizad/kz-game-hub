@@ -23,6 +23,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
+import { CoupService } from './coup/coup.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -57,6 +58,7 @@ export class GamesService {
     private readonly musicTriviaService: MusicTriviaService,
     private readonly theMindService: TheMindService,
     private readonly saboteurService: SaboteurService,
+    private readonly coupService: CoupService,
     private readonly playerSessionService: PlayerSessionService,
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
@@ -234,6 +236,9 @@ export class GamesService {
       }
       if (room.saboteurState) {
         this.saboteurService.remapSocketId(room.saboteurState, oldSocketId, user.socketId);
+      }
+      if (room.coupState) {
+        this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
@@ -636,6 +641,11 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.COUP) {
+      const startedRoom = this.withRoom(code, (r) => this.coupService.startGame(r, requesterId));
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     // Default to WHO_KNOW
     return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
   }
@@ -694,6 +704,10 @@ export class GamesService {
   resetGame(code: string, requesterId: string): RoomState | null {
     const room = this.rooms.get(code);
     if (!room) return null;
+
+    if (room.gameType === GameType.COUP) {
+      return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
+    }
 
     switch (room.gameType) {
       case GameType.WHO_AM_I:

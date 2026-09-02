@@ -22,6 +22,8 @@ export interface Dictionary {
       whoFirst: string;
       theMind: string;
       musicTrivia: string;
+      coup: string;
+      saboteur: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -96,6 +98,8 @@ export interface Dictionary {
         whoFirst: string;
         musicTrivia: string;
         theMind: string;
+        saboteur: string;
+        coup: string;
       };
       closeBtn: string;
     };
@@ -113,6 +117,22 @@ export interface Dictionary {
       whoFirstDesc: string;
       musicTriviaDesc: string;
       theMindDesc: string;
+      saboteurDesc: string;
+      coupDesc: string;
+    };
+    coup: {
+      title: string;
+      desc: string;
+      setupTitle: string;
+      setupDesc: string;
+      rolesTitle: string;
+      roleDuke: string;
+      roleAssassin: string;
+      roleCaptain: string;
+      roleAmbassador: string;
+      roleContessa: string;
+      flowTitle: string;
+      flowDesc: string;
     };
     whoKnow: {
       setupTitle: string;
@@ -762,6 +782,42 @@ export interface Dictionary {
       scoringTitle: string;
       scoringDesc: string;
     };
+  };
+  gameCoup: {
+    yourCoins: string;
+    yourInfluence: string;
+    coins: string;
+    influences: string;
+    turn: string;
+    yourTurn: string;
+    waitingFor: string;
+    deadPile: string;
+    deck: string;
+    cards: string;
+    helpTitle: string;
+    helpButton: string;
+    roleDuke: string;
+    roleDukeDesc: string;
+    roleAssassin: string;
+    roleAssassinDesc: string;
+    roleCaptain: string;
+    roleCaptainDesc: string;
+    roleAmbassador: string;
+    roleAmbassadorDesc: string;
+    roleContessa: string;
+    roleContessaDesc: string;
+    actionsTitle: string;
+    actionIncome: string;
+    actionForeignAid: string;
+    actionCoup: string;
+    actionTax: string;
+    actionAssassinate: string;
+    actionSteal: string;
+    actionExchange: string;
+    lobbyHint: string;
+    need3Players: string;
+    spectating: string;
+    resetHint: string;
   };
   gameWhoKnow: {
     wordSettingHost: string;

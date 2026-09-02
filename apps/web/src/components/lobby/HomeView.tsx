@@ -245,7 +245,14 @@ export function HomeView() {
               <span className="text-xl">⛏️💣</span>
               <span className="text-xs tracking-wider text-center px-1 uppercase">Saboteur</span>
             </button>
-            <div />
+            <button
+              onClick={() => createRoom(GameType.COUP)}
+              disabled={!connected || !myName}
+              className="w-full bg-[#EF4444] hover:bg-[#DC2626] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+            >
+              <span className="text-xl">👑💰</span>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">Coup</span>
+            </button>
           </div>
 
           {availableRooms.length > 0 && (

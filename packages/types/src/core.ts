@@ -9,6 +9,7 @@ import { WhoFirstState } from './who-first';
 import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-trivia';
 import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
+import { CoupState } from './coup';
 
 export const APP_VERSION = 'v1.0.0';
 
@@ -33,6 +34,7 @@ export enum GameType {
   MUSIC_TRIVIA = 'MUSIC_TRIVIA',
   THE_MIND = 'THE_MIND',
   SABOTEUR = 'SABOTEUR',
+  COUP = 'COUP',
 }
 
 // Socket Constants
@@ -114,6 +116,13 @@ export const SOCKET_EVENTS = {
   SABOTEUR_PICK_GOLD: 'saboteur_pick_gold',
   SABOTEUR_NEXT_ROUND: 'saboteur_next_round',
   SABOTEUR_RESET: 'saboteur_reset',
+  // Coup specific events
+  COUP_DECLARE: 'coup_declare',
+  COUP_CHALLENGE: 'coup_challenge',
+  COUP_BLOCK: 'coup_block',
+  COUP_REVEAL: 'coup_reveal',
+  COUP_EXCHANGE_SELECT: 'coup_exchange_select',
+  COUP_RESET: 'coup_reset',
 } as const;
 
 export interface UserState {
@@ -199,6 +208,7 @@ export interface RoomState {
   musicTriviaState?: MusicTriviaState;
   theMindState?: TheMindState;
   saboteurState?: SaboteurState;
+  coupState?: CoupState;
 }
 
 export interface AvailableRoom {

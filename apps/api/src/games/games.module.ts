@@ -13,6 +13,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
+import { CoupService } from './coup/coup.service';
 import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
@@ -33,6 +34,7 @@ import { PrivateStateService } from './private-state.service';
     MusicTriviaService,
     TheMindService,
     SaboteurService,
+    CoupService,
     PlayerSessionService,
     RoomTimerService,
     PrivateStateService,
