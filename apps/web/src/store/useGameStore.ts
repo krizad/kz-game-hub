@@ -111,6 +111,7 @@ interface GameState {
   saboteurReset: () => void;
   coupDeclare: (type: CoupActionType, targetId?: string) => void;
   coupChallenge: () => void;
+  coupBlock: () => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -552,6 +553,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
     coupChallenge: () => {
       emitGameAction(SOCKET_EVENTS.COUP_CHALLENGE);
+    },
+
+    coupBlock: () => {
+      emitGameAction(SOCKET_EVENTS.COUP_BLOCK);
     },
 
     spectateJoin: (code: string) => {

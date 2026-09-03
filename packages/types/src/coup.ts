@@ -41,7 +41,6 @@ export interface CoupState {
   influences: Record<string, { count: number; revealed: CoupRole[] }>;
   currentTurn: string | null;
   winnerId: string | null;
-  // Future fields for Challenge/Block (added in later tickets)
   pendingAction?: {
     actorId: string;
     type: CoupActionType;
@@ -50,6 +49,10 @@ export interface CoupState {
   } | null;
   challengeWindowDeadline?: number | null;
   blockWindowDeadline?: number | null;
+  pendingBlock?: {
+    blockerId: string;
+    claimedRole: CoupRole;
+  } | null;
 }
 
 export interface CoupPrivateState {

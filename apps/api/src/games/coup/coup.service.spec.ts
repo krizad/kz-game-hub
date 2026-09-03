@@ -152,13 +152,15 @@ describe('CoupService (02 core economy)', () => {
     expect(r!.coupState!.currentTurn).toBe('s2');
   });
 
-  it('Foreign Aid gives +2', () => {
+  it('Foreign Aid gives +2 after block window (no block)', () => {
     const room = startRoom();
     service.declareAction(room, 's1', CoupActionType.INCOME); // s1 -> s2 turn
     const r2 = service.declareAction(room, 's2', CoupActionType.FOREIGN_AID);
     expect(r2).not.toBeNull();
-    expect(r2!.coupState!.coins['s2']).toBe(4);
-    expect(r2!.coupState!.currentTurn).toBe('s3');
+    expect(r2!.coupState!.phase).toBe('AWAITING_BLOCK');
+    const r3 = service.handleBlockTimeoutForRoom(room);
+    expect(r3!.coupState!.coins['s2']).toBe(4);
+    expect(r3!.coupState!.currentTurn).toBe('s3');
   });
 
   it('Tax opens challenge window and resolves to +3 after timeout', () => {
@@ -323,5 +325,112 @@ describe('CoupService (03 challenge)', () => {
     service.declareAction(room, 's1', CoupActionType.TAX);
     expect(service.challenge(room, 's1')).toBeNull(); // actor cannot challenge own
     expect(service.challenge(room, 's9')).toBeNull();
+  });
+});
+
+describe('CoupService (04 block)', () => {
+  let service: CoupService;
+  let privateState: PrivateStateService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CoupService,
+        PrivateStateService,
+        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(CoupService);
+    privateState = module.get(PrivateStateService);
+  });
+
+  function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
+    const players = [
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+    ];
+    return {
+      id: 'r1',
+      gameType: GameType.COUP,
+      code: 'ABC123',
+      status: RoomStatus.LOBBY,
+      roomHostId: 's1',
+      players,
+      createdAt: new Date(),
+      config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, language: 'th' },
+      ...overrides,
+    } as RoomState;
+  }
+
+  function startRoom(): RoomState {
+    const room = makeRoom();
+    service.startGame(room, 's1');
+    return room;
+  }
+
+  it('Foreign Aid blocked by Duke — action fails', () => {
+    const room = startRoom();
+    service.declareAction(room, 's1', CoupActionType.FOREIGN_AID);
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+    const blocked = service.block(room, 's2');
+    expect(blocked).not.toBeNull();
+    expect(blocked!.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    expect(blocked!.coupState!.pendingBlock?.blockerId).toBe('s2');
+    // no challenge — block stands via timeout
+    const after = service.handleBlockChallengeTimeoutForRoom(room);
+    expect(after).not.toBeNull();
+    expect(after!.coupState!.coins['s1']).toBe(2); // no +2
+    expect(after!.coupState!.phase).toBe('PLAYING');
+  });
+
+  it('Foreign Aid block challenged — blocker has Duke, challenger loses and block stands', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's2', 'coupHand', [CoupRole.DUKE, CoupRole.CAPTAIN]);
+    service.declareAction(room, 's1', CoupActionType.FOREIGN_AID);
+    service.block(room, 's2');
+    const result = service.challenge(room, 's3');
+    expect(result).not.toBeNull();
+    expect(result!.coupState!.influences['s3'].count).toBe(1); // challenger lost
+    expect(result!.coupState!.coins['s1']).toBe(2); // still no +2, block stood
+  });
+
+  it('Foreign Aid block challenged — blocker bluffs, blocker loses and Foreign Aid succeeds', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's2', 'coupHand', [CoupRole.CAPTAIN, CoupRole.ASSASSIN]); // no Duke
+    service.declareAction(room, 's1', CoupActionType.FOREIGN_AID);
+    service.block(room, 's2');
+    const result = service.challenge(room, 's3');
+    expect(result).not.toBeNull();
+    expect(result!.coupState!.influences['s2'].count).toBe(1); // blocker lost
+    expect(result!.coupState!.coins['s1']).toBe(4); // Foreign Aid succeeded +2
+  });
+
+  it('Assassinate blocked by Contessa', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.ASSASSIN, CoupRole.DUKE]);
+    room.coupState!.coins['s1'] = 3;
+    service.declareAction(room, 's1', CoupActionType.ASSASSINATE, 's2');
+    expect(room.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    // no challenge — go to block
+    service.handleChallengeTimeoutForRoom(room);
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+    const blocked = service.block(room, 's2'); // target blocks
+    expect(blocked).not.toBeNull();
+    // no challenge to block — block stands, assassinate fails but coins already paid
+    const after = service.handleBlockChallengeTimeoutForRoom(room);
+    expect(after!.coupState!.coins['s1']).toBe(0); // 3-3=0, no refund
+    expect(after!.coupState!.influences['s2'].count).toBe(2); // not lost
+  });
+
+  it('Assassinate not blocked — succeeds after block timeout', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.ASSASSIN, CoupRole.DUKE]);
+    room.coupState!.coins['s1'] = 3;
+    service.declareAction(room, 's1', CoupActionType.ASSASSINATE, 's2');
+    service.handleChallengeTimeoutForRoom(room);
+    const after = service.handleBlockTimeoutForRoom(room);
+    expect(after!.coupState!.influences['s2'].count).toBe(1);
+    expect(after!.coupState!.coins['s1']).toBe(0);
   });
 });

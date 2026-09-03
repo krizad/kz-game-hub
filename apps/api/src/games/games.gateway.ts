@@ -811,6 +811,16 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.COUP_BLOCK)
+  handleCoupBlock(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.coupBlock(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid Coup block' });
+    }
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.COUP_RESET)
   handleCoupReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.resetGame(data.code, client.id);
@@ -1061,17 +1071,40 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     if (room.gameType === GameType.COUP) {
       this.syncCoupChallengeTimer(room);
+      this.syncCoupBlockTimer(room);
     }
   }
 
   private syncCoupChallengeTimer(room: RoomState): void {
     const deadline = room.coupState?.challengeWindowDeadline ?? null;
-    if (room.coupState?.phase !== 'AWAITING_CHALLENGE' || !deadline) {
-      this.roomTimerService.cancel(room.code, 'coup-challenge');
+    const isChallengePhase = room.coupState?.phase === 'AWAITING_CHALLENGE' && !!deadline;
+    if (!isChallengePhase) {
+      // keep existing block-challenge timer handling separate; this cancels only when not in challenge
+      if (room.coupState?.phase !== 'AWAITING_CHALLENGE') {
+        this.roomTimerService.cancel(room.code, 'coup-challenge');
+      }
       return;
     }
+    const hasBlock = !!room.coupState?.pendingBlock;
     this.roomTimerService.schedule(room.code, 'coup-challenge', deadline, () => {
-      const updated = this.gamesService.coupChallengeTimeout(room.code);
+      const updated = hasBlock
+        ? this.gamesService.coupBlockChallengeTimeout(room.code)
+        : this.gamesService.coupChallengeTimeout(room.code);
+      if (updated) {
+        this.broadcastRoomState(updated);
+        this.maybeRecordGameResult(updated);
+      }
+    });
+  }
+
+  private syncCoupBlockTimer(room: RoomState): void {
+    const deadline = room.coupState?.blockWindowDeadline ?? null;
+    if (room.coupState?.phase !== 'AWAITING_BLOCK' || !deadline) {
+      this.roomTimerService.cancel(room.code, 'coup-block');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'coup-block', deadline, () => {
+      const updated = this.gamesService.coupBlockTimeout(room.code);
       if (updated) {
         this.broadcastRoomState(updated);
         this.maybeRecordGameResult(updated);
@@ -1285,6 +1318,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(data.type) &&
         (data.targetId === undefined || typeof data.targetId === 'string')
       );
+    }
+    if (event === SOCKET_EVENTS.COUP_CHALLENGE || event === SOCKET_EVENTS.COUP_BLOCK) {
+      return true;
     }
     return true;
   }

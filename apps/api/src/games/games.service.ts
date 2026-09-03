@@ -970,6 +970,19 @@ export class GamesService {
     return this.withRoom(code, (room) => this.coupService.handleChallengeTimeoutForRoom(room));
   }
 
+  coupBlock(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.coupService.block(room, clientId));
+  }
+
+  coupBlockTimeout(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.coupService.handleBlockTimeoutForRoom(room));
+  }
+
+  coupBlockChallengeTimeout(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.coupService.handleBlockChallengeTimeoutForRoom(room));
+  }
+
   // --- Who Am I / Who First Actions ---
 
   whoAmISubmitPlayerWord(

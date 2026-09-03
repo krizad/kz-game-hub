@@ -16,9 +16,10 @@ const roleEmoji: Record<string, string> = {
 };
 
 export function CoupView() {
-  const { room, socketId, privateState, resetRoom, coupDeclare, coupChallenge } = useGameStore();
+  const { room, socketId, privateState, resetRoom, coupDeclare, coupChallenge, coupBlock } = useGameStore();
   const { t } = useTranslate();
   const [coupTarget, setCoupTarget] = useState<string>('');
+  const [assassinateTarget, setAssassinateTarget] = useState<string>('');
 
   if (!room || !room.coupState) return <div className="p-6 font-black">Loading Coup...</div>;
   const state = room.coupState;
@@ -80,7 +81,7 @@ export function CoupView() {
         <div className="text-xs font-bold mt-2">{t('gameCoup.yourCoins')}: {myCoins} 💰 {isMyTurn && <span className="bg-[#EF4444] text-white px-1 ml-1">{t('gameCoup.yourTurn')}</span>}</div>
       </div>
 
-      {state.phase === 'AWAITING_CHALLENGE' && state.pendingAction && (
+      {state.phase === 'AWAITING_CHALLENGE' && state.pendingAction && !state.pendingBlock && (
         <div className="border-4 border-black p-3 bg-[#FECACA]">
           <div className="text-xs font-black uppercase text-center">
             {room.players.find(p=> p.socketId===state.pendingAction!.actorId)?.name} declares {state.pendingAction.type} ({state.pendingAction.claimedRole}) — Challenge?
@@ -93,6 +94,36 @@ export function CoupView() {
         </div>
       )}
 
+      {state.phase === 'AWAITING_CHALLENGE' && state.pendingBlock && state.pendingAction && (
+        <div className="border-4 border-black p-3 bg-[#FDE68A]">
+          <div className="text-xs font-black uppercase text-center">
+            {room.players.find(p=> p.socketId===state.pendingBlock!.blockerId)?.name} blocks {state.pendingAction.type} with {state.pendingBlock.claimedRole} — Challenge block?
+          </div>
+          {state.pendingBlock.blockerId !== socketId && (state.influences[socketId]?.count ?? 0) > 0 && (
+            <button onClick={() => coupChallenge()} className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase">Challenge Block!</button>
+          )}
+          <div className="text-[10px] text-center mt-1 opacity-60">Block challenge auto-resolves in 7s</div>
+        </div>
+      )}
+
+      {state.phase === 'AWAITING_BLOCK' && state.pendingAction && (
+        <div className="border-4 border-black p-3 bg-[#BFDBFE]">
+          <div className="text-xs font-black uppercase text-center">
+            {room.players.find(p=> p.socketId===state.pendingAction!.actorId)?.name} did {state.pendingAction!.type} — Block?
+          </div>
+          {(() => {
+            const isForeignAid = state.pendingAction!.type === 'FOREIGN_AID';
+            const isAssassinate = state.pendingAction!.type === 'ASSASSINATE';
+            const canBlockForeignAid = isForeignAid && state.pendingAction!.actorId !== socketId && (state.influences[socketId]?.count ?? 0) > 0;
+            const canBlockAssassinate = isAssassinate && state.pendingAction!.targetId === socketId && (state.influences[socketId]?.count ?? 0) > 0;
+            if (canBlockForeignAid || canBlockAssassinate) {
+              return <button onClick={() => coupBlock()} className="mt-2 w-full bg-white border-4 border-black font-black py-2 text-xs uppercase">Block!</button>;
+            }
+            return <div className="text-xs text-center mt-1 opacity-60">Waiting for block (7s)...</div>;
+          })()}
+        </div>
+      )}
+
       {!state.winnerId && state.phase === 'PLAYING' && (
         <div className="border-4 border-black p-3 bg-white">
           <div className="text-xs font-black uppercase mb-2">{isMyTurn ? t('gameCoup.yourTurn') : `${t('gameCoup.waitingFor')} ${room.players.find(p=> p.socketId===state.currentTurn)?.name ?? '...'}`} {forcedCoup && isMyTurn && <span className="bg-red-500 text-white px-1">Must Coup (10+)</span>}</div>
@@ -101,8 +132,24 @@ export function CoupView() {
             <button disabled={!isMyTurn || forcedCoup} onClick={() => coupDeclare(CoupActionType.FOREIGN_AID)} className="border-4 border-black bg-[#60A5FA] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none">{t('gameCoup.actionForeignAid')}</button>
             <button disabled={!isMyTurn || forcedCoup} onClick={() => coupDeclare(CoupActionType.TAX)} className="border-4 border-black bg-[#FBBF24] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none">{t('gameCoup.actionTax')}</button>
             <div className="flex gap-1">
-              <select value={coupTarget} onChange={(e)=> setCoupTarget(e.target.value)} disabled={!isMyTurn} className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100">
+              <select value={assassinateTarget} onChange={(e)=> setAssassinateTarget(e.target.value)} disabled={!isMyTurn} className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100">
                 <option value="">target</option>
+                {aliveTargets.map(p=> <option key={p.socketId} value={p.socketId}>{p.name}</option>)}
+              </select>
+              <button
+                disabled={!isMyTurn || !assassinateTarget || myCoins < 3 || forcedCoup}
+                onClick={() => {
+                  if (!assassinateTarget) { toast.error('Pick target'); return; }
+                  coupDeclare(CoupActionType.ASSASSINATE, assassinateTarget);
+                }}
+                className="bg-[#A855F7] border-4 border-black text-white disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+              >
+                {t('gameCoup.actionAssassinate')} (3)
+              </button>
+            </div>
+            <div className="flex gap-1 col-span-2">
+              <select value={coupTarget} onChange={(e)=> setCoupTarget(e.target.value)} disabled={!isMyTurn} className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100">
+                <option value="">coup target</option>
                 {aliveTargets.map(p=> <option key={p.socketId} value={p.socketId}>{p.name}</option>)}
               </select>
               <button

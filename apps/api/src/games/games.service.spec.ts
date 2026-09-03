@@ -148,6 +148,9 @@ describe('GamesService', () => {
       declareAction: jest.fn(),
       challenge: jest.fn(),
       handleChallengeTimeoutForRoom: jest.fn(),
+      handleBlockTimeoutForRoom: jest.fn(),
+      handleBlockChallengeTimeoutForRoom: jest.fn(),
+      block: jest.fn(),
       remapSocketId: CoupService.prototype.remapSocketId,
     },
   };
