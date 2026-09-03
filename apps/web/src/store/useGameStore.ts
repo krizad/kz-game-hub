@@ -112,6 +112,7 @@ interface GameState {
   coupDeclare: (type: CoupActionType, targetId?: string) => void;
   coupChallenge: () => void;
   coupBlock: () => void;
+  coupExchangeSelect: (keepIndices: number[]) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -557,6 +558,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
     coupBlock: () => {
       emitGameAction(SOCKET_EVENTS.COUP_BLOCK);
+    },
+
+    coupExchangeSelect: (keepIndices: number[]) => {
+      emitGameAction(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { payload: () => ({ keepIndices }) });
     },
 
     spectateJoin: (code: string) => {

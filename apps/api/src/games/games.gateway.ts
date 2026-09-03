@@ -821,6 +821,20 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.COUP_EXCHANGE_SELECT)
+  handleCoupExchangeSelect(
+    @MessageBody() data: { code: string; keepIndices: number[] },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.coupExchangeSelect(data.code, client.id, data.keepIndices);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid Exchange select' });
+    }
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.COUP_RESET)
   handleCoupReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.resetGame(data.code, client.id);
@@ -1321,6 +1335,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     if (event === SOCKET_EVENTS.COUP_CHALLENGE || event === SOCKET_EVENTS.COUP_BLOCK) {
       return true;
+    }
+    if (event === SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
+      return (
+        Array.isArray(data.keepIndices) &&
+        data.keepIndices.length === 2 &&
+        data.keepIndices.every((v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3)
+      );
     }
     return true;
   }

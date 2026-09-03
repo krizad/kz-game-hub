@@ -180,7 +180,7 @@ export class CoupService {
     }
   }
 
-  private resolveActionSuccess(room: RoomState, state: CoupState, pending: NonNullable<CoupState['pendingAction']>): void {
+  private resolveActionSuccess(room: RoomState, state: CoupState, pending: NonNullable<CoupState['pendingAction']>): boolean {
     switch (pending.type) {
       case CoupActionType.TAX:
         state.coins[pending.actorId] = (state.coins[pending.actorId] ?? 0) + 3;
@@ -190,15 +190,35 @@ export class CoupService {
         break;
       case CoupActionType.ASSASSINATE: {
         const target = pending.targetId!;
-        // coins already deducted at declare; now make target lose 1
         this.loseInfluence(room, state, target);
         this.checkWinner(room, state);
-        if ((state.phase as string) === CoupPhase.RESULT) return;
+        if ((state.phase as string) === CoupPhase.RESULT) return false;
         break;
+      }
+      case CoupActionType.STEAL: {
+        const target = pending.targetId!;
+        const targetCoins = state.coins[target] ?? 0;
+        const amount = Math.min(2, targetCoins);
+        state.coins[pending.actorId] = (state.coins[pending.actorId] ?? 0) + amount;
+        state.coins[target] = targetCoins - amount;
+        break;
+      }
+      case CoupActionType.EXCHANGE: {
+        const actorHand = this.privateStateService.get<CoupRole[]>(room.code, pending.actorId, 'coupHand') ?? [];
+        const drawn: CoupRole[] = [];
+        for (let i = 0; i < 2; i++) {
+          if (state.deck.length === 0) break;
+          drawn.push(state.deck.pop()!);
+        }
+        actorHand.push(...drawn);
+        this.privateStateService.set(room.code, pending.actorId, 'coupHand', actorHand);
+        state.phase = CoupPhase.AWAITING_EXCHANGE;
+        return true;
       }
       default:
         break;
     }
+    return false;
   }
 
   handleChallengeTimeoutForRoom(room: RoomState): RoomState | null {
@@ -213,10 +233,8 @@ export class CoupService {
       state.blockWindowDeadline = Date.now() + 7000;
       return room;
     }
-    // Not blockable — success
-    if (pending.type === CoupActionType.TAX) {
-      state.coins[pending.actorId] = (state.coins[pending.actorId] ?? 0) + 3;
-    }
+    const wentExchange = this.resolveActionSuccess(room, state, pending);
+    if (wentExchange) return room;
     state.pendingAction = null;
     state.phase = CoupPhase.PLAYING;
     this.advanceTurn(room, state);
@@ -228,9 +246,9 @@ export class CoupService {
     const state = room.coupState;
     if (state.phase !== CoupPhase.AWAITING_BLOCK || !state.pendingAction) return null;
     state.blockWindowDeadline = null;
-    // No block — action succeeds
     const pending = state.pendingAction;
-    this.resolveActionSuccess(room, state, pending);
+    const wentExchange = this.resolveActionSuccess(room, state, pending);
+    if (wentExchange) return room;
     if ((state.phase as string) === CoupPhase.RESULT) {
       state.pendingAction = null;
       return room;
@@ -307,8 +325,8 @@ export class CoupService {
         this.checkWinner(room, state);
         const pending = state.pendingAction;
         state.pendingBlock = null;
-        // Original action now succeeds
-        this.resolveActionSuccess(room, state, pending);
+        const wentExchange = this.resolveActionSuccess(room, state, pending);
+        if (wentExchange) return room;
         if ((state.phase as string) === CoupPhase.RESULT) {
           state.pendingAction = null;
           return room;
@@ -357,9 +375,8 @@ export class CoupService {
         state.blockWindowDeadline = Date.now() + 7000;
         return room;
       }
-      if (state.pendingAction.type === CoupActionType.TAX) {
-        state.coins[actorId] = (state.coins[actorId] ?? 0) + 3;
-      }
+      const wentExchange = this.resolveActionSuccess(room, state, state.pendingAction);
+      if (wentExchange) return room;
       state.pendingAction = null;
       state.phase = CoupPhase.PLAYING;
       this.advanceTurn(room, state);
@@ -389,11 +406,9 @@ export class CoupService {
     const allowed = this.getBlockRole(pending.type);
     if (allowed.length === 0) return null;
 
-    // Assassinate can only be blocked by target
     if (pending.type === CoupActionType.ASSASSINATE && blockerId !== pending.targetId) return null;
+    if (pending.type === CoupActionType.STEAL && !allowed.some((r) => true)) return null;
 
-    // For Foreign Aid any non-actor can block; already checked
-    // Pick first allowed role as claimed (for 04 Duke/Contessa)
     const claimedRole = allowed[0];
 
     this.roomTimerService.cancel(room.code, 'coup-block');
@@ -401,6 +416,33 @@ export class CoupService {
     state.pendingBlock = { blockerId, claimedRole };
     state.phase = CoupPhase.AWAITING_CHALLENGE;
     state.challengeWindowDeadline = Date.now() + 7000;
+    return room;
+  }
+
+  exchangeSelect(room: RoomState, actorId: string, keepIndices: number[]): RoomState | null {
+    if (room.gameType !== GameType.COUP || !room.coupState) return null;
+    const state = room.coupState;
+    if (state.phase !== CoupPhase.AWAITING_EXCHANGE || !state.pendingAction) return null;
+    if (state.pendingAction.actorId !== actorId) return null;
+    if (state.pendingAction.type !== CoupActionType.EXCHANGE) return null;
+    if (!Array.isArray(keepIndices) || keepIndices.length !== 2) return null;
+    if (new Set(keepIndices).size !== 2) return null;
+    for (const idx of keepIndices) {
+      if (!Number.isInteger(idx) || idx < 0 || idx > 3) return null;
+    }
+    const hand = this.privateStateService.get<CoupRole[]>(room.code, actorId, 'coupHand') ?? [];
+    if (hand.length !== 4) return null;
+    const kept = keepIndices.map((i) => hand[i]);
+    const returned: CoupRole[] = hand.filter((_, i) => !keepIndices.includes(i));
+    state.deck.push(...returned);
+    for (let i = state.deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+    }
+    this.privateStateService.set(room.code, actorId, 'coupHand', kept);
+    state.pendingAction = null;
+    state.phase = CoupPhase.PLAYING;
+    this.advanceTurn(room, state);
     return room;
   }
 
@@ -424,7 +466,6 @@ export class CoupService {
     const claimedRole = this.getClaimedRole(type);
 
     if (claimedRole) {
-      // Assassinate cost handling
       if (type === CoupActionType.ASSASSINATE) {
         if (!targetId) return null;
         if (!room.players.some((p) => p.socketId === targetId)) return null;
@@ -432,6 +473,13 @@ export class CoupService {
         if (!this.isAlive(state, targetId)) return null;
         if (coins < 3) return null;
         state.coins[actorId] = coins - 3;
+      } else if (type === CoupActionType.STEAL) {
+        if (!targetId) return null;
+        if (!room.players.some((p) => p.socketId === targetId)) return null;
+        if (targetId === actorId) return null;
+        if (!this.isAlive(state, targetId)) return null;
+      } else if (type === CoupActionType.EXCHANGE) {
+        if (state.deck.length < 2) return null;
       }
       state.pendingAction = { actorId, type, targetId, claimedRole };
       state.phase = CoupPhase.AWAITING_CHALLENGE;

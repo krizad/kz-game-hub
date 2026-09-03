@@ -434,3 +434,121 @@ describe('CoupService (04 block)', () => {
     expect(after!.coupState!.coins['s1']).toBe(0);
   });
 });
+
+describe('CoupService (05 steal & exchange)', () => {
+  let service: CoupService;
+  let privateState: PrivateStateService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CoupService,
+        PrivateStateService,
+        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(CoupService);
+    privateState = module.get(PrivateStateService);
+  });
+
+  function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
+    const players = [
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+    ];
+    return {
+      id: 'r1',
+      gameType: GameType.COUP,
+      code: 'ABC123',
+      status: RoomStatus.LOBBY,
+      roomHostId: 's1',
+      players,
+      createdAt: new Date(),
+      config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, language: 'th' },
+      ...overrides,
+    } as RoomState;
+  }
+
+  function startRoom(): RoomState {
+    const room = makeRoom();
+    service.startGame(room, 's1');
+    return room;
+  }
+
+  it('Steal 2 coins and blocked by Captain', () => {
+    const room = startRoom();
+    room.coupState!.coins['s2'] = 5;
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.DUKE]);
+    service.declareAction(room, 's1', CoupActionType.STEAL, 's2');
+    expect(room.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    service.handleChallengeTimeoutForRoom(room);
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+    // s2 blocks with Captain
+    privateState.set(room.code, 's2', 'coupHand', [CoupRole.CAPTAIN, CoupRole.CONTESSA]);
+    const blocked = service.block(room, 's2');
+    expect(blocked!.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    const after = service.handleBlockChallengeTimeoutForRoom(room);
+    expect(after!.coupState!.coins['s1']).toBe(2); // no steal
+    expect(after!.coupState!.coins['s2']).toBe(5);
+  });
+
+  it('Steal succeeds when not blocked', () => {
+    const room = startRoom();
+    room.coupState!.coins['s2'] = 1;
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.DUKE]);
+    service.declareAction(room, 's1', CoupActionType.STEAL, 's2');
+    service.handleChallengeTimeoutForRoom(room);
+    const after = service.handleBlockTimeoutForRoom(room);
+    expect(after!.coupState!.coins['s1']).toBe(3); // 2+1
+    expect(after!.coupState!.coins['s2']).toBe(0);
+  });
+
+  it('Steal blocked and challenger succeeds — blocker loses and steal succeeds', () => {
+    const room = startRoom();
+    room.coupState!.coins['s2'] = 4;
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.DUKE]);
+    privateState.set(room.code, 's2', 'coupHand', [CoupRole.DUKE, CoupRole.CONTESSA]); // no Captain/Ambassador
+    service.declareAction(room, 's1', CoupActionType.STEAL, 's2');
+    service.handleChallengeTimeoutForRoom(room);
+    service.block(room, 's2');
+    const result = service.challenge(room, 's1'); // actor challenges block
+    expect(result!.coupState!.influences['s2'].count).toBe(1);
+    expect(result!.coupState!.coins['s1']).toBe(4); // 2+2
+    expect(result!.coupState!.coins['s2']).toBe(2);
+  });
+
+  it('Exchange draws 2 and select', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.AMBASSADOR, CoupRole.DUKE]);
+    const deckBefore = room.coupState!.deck.length;
+    service.declareAction(room, 's1', CoupActionType.EXCHANGE);
+    expect(room.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    service.handleChallengeTimeoutForRoom(room);
+    // Not blockable, should go to AWAITING_EXCHANGE via resolve
+    // Our challenge timeout for EXCHANGE goes to block? For EXCHANGE isBlockable false, so it does resolveActionSuccess which does draw and sets AWAITING_EXCHANGE
+    // But handleChallengeTimeoutForRoom for EXCHANGE will call resolveActionSuccess which does draw
+    // Let's verify deck and hand
+    expect(room.coupState!.phase).toBe('AWAITING_EXCHANGE');
+    const hand = privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!;
+    expect(hand.length).toBe(4);
+    expect(room.coupState!.deck.length).toBe(deckBefore - 2);
+    // Choose keep 0 and 1 (first two)
+    const after = service.exchangeSelect(room, 's1', [0, 1]);
+    expect(after).not.toBeNull();
+    expect(privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!.length).toBe(2);
+    expect(after!.coupState!.phase).toBe('PLAYING');
+    expect(after!.coupState!.currentTurn).toBe('s2');
+  });
+
+  it('Exchange challenge succeeds — actor loses and no draw', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.DUKE, CoupRole.CAPTAIN]); // no Ambassador
+    const deckLen = room.coupState!.deck.length;
+    service.declareAction(room, 's1', CoupActionType.EXCHANGE);
+    const result = service.challenge(room, 's2');
+    expect(result!.coupState!.influences['s1'].count).toBe(1);
+    expect(result!.coupState!.deck.length).toBe(deckLen); // no draw
+    expect(result!.coupState!.phase).toBe('PLAYING');
+  });
+});

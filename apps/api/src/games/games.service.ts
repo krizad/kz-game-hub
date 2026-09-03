@@ -983,6 +983,11 @@ export class GamesService {
     return this.withRoom(code, (room) => this.coupService.handleBlockChallengeTimeoutForRoom(room));
   }
 
+  coupExchangeSelect(code: string, clientId: string, keepIndices: number[]): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.coupService.exchangeSelect(room, clientId, keepIndices));
+  }
+
   // --- Who Am I / Who First Actions ---
 
   whoAmISubmitPlayerWord(
