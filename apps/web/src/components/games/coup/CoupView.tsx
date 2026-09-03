@@ -31,6 +31,7 @@ export function CoupView() {
   const forcedCoup = myCoins >= 10;
   const aliveTargets = room.players.filter((p) => p.socketId !== socketId && (state.influences[p.socketId]?.count ?? 0) > 0);
 
+  const isSpectator = room.players.find((p) => p.socketId === socketId)?.isViewer || (state.influences[socketId]?.count === 0);
   return (
     <div className="flex flex-col gap-4 bg-white border-4 border-black p-4 shadow-[4px_4px_0_0_#000]">
       <div className="flex justify-between items-center">
@@ -40,6 +41,7 @@ export function CoupView() {
           <button onClick={() => resetRoom()} className="bg-black text-white px-3 py-1 text-xs font-black uppercase">Reset</button>
         </div>
       </div>
+      {isSpectator && <div className="bg-black text-white text-xs font-black uppercase text-center py-1">{t('gameCoup.spectating')} — {t('gameCoup.helpButton')} {t('lobby.viewer')}</div>}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {room.players.map((p) => {
