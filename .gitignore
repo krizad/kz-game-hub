@@ -56,3 +56,6 @@ kz-api-*.zip
 
 # Temp scripts for AI Agents
 tmp-script/
+
+# local issue tracker (not committed per user request)
+.scratch/
