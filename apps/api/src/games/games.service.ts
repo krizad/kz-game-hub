@@ -961,6 +961,15 @@ export class GamesService {
     return this.withRoom(code, (room) => this.coupService.declareAction(room, clientId, type, targetId));
   }
 
+  coupChallenge(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.coupService.challenge(room, clientId));
+  }
+
+  coupChallengeTimeout(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.coupService.handleChallengeTimeoutForRoom(room));
+  }
+
   // --- Who Am I / Who First Actions ---
 
   whoAmISubmitPlayerWord(

@@ -792,9 +792,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.coupDeclare(data.code, client.id, data.type, data.targetId);
     if (room) {
       this.broadcastRoomState(room);
+      this.syncCoupChallengeTimer(room);
       this.maybeRecordGameResult(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid Coup action' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.COUP_CHALLENGE)
+  handleCoupChallenge(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.coupChallenge(data.code, client.id);
+    if (room) {
+      this.roomTimerService.cancel(room.code, 'coup-challenge');
+      this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid Coup challenge' });
     }
   }
 
@@ -1046,6 +1059,24 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (room.gameType === GameType.SABOTEUR) {
       this.syncSaboteurTimer(room);
     }
+    if (room.gameType === GameType.COUP) {
+      this.syncCoupChallengeTimer(room);
+    }
+  }
+
+  private syncCoupChallengeTimer(room: RoomState): void {
+    const deadline = room.coupState?.challengeWindowDeadline ?? null;
+    if (room.coupState?.phase !== 'AWAITING_CHALLENGE' || !deadline) {
+      this.roomTimerService.cancel(room.code, 'coup-challenge');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'coup-challenge', deadline, () => {
+      const updated = this.gamesService.coupChallengeTimeout(room.code);
+      if (updated) {
+        this.broadcastRoomState(updated);
+        this.maybeRecordGameResult(updated);
+      }
+    });
   }
 
   /** Per-turn auto-pass timer for Saboteur (config-gated). */

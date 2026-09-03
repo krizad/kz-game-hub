@@ -16,7 +16,7 @@ const roleEmoji: Record<string, string> = {
 };
 
 export function CoupView() {
-  const { room, socketId, privateState, resetRoom, coupDeclare } = useGameStore();
+  const { room, socketId, privateState, resetRoom, coupDeclare, coupChallenge } = useGameStore();
   const { t } = useTranslate();
   const [coupTarget, setCoupTarget] = useState<string>('');
 
@@ -79,6 +79,19 @@ export function CoupView() {
         ) : <div className="text-xs opacity-60">No private hand (spectator or not dealt)</div>}
         <div className="text-xs font-bold mt-2">{t('gameCoup.yourCoins')}: {myCoins} 💰 {isMyTurn && <span className="bg-[#EF4444] text-white px-1 ml-1">{t('gameCoup.yourTurn')}</span>}</div>
       </div>
+
+      {state.phase === 'AWAITING_CHALLENGE' && state.pendingAction && (
+        <div className="border-4 border-black p-3 bg-[#FECACA]">
+          <div className="text-xs font-black uppercase text-center">
+            {room.players.find(p=> p.socketId===state.pendingAction!.actorId)?.name} declares {state.pendingAction.type} ({state.pendingAction.claimedRole}) — Challenge?
+          </div>
+          {state.pendingAction.actorId !== socketId && (state.influences[socketId]?.count ?? 0) > 0 && (
+            <button onClick={() => coupChallenge()} className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase">Challenge!</button>
+          )}
+          {state.pendingAction.actorId === socketId && <div className="text-xs text-center mt-1 opacity-70">Waiting for others to challenge (7s)...</div>}
+          <div className="text-[10px] text-center mt-1 opacity-60">Auto-resolves in 7s if no challenge</div>
+        </div>
+      )}
 
       {!state.winnerId && state.phase === 'PLAYING' && (
         <div className="border-4 border-black p-3 bg-white">

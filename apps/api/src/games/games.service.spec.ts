@@ -145,6 +145,9 @@ describe('GamesService', () => {
     coup: {
       startGame: jest.fn(),
       resetGame: jest.fn(),
+      declareAction: jest.fn(),
+      challenge: jest.fn(),
+      handleChallengeTimeoutForRoom: jest.fn(),
       remapSocketId: CoupService.prototype.remapSocketId,
     },
   };

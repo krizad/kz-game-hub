@@ -161,11 +161,20 @@ describe('CoupService (02 core economy)', () => {
     expect(r2!.coupState!.currentTurn).toBe('s3');
   });
 
-  it('Tax gives +3', () => {
+  it('Tax opens challenge window and resolves to +3 after timeout', () => {
     const room = startRoom();
     const r = service.declareAction(room, 's1', CoupActionType.TAX);
     expect(r).not.toBeNull();
-    expect(r!.coupState!.coins['s1']).toBe(5);
+    expect(r!.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    expect(r!.coupState!.pendingAction?.type).toBe(CoupActionType.TAX);
+    expect(r!.coupState!.challengeWindowDeadline).toBeDefined();
+    // no coins yet
+    expect(r!.coupState!.coins['s1']).toBe(2);
+    const r2 = service.handleChallengeTimeoutForRoom(room);
+    expect(r2).not.toBeNull();
+    expect(r2!.coupState!.coins['s1']).toBe(5);
+    expect(r2!.coupState!.phase).toBe('PLAYING');
+    expect(r2!.coupState!.currentTurn).toBe('s2');
   });
 
   it('Coup pays 7 and makes target lose 1 influence with deadPile', () => {
@@ -228,5 +237,91 @@ describe('CoupService (02 core economy)', () => {
     expect(r4!.coupState!.winnerId).toBe('s1');
     expect(r4!.coupState!.phase).toBe('RESULT');
     expect(r4!.status).toBe(RoomStatus.RESULT);
+  });
+});
+
+describe('CoupService (03 challenge)', () => {
+  let service: CoupService;
+  let privateState: PrivateStateService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CoupService,
+        PrivateStateService,
+        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(CoupService);
+    privateState = module.get(PrivateStateService);
+  });
+
+  function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
+    const players = [
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+    ];
+    return {
+      id: 'r1',
+      gameType: GameType.COUP,
+      code: 'ABC123',
+      status: RoomStatus.LOBBY,
+      roomHostId: 's1',
+      players,
+      createdAt: new Date(),
+      config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, language: 'th' },
+      ...overrides,
+    } as RoomState;
+  }
+
+  function startRoom(): RoomState {
+    const room = makeRoom();
+    service.startGame(room, 's1');
+    return room;
+  }
+
+  it('challenge fails when actor has role — challenger loses, actor shuffles and Tax succeeds', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.DUKE, CoupRole.CONTESSA]);
+    privateState.set(room.code, 's2', 'coupHand', [CoupRole.CAPTAIN, CoupRole.ASSASSIN]);
+    const deckLen = room.coupState!.deck.length;
+    const r = service.declareAction(room, 's1', CoupActionType.TAX);
+    expect(r!.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    const challengerHandBefore = privateState.get<CoupRole[]>(room.code, 's2', 'coupHand')!.length;
+    const result = service.challenge(room, 's2');
+    expect(result).not.toBeNull();
+    // challenger lost 1
+    expect(result!.coupState!.influences['s2'].count).toBe(1);
+    expect(result!.coupState!.deadPile.length).toBe(1);
+    // actor still has 2 influences (shuffled)
+    expect(result!.coupState!.influences['s1'].count).toBe(2);
+    expect(privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!.length).toBe(2);
+    expect(result!.coupState!.deck.length).toBe(deckLen); // shuffled back and drew, net same
+    // Tax succeeded
+    expect(result!.coupState!.coins['s1']).toBe(5);
+    expect(result!.coupState!.phase).toBe('PLAYING');
+    expect(result!.coupState!.currentTurn).toBe('s2');
+  });
+
+  it('challenge succeeds when actor bluffs — actor loses and Tax fails', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.ASSASSIN]);
+    const r = service.declareAction(room, 's1', CoupActionType.TAX);
+    expect(r!.coupState!.phase).toBe('AWAITING_CHALLENGE');
+    const result = service.challenge(room, 's2');
+    expect(result).not.toBeNull();
+    expect(result!.coupState!.influences['s1'].count).toBe(1);
+    expect(result!.coupState!.coins['s1']).toBe(2); // no +3
+    expect(result!.coupState!.phase).toBe('PLAYING');
+    expect(result!.coupState!.currentTurn).toBe('s2');
+  });
+
+  it('challenge not allowed from actor or when not awaiting', () => {
+    const room = startRoom();
+    expect(service.challenge(room, 's2')).toBeNull(); // no pending
+    service.declareAction(room, 's1', CoupActionType.TAX);
+    expect(service.challenge(room, 's1')).toBeNull(); // actor cannot challenge own
+    expect(service.challenge(room, 's9')).toBeNull();
   });
 });
