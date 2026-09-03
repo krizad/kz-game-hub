@@ -22,6 +22,7 @@ const who_first_service_1 = require("./who-first/who-first.service");
 const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const saboteur_service_1 = require("./saboteur/saboteur.service");
+const coup_service_1 = require("./coup/coup.service");
 const player_session_service_1 = require("./player-session.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
@@ -45,6 +46,7 @@ exports.GamesModule = GamesModule = __decorate([
             music_trivia_service_1.MusicTriviaService,
             the_mind_service_1.TheMindService,
             saboteur_service_1.SaboteurService,
+            coup_service_1.CoupService,
             player_session_service_1.PlayerSessionService,
             room_timer_service_1.RoomTimerService,
             private_state_service_1.PrivateStateService,

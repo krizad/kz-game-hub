@@ -4,7 +4,7 @@ import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
-import { RoomState, GameType, RPSChoice } from '@repo/types';
+import { RoomState, GameType, RPSChoice, CoupActionType } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -168,6 +168,24 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleSaboteurReset(data: {
         code: string;
     }, client: Socket): void;
+    handleCoupDeclare(data: {
+        code: string;
+        type: CoupActionType;
+        targetId?: string;
+    }, client: Socket): void;
+    handleCoupChallenge(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCoupBlock(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCoupExchangeSelect(data: {
+        code: string;
+        keepIndices: number[];
+    }, client: Socket): void;
+    handleCoupReset(data: {
+        code: string;
+    }, client: Socket): void;
     handleWhoAmISubmitWords(data: {
         code: string;
         playerWords: Record<string, string>;
@@ -212,6 +230,8 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         name: string;
     }, client: Socket): void;
     private broadcastRoomState;
+    private syncCoupChallengeTimer;
+    private syncCoupBlockTimer;
     private syncSaboteurTimer;
     private emitPrivateStates;
     private emitSessionToken;

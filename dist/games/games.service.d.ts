@@ -1,4 +1,4 @@
-import { RoomState, Role, UserState, GameType, RPSChoice, WordCategory } from '@repo/types';
+import { RoomState, Role, UserState, GameType, RPSChoice, WordCategory, CoupActionType } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -10,6 +10,7 @@ import { WhoFirstService } from './who-first/who-first.service';
 import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
+import { CoupService } from './coup/coup.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -37,13 +38,14 @@ export declare class GamesService {
     private readonly musicTriviaService;
     private readonly theMindService;
     private readonly saboteurService;
+    private readonly coupService;
     private readonly playerSessionService;
     private readonly privateStateService;
     private readonly roomTimerService;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
@@ -123,6 +125,13 @@ export declare class GamesService {
     saboteurNextRound(code: string, clientId: string): RoomState | null;
     saboteurReset(code: string, clientId: string): RoomState | null;
     saboteurAutoPass(code: string, clientId: string): RoomState | null;
+    coupDeclare(code: string, clientId: string, type: CoupActionType, targetId?: string): RoomState | null;
+    coupChallenge(code: string, clientId: string): RoomState | null;
+    coupChallengeTimeout(code: string): RoomState | null;
+    coupBlock(code: string, clientId: string): RoomState | null;
+    coupBlockTimeout(code: string): RoomState | null;
+    coupBlockChallengeTimeout(code: string): RoomState | null;
+    coupExchangeSelect(code: string, clientId: string, keepIndices: number[]): RoomState | null;
     whoAmISubmitPlayerWord(code: string, clientId: string, word: string): {
         room: RoomState;
         error?: string;

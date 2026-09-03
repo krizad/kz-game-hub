@@ -25,12 +25,13 @@ const who_first_service_1 = require("./who-first/who-first.service");
 const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const saboteur_service_1 = require("./saboteur/saboteur.service");
+const coup_service_1 = require("./coup/coup.service");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, playerSessionService, privateStateService, roomTimerService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, playerSessionService, privateStateService, roomTimerService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -42,6 +43,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.musicTriviaService = musicTriviaService;
         this.theMindService = theMindService;
         this.saboteurService = saboteurService;
+        this.coupService = coupService;
         this.playerSessionService = playerSessionService;
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
@@ -201,6 +203,9 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.saboteurState) {
                 this.saboteurService.remapSocketId(room.saboteurState, oldSocketId, user.socketId);
+            }
+            if (room.coupState) {
+                this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -505,6 +510,10 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.saboteurService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.COUP) {
+            const startedRoom = this.withRoom(code, (r) => this.coupService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
         return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
     async startWhoAmI(room, requesterId) {
@@ -550,6 +559,9 @@ let GamesService = GamesService_1 = class GamesService {
         const room = this.rooms.get(code);
         if (!room)
             return null;
+        if (room.gameType === types_1.GameType.COUP) {
+            return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
+        }
         switch (room.gameType) {
             case types_1.GameType.WHO_AM_I:
                 return this.withRoom(code, (r) => this.whoAmIService.resetGame(r, requesterId));
@@ -723,6 +735,35 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.saboteurService.autoPass(room, clientId));
     }
+    coupDeclare(code, clientId, type, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.coupService.declareAction(room, clientId, type, targetId));
+    }
+    coupChallenge(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.coupService.challenge(room, clientId));
+    }
+    coupChallengeTimeout(code) {
+        return this.withRoom(code, (room) => this.coupService.handleChallengeTimeoutForRoom(room));
+    }
+    coupBlock(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.coupService.block(room, clientId));
+    }
+    coupBlockTimeout(code) {
+        return this.withRoom(code, (room) => this.coupService.handleBlockTimeoutForRoom(room));
+    }
+    coupBlockChallengeTimeout(code) {
+        return this.withRoom(code, (room) => this.coupService.handleBlockChallengeTimeoutForRoom(room));
+    }
+    coupExchangeSelect(code, clientId, keepIndices) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.coupService.exchangeSelect(room, clientId, keepIndices));
+    }
     whoAmISubmitPlayerWord(code, clientId, word) {
         if (this.rejectViewer(code, clientId))
             return null;
@@ -855,6 +896,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         music_trivia_service_1.MusicTriviaService,
         the_mind_service_1.TheMindService,
         saboteur_service_1.SaboteurService,
+        coup_service_1.CoupService,
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
         room_timer_service_1.RoomTimerService])

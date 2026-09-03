@@ -13,6 +13,7 @@ const who_first_service_1 = require("./who-first/who-first.service");
 const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const saboteur_service_1 = require("./saboteur/saboteur.service");
+const coup_service_1 = require("./coup/coup.service");
 const types_1 = require("@repo/types");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
@@ -138,6 +139,18 @@ describe('GamesService', () => {
             resetGame: jest.fn(),
             handleTimeout: jest.fn(),
         },
+        coup: {
+            startGame: jest.fn(),
+            resetGame: jest.fn(),
+            declareAction: jest.fn(),
+            challenge: jest.fn(),
+            handleChallengeTimeoutForRoom: jest.fn(),
+            handleBlockTimeoutForRoom: jest.fn(),
+            handleBlockChallengeTimeoutForRoom: jest.fn(),
+            block: jest.fn(),
+            exchangeSelect: jest.fn(),
+            remapSocketId: coup_service_1.CoupService.prototype.remapSocketId,
+        },
     };
     beforeEach(async () => {
         jest.clearAllMocks();
@@ -155,6 +168,7 @@ describe('GamesService', () => {
                 { provide: music_trivia_service_1.MusicTriviaService, useValue: mockGameServices.musicTrivia },
                 { provide: the_mind_service_1.TheMindService, useValue: mockGameServices.theMind },
                 { provide: saboteur_service_1.SaboteurService, useValue: mockGameServices.saboteur },
+                { provide: coup_service_1.CoupService, useValue: mockGameServices.coup },
                 player_session_service_1.PlayerSessionService,
                 private_state_service_1.PrivateStateService,
                 room_timer_service_1.RoomTimerService,

@@ -154,6 +154,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             else if (gameType === types_1.GameType.DETECTIVE_CLUB) {
                 msg = 'Cannot start game. Need at least 3 players.';
             }
+            else if (gameType === types_1.GameType.COUP) {
+                msg = 'Cannot start game. Need 3-6 players for Coup.';
+            }
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: msg });
         }
     }
@@ -520,6 +523,57 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
         }
     }
+    handleCoupDeclare(data, client) {
+        const room = this.gamesService.coupDeclare(data.code, client.id, data.type, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.syncCoupChallengeTimer(room);
+            this.maybeRecordGameResult(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid Coup action' });
+        }
+    }
+    handleCoupChallenge(data, client) {
+        const room = this.gamesService.coupChallenge(data.code, client.id);
+        if (room) {
+            this.roomTimerService.cancel(room.code, 'coup-challenge');
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid Coup challenge' });
+        }
+    }
+    handleCoupBlock(data, client) {
+        const room = this.gamesService.coupBlock(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid Coup block' });
+        }
+    }
+    handleCoupExchangeSelect(data, client) {
+        const room = this.gamesService.coupExchangeSelect(data.code, client.id, data.keepIndices);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid Exchange select' });
+        }
+    }
+    handleCoupReset(data, client) {
+        const room = this.gamesService.resetGame(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
+        }
+    }
     handleWhoAmISubmitWords(data, client) {
         const room = this.gamesService.whoAmIStartHostInput(data.code, client.id, data.playerWords);
         if (room) {
@@ -693,6 +747,44 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.SABOTEUR) {
             this.syncSaboteurTimer(room);
         }
+        if (room.gameType === types_1.GameType.COUP) {
+            this.syncCoupChallengeTimer(room);
+            this.syncCoupBlockTimer(room);
+        }
+    }
+    syncCoupChallengeTimer(room) {
+        const deadline = room.coupState?.challengeWindowDeadline ?? null;
+        const isChallengePhase = room.coupState?.phase === 'AWAITING_CHALLENGE' && !!deadline;
+        if (!isChallengePhase) {
+            if (room.coupState?.phase !== 'AWAITING_CHALLENGE') {
+                this.roomTimerService.cancel(room.code, 'coup-challenge');
+            }
+            return;
+        }
+        const hasBlock = !!room.coupState?.pendingBlock;
+        this.roomTimerService.schedule(room.code, 'coup-challenge', deadline, () => {
+            const updated = hasBlock
+                ? this.gamesService.coupBlockChallengeTimeout(room.code)
+                : this.gamesService.coupChallengeTimeout(room.code);
+            if (updated) {
+                this.broadcastRoomState(updated);
+                this.maybeRecordGameResult(updated);
+            }
+        });
+    }
+    syncCoupBlockTimer(room) {
+        const deadline = room.coupState?.blockWindowDeadline ?? null;
+        if (room.coupState?.phase !== 'AWAITING_BLOCK' || !deadline) {
+            this.roomTimerService.cancel(room.code, 'coup-block');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'coup-block', deadline, () => {
+            const updated = this.gamesService.coupBlockTimeout(room.code);
+            if (updated) {
+                this.broadcastRoomState(updated);
+                this.maybeRecordGameResult(updated);
+            }
+        });
     }
     syncSaboteurTimer(room) {
         const state = room.saboteurState;
@@ -859,6 +951,19 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (event === types_1.SOCKET_EVENTS.SABOTEUR_PICK_GOLD) {
             return isSmallInt(data.poolIndex);
+        }
+        if (event === types_1.SOCKET_EVENTS.COUP_DECLARE) {
+            return (typeof data.type === 'string' &&
+                ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(data.type) &&
+                (data.targetId === undefined || typeof data.targetId === 'string'));
+        }
+        if (event === types_1.SOCKET_EVENTS.COUP_CHALLENGE || event === types_1.SOCKET_EVENTS.COUP_BLOCK) {
+            return true;
+        }
+        if (event === types_1.SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
+            return (Array.isArray(data.keepIndices) &&
+                data.keepIndices.length === 2 &&
+                data.keepIndices.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3));
         }
         return true;
     }
@@ -1226,6 +1331,46 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleSaboteurReset", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.COUP_DECLARE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCoupDeclare", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.COUP_CHALLENGE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCoupChallenge", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.COUP_BLOCK),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCoupBlock", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.COUP_EXCHANGE_SELECT),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCoupExchangeSelect", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.COUP_RESET),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCoupReset", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.WHO_AM_I_SUBMIT_WORDS),
     __param(0, (0, websockets_1.MessageBody)()),

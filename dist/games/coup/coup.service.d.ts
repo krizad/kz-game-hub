@@ -1,0 +1,30 @@
+import { CoupState, CoupActionType, RoomState } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
+import { RoomTimerService } from '../room-timer.service';
+export declare class CoupService {
+    private readonly privateStateService;
+    private readonly roomTimerService;
+    constructor(privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
+    private shuffle;
+    private buildDeck;
+    startGame(room: RoomState, requesterId: string): RoomState | null;
+    resetGame(room: RoomState, requesterId: string): RoomState | null;
+    remapSocketId(state: CoupState, oldSocketId: string, newSocketId: string): void;
+    private isAlive;
+    private aliveIds;
+    private advanceTurn;
+    private checkWinner;
+    private loseInfluence;
+    private getClaimedRole;
+    private isBlockable;
+    private getBlockRole;
+    private resolveActionSuccess;
+    handleChallengeTimeoutForRoom(room: RoomState): RoomState | null;
+    handleBlockTimeoutForRoom(room: RoomState): RoomState | null;
+    handleBlockChallengeTimeoutForRoom(room: RoomState): RoomState | null;
+    challenge(room: RoomState, challengerId: string): RoomState | null;
+    block(room: RoomState, blockerId: string): RoomState | null;
+    exchangeSelect(room: RoomState, actorId: string, keepIndices: number[]): RoomState | null;
+    declareAction(room: RoomState, actorId: string, type: CoupActionType, targetId?: string): RoomState | null;
+    handlePlayerDisconnect(room: RoomState, socketId: string): void;
+}
