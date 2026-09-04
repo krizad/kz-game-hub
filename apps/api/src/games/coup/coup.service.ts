@@ -407,7 +407,7 @@ export class CoupService {
     if (allowed.length === 0) return null;
 
     if (pending.type === CoupActionType.ASSASSINATE && blockerId !== pending.targetId) return null;
-    if (pending.type === CoupActionType.STEAL && !allowed.some((r) => true)) return null;
+    if (pending.type === CoupActionType.STEAL && blockerId !== pending.targetId) return null;
 
     const claimedRole = allowed[0];
 
@@ -489,7 +489,7 @@ export class CoupService {
 
     if (this.isBlockable(type)) {
       // Foreign Aid blockable but not challengeable
-      state.pendingAction = { actorId, type, targetId, claimedRole: undefined as any };
+      state.pendingAction = { actorId, type, targetId };
       state.phase = CoupPhase.AWAITING_BLOCK;
       state.blockWindowDeadline = Date.now() + 7000;
       return room;
@@ -522,5 +522,44 @@ export class CoupService {
     return room;
   }
 
-  handlePlayerDisconnect(room: RoomState, socketId: string): void {}
+  handlePlayerDisconnect(room: RoomState, socketId: string): void {
+    const state = room.coupState;
+    if (!state || state.phase === CoupPhase.RESULT) return;
+
+    if (state.pendingAction?.actorId === socketId) {
+      if (state.phase === CoupPhase.AWAITING_EXCHANGE) {
+        const hand =
+          this.privateStateService.get<CoupRole[]>(room.code, socketId, 'coupHand') ?? [];
+        state.deck.push(...hand);
+        const restored: CoupRole[] = [];
+        for (let i = 0; i < 2; i++) {
+          if (state.deck.length === 0) break;
+          restored.push(state.deck.pop()!);
+        }
+        this.privateStateService.set(room.code, socketId, 'coupHand', this.shuffle(restored));
+      }
+      this.roomTimerService.cancel(room.code, 'coup-challenge');
+      this.roomTimerService.cancel(room.code, 'coup-block');
+      state.pendingAction = null;
+      state.pendingBlock = null;
+      state.challengeWindowDeadline = null;
+      state.blockWindowDeadline = null;
+      state.phase = CoupPhase.PLAYING;
+      this.advanceTurn(room, state);
+      return;
+    }
+
+    if (state.pendingBlock?.blockerId === socketId) {
+      this.roomTimerService.cancel(room.code, 'coup-challenge');
+      state.pendingBlock = null;
+      state.phase = CoupPhase.AWAITING_BLOCK;
+      state.challengeWindowDeadline = null;
+      state.blockWindowDeadline = Date.now() + 7000;
+      return;
+    }
+
+    if (state.phase === CoupPhase.PLAYING && state.currentTurn === socketId) {
+      this.advanceTurn(room, state);
+    }
+  }
 }

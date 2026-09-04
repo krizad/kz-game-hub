@@ -27,7 +27,13 @@ describe('GamesService', () => {
   let soundsFishyService: jest.Mocked<SoundsFishyService>;
   let detectiveClubService: jest.Mocked<DetectiveClubService>;
   let whoAmIService: jest.Mocked<WhoAmIService>;
+  let whoFirstService: jest.Mocked<WhoFirstService>;
+  let musicTriviaService: jest.Mocked<MusicTriviaService>;
+  let theMindService: jest.Mocked<TheMindService>;
+  let saboteurService: jest.Mocked<SaboteurService>;
+  let coupService: jest.Mocked<CoupService>;
   let playerSessionService: PlayerSessionService;
+  let privateStateService: PrivateStateService;
   let roomTimerService: RoomTimerService;
 
   const mockGameServices = {
@@ -152,6 +158,7 @@ describe('GamesService', () => {
       handleBlockChallengeTimeoutForRoom: jest.fn(),
       block: jest.fn(),
       exchangeSelect: jest.fn(),
+      handlePlayerDisconnect: jest.fn(),
       remapSocketId: CoupService.prototype.remapSocketId,
     },
   };
@@ -188,7 +195,13 @@ describe('GamesService', () => {
     soundsFishyService = module.get(SoundsFishyService) as jest.Mocked<SoundsFishyService>;
     detectiveClubService = module.get(DetectiveClubService) as jest.Mocked<DetectiveClubService>;
     whoAmIService = module.get(WhoAmIService) as jest.Mocked<WhoAmIService>;
+    whoFirstService = module.get(WhoFirstService) as jest.Mocked<WhoFirstService>;
+    musicTriviaService = module.get(MusicTriviaService) as jest.Mocked<MusicTriviaService>;
+    theMindService = module.get(TheMindService) as jest.Mocked<TheMindService>;
+    saboteurService = module.get(SaboteurService) as jest.Mocked<SaboteurService>;
+    coupService = module.get(CoupService) as jest.Mocked<CoupService>;
     playerSessionService = module.get(PlayerSessionService);
+    privateStateService = module.get(PrivateStateService);
     roomTimerService = module.get(RoomTimerService);
     (service as any).rooms.clear();
     (service as any).secretWords.clear();
@@ -526,6 +539,43 @@ describe('GamesService', () => {
       if (result.outcome === 'PLAYER_LEFT') {
         expect(result.room.players[1].connected).toBe(false);
       }
+    });
+
+    it('should preserve private state on transient disconnect until grace expiry', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1', GameType.COUP);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      privateStateService.set(room.code, 'p1', 'coupHand', ['DUKE', 'CAPTAIN']);
+
+      const result = service.leaveRoom('p1', false);
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(privateStateService.get(room.code, 'p1', 'coupHand')).toEqual(['DUKE', 'CAPTAIN']);
+
+      jest.advanceTimersByTime(60_000);
+      expect(privateStateService.get(room.code, 'p1', 'coupHand')).toBeUndefined();
+    });
+
+    it('should clear private state immediately on explicit leave', () => {
+      const room = service.createRoom('host1', GameType.COUP);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      privateStateService.set(room.code, 'p1', 'coupHand', ['DUKE', 'CAPTAIN']);
+
+      const result = service.leaveRoom('p1', true);
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(privateStateService.get(room.code, 'p1', 'coupHand')).toBeUndefined();
+    });
+
+    it('should call coup handlePlayerDisconnect on COUP transient disconnect', () => {
+      const room = service.createRoom('host1', GameType.COUP);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      room.coupState = { phase: 'PLAYING' } as any;
+      (service as any).rooms.set(room.code, room);
+
+      service.leaveRoom('p1', false);
+      expect(mockGameServices.coup.handlePlayerDisconnect).toHaveBeenCalledWith(room, 'p1');
     });
 
     it('should keep the room alive while all disconnected players are within grace', () => {
@@ -920,10 +970,15 @@ describe('GamesService', () => {
   });
 
   describe('resetGame', () => {
-    it('should delegate to WhoAmIService for WHO_AM_I game', () => {
-      const room = service.createRoom('host1', GameType.WHO_AM_I);
+    function resettableRoom(gameType: GameType) {
+      const room = service.createRoom('host1', gameType);
       room.status = RoomStatus.RESULT;
       (service as any).rooms.set(room.code, room);
+      return room;
+    }
+
+    it('should delegate to WhoAmIService for WHO_AM_I game', () => {
+      const room = resettableRoom(GameType.WHO_AM_I);
 
       const updatedRoom = { ...room, status: RoomStatus.LOBBY };
       whoAmIService.resetGame.mockReturnValue(updatedRoom);
@@ -933,10 +988,8 @@ describe('GamesService', () => {
       expect(result!.status).toBe(RoomStatus.LOBBY);
     });
 
-    it('should delegate to WhoKnowService for other game types', () => {
-      const room = service.createRoom('host1');
-      room.status = RoomStatus.RESULT;
-      (service as any).rooms.set(room.code, room);
+    it('should delegate to WhoKnowService for WHO_KNOW game', () => {
+      const room = resettableRoom(GameType.WHO_KNOW);
 
       const updatedRoom = { ...room, status: RoomStatus.LOBBY };
       whoKnowService.resetGame.mockReturnValue(updatedRoom);
@@ -944,6 +997,109 @@ describe('GamesService', () => {
       const result = service.resetGame(room.code, 'host1');
       expect(whoKnowService.resetGame).toHaveBeenCalledWith(room, 'host1', expect.any(Map));
       expect(result!.status).toBe(RoomStatus.LOBBY);
+    });
+
+    it('should delegate to TicTacToeService for TIC_TAC_TOE game', () => {
+      const room = resettableRoom(GameType.TIC_TAC_TOE);
+      ticTacToeService.reset.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(ticTacToeService.reset).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to RPSService for RPS game', () => {
+      const room = resettableRoom(GameType.RPS);
+      rpsService.reset.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(rpsService.reset).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to GobblerService for GOBBLER_TIC_TAC_TOE game', () => {
+      const room = resettableRoom(GameType.GOBBLER_TIC_TAC_TOE);
+      gobblerService.reset.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(gobblerService.reset).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to SoundsFishyService for SOUNDS_FISHY game', () => {
+      const room = resettableRoom(GameType.SOUNDS_FISHY);
+      soundsFishyService.reset.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(soundsFishyService.reset).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to DetectiveClubService for DETECTIVE_CLUB game', () => {
+      const room = resettableRoom(GameType.DETECTIVE_CLUB);
+      detectiveClubService.reset.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(detectiveClubService.reset).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to WhoFirstService for WHO_FIRST game', () => {
+      const room = resettableRoom(GameType.WHO_FIRST);
+      whoFirstService.resetGame.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(whoFirstService.resetGame).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to MusicTriviaService for MUSIC_TRIVIA game', () => {
+      const room = resettableRoom(GameType.MUSIC_TRIVIA);
+      musicTriviaService.resetGame.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(musicTriviaService.resetGame).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to TheMindService for THE_MIND game', () => {
+      const room = resettableRoom(GameType.THE_MIND);
+      theMindService.resetGame.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(theMindService.resetGame).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to SaboteurService for SABOTEUR game', () => {
+      const room = resettableRoom(GameType.SABOTEUR);
+      saboteurService.reset.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(saboteurService.reset).toHaveBeenCalledWith(room, 'host1');
+      expect(whoKnowService.resetGame).not.toHaveBeenCalled();
+      expect(result).not.toBeNull();
+    });
+
+    it('should delegate to CoupService for COUP game', () => {
+      const room = resettableRoom(GameType.COUP);
+      coupService.resetGame.mockReturnValue(room);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(coupService.resetGame).toHaveBeenCalledWith(room, 'host1');
+      expect(result).not.toBeNull();
+    });
+
+    it('should return null for an unknown game type instead of a shared fallback', () => {
+      const room = resettableRoom('UNKNOWN' as GameType);
+
+      const result = service.resetGame(room.code, 'host1');
+      expect(result).toBeNull();
+      expect(whoKnowService.resetGame).not.toHaveBeenCalled();
+    });
+
+    it('should return null for a missing room', () => {
+      expect(service.resetGame('XXXXXX', 'host1')).toBeNull();
     });
   });
 

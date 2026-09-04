@@ -522,12 +522,12 @@ export class SaboteurService {
     const hand = this.getHand(room, playerId);
     if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= hand.length) return null;
 
-    hand.splice(cardIndex, 1);
+    const [discarded] = hand.splice(cardIndex, 1);
     this.setHand(room, playerId, hand);
     this.drawCard(room, playerId);
     this.syncHandSizes(room);
     state.lastAction = { playerId, kind: 'DISCARD' };
-    this.pushLog(room, { playerId, kind: 'DISCARD', cardId: hand[cardIndex]?.cardId });
+    this.pushLog(room, { playerId, kind: 'DISCARD', cardId: discarded?.cardId });
 
     if (this.checkExhaustionEnd(room)) return room;
     this.advanceTurn(room);

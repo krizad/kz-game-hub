@@ -415,6 +415,18 @@ describe('SaboteurService', () => {
       expect(room.saboteurState!.activePlayerId).toBe('p3');
     });
 
+    it('logs the discarded card, not the card that shifts into its slot', () => {
+      const room = startGame(createRoom(3));
+      const state = room.saboteurState!;
+      state.activePlayerId = 'p1';
+      setHand(room, 'p1', ['path-24c', 'path-24d']);
+
+      expect(service.discard(room, 'p1', 0)).not.toBeNull();
+      const discards = state.log.filter((l) => l.kind === 'DISCARD' && l.playerId === 'p1');
+      expect(discards).toHaveLength(1);
+      expect(discards[0].cardId).toBe('path-24c');
+    });
+
     it('auto-pass skips the turn without drawing or discarding', () => {
       const room = startGame(createRoom(3));
       const state = room.saboteurState!;

@@ -309,7 +309,6 @@ export class GamesService {
         // the player can silently rejoin instead of being kicked.
         const dropped = room.players[playerIndex];
         dropped.connected = false;
-        this.privateStateService.clearSocket(code, clientId);
         this.scheduleReconnectGrace(code, dropped.id);
         this.runDisconnectHooks(code, room, clientId);
       }
@@ -396,6 +395,9 @@ export class GamesService {
     }
     if (room.gameType === GameType.SABOTEUR && room.saboteurState) {
       this.saboteurService.handlePlayerDisconnect(room, socketId);
+    }
+    if (room.gameType === GameType.COUP && room.coupState) {
+      this.coupService.handlePlayerDisconnect(room, socketId);
     }
   }
 
@@ -711,6 +713,20 @@ export class GamesService {
     }
 
     switch (room.gameType) {
+      case GameType.WHO_KNOW:
+        return this.withRoom(code, (r) =>
+          this.whoKnowService.resetGame(r, requesterId, this.secretWords),
+        );
+      case GameType.TIC_TAC_TOE:
+        return this.withRoom(code, (r) => this.ticTacToeService.reset(r, requesterId));
+      case GameType.RPS:
+        return this.withRoom(code, (r) => this.rpsService.reset(r, requesterId));
+      case GameType.GOBBLER_TIC_TAC_TOE:
+        return this.withRoom(code, (r) => this.gobblerService.reset(r, requesterId));
+      case GameType.SOUNDS_FISHY:
+        return this.withRoom(code, (r) => this.soundsFishyService.reset(r, requesterId));
+      case GameType.DETECTIVE_CLUB:
+        return this.withRoom(code, (r) => this.detectiveClubService.reset(r, requesterId));
       case GameType.WHO_AM_I:
         return this.withRoom(code, (r) => this.whoAmIService.resetGame(r, requesterId));
       case GameType.WHO_FIRST:
@@ -719,10 +735,10 @@ export class GamesService {
         return this.withRoom(code, (r) => this.musicTriviaService.resetGame(r, requesterId));
       case GameType.THE_MIND:
         return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
+      case GameType.SABOTEUR:
+        return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
       default:
-        return this.withRoom(code, (r) =>
-          this.whoKnowService.resetGame(r, requesterId, this.secretWords),
-        );
+        return null;
     }
   }
 
