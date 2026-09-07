@@ -29,8 +29,8 @@ export function LobbyStartButton() {
         return 4;
       case GameType.SOUNDS_FISHY:
       case GameType.DETECTIVE_CLUB:
-        return 3;
       case GameType.SABOTEUR:
+      case GameType.COUP:
         return 3;
       case GameType.MUSIC_TRIVIA:
         return 2;

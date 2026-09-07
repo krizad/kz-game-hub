@@ -51,7 +51,9 @@ export function RoomHeader() {
                                   ? 'The Mind'
                                   : room.gameType === GameType.SABOTEUR
                                     ? 'Saboteur'
-                                    : t('lobby.gameNames.whoKnow')}
+                                    : room.gameType === GameType.COUP
+                                      ? 'Coup'
+                                      : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

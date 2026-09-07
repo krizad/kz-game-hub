@@ -52,6 +52,9 @@ export async function extractRoomCode(page: Page): Promise<string> {
     'Who First',
     'Gobbler',
     'The Mind',
+    'Saboteur',
+    'Coup',
+    'Ultimate Tic-Tac-Toe',
   ];
   for (const name of knownNames) {
     const idx = bodyText.indexOf(name);

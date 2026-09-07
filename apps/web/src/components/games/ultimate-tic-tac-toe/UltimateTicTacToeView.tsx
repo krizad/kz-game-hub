@@ -51,6 +51,7 @@ export function UltimateTicTacToeView() {
                 </div>
               ) : (
                 <button
+                  data-testid="uttt-join-x"
                   onClick={() => utttJoinSide('X')}
                   disabled={actionLoading}
                   className="bg-white border-2 border-black hover:bg-gray-200 px-4 py-2 font-black text-black disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
@@ -73,6 +74,7 @@ export function UltimateTicTacToeView() {
                 </div>
               ) : (
                 <button
+                  data-testid="uttt-join-o"
                   onClick={() => utttJoinSide('O')}
                   disabled={actionLoading}
                   className="bg-white border-2 border-black hover:bg-gray-200 px-4 py-2 font-black text-black disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
@@ -217,7 +219,9 @@ export function UltimateTicTacToeView() {
 
                     return (
                       <button
+                        type="button"
                         key={`cell-${macroIndex}-${microIndex}`}
+                        data-testid={`uttt-cell-${macroIndex}-${microIndex}`}
                         disabled={!isCellPlayable}
                         onClick={() => utttMakeMove(macroIndex, microIndex)}
                         onMouseEnter={() => {

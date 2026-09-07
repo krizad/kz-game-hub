@@ -94,6 +94,64 @@ test.describe('Full Game Demos', () => {
     await p2Ctx.close();
   });
 
+  // ─── 1.5 Ultimate Tic-Tac-Toe ─────────────────────────────────────────────
+  test('Ultimate Tic-Tac-Toe Demo', async ({ browser }) => {
+    const p1Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/ultimate-ttt-p1` } });
+    const p2Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/ultimate-ttt-p2` } });
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+
+    const roomCode = await createRoom(p1, 'Alice', 'Ultimate Tic-Tac-Toe');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Bob');
+
+    await p1.waitForTimeout(1500);
+    await p1.locator('[data-testid="uttt-join-x"]').click();
+    await p2.locator('[data-testid="uttt-join-o"]').click();
+    await p1.waitForTimeout(1000);
+
+    // Sequence of 17 moves demonstrating turn forwarding, sub-board wins, free moves, and 3-in-a-row macro victory:
+    const moves = [
+      // Sub-board 0 win for X:
+      { page: p1, macro: 0, micro: 1 },
+      { page: p2, macro: 1, micro: 0 },
+      { page: p1, macro: 0, micro: 2 },
+      { page: p2, macro: 2, micro: 0 },
+      { page: p1, macro: 0, micro: 0 }, // X wins Sub-board 0! Micro 0 is won -> Free move for Bob
+
+      // Sub-board 1 win for X:
+      { page: p2, macro: 3, micro: 1 }, // Bob takes Free Move in board 3
+      { page: p1, macro: 1, micro: 4 },
+      { page: p2, macro: 4, micro: 1 },
+      { page: p1, macro: 1, micro: 2 },
+      { page: p2, macro: 2, micro: 1 },
+      { page: p1, macro: 1, micro: 6 }, // X wins Sub-board 1 (diagonal 2, 4, 6)!
+
+      // Sub-board 2 win for X:
+      { page: p2, macro: 6, micro: 2 },
+      { page: p1, macro: 2, micro: 3 },
+      { page: p2, macro: 3, micro: 2 },
+      { page: p1, macro: 2, micro: 4 },
+      { page: p2, macro: 4, micro: 2 },
+      { page: p1, macro: 2, micro: 5 }, // X wins Sub-board 2 (row 3, 4, 5)! Macro boards 0, 1, 2 aligned -> ALICE WINS!
+    ];
+
+    for (const move of moves) {
+      const cell = move.page.locator(`[data-testid="uttt-cell-${move.macro}-${move.micro}"]`);
+      await cell.waitFor({ state: 'visible', timeout: 10000 });
+      await cell.click();
+      await move.page.waitForTimeout(600);
+    }
+
+    // Match over — winner banner visible to BOTH players
+    await expect(p1.getByText(/wins/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText(/wins/i).first()).toBeVisible({ timeout: 10000 });
+    await p1.waitForTimeout(2500);
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+  });
+
   // ─── 2. Hand Duel (RPS) ──────────────────────────────────────────────────
   test('Hand Duel (RPS) Demo', async ({ browser }) => {
     const p1Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/rps-p1` } });
@@ -1135,5 +1193,66 @@ test.describe('Full Game Demos', () => {
     await p1.waitForTimeout(2500);
 
     await Promise.all(ctxs.map((c) => c.close()));
+  });
+
+  // ─── 12. Coup ────────────────────────────────────────────────────────────
+  test('Coup Demo', async ({ browser }) => {
+    const p1Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/coup-p1` } });
+    const p2Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/coup-p2` } });
+    const p3Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/coup-p3` } });
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+    const p3 = await p3Ctx.newPage();
+
+    const roomCode = await createRoom(p1, 'Alice', 'Coup');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Bob');
+    await joinRoom(p3, origin, roomCode, 'Charlie');
+
+    await expect(p1.getByText('Bob')).toBeVisible({ timeout: 10000 });
+    await expect(p1.getByText('Charlie')).toBeVisible({ timeout: 10000 });
+    await p1.waitForTimeout(1000);
+
+    // Host starts game
+    const startBtn = p1.getByText(/Start Game|เริ่มเกม/i);
+    await expect(startBtn).toBeVisible({ timeout: 5000 });
+    await startBtn.click();
+
+    await expect(p1.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
+    await expect(p3.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
+
+    const pages = [p1, p2, p3];
+
+    // Players take turns with Income to demonstrate action flow and coin collection
+    for (let round = 0; round < 6; round++) {
+      let active: Page | null = null;
+      for (const page of pages) {
+        if (
+          await page
+            .getByText(/Your Turn|ตาของคุณ/i)
+            .isVisible()
+            .catch(() => false)
+        ) {
+          active = page;
+          break;
+        }
+      }
+      if (active) {
+        const incomeBtn = active.getByRole('button', { name: /Income/i });
+        if (await incomeBtn.isVisible().catch(() => false)) {
+          await incomeBtn.click();
+          await active.waitForTimeout(1000);
+        }
+      } else {
+        await p1.waitForTimeout(500);
+      }
+    }
+
+    await p1.waitForTimeout(2500);
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+    await p3Ctx.close();
   });
 });
