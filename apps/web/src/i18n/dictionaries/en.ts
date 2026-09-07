@@ -17,6 +17,7 @@ export const en: Dictionary = {
       whoKnow: 'Who Know!',
       gobbler: 'Gobbler Tic Tac Toe',
       ticTacToe: 'Classic Tic Tac Toe',
+      ultimateTTT: 'Ultimate Tic-Tac-Toe',
       handDuel: 'Hand Duel',
       soundsFishy: 'Sounds Fishy',
       whoAmI: 'Who Am I',
@@ -94,6 +95,7 @@ export const en: Dictionary = {
         whoKnow: 'Who Know',
         gobbler: 'Gobbler',
         ticTacToe: 'Tic Tac Toe',
+        ultimateTTT: 'Ultimate Tic-Tac-Toe',
         handDuel: 'Hand Duel',
         soundsFishy: 'Sounds Fishy',
         whoAmI: 'Who Am I',
@@ -130,7 +132,8 @@ export const en: Dictionary = {
       theMindDesc:
         'An innovative cooperative card game where you must play cards in ascending order without communicating at all!',
       saboteurDesc: 'A hidden-role mining game. Miners dig to gold, Saboteurs sabotage secretly.',
-      coupDesc: 'A bluffing deduction game — lie about your influence, block and assassinate to be the last one standing.',
+      coupDesc:
+        'A bluffing deduction game — lie about your influence, block and assassinate to be the last one standing.',
     },
     coup: {
       title: 'Coup',
@@ -202,6 +205,30 @@ export const en: Dictionary = {
       winDesc1C: ' (horizontally, vertically, or diagonally) wins the game.',
       winDesc2A: 'If all 9 squares are filled and neither player has 3 in a row, the game is a ',
       winDesc2B: 'Draw',
+    },
+    ultimateTTT: {
+      title: 'Ultimate Tic-Tac-Toe (Super Tic-Tac-Toe)',
+      desc: 'An advanced strategic evolution of Tic-Tac-Toe played on a nested 3x3 grid of 9 small boards (81 squares total). Force your opponent across the board to claim macro squares!',
+      rulesTitle: '4 Core Rules',
+      rule1Title: 'Nested Boards',
+      rule1Desc:
+        'There is a large 3x3 macro board, and within each of its 9 squares is a smaller 3x3 micro board (81 squares total).',
+      rule2Title: 'Turn Forwarding Mechanism',
+      rule2Desc:
+        'The cell you choose within a small board dictates where your opponent MUST play on the large board next. For example, playing in the top-right corner of a small board sends your opponent to the top-right board on the macro grid!',
+      rule3Title: 'Claiming Territory',
+      rule3Desc:
+        'Whoever gets 3 in a row on a small board claims that entire macro square as their symbol (X or O).',
+      rule4Title: 'Free Move',
+      rule4Desc:
+        'If you are sent to a small board that is already won or completely full, you earn a Free Move to play in ANY open cell on any unfinished board!',
+      winTitle: 'Winning Condition',
+      winDesc:
+        'Win the game immediately by aligning 3 claimed macro boards in a row (horizontally, vertically, or diagonally)!',
+      diagramTitle: 'Turn Forwarding Diagram Example',
+      diagramDesc:
+        'If you play in the top-right cell (↗) of the center sub-board → Your opponent is forced to play in the top-right macro board!',
+      diagramTargetNotice: 'Target Board Forced to Play',
     },
     rps: {
       title: 'Hand Duel (Rock Paper Scissors)',
@@ -485,6 +512,13 @@ export const en: Dictionary = {
     draw: "It's a Draw!",
     wins: '{winner} Wins!',
     playAgain: 'Play Again',
+  },
+  gameUltimateTTT: {
+    title: 'Ultimate Tic-Tac-Toe',
+    yourTurn: 'Your Turn!',
+    opponentTurn: "{turn}'s Turn",
+    freeMove: '🌟 Free Move: Play on any open board!',
+    targetBoard: '🎯 Board #{board}',
   },
   gameGobbler: {
     lobby: 'Gobbler',

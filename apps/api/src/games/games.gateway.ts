@@ -14,7 +14,15 @@ import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { WsExceptionFilter } from './ws-exception.filter';
-import { SOCKET_EVENTS, RoomState, RoomStatus, Role, GameType, RPSChoice, CoupActionType } from '@repo/types';
+import {
+  SOCKET_EVENTS,
+  RoomState,
+  RoomStatus,
+  Role,
+  GameType,
+  RPSChoice,
+  CoupActionType,
+} from '@repo/types';
 import {
   MusicTriviaActionResult,
   MusicTriviaTimerCommand,
@@ -379,6 +387,60 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage(SOCKET_EVENTS.TTT_RESET)
   handleTTTReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.tttReset(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+    }
+  }
+
+  // --- Ultimate Tic-Tac-Toe Game Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.UTTT_JOIN_SIDE)
+  handleUTTTJoinSide(
+    @MessageBody() data: { code: string; side: 'X' | 'O' },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.utttJoinSide(data.code, client.id, data.side);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized or slot already taken.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.UTTT_MAKE_MOVE)
+  handleUTTTMakeMove(
+    @MessageBody() data: { code: string; macroIndex: number; microIndex: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.utttMakeMove(
+      data.code,
+      client.id,
+      data.macroIndex,
+      data.microIndex,
+    );
+    if (room) {
+      this.broadcastRoomState(room);
+      if (room.status === RoomStatus.RESULT) {
+        this.maybeRecordGameResult(room);
+      }
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.UTTT_RESET)
+  handleUTTTReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.utttReset(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
       this.server.emit(
@@ -840,7 +902,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.gamesService.resetGame(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
-      this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game' });
     }
@@ -1329,7 +1394,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (event === SOCKET_EVENTS.COUP_DECLARE) {
       return (
         typeof data.type === 'string' &&
-        ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(data.type) &&
+        ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(
+          data.type,
+        ) &&
         (data.targetId === undefined || typeof data.targetId === 'string')
       );
     }
@@ -1340,7 +1407,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return (
         Array.isArray(data.keepIndices) &&
         data.keepIndices.length === 2 &&
-        data.keepIndices.every((v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3)
+        data.keepIndices.every(
+          (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3,
+        )
       );
     }
     return true;

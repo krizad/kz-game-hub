@@ -38,9 +38,7 @@ export class WhoKnowService {
     if (room.status !== RoomStatus.LOBBY && room.status !== RoomStatus.RESULT) return null;
     if (room.roomHostId !== requesterId) return null;
 
-    const connectedPlayers = room.players.filter(
-      (p) => p.connected !== false && !p.isViewer,
-    );
+    const connectedPlayers = room.players.filter((p) => p.connected !== false && !p.isViewer);
     if (connectedPlayers.length < 4) return null;
 
     room.status = RoomStatus.WORD_SETTING;

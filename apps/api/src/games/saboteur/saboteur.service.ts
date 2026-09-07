@@ -161,9 +161,7 @@ export class SaboteurService {
   }
 
   private connectedPlayerIds(room: RoomState): string[] {
-    return room.players
-      .filter((p) => p.connected !== false && !p.isViewer)
-      .map((p) => p.socketId);
+    return room.players.filter((p) => p.connected !== false && !p.isViewer).map((p) => p.socketId);
   }
 
   /** Append a public log entry (newest last, capped). */

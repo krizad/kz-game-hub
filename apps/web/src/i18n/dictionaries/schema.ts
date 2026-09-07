@@ -15,6 +15,7 @@ export interface Dictionary {
       whoKnow: string;
       gobbler: string;
       ticTacToe: string;
+      ultimateTTT: string;
       handDuel: string;
       soundsFishy: string;
       whoAmI: string;
@@ -91,6 +92,7 @@ export interface Dictionary {
         whoKnow: string;
         gobbler: string;
         ticTacToe: string;
+        ultimateTTT: string;
         handDuel: string;
         soundsFishy: string;
         whoAmI: string;
@@ -183,6 +185,24 @@ export interface Dictionary {
       winDesc1C: string;
       winDesc2A: string;
       winDesc2B: string;
+    };
+    ultimateTTT: {
+      title: string;
+      desc: string;
+      rulesTitle: string;
+      rule1Title: string;
+      rule1Desc: string;
+      rule2Title: string;
+      rule2Desc: string;
+      rule3Title: string;
+      rule3Desc: string;
+      rule4Title: string;
+      rule4Desc: string;
+      winTitle: string;
+      winDesc: string;
+      diagramTitle: string;
+      diagramDesc: string;
+      diagramTargetNotice: string;
     };
     rps: {
       title: string;
@@ -438,6 +458,13 @@ export interface Dictionary {
     draw: string;
     wins: string;
     playAgain: string;
+  };
+  gameUltimateTTT: {
+    title: string;
+    yourTurn: string;
+    opponentTurn: string;
+    freeMove: string;
+    targetBoard: string;
   };
   gameGobbler: {
     lobby: string;

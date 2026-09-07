@@ -13,6 +13,7 @@ import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -32,6 +33,7 @@ describe('GamesService', () => {
   let theMindService: jest.Mocked<TheMindService>;
   let saboteurService: jest.Mocked<SaboteurService>;
   let coupService: jest.Mocked<CoupService>;
+  let ultimateTicTacToeService: jest.Mocked<UltimateTicTacToeService>;
   let playerSessionService: PlayerSessionService;
   let privateStateService: PrivateStateService;
   let roomTimerService: RoomTimerService;
@@ -161,6 +163,13 @@ describe('GamesService', () => {
       handlePlayerDisconnect: jest.fn(),
       remapSocketId: CoupService.prototype.remapSocketId,
     },
+    ultimateTicTacToe: {
+      joinSide: jest.fn(),
+      makeMove: jest.fn(),
+      reset: jest.fn(),
+      remapSocketId: UltimateTicTacToeService.prototype.remapSocketId,
+      createInitialState: UltimateTicTacToeService.prototype.createInitialState,
+    },
   };
 
   beforeEach(async () => {
@@ -181,6 +190,7 @@ describe('GamesService', () => {
         { provide: TheMindService, useValue: mockGameServices.theMind },
         { provide: SaboteurService, useValue: mockGameServices.saboteur },
         { provide: CoupService, useValue: mockGameServices.coup },
+        { provide: UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,
@@ -200,6 +210,9 @@ describe('GamesService', () => {
     theMindService = module.get(TheMindService) as jest.Mocked<TheMindService>;
     saboteurService = module.get(SaboteurService) as jest.Mocked<SaboteurService>;
     coupService = module.get(CoupService) as jest.Mocked<CoupService>;
+    ultimateTicTacToeService = module.get(
+      UltimateTicTacToeService,
+    ) as jest.Mocked<UltimateTicTacToeService>;
     playerSessionService = module.get(PlayerSessionService);
     privateStateService = module.get(PrivateStateService);
     roomTimerService = module.get(RoomTimerService);

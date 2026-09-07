@@ -14,6 +14,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return t('lobby.gameNames.gobbler').toUpperCase();
     case GameType.TIC_TAC_TOE:
       return t('lobby.gameNames.ticTacToe').toUpperCase();
+    case GameType.ULTIMATE_TIC_TAC_TOE:
+      return t('lobby.gameNames.ultimateTTT').toUpperCase();
     case GameType.RPS:
       return t('lobby.gameNames.handDuel').toUpperCase();
     case GameType.DETECTIVE_CLUB:
@@ -169,6 +171,23 @@ export function HomeView() {
               <span className="text-xl">❌⭕️</span>
               <span className="text-xs tracking-wider text-center px-1 uppercase">
                 {t('lobby.gameNames.ticTacToe')}
+              </span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <button
+              onClick={() => createRoom(GameType.ULTIMATE_TIC_TAC_TOE)}
+              disabled={!connected || !myName}
+              className="col-span-2 w-full bg-[#FACC15] hover:bg-[#EAB308] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-xl">⚡</span>
+                <span className="text-xl">🔲❌⭕️</span>
+                <span className="text-xl">⚡</span>
+              </div>
+              <span className="text-xs tracking-wider text-center px-1 uppercase">
+                {t('lobby.gameNames.ultimateTTT')}
               </span>
             </button>
           </div>

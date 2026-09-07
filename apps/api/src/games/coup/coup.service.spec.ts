@@ -13,7 +13,10 @@ describe('CoupService (01 scaffold)', () => {
       providers: [
         CoupService,
         PrivateStateService,
-        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+        {
+          provide: RoomTimerService,
+          useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -112,7 +115,10 @@ describe('CoupService (02 core economy)', () => {
       providers: [
         CoupService,
         PrivateStateService,
-        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+        {
+          provide: RoomTimerService,
+          useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+        },
       ],
     }).compile();
     service = module.get(CoupService);
@@ -184,7 +190,7 @@ describe('CoupService (02 core economy)', () => {
     // give s1 enough coins
     room.coupState!.coins['s1'] = 7;
     const beforeDead = room.coupState!.deadPile.length;
-    const handBefore = [...(privateState.get<CoupRole[]>(room.code, 's2', 'coupHand')!)];
+    const handBefore = [...privateState.get<CoupRole[]>(room.code, 's2', 'coupHand')!];
     const r = service.declareAction(room, 's1', CoupActionType.COUP, 's2');
     expect(r).not.toBeNull();
     expect(r!.coupState!.coins['s1']).toBe(0);
@@ -251,7 +257,10 @@ describe('CoupService (03 challenge)', () => {
       providers: [
         CoupService,
         PrivateStateService,
-        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+        {
+          provide: RoomTimerService,
+          useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+        },
       ],
     }).compile();
     service = module.get(CoupService);
@@ -337,7 +346,10 @@ describe('CoupService (04 block)', () => {
       providers: [
         CoupService,
         PrivateStateService,
-        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+        {
+          provide: RoomTimerService,
+          useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+        },
       ],
     }).compile();
     service = module.get(CoupService);
@@ -444,7 +456,10 @@ describe('CoupService (05 steal & exchange)', () => {
       providers: [
         CoupService,
         PrivateStateService,
-        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+        {
+          provide: RoomTimerService,
+          useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+        },
       ],
     }).compile();
     service = module.get(CoupService);
@@ -580,7 +595,10 @@ describe('CoupService (06 disconnect)', () => {
       providers: [
         CoupService,
         PrivateStateService,
-        { provide: RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+        {
+          provide: RoomTimerService,
+          useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+        },
       ],
     }).compile();
     service = module.get(CoupService);

@@ -33,23 +33,25 @@ export function RoomHeader() {
                 ? t('lobby.gameNames.gobbler')
                 : room.gameType === GameType.TIC_TAC_TOE
                   ? t('lobby.gameNames.ticTacToe')
-                  : room.gameType === GameType.RPS
-                    ? t('lobby.gameNames.handDuel')
-                    : room.gameType === GameType.SOUNDS_FISHY
-                      ? 'Sounds Fishy'
-                      : room.gameType === GameType.DETECTIVE_CLUB
-                        ? 'Detective Club'
-                        : room.gameType === GameType.MUSIC_TRIVIA
-                          ? 'Music Trivia'
-                          : room.gameType === GameType.WHO_AM_I
-                            ? 'Who Am I'
-                            : room.gameType === GameType.WHO_FIRST
-                              ? 'Who First'
-                              : room.gameType === GameType.THE_MIND
-                                ? 'The Mind'
-                                : room.gameType === GameType.SABOTEUR
-                                  ? 'Saboteur'
-                                  : t('lobby.gameNames.whoKnow')}
+                  : room.gameType === GameType.ULTIMATE_TIC_TAC_TOE
+                    ? t('lobby.gameNames.ultimateTTT')
+                    : room.gameType === GameType.RPS
+                      ? t('lobby.gameNames.handDuel')
+                      : room.gameType === GameType.SOUNDS_FISHY
+                        ? 'Sounds Fishy'
+                        : room.gameType === GameType.DETECTIVE_CLUB
+                          ? 'Detective Club'
+                          : room.gameType === GameType.MUSIC_TRIVIA
+                            ? 'Music Trivia'
+                            : room.gameType === GameType.WHO_AM_I
+                              ? 'Who Am I'
+                              : room.gameType === GameType.WHO_FIRST
+                                ? 'Who First'
+                                : room.gameType === GameType.THE_MIND
+                                  ? 'The Mind'
+                                  : room.gameType === GameType.SABOTEUR
+                                    ? 'Saboteur'
+                                    : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

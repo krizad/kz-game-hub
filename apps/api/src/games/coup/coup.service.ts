@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { CoupRole, CoupState, CoupPhase, CoupActionType, GameType, RoomState, RoomStatus } from '@repo/types';
+import {
+  CoupRole,
+  CoupState,
+  CoupPhase,
+  CoupActionType,
+  GameType,
+  RoomState,
+  RoomStatus,
+} from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 import { RoomTimerService } from '../room-timer.service';
 
@@ -164,7 +172,11 @@ export class CoupService {
   }
 
   private isBlockable(type: CoupActionType): boolean {
-    return type === CoupActionType.FOREIGN_AID || type === CoupActionType.ASSASSINATE || type === CoupActionType.STEAL;
+    return (
+      type === CoupActionType.FOREIGN_AID ||
+      type === CoupActionType.ASSASSINATE ||
+      type === CoupActionType.STEAL
+    );
   }
 
   private getBlockRole(type: CoupActionType): CoupRole[] {
@@ -180,7 +192,11 @@ export class CoupService {
     }
   }
 
-  private resolveActionSuccess(room: RoomState, state: CoupState, pending: NonNullable<CoupState['pendingAction']>): boolean {
+  private resolveActionSuccess(
+    room: RoomState,
+    state: CoupState,
+    pending: NonNullable<CoupState['pendingAction']>,
+  ): boolean {
     switch (pending.type) {
       case CoupActionType.TAX:
         state.coins[pending.actorId] = (state.coins[pending.actorId] ?? 0) + 3;
@@ -204,7 +220,8 @@ export class CoupService {
         break;
       }
       case CoupActionType.EXCHANGE: {
-        const actorHand = this.privateStateService.get<CoupRole[]>(room.code, pending.actorId, 'coupHand') ?? [];
+        const actorHand =
+          this.privateStateService.get<CoupRole[]>(room.code, pending.actorId, 'coupHand') ?? [];
         const drawn: CoupRole[] = [];
         for (let i = 0; i < 2; i++) {
           if (state.deck.length === 0) break;
@@ -262,7 +279,8 @@ export class CoupService {
   handleBlockChallengeTimeoutForRoom(room: RoomState): RoomState | null {
     if (!room.coupState) return null;
     const state = room.coupState;
-    if (state.phase !== CoupPhase.AWAITING_CHALLENGE || !state.pendingBlock || !state.pendingAction) return null;
+    if (state.phase !== CoupPhase.AWAITING_CHALLENGE || !state.pendingBlock || !state.pendingAction)
+      return null;
     // No challenge to block — block stands, action fails
     state.challengeWindowDeadline = null;
     state.pendingBlock = null;
@@ -286,7 +304,12 @@ export class CoupService {
       if (!room.players.some((p) => p.socketId === challengerId)) return null;
 
       const claimedRole = state.pendingBlock.claimedRole;
-      const blockerHand = this.privateStateService.get<CoupRole[]>(room.code, state.pendingBlock.blockerId, 'coupHand') ?? [];
+      const blockerHand =
+        this.privateStateService.get<CoupRole[]>(
+          room.code,
+          state.pendingBlock.blockerId,
+          'coupHand',
+        ) ?? [];
       const hasRole = blockerHand.includes(claimedRole);
 
       this.roomTimerService.cancel(room.code, 'coup-challenge');
@@ -305,7 +328,12 @@ export class CoupService {
             [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
           }
           blockerHand.push(state.deck.pop()!);
-          this.privateStateService.set(room.code, state.pendingBlock.blockerId, 'coupHand', blockerHand);
+          this.privateStateService.set(
+            room.code,
+            state.pendingBlock.blockerId,
+            'coupHand',
+            blockerHand,
+          );
         }
         this.checkWinner(room, state);
         if ((state.phase as string) === CoupPhase.RESULT) {
@@ -346,7 +374,8 @@ export class CoupService {
 
     const actorId = state.pendingAction.actorId;
     const claimedRole = state.pendingAction.claimedRole!;
-    const actorHand = this.privateStateService.get<CoupRole[]>(room.code, actorId, 'coupHand') ?? [];
+    const actorHand =
+      this.privateStateService.get<CoupRole[]>(room.code, actorId, 'coupHand') ?? [];
     const hasRole = actorHand.includes(claimedRole);
 
     this.roomTimerService.cancel(room.code, 'coup-challenge');

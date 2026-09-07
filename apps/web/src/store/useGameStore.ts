@@ -64,6 +64,9 @@ interface GameState {
   tttJoinSide: (side: 'X' | 'O') => void;
   tttMakeMove: (index: number) => void;
   tttReset: () => void;
+  utttJoinSide: (side: 'X' | 'O') => void;
+  utttMakeMove: (macroIndex: number, microIndex: number) => void;
+  utttReset: () => void;
   rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => void;
   rpsNextRound: () => void;
   rpsReset: () => void;
@@ -385,6 +388,20 @@ export const useGameStore = create<GameState>((set, get) => {
       emitGameAction(SOCKET_EVENTS.TTT_RESET);
     },
 
+    utttJoinSide: (side: 'X' | 'O') => {
+      emitGameAction(SOCKET_EVENTS.UTTT_JOIN_SIDE, { payload: () => ({ side }) });
+    },
+
+    utttMakeMove: (macroIndex: number, microIndex: number) => {
+      emitGameAction(SOCKET_EVENTS.UTTT_MAKE_MOVE, {
+        payload: () => ({ macroIndex, microIndex }),
+      });
+    },
+
+    utttReset: () => {
+      emitGameAction(SOCKET_EVENTS.UTTT_RESET);
+    },
+
     rpsNextRound: () => {
       emitGameAction(SOCKET_EVENTS.RPS_NEXT_ROUND);
     },
@@ -549,7 +566,9 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     coupDeclare: (type: CoupActionType, targetId?: string) => {
-      emitGameAction(SOCKET_EVENTS.COUP_DECLARE, { payload: () => ({ type, ...(targetId ? { targetId } : {}) }) });
+      emitGameAction(SOCKET_EVENTS.COUP_DECLARE, {
+        payload: () => ({ type, ...(targetId ? { targetId } : {}) }),
+      });
     },
 
     coupChallenge: () => {

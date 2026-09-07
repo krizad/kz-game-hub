@@ -25,6 +25,7 @@ import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/musi
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -60,6 +61,7 @@ export class GamesService {
     private readonly theMindService: TheMindService,
     private readonly saboteurService: SaboteurService,
     private readonly coupService: CoupService,
+    private readonly ultimateTicTacToeService: UltimateTicTacToeService,
     private readonly playerSessionService: PlayerSessionService,
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
@@ -166,6 +168,8 @@ export class GamesService {
       room.config.saboteurTurnTimerSeconds = 60;
       room.config.saboteurStoneEndsRound = false;
       // SaboteurState is initialized when the game starts via assignRoles
+    } else if (gameType === GameType.ULTIMATE_TIC_TAC_TOE) {
+      room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
     }
 
     this.rooms.set(code, room);
@@ -196,10 +200,7 @@ export class GamesService {
       existingPlayer.connected = true;
 
       // Player made it back within the grace window — cancel pending removal.
-      this.roomTimerService.cancel(
-        code,
-        `${RECONNECT_GRACE_TIMER}:${existingPlayer.id}`,
-      );
+      this.roomTimerService.cancel(code, `${RECONNECT_GRACE_TIMER}:${existingPlayer.id}`);
 
       if (room.roomHostId === oldSocketId) {
         room.roomHostId = user.socketId;
@@ -240,6 +241,13 @@ export class GamesService {
       }
       if (room.coupState) {
         this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
+      }
+      if (room.ultimateTicTacToeState) {
+        this.ultimateTicTacToeService.remapSocketId(
+          room.ultimateTicTacToeState,
+          oldSocketId,
+          user.socketId,
+        );
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
@@ -357,11 +365,7 @@ export class GamesService {
   }
 
   /** Shared post-removal cleanup: tokens, slots and game-specific handlers. */
-  private removePlayerFromRoom(
-    code: string,
-    room: RoomState,
-    playerIndex: number,
-  ): void {
+  private removePlayerFromRoom(code: string, room: RoomState, playerIndex: number): void {
     const [player] = room.players.splice(playerIndex, 1);
     this.playerSessionService.revokePlayer(code, player.id);
     this.privateStateService.clearSocket(code, player.socketId);
@@ -373,10 +377,8 @@ export class GamesService {
         room.ticTacToeState.playerOId = undefined;
     }
     if (room.gobblerState) {
-      if (room.gobblerState.playerXId === player.socketId)
-        room.gobblerState.playerXId = undefined;
-      if (room.gobblerState.playerOId === player.socketId)
-        room.gobblerState.playerOId = undefined;
+      if (room.gobblerState.playerXId === player.socketId) room.gobblerState.playerXId = undefined;
+      if (room.gobblerState.playerOId === player.socketId) room.gobblerState.playerOId = undefined;
     }
 
     this.runDisconnectHooks(code, room, player.socketId);
@@ -737,6 +739,8 @@ export class GamesService {
         return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
       case GameType.SABOTEUR:
         return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
+      case GameType.ULTIMATE_TIC_TAC_TOE:
+        return this.withRoom(code, (r) => this.ultimateTicTacToeService.reset(r, requesterId));
       default:
         return null;
     }
@@ -770,6 +774,32 @@ export class GamesService {
   tttReset(code: string, clientId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
+  }
+
+  // --- Ultimate Tic-Tac-Toe Logic ---
+
+  utttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) =>
+      this.ultimateTicTacToeService.joinSide(room, clientId, side),
+    );
+  }
+
+  utttMakeMove(
+    code: string,
+    clientId: string,
+    macroIndex: number,
+    microIndex: number,
+  ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) =>
+      this.ultimateTicTacToeService.makeMove(room, clientId, macroIndex, microIndex),
+    );
+  }
+
+  utttReset(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.ultimateTicTacToeService.reset(room, clientId));
   }
 
   // --- RPS Logic ---
@@ -974,7 +1004,9 @@ export class GamesService {
     targetId?: string,
   ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.coupService.declareAction(room, clientId, type, targetId));
+    return this.withRoom(code, (room) =>
+      this.coupService.declareAction(room, clientId, type, targetId),
+    );
   }
 
   coupChallenge(code: string, clientId: string): RoomState | null {
@@ -1001,7 +1033,9 @@ export class GamesService {
 
   coupExchangeSelect(code: string, clientId: string, keepIndices: number[]): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.coupService.exchangeSelect(room, clientId, keepIndices));
+    return this.withRoom(code, (room) =>
+      this.coupService.exchangeSelect(room, clientId, keepIndices),
+    );
   }
 
   // --- Who Am I / Who First Actions ---

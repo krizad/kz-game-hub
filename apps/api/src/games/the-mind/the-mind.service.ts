@@ -156,9 +156,7 @@ export class TheMindService {
     const state = room.theMindState;
     if (!state) return;
 
-    const playerIds = room.players
-      .filter((p) => p.connected && !p.isViewer)
-      .map((p) => p.id);
+    const playerIds = room.players.filter((p) => p.connected && !p.isViewer).map((p) => p.id);
     const cardsPerPlayer = state.level;
 
     const deck = this.getDeck(room);

@@ -10,6 +10,7 @@ import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-triv
 import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
+import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
 
 export const APP_VERSION = 'v1.0.0';
 
@@ -35,6 +36,7 @@ export enum GameType {
   THE_MIND = 'THE_MIND',
   SABOTEUR = 'SABOTEUR',
   COUP = 'COUP',
+  ULTIMATE_TIC_TAC_TOE = 'ULTIMATE_TIC_TAC_TOE',
 }
 
 // Socket Constants
@@ -123,6 +125,10 @@ export const SOCKET_EVENTS = {
   COUP_REVEAL: 'coup_reveal',
   COUP_EXCHANGE_SELECT: 'coup_exchange_select',
   COUP_RESET: 'coup_reset',
+  // Ultimate Tic-Tac-Toe specific events
+  UTTT_JOIN_SIDE: 'uttt_join_side',
+  UTTT_MAKE_MOVE: 'uttt_make_move',
+  UTTT_RESET: 'uttt_reset',
 } as const;
 
 export interface UserState {
@@ -209,6 +215,7 @@ export interface RoomState {
   theMindState?: TheMindState;
   saboteurState?: SaboteurState;
   coupState?: CoupState;
+  ultimateTicTacToeState?: UltimateTicTacToeState;
 }
 
 export interface AvailableRoom {
