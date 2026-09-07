@@ -276,6 +276,38 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
         }
     }
+    handleUTTTJoinSide(data, client) {
+        const room = this.gamesService.utttJoinSide(data.code, client.id, data.side);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized or slot already taken.' });
+        }
+    }
+    handleUTTTMakeMove(data, client) {
+        const room = this.gamesService.utttMakeMove(data.code, client.id, data.macroIndex, data.microIndex);
+        if (room) {
+            this.broadcastRoomState(room);
+            if (room.status === types_1.RoomStatus.RESULT) {
+                this.maybeRecordGameResult(room);
+            }
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
+        }
+    }
+    handleUTTTReset(data, client) {
+        const room = this.gamesService.utttReset(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+        }
+    }
     handleRPSNextRound(data, client) {
         const room = this.gamesService.rpsNextRound(data.code, client.id);
         if (room) {
@@ -1123,6 +1155,30 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleTTTReset", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.UTTT_JOIN_SIDE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleUTTTJoinSide", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.UTTT_MAKE_MOVE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleUTTTMakeMove", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.UTTT_RESET),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleUTTTReset", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.RPS_NEXT_ROUND),
     __param(0, (0, websockets_1.MessageBody)()),

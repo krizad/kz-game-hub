@@ -13,7 +13,10 @@ describe('CoupService (01 scaffold)', () => {
             providers: [
                 coup_service_1.CoupService,
                 private_state_service_1.PrivateStateService,
-                { provide: room_timer_service_1.RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+                {
+                    provide: room_timer_service_1.RoomTimerService,
+                    useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+                },
             ],
         }).compile();
         service = module.get(coup_service_1.CoupService);
@@ -101,7 +104,10 @@ describe('CoupService (02 core economy)', () => {
             providers: [
                 coup_service_1.CoupService,
                 private_state_service_1.PrivateStateService,
-                { provide: room_timer_service_1.RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+                {
+                    provide: room_timer_service_1.RoomTimerService,
+                    useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+                },
             ],
         }).compile();
         service = module.get(coup_service_1.CoupService);
@@ -165,7 +171,7 @@ describe('CoupService (02 core economy)', () => {
         const room = startRoom();
         room.coupState.coins['s1'] = 7;
         const beforeDead = room.coupState.deadPile.length;
-        const handBefore = [...(privateState.get(room.code, 's2', 'coupHand'))];
+        const handBefore = [...privateState.get(room.code, 's2', 'coupHand')];
         const r = service.declareAction(room, 's1', types_1.CoupActionType.COUP, 's2');
         expect(r).not.toBeNull();
         expect(r.coupState.coins['s1']).toBe(0);
@@ -219,7 +225,10 @@ describe('CoupService (03 challenge)', () => {
             providers: [
                 coup_service_1.CoupService,
                 private_state_service_1.PrivateStateService,
-                { provide: room_timer_service_1.RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+                {
+                    provide: room_timer_service_1.RoomTimerService,
+                    useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+                },
             ],
         }).compile();
         service = module.get(coup_service_1.CoupService);
@@ -295,7 +304,10 @@ describe('CoupService (04 block)', () => {
             providers: [
                 coup_service_1.CoupService,
                 private_state_service_1.PrivateStateService,
-                { provide: room_timer_service_1.RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+                {
+                    provide: room_timer_service_1.RoomTimerService,
+                    useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+                },
             ],
         }).compile();
         service = module.get(coup_service_1.CoupService);
@@ -390,7 +402,10 @@ describe('CoupService (05 steal & exchange)', () => {
             providers: [
                 coup_service_1.CoupService,
                 private_state_service_1.PrivateStateService,
-                { provide: room_timer_service_1.RoomTimerService, useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() } },
+                {
+                    provide: room_timer_service_1.RoomTimerService,
+                    useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+                },
             ],
         }).compile();
         service = module.get(coup_service_1.CoupService);
@@ -483,6 +498,123 @@ describe('CoupService (05 steal & exchange)', () => {
         expect(result.coupState.influences['s1'].count).toBe(1);
         expect(result.coupState.deck.length).toBe(deckLen);
         expect(result.coupState.phase).toBe('PLAYING');
+    });
+    it('Steal can only be blocked by the target — non-target block returns null', () => {
+        const room = startRoom();
+        privateState.set(room.code, 's1', 'coupHand', [types_1.CoupRole.CAPTAIN, types_1.CoupRole.DUKE]);
+        service.declareAction(room, 's1', types_1.CoupActionType.STEAL, 's2');
+        service.handleChallengeTimeoutForRoom(room);
+        expect(room.coupState.phase).toBe('AWAITING_BLOCK');
+        expect(service.block(room, 's3')).toBeNull();
+        expect(room.coupState.phase).toBe('AWAITING_BLOCK');
+        expect(room.coupState.pendingBlock).toBeNull();
+    });
+    it('Foreign Aid pendingAction carries no claimedRole key', () => {
+        const room = startRoom();
+        service.declareAction(room, 's1', types_1.CoupActionType.FOREIGN_AID);
+        expect(room.coupState.phase).toBe('AWAITING_BLOCK');
+        expect('claimedRole' in room.coupState.pendingAction).toBe(false);
+    });
+});
+describe('CoupService (06 disconnect)', () => {
+    let service;
+    let privateState;
+    beforeEach(async () => {
+        const module = await testing_1.Test.createTestingModule({
+            providers: [
+                coup_service_1.CoupService,
+                private_state_service_1.PrivateStateService,
+                {
+                    provide: room_timer_service_1.RoomTimerService,
+                    useValue: { clearRoom: jest.fn(), schedule: jest.fn(), cancel: jest.fn() },
+                },
+            ],
+        }).compile();
+        service = module.get(coup_service_1.CoupService);
+        privateState = module.get(private_state_service_1.PrivateStateService);
+    });
+    function makeRoom(overrides = {}) {
+        const players = [
+            { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+            { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+            { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
+        ];
+        return {
+            id: 'r1',
+            gameType: types_1.GameType.COUP,
+            code: 'ABC123',
+            status: types_1.RoomStatus.LOBBY,
+            roomHostId: 's1',
+            players,
+            createdAt: new Date(),
+            config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, language: 'th' },
+            ...overrides,
+        };
+    }
+    function startRoom() {
+        const room = makeRoom();
+        service.startGame(room, 's1');
+        return room;
+    }
+    it('does nothing when there is no coupState', () => {
+        const room = makeRoom();
+        expect(() => service.handlePlayerDisconnect(room, 's1')).not.toThrow();
+        expect(room.coupState).toBeUndefined();
+    });
+    it('advances the turn when the current player disconnects during PLAYING', () => {
+        const room = startRoom();
+        expect(room.coupState.currentTurn).toBe('s1');
+        service.handlePlayerDisconnect(room, 's1');
+        expect(room.coupState.phase).toBe('PLAYING');
+        expect(room.coupState.currentTurn).toBe('s2');
+    });
+    it('voids the pending action when the actor disconnects mid-window', () => {
+        const room = startRoom();
+        privateState.set(room.code, 's1', 'coupHand', [types_1.CoupRole.DUKE, types_1.CoupRole.CAPTAIN]);
+        service.declareAction(room, 's1', types_1.CoupActionType.TAX);
+        expect(room.coupState.phase).toBe('AWAITING_CHALLENGE');
+        service.handlePlayerDisconnect(room, 's1');
+        expect(room.coupState.phase).toBe('PLAYING');
+        expect(room.coupState.pendingAction).toBeNull();
+        expect(room.coupState.pendingBlock).toBeNull();
+        expect(room.coupState.challengeWindowDeadline).toBeNull();
+        expect(room.coupState.currentTurn).toBe('s2');
+    });
+    it('reopens the block window when the blocker disconnects', () => {
+        const room = startRoom();
+        service.declareAction(room, 's1', types_1.CoupActionType.FOREIGN_AID);
+        service.block(room, 's2');
+        expect(room.coupState.phase).toBe('AWAITING_CHALLENGE');
+        service.handlePlayerDisconnect(room, 's2');
+        expect(room.coupState.phase).toBe('AWAITING_BLOCK');
+        expect(room.coupState.pendingBlock).toBeNull();
+        expect(room.coupState.pendingAction).not.toBeNull();
+        expect(room.coupState.blockWindowDeadline).not.toBeNull();
+        expect(room.coupState.challengeWindowDeadline).toBeNull();
+    });
+    it('returns drawn cards and advances when the exchanger disconnects', () => {
+        const room = startRoom();
+        privateState.set(room.code, 's1', 'coupHand', [types_1.CoupRole.AMBASSADOR, types_1.CoupRole.DUKE]);
+        const deckBefore = room.coupState.deck.length;
+        service.declareAction(room, 's1', types_1.CoupActionType.EXCHANGE);
+        service.handleChallengeTimeoutForRoom(room);
+        expect(room.coupState.phase).toBe('AWAITING_EXCHANGE');
+        expect(privateState.get(room.code, 's1', 'coupHand').length).toBe(4);
+        service.handlePlayerDisconnect(room, 's1');
+        expect(room.coupState.phase).toBe('PLAYING');
+        expect(room.coupState.pendingAction).toBeNull();
+        expect(privateState.get(room.code, 's1', 'coupHand').length).toBe(2);
+        expect(room.coupState.deck.length).toBe(deckBefore);
+        expect(room.coupState.currentTurn).toBe('s2');
+    });
+    it('ignores disconnects from players uninvolved in the pending window', () => {
+        const room = startRoom();
+        privateState.set(room.code, 's1', 'coupHand', [types_1.CoupRole.DUKE, types_1.CoupRole.CAPTAIN]);
+        service.declareAction(room, 's1', types_1.CoupActionType.TAX);
+        service.handlePlayerDisconnect(room, 's3');
+        expect(room.coupState.phase).toBe('AWAITING_CHALLENGE');
+        expect(room.coupState.pendingAction).not.toBeNull();
+        expect(room.coupState.currentTurn).toBe('s1');
     });
 });
 //# sourceMappingURL=coup.service.spec.js.map

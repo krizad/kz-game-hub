@@ -172,7 +172,9 @@ let CoupService = class CoupService {
         }
     }
     isBlockable(type) {
-        return type === types_1.CoupActionType.FOREIGN_AID || type === types_1.CoupActionType.ASSASSINATE || type === types_1.CoupActionType.STEAL;
+        return (type === types_1.CoupActionType.FOREIGN_AID ||
+            type === types_1.CoupActionType.ASSASSINATE ||
+            type === types_1.CoupActionType.STEAL);
     }
     getBlockRole(type) {
         switch (type) {
@@ -421,7 +423,7 @@ let CoupService = class CoupService {
             return null;
         if (pending.type === types_1.CoupActionType.ASSASSINATE && blockerId !== pending.targetId)
             return null;
-        if (pending.type === types_1.CoupActionType.STEAL && !allowed.some((r) => true))
+        if (pending.type === types_1.CoupActionType.STEAL && blockerId !== pending.targetId)
             return null;
         const claimedRole = allowed[0];
         this.roomTimerService.cancel(room.code, 'coup-block');
@@ -517,7 +519,7 @@ let CoupService = class CoupService {
             return room;
         }
         if (this.isBlockable(type)) {
-            state.pendingAction = { actorId, type, targetId, claimedRole: undefined };
+            state.pendingAction = { actorId, type, targetId };
             state.phase = types_1.CoupPhase.AWAITING_BLOCK;
             state.blockWindowDeadline = Date.now() + 7000;
             return room;
@@ -553,7 +555,44 @@ let CoupService = class CoupService {
         }
         return room;
     }
-    handlePlayerDisconnect(room, socketId) { }
+    handlePlayerDisconnect(room, socketId) {
+        const state = room.coupState;
+        if (!state || state.phase === types_1.CoupPhase.RESULT)
+            return;
+        if (state.pendingAction?.actorId === socketId) {
+            if (state.phase === types_1.CoupPhase.AWAITING_EXCHANGE) {
+                const hand = this.privateStateService.get(room.code, socketId, 'coupHand') ?? [];
+                state.deck.push(...hand);
+                const restored = [];
+                for (let i = 0; i < 2; i++) {
+                    if (state.deck.length === 0)
+                        break;
+                    restored.push(state.deck.pop());
+                }
+                this.privateStateService.set(room.code, socketId, 'coupHand', this.shuffle(restored));
+            }
+            this.roomTimerService.cancel(room.code, 'coup-challenge');
+            this.roomTimerService.cancel(room.code, 'coup-block');
+            state.pendingAction = null;
+            state.pendingBlock = null;
+            state.challengeWindowDeadline = null;
+            state.blockWindowDeadline = null;
+            state.phase = types_1.CoupPhase.PLAYING;
+            this.advanceTurn(room, state);
+            return;
+        }
+        if (state.pendingBlock?.blockerId === socketId) {
+            this.roomTimerService.cancel(room.code, 'coup-challenge');
+            state.pendingBlock = null;
+            state.phase = types_1.CoupPhase.AWAITING_BLOCK;
+            state.challengeWindowDeadline = null;
+            state.blockWindowDeadline = Date.now() + 7000;
+            return;
+        }
+        if (state.phase === types_1.CoupPhase.PLAYING && state.currentTurn === socketId) {
+            this.advanceTurn(room, state);
+        }
+    }
 };
 exports.CoupService = CoupService;
 exports.CoupService = CoupService = __decorate([

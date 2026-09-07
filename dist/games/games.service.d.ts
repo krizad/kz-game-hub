@@ -11,6 +11,7 @@ import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/musi
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -39,13 +40,14 @@ export declare class GamesService {
     private readonly theMindService;
     private readonly saboteurService;
     private readonly coupService;
+    private readonly ultimateTicTacToeService;
     private readonly playerSessionService;
     private readonly privateStateService;
     private readonly roomTimerService;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService);
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
@@ -91,6 +93,9 @@ export declare class GamesService {
     tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
     tttMakeMove(code: string, clientId: string, index: number): RoomState | null;
     tttReset(code: string, clientId: string): RoomState | null;
+    utttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
+    utttMakeMove(code: string, clientId: string, macroIndex: number, microIndex: number): RoomState | null;
+    utttReset(code: string, clientId: string): RoomState | null;
     rpsMakeChoice(code: string, clientId: string, choice: RPSChoice): RoomState | null;
     rpsNextRound(code: string, clientId: string): RoomState | null;
     rpsReset(code: string, clientId: string): RoomState | null;

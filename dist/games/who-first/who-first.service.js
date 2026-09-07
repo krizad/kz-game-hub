@@ -35,7 +35,7 @@ let WhoFirstService = class WhoFirstService {
     }
     getExpectedCount(room) {
         const hostPlays = room.config.whoFirstHostPlays ?? false;
-        return (room.players.filter((p) => p.connected && !p.isViewer).length - (hostPlays ? 0 : 1));
+        return room.players.filter((p) => p.connected && !p.isViewer).length - (hostPlays ? 0 : 1);
     }
     resolveRoundWinner(room) {
         const state = room.whoFirstState;

@@ -26,12 +26,13 @@ const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const saboteur_service_1 = require("./saboteur/saboteur.service");
 const coup_service_1 = require("./coup/coup.service");
+const ultimate_tic_tac_toe_service_1 = require("./ultimate-tic-tac-toe/ultimate-tic-tac-toe.service");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, playerSessionService, privateStateService, roomTimerService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -44,6 +45,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.theMindService = theMindService;
         this.saboteurService = saboteurService;
         this.coupService = coupService;
+        this.ultimateTicTacToeService = ultimateTicTacToeService;
         this.playerSessionService = playerSessionService;
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
@@ -151,6 +153,9 @@ let GamesService = GamesService_1 = class GamesService {
             room.config.saboteurTurnTimerSeconds = 60;
             room.config.saboteurStoneEndsRound = false;
         }
+        else if (gameType === types_1.GameType.ULTIMATE_TIC_TAC_TOE) {
+            room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
+        }
         this.rooms.set(code, room);
         return room;
     }
@@ -207,6 +212,9 @@ let GamesService = GamesService_1 = class GamesService {
             if (room.coupState) {
                 this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
             }
+            if (room.ultimateTicTacToeState) {
+                this.ultimateTicTacToeService.remapSocketId(room.ultimateTicTacToeState, oldSocketId, user.socketId);
+            }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
         }
@@ -260,7 +268,6 @@ let GamesService = GamesService_1 = class GamesService {
             else {
                 const dropped = room.players[playerIndex];
                 dropped.connected = false;
-                this.privateStateService.clearSocket(code, clientId);
                 this.scheduleReconnectGrace(code, dropped.id);
                 this.runDisconnectHooks(code, room, clientId);
             }
@@ -324,6 +331,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.gameType === types_1.GameType.SABOTEUR && room.saboteurState) {
             this.saboteurService.handlePlayerDisconnect(room, socketId);
+        }
+        if (room.gameType === types_1.GameType.COUP && room.coupState) {
+            this.coupService.handlePlayerDisconnect(room, socketId);
         }
     }
     transferHost(room, formerHostSocketId) {
@@ -563,6 +573,18 @@ let GamesService = GamesService_1 = class GamesService {
             return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
         }
         switch (room.gameType) {
+            case types_1.GameType.WHO_KNOW:
+                return this.withRoom(code, (r) => this.whoKnowService.resetGame(r, requesterId, this.secretWords));
+            case types_1.GameType.TIC_TAC_TOE:
+                return this.withRoom(code, (r) => this.ticTacToeService.reset(r, requesterId));
+            case types_1.GameType.RPS:
+                return this.withRoom(code, (r) => this.rpsService.reset(r, requesterId));
+            case types_1.GameType.GOBBLER_TIC_TAC_TOE:
+                return this.withRoom(code, (r) => this.gobblerService.reset(r, requesterId));
+            case types_1.GameType.SOUNDS_FISHY:
+                return this.withRoom(code, (r) => this.soundsFishyService.reset(r, requesterId));
+            case types_1.GameType.DETECTIVE_CLUB:
+                return this.withRoom(code, (r) => this.detectiveClubService.reset(r, requesterId));
             case types_1.GameType.WHO_AM_I:
                 return this.withRoom(code, (r) => this.whoAmIService.resetGame(r, requesterId));
             case types_1.GameType.WHO_FIRST:
@@ -571,8 +593,12 @@ let GamesService = GamesService_1 = class GamesService {
                 return this.withRoom(code, (r) => this.musicTriviaService.resetGame(r, requesterId));
             case types_1.GameType.THE_MIND:
                 return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
+            case types_1.GameType.SABOTEUR:
+                return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
+            case types_1.GameType.ULTIMATE_TIC_TAC_TOE:
+                return this.withRoom(code, (r) => this.ultimateTicTacToeService.reset(r, requesterId));
             default:
-                return this.withRoom(code, (r) => this.whoKnowService.resetGame(r, requesterId, this.secretWords));
+                return null;
         }
     }
     getSecretWord(code) {
@@ -599,6 +625,21 @@ let GamesService = GamesService_1 = class GamesService {
         if (this.rejectViewer(code, clientId))
             return null;
         return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
+    }
+    utttJoinSide(code, clientId, side) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.ultimateTicTacToeService.joinSide(room, clientId, side));
+    }
+    utttMakeMove(code, clientId, macroIndex, microIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.ultimateTicTacToeService.makeMove(room, clientId, macroIndex, microIndex));
+    }
+    utttReset(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.ultimateTicTacToeService.reset(room, clientId));
     }
     rpsMakeChoice(code, clientId, choice) {
         if (this.rejectViewer(code, clientId))
@@ -897,6 +938,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         the_mind_service_1.TheMindService,
         saboteur_service_1.SaboteurService,
         coup_service_1.CoupService,
+        ultimate_tic_tac_toe_service_1.UltimateTicTacToeService,
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
         room_timer_service_1.RoomTimerService])

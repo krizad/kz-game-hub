@@ -65,6 +65,18 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleTTTReset(data: {
         code: string;
     }, client: Socket): void;
+    handleUTTTJoinSide(data: {
+        code: string;
+        side: 'X' | 'O';
+    }, client: Socket): void;
+    handleUTTTMakeMove(data: {
+        code: string;
+        macroIndex: number;
+        microIndex: number;
+    }, client: Socket): void;
+    handleUTTTReset(data: {
+        code: string;
+    }, client: Socket): void;
     handleRPSNextRound(data: {
         code: string;
     }, client: Socket): void;
