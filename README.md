@@ -10,11 +10,16 @@ Built as a modern web application within a Turborepo.
 - **Who Know!:** A social deduction game based on the board game "Insider". Who knows the secret? Who's acting sus?
 - **Gobbler Tic-Tac-Toe:** A strategic twist on the classic game where larger pieces can "gobble" smaller ones.
 - **Classic Tic-Tac-Toe:** The traditional game of X's and O's.
+- **Ultimate Tic-Tac-Toe:** A deep strategic variation where each square of a 3x3 grid contains an entire sub-board of Tic-Tac-Toe.
 - **Hand Duel:** A competitive Rock-Paper-Scissors game with multiple modes (1v1 Round Robin, All At Once) and Best-Of mechanics.
 - **Sounds Fishy:** A trivia bluffing game — one player knows the real answer, others make up convincing fakes. Can you spot the truth?
 - **Detective Club:** A social deduction card game — play cards to match a secret clue word, but one player is the spy who doesn't know it!
 - **Who Am I:** A classic guessing game — players write words about a category, then try to deduce each other's identity. Can you be the last one standing?
+- **Who First:** A fast-paced reaction and reflex buzzer game — test who reacts fastest when the signal changes!
 - **Music Trivia:** A collaborative music guessing game — listen to YouTube music videos and guess the song and artist. See who's the ultimate music master!
+- **The Mind:** A cooperative game where players must play numbered cards in ascending order without communicating!
+- **Saboteur:** A social deduction game where gold miners dig tunnels towards hidden treasures while saboteurs try to secretly derail them.
+- **Coup:** A high-stakes game of deception, bluffing, and manipulation — eliminate all rival influences to take control.
 
 ## ✨ Core Features
 

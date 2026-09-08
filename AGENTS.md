@@ -75,7 +75,7 @@ Supports `th` (Thai, default) and `en` (English). Key files:
 
 ## Game module pattern
 
-Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`) follows:
+Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`, `who-first`, `the-mind`, `saboteur`, `coup`, `ultimate-tic-tac-toe`) follows:
 
 - `apps/api/src/games/<game>/` — service class with init/handle/reset logic, plus `*.spec.ts`
 - `apps/web/src/components/games/<game>/` — view components + rules modal

@@ -34,12 +34,17 @@ kz-game-hub/
 │   │           ├── games.service.ts   # Room & Game state logic
 │   │           ├── who-know/          # Who Know game logic
 │   │           ├── tic-tac-toe/       # Classic TTT logic
+│   │           ├── ultimate-tic-tac-toe/ # Ultimate TTT logic
 │   │           ├── gobbler/           # Gobbler TTT logic
 │   │           ├── rps/               # Rock Paper Scissors logic
 │   │           ├── sounds-fishy/      # Sounds Fishy logic
 │   │           ├── detective-club/    # Detective Club logic
 │   │           ├── who-am-i/          # Who Am I logic
-│   │           └── music-trivia/      # Music Trivia logic
+│   │           ├── who-first/         # Who First game logic
+│   │           ├── music-trivia/      # Music Trivia logic
+│   │           ├── the-mind/          # The Mind game logic
+│   │           ├── saboteur/          # Saboteur game logic
+│   │           └── coup/              # Coup game logic
 │   │       └── health/               # GET /health REST endpoint
 │   │
 │   └── web/                    # Next.js Frontend (Player's Screen)
@@ -53,12 +58,17 @@ kz-game-hub/
 │           │   ├── games/      # Game-specific components
 │           │   │   ├── who-know/
 │           │   │   ├── tic-tac-toe/
+│           │   │   ├── ultimate-tic-tac-toe/
 │           │   │   ├── gobbler/
 │           │   │   ├── rps/
 │           │   │   ├── sounds-fishy/
 │           │   │   ├── detective-club/
 │           │   │   ├── who-am-i/
-│           │   │   └── music-trivia/
+│           │   │   ├── who-first/
+│           │   │   ├── music-trivia/
+│           │   │   ├── the-mind/
+│           │   │   ├── saboteur/
+│           │   │   └── coup/
 │           │   ├── RoleCard.tsx
 │           │   └── RulesModal.tsx
 │           ├── store/
@@ -73,13 +83,18 @@ kz-game-hub/
 │   │   └── src/
 │   │       ├── core.ts         # RoomState, UserState, GameType, SOCKET_EVENTS
 │   │       ├── tic-tac-toe.ts
+│   │       ├── ultimate-tic-tac-toe.ts
 │   │       ├── gobbler-tic-tac-toe.ts
 │   │       ├── rps.ts
 │   │       ├── who-know.ts
 │   │       ├── sounds-fishy.ts
 │   │       ├── detective-club.ts
 │   │       ├── who-am-i.ts
-│   │       └── music-trivia.ts
+│   │       ├── who-first.ts
+│   │       ├── music-trivia.ts
+│   │       ├── the-mind.ts
+│   │       ├── saboteur.ts
+│   │       └── coup.ts
 │   ├── database/               # Prisma Client & Schema
 │   │   └── prisma/schema.prisma
 │   └── config/                 # Shared ESLint, TSConfig, Prettier
