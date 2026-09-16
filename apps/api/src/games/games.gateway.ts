@@ -1474,6 +1474,14 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (event === SOCKET_EVENTS.GAME_ACTION) {
       return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
     }
+    if (event === SOCKET_EVENTS.CARD_GAME_ACTION) {
+      return (
+        !!data.action &&
+        typeof data.action === 'object' &&
+        !Array.isArray(data.action) &&
+        typeof (data.action as Record<string, unknown>).type === 'string'
+      );
+    }
     const isSmallInt = (v: unknown): v is number =>
       typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
     if (event === SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {

@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GameType, PlayingCard, RoomState, RoomStatus } from '@repo/types';
 import { CardGameService } from './card-game.service';
+import { SamSipRuntime } from './sam-sip.runtime';
+import { SAM_SIP_PRESET } from './presets/sam-sip.preset';
 import { PrivateStateService } from '../private-state.service';
 
 const card = (
@@ -106,6 +108,28 @@ describe('CardGameService', () => {
     finishRound(target);
     expect(target.status).toBe(RoomStatus.RESULT);
     expect(service.startCardRound(target, target.roomHostId)).not.toBeNull();
+  });
+
+  it('rejects malformed actions without throwing', () => {
+    const target = startRound(room());
+    expect(service.handleAction(target, 'p1', null as never)).toBeNull();
+    expect(service.handleAction(target, 'p1', {} as never)).toBeNull();
+  });
+
+  it('does not log a draw that ended the round on exhaustion', () => {
+    const target = room();
+    target.cardGameConfig = SAM_SIP_PRESET.defaultConfig;
+    (service as any).cardRuntimes.SAM_SIP = new SamSipRuntime(privateState, () => deckFor([]));
+    service.startCardRound(target, target.roomHostId);
+    privateState.set(target.code, '__card-game-engine__', 'piles', {
+      stock: [],
+      discards: [],
+      reserve: [],
+    });
+
+    service.handleAction(target, 'p1', { type: 'DRAW' });
+
+    expect(target.cardGameLog ?? []).toHaveLength(0);
   });
 
   it('deals the first round to the first seated player and rotates the dealer', () => {
