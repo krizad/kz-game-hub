@@ -200,9 +200,13 @@ export const useGameStore = create<GameState>((set, get) => {
           ? `${window.location.protocol}//${window.location.hostname}:3001`
           : 'http://localhost:3001');
       const socket = io(apiUrl);
+      // Store the socket synchronously so a double-invoked mount effect
+      // (React StrictMode) cannot open a second connection with the
+      // single-use reconnect token.
+      set({ socket });
 
       socket.on('connect', () => {
-        set({ connected: true, socket, socketId: socket.id });
+        set({ connected: true, socketId: socket.id });
 
         // Auto-reconnect if session exists
         const savedCode = localStorage.getItem(STORAGE_KEYS.roomCode);
@@ -227,8 +231,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
         // Check if the current player is still in the room
-        const currentName = get().myName;
-        const isMe = room.players.find((p) => p.socketId === socket.id || p.name === currentName);
+        const isMe = room.players.some((p) => p.socketId === socket.id);
 
         // If we're not in the room's player list, ignore this update
         // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
@@ -258,7 +261,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
         if (!get().isSpectator) {
           localStorage.setItem(STORAGE_KEYS.roomCode, room.code);
-          localStorage.setItem(STORAGE_KEYS.name, currentName);
+          localStorage.setItem(STORAGE_KEYS.name, get().myName);
         }
       });
 
