@@ -69,9 +69,7 @@ test.describe('Who Know Gameplay', () => {
         .or(p1.locator('text=Scoreboard'))
         .or(p1.locator('text=Commoners'))
         .or(p1.locator('text=Insider')),
-    )
-      .toBeVisible({ timeout: 10000 })
-      .catch(() => {});
+    ).toBeVisible({ timeout: 10000 });
 
     await Promise.all(contexts.map((c) => c.close()));
   });

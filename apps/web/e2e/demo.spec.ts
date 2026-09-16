@@ -1227,16 +1227,19 @@ test.describe('Full Game Demos', () => {
     // Players take turns with Income to demonstrate action flow and coin collection
     for (let round = 0; round < 6; round++) {
       let active: Page | null = null;
-      for (const page of pages) {
-        if (
-          await page
-            .getByText(/Your Turn|ตาของคุณ/i)
-            .isVisible()
-            .catch(() => false)
-        ) {
-          active = page;
-          break;
+      for (let attempt = 0; attempt < 10 && !active; attempt++) {
+        for (const page of pages) {
+          if (
+            await page
+              .getByText(/Your Turn|ตาของคุณ/i)
+              .isVisible()
+              .catch(() => false)
+          ) {
+            active = page;
+            break;
+          }
         }
+        if (!active) await p1.waitForTimeout(300);
       }
       if (active) {
         const incomeBtn = active.getByRole('button', { name: /Income/i });

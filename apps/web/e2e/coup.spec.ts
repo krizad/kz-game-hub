@@ -35,27 +35,38 @@ test.describe('Coup Game Flow', () => {
     await expect(p2.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
     await expect(p3.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
 
-    // Identify which player has the current turn
+    // Identify which player has the current turn (poll until one of them shows it)
     const pages = [p1, p2, p3];
-    let activePage = p1;
-    for (const page of pages) {
-      const isTurn = await page
-        .getByText(/Your Turn|ตาของคุณ/i)
-        .isVisible()
-        .catch(() => false);
-      if (isTurn) {
-        activePage = page;
-        break;
-      }
-    }
+    let activePage: (typeof pages)[number] | undefined;
+    await expect
+      .poll(
+        async () => {
+          for (const page of pages) {
+            if (
+              await page
+                .getByText(/Your Turn|ตาของคุณ/i)
+                .isVisible()
+                .catch(() => false)
+            ) {
+              activePage = page;
+              return true;
+            }
+          }
+          return false;
+        },
+        { timeout: 10000 },
+      )
+      .toBe(true);
+    expect(activePage).toBeDefined();
+    const turnPage = activePage!;
 
     // Active player takes Income
-    const incomeBtn = activePage.getByRole('button', { name: /Income/i });
+    const incomeBtn = turnPage.getByRole('button', { name: /Income/i });
     await expect(incomeBtn).toBeEnabled({ timeout: 5000 });
     await incomeBtn.click();
 
     // Coins increase from 2 to 3
-    await expect(activePage.getByText(/3 💰/).first()).toBeVisible({ timeout: 8000 });
+    await expect(turnPage.getByText(/3 💰/).first()).toBeVisible({ timeout: 8000 });
 
     await p1Ctx.close();
     await p2Ctx.close();

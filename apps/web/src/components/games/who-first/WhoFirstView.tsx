@@ -337,7 +337,10 @@ export const WhoFirstView = () => {
 
       {/* Results Area */}
       {(state.phase === 'ROUND_RESULT' || state.phase === 'FINISHED') && (
-        <div className="w-full bg-pink-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - mt-8">
+        <div
+          data-testid="who-first-results"
+          className="w-full bg-pink-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - mt-8"
+        >
           <div className="bg-white border-b-4 border-black p-4">
             <h2
               data-testid="round-result-title"

@@ -88,8 +88,7 @@ test.describe('Tic-Tac-Toe Play vs Bot', () => {
 
     // God Mode bot must never lose: winner is either O (Bot) or DRAW
     const resultText = await page.locator('div.font-mono').innerText();
-    expect(resultText).not.toContain('X Wins!');
-    expect(resultText).not.toContain('X ชนะ!');
+    expect(resultText).not.toMatch(/X (Wins|ชนะ)/);
   });
 
   test('host can join as O and Bot plays first move as X immediately', async ({ page }) => {

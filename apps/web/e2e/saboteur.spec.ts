@@ -35,6 +35,11 @@ test.describe('Saboteur Game Flow', () => {
     await expect(p2.getByText(/Round 1|รอบ 1/i)).toBeVisible({ timeout: 10000 });
     await expect(p3.getByText(/Round 1|รอบ 1/i)).toBeVisible({ timeout: 10000 });
 
+    // Every player is dealt a private role card
+    await expect(p1.getByTestId('saboteur-my-role')).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByTestId('saboteur-my-role')).toBeVisible({ timeout: 10000 });
+    await expect(p3.getByTestId('saboteur-my-role')).toBeVisible({ timeout: 10000 });
+
     await p1Ctx.close();
     await p2Ctx.close();
     await p3Ctx.close();

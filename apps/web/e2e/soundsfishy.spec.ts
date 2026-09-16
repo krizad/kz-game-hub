@@ -31,7 +31,7 @@ test.describe('Sounds Fishy Gameplay', () => {
     await p1.waitForTimeout(1000);
 
     for (const page of [p1, p2, p3]) {
-      const input = page.locator('input').filter({ hasText: '' });
+      const input = page.locator('input#answerInput');
       if (
         (await input.count()) > 0 &&
         (await input
@@ -92,9 +92,9 @@ test.describe('Sounds Fishy Gameplay', () => {
     }
 
     // Wait for Round Results
-    await expect(p1.locator('text=Round Results').or(p1.locator('text=Scoreboard')))
-      .toBeVisible({ timeout: 5000 })
-      .catch(() => {});
+    await expect(p1.locator('text=Round Results').or(p1.locator('text=Scoreboard'))).toBeVisible({
+      timeout: 5000,
+    });
 
     await p1.waitForTimeout(2000);
     await Promise.all(contexts.map((c) => c.close()));

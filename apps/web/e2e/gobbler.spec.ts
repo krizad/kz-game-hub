@@ -18,7 +18,22 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
 
     // P1 joins X
     await p1.locator('button:has-text("Join X")').click();
+    await p2.locator('button:has-text("Join O")').click();
     await p1.waitForTimeout(1000);
+
+    // Both players see the board and their own inventory once the game auto-starts
+    await expect(p1.locator('[data-testid^="gobbler-cell-"]').first()).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p2.locator('[data-testid^="gobbler-cell-"]').first()).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p1.locator('[data-testid^="gobbler-inventory-X-"]').first()).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p2.locator('[data-testid^="gobbler-inventory-O-"]').first()).toBeVisible({
+      timeout: 10000,
+    });
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -29,6 +44,9 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
     await page.locator('button:has-text("Join X")').click();
     await page.waitForTimeout(500);
     await expect(page.locator('body')).not.toContainText('Connecting');
+    await expect(page.locator('[data-testid^="gobbler-inventory-X-"]').first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('two players can play moves and X wins a row', async ({ browser }) => {
