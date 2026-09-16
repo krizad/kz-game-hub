@@ -61,6 +61,7 @@ export class CardGameService {
 
   startCardRound(room: RoomState, requesterId: string): RoomState | null {
     if (room.gameType !== GameType.CARD_GAME || room.roomHostId !== requesterId) return null;
+    if (room.status !== RoomStatus.LOBBY && room.status !== RoomStatus.RESULT) return null;
     const presetId = room.cardGameConfig?.preset ?? 'POK_DENG';
     const runtime = this.cardRuntimes[presetId];
     if (runtime) {

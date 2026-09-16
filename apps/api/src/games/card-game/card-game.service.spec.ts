@@ -98,6 +98,16 @@ describe('CardGameService', () => {
     expect(service.handleAction(result, other, { type: 'STAND' })).toBeNull();
   });
 
+  it('refuses to start a round while a card round is already in progress', () => {
+    const target = startRound(room());
+    expect(target.status).toBe(RoomStatus.PLAYING);
+    expect(service.startCardRound(target, target.roomHostId)).toBeNull();
+
+    finishRound(target);
+    expect(target.status).toBe(RoomStatus.RESULT);
+    expect(service.startCardRound(target, target.roomHostId)).not.toBeNull();
+  });
+
   it('deals the first round to the first seated player and rotates the dealer', () => {
     const result = startRound(room());
     expect(result.cardGameState?.dealerId).toBe('p1');

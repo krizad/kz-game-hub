@@ -79,8 +79,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const roomCode =
       'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
-    if (roomCode) {
-      client.leave(roomCode);
+    // Spectators are not players, so the service has no room for them to
+    // leave — unsubscribe from the socket.io room they were spectating.
+    const spectatingRoomCode = client.data.spectatingRoomCode as string | undefined;
+    const leftCode = roomCode ?? spectatingRoomCode;
+    if (leftCode) {
+      client.leave(leftCode);
     }
     client.data.spectatingRoomCode = undefined;
   }
