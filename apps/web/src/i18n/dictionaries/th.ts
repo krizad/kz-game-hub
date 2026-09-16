@@ -28,6 +28,7 @@ export const th: Dictionary = {
       coup: 'รัฐประหาร (Coup)',
       saboteur: 'คนแคระจอมป่วน (Saboteur)',
       pokDeng: 'ป๊อกเด้ง (Pok Deng)',
+      cardGame: 'เกมไพ่',
     },
     or: 'หรือ',
     roomCodePlaceholder: 'รหัสห้อง',

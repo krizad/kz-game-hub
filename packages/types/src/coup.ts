@@ -66,11 +66,6 @@ export interface CoupDeclarePayload {
   targetId?: string;
 }
 
-export interface CoupRevealPayload {
-  code: string;
-  roleIndex: number;
-}
-
 export interface CoupExchangeSelectPayload {
   code: string;
   keepIndices: number[];

@@ -45,7 +45,9 @@ export function useTranslate() {
 
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
-          translation = (translation as string).replace(new RegExp(`{${key}}`, 'g'), String(value));
+          translation = (translation as string).replace(new RegExp(`{${key}}`, 'g'), () =>
+            String(value),
+          );
         });
       }
 

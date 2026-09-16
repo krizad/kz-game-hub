@@ -26,6 +26,7 @@ export interface Dictionary {
       coup: string;
       saboteur: string;
       pokDeng: string;
+      cardGame: string;
     };
     or: string;
     roomCodePlaceholder: string;

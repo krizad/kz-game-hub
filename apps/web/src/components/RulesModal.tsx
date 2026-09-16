@@ -226,19 +226,19 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                     onClick={() => setActiveTab(GameType.THE_MIND)}
                     className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
-                    The Mind
+                    {t('rules.modal.tabs.theMind')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.SABOTEUR)}
                     className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SABOTEUR ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
-                    Saboteur
+                    {t('rules.modal.tabs.saboteur')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.COUP)}
                     className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.COUP ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
-                    Coup
+                    {t('rules.modal.tabs.coup')}
                   </button>
                   <button
                     onClick={() => setActiveTab(GameType.CARD_GAME)}

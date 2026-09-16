@@ -33,7 +33,7 @@ const getGameName = (gameType: GameType, t: any) => {
     case GameType.SABOTEUR:
       return 'SABOTEUR';
     case GameType.CARD_GAME:
-      return t('lobby.gameNames.pokDeng').toUpperCase();
+      return t('lobby.gameNames.cardGame').toUpperCase();
     default:
       return t('lobby.gameNames.whoKnow').toUpperCase();
   }

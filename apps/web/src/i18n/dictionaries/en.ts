@@ -28,6 +28,7 @@ export const en: Dictionary = {
       coup: 'Coup',
       saboteur: 'Saboteur',
       pokDeng: 'Pok Deng',
+      cardGame: 'Card Game',
     },
     or: 'OR',
     roomCodePlaceholder: 'ROOM CODE',

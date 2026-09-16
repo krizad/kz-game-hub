@@ -58,7 +58,9 @@ export function RoomHeader() {
                                     : room.gameType === GameType.COUP
                                       ? 'Coup'
                                       : room.gameType === GameType.CARD_GAME
-                                        ? t('lobby.gameNames.pokDeng')
+                                        ? t(
+                                            `cardGameSettings.presets.${room.cardGameConfig?.preset ?? 'POK_DENG'}`,
+                                          )
                                         : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">

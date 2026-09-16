@@ -165,6 +165,9 @@ export const useGameStore = create<GameState>((set, get) => {
       privateState: {},
       isSpectator: false,
       playerId: '',
+      cardGameShareCode: null,
+      cardGameRulesError: null,
+      cardGameRulesLoading: false,
     });
 
   return {
