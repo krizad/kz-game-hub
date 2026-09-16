@@ -1032,4 +1032,49 @@ describe('WhoAmIService', () => {
       expect(service.resetGame(room, 'p1')).toBeNull();
     });
   });
+
+  describe('handlePlayerDisconnect', () => {
+    const disconnectRoom = (turnStatus: 'VOTING' | 'RESULT'): RoomState =>
+      ({
+        code: 'test-room',
+        gameType: GameType.WHO_AM_I,
+        status: RoomStatus.PLAYING,
+        roomHostId: 'host1',
+        players: [
+          { id: 'p1', socketId: 'p1', name: 'P1', score: 0, roomId: 'r1', connected: true },
+          { id: 'p2', socketId: 'p2', name: 'P2', score: 0, roomId: 'r1', connected: true },
+        ],
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        whoAmIState: {
+          phase: 'ASKING',
+          currentTurn: 'p1',
+          currentGuess: 'An elephant',
+          turnStatus,
+          votes: { p2: 'YES' },
+          eliminatedPlayers: [],
+          finalGuessUsed: [],
+        },
+      }) as unknown as RoomState;
+
+    it('should advance the turn when the active player is removed', () => {
+      const room = disconnectRoom('VOTING');
+
+      const result = service.handlePlayerDisconnect(room, 'p1');
+
+      expect(result).toBe(room);
+      expect(room.whoAmIState!.currentTurn).toBe('p2');
+      expect(room.whoAmIState!.turnStatus).toBe('VOTING');
+      expect(room.whoAmIState!.currentGuess).toBeNull();
+      expect(room.whoAmIState!.votes).toEqual({});
+    });
+
+    it('should ignore disconnects from non-active players or a resolved turn', () => {
+      const other = disconnectRoom('VOTING');
+      expect(service.handlePlayerDisconnect(other, 'p2')).toBeNull();
+
+      const resolved = disconnectRoom('RESULT');
+      expect(service.handlePlayerDisconnect(resolved, 'p1')).toBeNull();
+      expect(resolved.whoAmIState!.currentTurn).toBe('p1');
+    });
+  });
 });

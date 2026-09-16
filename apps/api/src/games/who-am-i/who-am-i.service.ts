@@ -467,6 +467,27 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     }
   }
 
+  /** Hand the turn to the next active player when the current one drops. */
+  handlePlayerDisconnect(room: RoomState, socketId: string): RoomState | null {
+    const gameState = room.whoAmIState;
+    if (!gameState) return null;
+    if (gameState.currentTurn !== socketId || gameState.turnStatus !== 'VOTING') return null;
+
+    const nextPlayer = this.findNextPlayer(room, gameState, socketId);
+    if (!nextPlayer) {
+      this.finishGame(room, gameState, null);
+      return room;
+    }
+
+    gameState.currentTurn = nextPlayer;
+    gameState.currentGuess = null;
+    gameState.turnStatus = 'VOTING';
+    gameState.votes = {};
+    gameState.guessResult = undefined;
+    gameState.guessedWord = undefined;
+    return room;
+  }
+
   handleGameAction(
     room: RoomState,
     requesterId: string,
