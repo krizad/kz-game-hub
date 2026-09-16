@@ -1472,9 +1472,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (event === SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
       return (
         Array.isArray(data.keepIndices) &&
-        data.keepIndices.length === 2 &&
+        data.keepIndices.length >= 1 &&
+        data.keepIndices.length <= 4 &&
         data.keepIndices.every(
-          (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3,
+          (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 4,
         )
       );
     }

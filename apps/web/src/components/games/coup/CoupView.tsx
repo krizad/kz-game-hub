@@ -35,6 +35,7 @@ export function CoupView() {
   if (!room || !room.coupState) return <div className="p-6 font-black">Loading Coup...</div>;
   const state = room.coupState;
   const hand = (privateState as any)?.coupHand as CoupRole[] | undefined;
+  const exchangeKeepCount = hand ? Math.max(1, hand.length - 2) : 2;
   const isMyTurn = state.currentTurn === socketId;
   const myCoins = state.coins[socketId] ?? 0;
   const forcedCoup = myCoins >= 10;
@@ -249,8 +250,10 @@ export function CoupView() {
 
       {state.phase === 'AWAITING_EXCHANGE' && state.pendingAction && (
         <div className="border-4 border-black p-3 bg-[#FDE68A]">
-          <div className="text-xs font-black uppercase text-center">Exchange — pick 2 to keep</div>
-          {state.pendingAction.actorId === socketId && hand && hand.length === 4 ? (
+          <div className="text-xs font-black uppercase text-center">
+            Exchange — pick {exchangeKeepCount} to keep
+          </div>
+          {state.pendingAction.actorId === socketId && hand && hand.length >= 3 ? (
             <>
               <div className="grid grid-cols-4 gap-1 mt-2">
                 {hand.map((r, i) => {
@@ -262,7 +265,7 @@ export function CoupView() {
                         setExchangeKeep((prev) =>
                           prev.includes(i)
                             ? prev.filter((x) => x !== i)
-                            : prev.length < 2
+                            : prev.length < exchangeKeepCount
                               ? [...prev, i]
                               : prev,
                         )
@@ -275,14 +278,14 @@ export function CoupView() {
                 })}
               </div>
               <button
-                disabled={exchangeKeep.length !== 2}
+                disabled={exchangeKeep.length !== exchangeKeepCount}
                 onClick={() => {
                   coupExchangeSelect(exchangeKeep);
                   setExchangeKeep([]);
                 }}
                 className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase disabled:bg-gray-300"
               >
-                Keep Selected (2)
+                Keep Selected ({exchangeKeepCount})
               </button>
             </>
           ) : (

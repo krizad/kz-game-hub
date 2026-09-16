@@ -454,13 +454,15 @@ export class CoupService {
     if (state.phase !== CoupPhase.AWAITING_EXCHANGE || !state.pendingAction) return null;
     if (state.pendingAction.actorId !== actorId) return null;
     if (state.pendingAction.type !== CoupActionType.EXCHANGE) return null;
-    if (!Array.isArray(keepIndices) || keepIndices.length !== 2) return null;
-    if (new Set(keepIndices).size !== 2) return null;
-    for (const idx of keepIndices) {
-      if (!Number.isInteger(idx) || idx < 0 || idx > 3) return null;
-    }
+    if (!Array.isArray(keepIndices)) return null;
     const hand = this.privateStateService.get<CoupRole[]>(room.code, actorId, 'coupHand') ?? [];
-    if (hand.length !== 4) return null;
+    const keepCount = state.influences[actorId]?.count ?? 0;
+    if (keepCount < 1 || hand.length !== keepCount + 2) return null;
+    if (keepIndices.length !== keepCount) return null;
+    if (new Set(keepIndices).size !== keepCount) return null;
+    for (const idx of keepIndices) {
+      if (!Number.isInteger(idx) || idx < 0 || idx >= hand.length) return null;
+    }
     const kept = keepIndices.map((i) => hand[i]);
     const returned: CoupRole[] = hand.filter((_, i) => !keepIndices.includes(i));
     state.deck.push(...returned);
@@ -557,11 +559,12 @@ export class CoupService {
 
     if (state.pendingAction?.actorId === socketId) {
       if (state.phase === CoupPhase.AWAITING_EXCHANGE) {
+        const keepCount = Math.max(1, state.influences[socketId]?.count ?? 1);
         const hand =
           this.privateStateService.get<CoupRole[]>(room.code, socketId, 'coupHand') ?? [];
         state.deck.push(...hand);
         const restored: CoupRole[] = [];
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < keepCount; i++) {
           if (state.deck.length === 0) break;
           restored.push(state.deck.pop()!);
         }
