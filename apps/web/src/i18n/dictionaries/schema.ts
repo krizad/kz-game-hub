@@ -510,6 +510,35 @@ export interface Dictionary {
     playAgain: string;
     player: string;
   };
+  gameSlave: {
+    title: string;
+    leaderLine: string;
+    trick: string;
+    noTrick: string;
+    yourHand: string;
+    play: string;
+    pass: string;
+    waiting: string;
+    resultLine: string;
+  };
+  gameSamSip: {
+    title: string;
+    discard: string;
+    noDiscard: string;
+    yourHand: string;
+    draw: string;
+    claim: string;
+    pickDiscard: string;
+    waiting: string;
+    resultLine: string;
+  };
+  gameOldMaid: {
+    title: string;
+    yourHand: string;
+    takeHint: string;
+    waiting: string;
+    loserLine: string;
+  };
   gamePokDeng: {
     title: string;
     dealerLine: string;
@@ -586,6 +615,13 @@ export interface Dictionary {
   cardGameSettings: {
     title: string;
     hostOnly: string;
+    preset: string;
+    presets: {
+      POK_DENG: string;
+      SLAVE: string;
+      SAM_SIP: string;
+      OLD_MAID: string;
+    };
     starter: string;
     tiePolicy: string;
     turnTimer: string;

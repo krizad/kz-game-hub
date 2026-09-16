@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { DealCountMode, GameType, RoomStatus, StarterPolicy, TiePolicy } from '@repo/types';
+import { CardGamePreset, DealCountMode, GameType, RoomStatus, StarterPolicy, TiePolicy } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
 const STARTER_OPTIONS: StarterPolicy[] = ['ROTATE', 'RANDOM', 'HOST_SELECT'];
 const TIE_OPTIONS: TiePolicy[] = ['DEALER_WINS', 'PUSH'];
 const TIMER_OPTIONS = [0, 20] as const;
+const PRESET_OPTIONS: CardGamePreset[] = ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID'];
 
 interface DealPreview {
   ok: boolean;
@@ -87,6 +88,24 @@ export function CardGameSettings() {
       {!isHost && (
         <p className="text-xs font-bold text-center opacity-70">{t('cardGameSettings.hostOnly')}</p>
       )}
+
+      <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
+        <p className="text-xs font-black uppercase">{t('cardGameSettings.preset')}</p>
+        <div className="flex gap-2 flex-wrap">
+          {PRESET_OPTIONS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              data-testid={`card-game-preset-${preset.toLowerCase()}`}
+              disabled={disabled}
+              className={optionClass(config.preset === preset)}
+              onClick={() => updateConfig({ cardGamePreset: preset })}
+            >
+              {t(`cardGameSettings.presets.${preset}`)}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
         <p className="text-xs font-black uppercase">{t('cardGameSettings.starter')}</p>

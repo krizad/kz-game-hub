@@ -16,6 +16,9 @@ import { CoupView } from '@/components/games/coup/CoupView';
 import { UltimateTicTacToeView } from '@/components/games/ultimate-tic-tac-toe/UltimateTicTacToeView';
 import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PokDengView } from '@/components/games/card-game/PokDengView';
+import { SlaveView } from '@/components/games/card-game/SlaveView';
+import { SamSipView } from '@/components/games/card-game/SamSipView';
+import { OldMaidView } from '@/components/games/card-game/OldMaidView';
 import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
@@ -46,8 +49,13 @@ export function GameViewManager() {
     if (room.gameType === GameType.SABOTEUR && room.status !== RoomStatus.LOBBY)
       return <SaboteurView />;
     if (room.gameType === GameType.COUP && room.status !== RoomStatus.LOBBY) return <CoupView />;
-    if (room.gameType === GameType.CARD_GAME && room.status !== RoomStatus.LOBBY)
+    if (room.gameType === GameType.CARD_GAME && room.status !== RoomStatus.LOBBY) {
+      const preset = room.cardGameConfig?.preset ?? 'POK_DENG';
+      if (preset === 'SLAVE') return <SlaveView />;
+      if (preset === 'SAM_SIP') return <SamSipView />;
+      if (preset === 'OLD_MAID') return <OldMaidView />;
       return <PokDengView />;
+    }
 
     return (
       <div className="flex-1 flex flex-col bg-white border-4 border-black p-2 sm:p-4 shadow-[4px_4px_0_0_#000] min-h-[300px] overflow-y-auto">
