@@ -19,7 +19,6 @@ import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { CardGameService } from './card-game/card-game.service';
-import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 
 @Module({
   providers: [
@@ -43,7 +42,6 @@ import { CardRulePresetRepository } from './card-game/card-rule-preset.repositor
     RoomTimerService,
     PrivateStateService,
     CardGameService,
-    CardRulePresetRepository,
   ],
 })
 export class GamesModule {}

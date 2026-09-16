@@ -522,24 +522,6 @@ export interface Dictionary {
     waiting: string;
     resultLine: string;
   };
-  gameSamSip: {
-    title: string;
-    discard: string;
-    noDiscard: string;
-    yourHand: string;
-    draw: string;
-    claim: string;
-    pickDiscard: string;
-    waiting: string;
-    resultLine: string;
-  };
-  gameOldMaid: {
-    title: string;
-    yourHand: string;
-    takeHint: string;
-    waiting: string;
-    loserLine: string;
-  };
   cardGameLog: {
     title: string;
     kinds: {
@@ -551,6 +533,27 @@ export interface Dictionary {
       DISCARDED: string;
       TOOK: string;
     };
+  };
+  gameRps: {
+    playing: string;
+    matchOver: string;
+    roundOver: string;
+    allAtOnce: string;
+    oneVOneRoundRobin: string;
+    firstTo: string;
+    vs: string;
+    spectating: string;
+    choiceLocked: string;
+    waitingOpponent: string;
+    draw: string;
+    winsMatch: string;
+    winsRound: string;
+    playAgain: string;
+    nextRound: string;
+    queue: string;
+    rock: string;
+    paper: string;
+    scissors: string;
   };
   gamePokDeng: {
     title: string;
@@ -570,6 +573,8 @@ export interface Dictionary {
   cardGameRules: {
     title: string;
     preset: string;
+    pokDengText: string;
+    slaveText: string;
     noConfig: string;
     deck: string;
     deckValue: string;
@@ -638,8 +643,6 @@ export interface Dictionary {
     presets: {
       POK_DENG: string;
       SLAVE: string;
-      SAM_SIP: string;
-      OLD_MAID: string;
     };
     starter: string;
     tiePolicy: string;
@@ -648,48 +651,6 @@ export interface Dictionary {
     timerSeconds: string;
     preview: string;
     previewInvalid: string;
-    publish: string;
-    publishing: string;
-    published: string;
-    copy: string;
-    copied: string;
-    import: string;
-    importPlaceholder: string;
-    importButton: string;
-    importing: string;
-    copyOnEdit: string;
-    errors: {
-      INVALID_CONFIG: string;
-      NOT_FOUND: string;
-      PRESET_MISMATCH: string;
-      INVALID_STORED_CONFIG: string;
-      STORAGE_ERROR: string;
-      SHARE_CODE_EXHAUSTED: string;
-      INVALID_ROOM: string;
-      NOT_HOST: string;
-      NOT_LOBBY: string;
-    };
-  };
-  gameRps: {
-    playing: string;
-    matchOver: string;
-    roundOver: string;
-    allAtOnce: string;
-    oneVOneRoundRobin: string;
-    firstTo: string;
-    vs: string;
-    spectating: string;
-    choiceLocked: string;
-    waitingOpponent: string;
-    draw: string;
-    winsMatch: string;
-    winsRound: string;
-    playAgain: string;
-    nextRound: string;
-    queue: string;
-    rock: string;
-    paper: string;
-    scissors: string;
   };
   result: {
     winners: string;

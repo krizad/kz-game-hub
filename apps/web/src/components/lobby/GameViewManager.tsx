@@ -17,8 +17,6 @@ import { UltimateTicTacToeView } from '@/components/games/ultimate-tic-tac-toe/U
 import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PokDengView } from '@/components/games/card-game/PokDengView';
 import { SlaveView } from '@/components/games/card-game/SlaveView';
-import { SamSipView } from '@/components/games/card-game/SamSipView';
-import { OldMaidView } from '@/components/games/card-game/OldMaidView';
 import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
@@ -52,8 +50,6 @@ export function GameViewManager() {
     if (room.gameType === GameType.CARD_GAME && room.status !== RoomStatus.LOBBY) {
       const preset = room.cardGameConfig?.preset ?? 'POK_DENG';
       if (preset === 'SLAVE') return <SlaveView />;
-      if (preset === 'SAM_SIP') return <SamSipView />;
-      if (preset === 'OLD_MAID') return <OldMaidView />;
       return <PokDengView />;
     }
 

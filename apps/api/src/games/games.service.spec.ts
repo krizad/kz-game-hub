@@ -15,10 +15,8 @@ import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { CardGameService } from './card-game/card-game.service';
-import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
-import { SAM_SIP_PRESET } from './card-game/presets/sam-sip.preset';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -40,7 +38,6 @@ describe('GamesService', () => {
   let coupService: jest.Mocked<CoupService>;
   let ultimateTicTacToeService: jest.Mocked<UltimateTicTacToeService>;
   let cardGameService: jest.Mocked<CardGameService>;
-  let cardRulePresetRepository: jest.Mocked<CardRulePresetRepository>;
   let playerSessionService: PlayerSessionService;
   let privateStateService: PrivateStateService;
   let roomTimerService: RoomTimerService;
@@ -185,10 +182,6 @@ describe('GamesService', () => {
       cancelRound: jest.fn(),
       remapSocketId: CardGameService.prototype.remapSocketId,
     },
-    cardRulePreset: {
-      publish: jest.fn(),
-      importByCode: jest.fn(),
-    },
   };
 
   beforeEach(async () => {
@@ -211,7 +204,6 @@ describe('GamesService', () => {
         { provide: CoupService, useValue: mockGameServices.coup },
         { provide: UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
         { provide: CardGameService, useValue: mockGameServices.cardGame },
-        { provide: CardRulePresetRepository, useValue: mockGameServices.cardRulePreset },
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,
@@ -235,9 +227,6 @@ describe('GamesService', () => {
       UltimateTicTacToeService,
     ) as jest.Mocked<UltimateTicTacToeService>;
     cardGameService = module.get(CardGameService) as jest.Mocked<CardGameService>;
-    cardRulePresetRepository = module.get(
-      CardRulePresetRepository,
-    ) as jest.Mocked<CardRulePresetRepository>;
     playerSessionService = module.get(PlayerSessionService);
     privateStateService = module.get(PrivateStateService);
     roomTimerService = module.get(RoomTimerService);
@@ -325,17 +314,6 @@ describe('GamesService', () => {
       expect(room.config.cardGamePreset).toBe('SLAVE');
       expect(room.cardGameConfig).toEqual(SLAVE_PRESET.defaultConfig);
       expect(room.cardGameAllowedOptions).toEqual(SLAVE_PRESET.allowed);
-    });
-
-    it('should create a card-game room with the Sam Sip default config when selected', () => {
-      const room = service.createRoom('host1', GameType.CARD_GAME, {
-        cardGamePreset: 'SAM_SIP',
-      });
-
-      expect(room.gameType).toBe(GameType.CARD_GAME);
-      expect(room.config.cardGamePreset).toBe('SAM_SIP');
-      expect(room.cardGameConfig).toEqual(SAM_SIP_PRESET.defaultConfig);
-      expect(room.cardGameAllowedOptions).toEqual(SAM_SIP_PRESET.allowed);
     });
 
     it('should fall back to Pok Deng when an unknown card preset is requested', () => {
@@ -1136,100 +1114,7 @@ describe('GamesService', () => {
     });
   });
 
-  describe('card game rule presets', () => {
-    it('should reject publishing from a non card-game room', async () => {
-      const room = service.createRoom('host1');
-
-      const result = await service.cardGamePublishRules(
-        room.code,
-        'host1',
-        POK_DENG_PRESET.defaultConfig,
-      );
-
-      expect(result).toEqual({ ok: false, error: 'INVALID_ROOM' });
-      expect(cardRulePresetRepository.publish).not.toHaveBeenCalled();
-    });
-
-    it('should reject publishing when the requester is not the host', async () => {
-      const room = service.createRoom('host1', GameType.CARD_GAME);
-
-      const result = await service.cardGamePublishRules(
-        room.code,
-        'p2',
-        POK_DENG_PRESET.defaultConfig,
-      );
-
-      expect(result).toEqual({ ok: false, error: 'NOT_HOST' });
-      expect(cardRulePresetRepository.publish).not.toHaveBeenCalled();
-    });
-
-    it('should reject publishing outside the lobby', async () => {
-      const room = service.createRoom('host1', GameType.CARD_GAME);
-      room.status = RoomStatus.PLAYING;
-      (service as any).rooms.set(room.code, room);
-
-      const result = await service.cardGamePublishRules(
-        room.code,
-        'host1',
-        POK_DENG_PRESET.defaultConfig,
-      );
-
-      expect(result).toEqual({ ok: false, error: 'NOT_LOBBY' });
-      expect(cardRulePresetRepository.publish).not.toHaveBeenCalled();
-    });
-
-    it('should delegate host publishing to the repository', async () => {
-      const room = service.createRoom('host1', GameType.CARD_GAME);
-      cardRulePresetRepository.publish.mockResolvedValue({ ok: true, shareCode: 'ABCD2345EFGH' });
-
-      const result = await service.cardGamePublishRules(
-        room.code,
-        'host1',
-        POK_DENG_PRESET.defaultConfig,
-      );
-
-      expect(cardRulePresetRepository.publish).toHaveBeenCalledWith(
-        POK_DENG_PRESET.defaultConfig,
-        POK_DENG_PRESET,
-      );
-      expect(result).toEqual({ ok: true, shareCode: 'ABCD2345EFGH' });
-    });
-
-    it('should apply imported rules to the room config', async () => {
-      const room = service.createRoom('host1', GameType.CARD_GAME);
-      const importedConfig = {
-        ...POK_DENG_PRESET.defaultConfig,
-        scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, tiePolicy: 'PUSH' as const },
-      };
-      cardRulePresetRepository.importByCode.mockResolvedValue({ ok: true, config: importedConfig });
-
-      const result = await service.cardGameImportRules(room.code, 'host1', 'abcd2345efgh');
-
-      expect(cardRulePresetRepository.importByCode).toHaveBeenCalledWith(
-        'abcd2345efgh',
-        POK_DENG_PRESET,
-      );
-      expect(result).toEqual({ ok: true, config: importedConfig });
-      expect(service.getRoom(room.code)!.cardGameConfig).toEqual(importedConfig);
-      expect(service.getRoom(room.code)!.cardGameAllowedOptions).toEqual(POK_DENG_PRESET.allowed);
-    });
-
-    it('should pass import failures through without touching the room', async () => {
-      const room = service.createRoom('host1', GameType.CARD_GAME);
-      cardRulePresetRepository.importByCode.mockResolvedValue({ ok: false, error: 'NOT_FOUND' });
-
-      const result = await service.cardGameImportRules(room.code, 'host1', 'UNKNOWN12345');
-
-      expect(result).toEqual({ ok: false, error: 'NOT_FOUND' });
-      expect(service.getRoom(room.code)!.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
-    });
-  });
-
   describe('assignRoles', () => {
-    it('should return null for non-existent room', async () => {
-      expect(await service.assignRoles('XXXXXX', 'host1')).toBeNull();
-    });
-
     it('should delegate to SoundsFishyService for SOUNDS_FISHY game', async () => {
       const room = service.createRoom('host1', GameType.SOUNDS_FISHY);
       const resultRoom = { ...room, status: RoomStatus.QUESTIONING };

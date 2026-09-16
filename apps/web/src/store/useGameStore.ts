@@ -20,8 +20,6 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
-  CardGameImportRulesResult,
-  CardGamePublishRulesResult,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -123,16 +121,10 @@ interface GameState {
     coupBlock: (role?: CoupRole) => void;
   coupExchangeSelect: (keepIndices: number[]) => void;
   cardGameAction: (action: CardGameAction) => void;
-  cardGamePublishRules: (config: CardGameConfig) => void;
-  cardGameImportRules: (shareCode: string) => void;
-  clearCardGameShareCode: () => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
   musicTriviaSyncPlay: MusicTriviaSyncPlayPayload | null;
-  cardGameShareCode: string | null;
-  cardGameRulesError: string | null;
-  cardGameRulesLoading: boolean;
 }
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -165,9 +157,6 @@ export const useGameStore = create<GameState>((set, get) => {
       privateState: {},
       isSpectator: false,
       playerId: '',
-      cardGameShareCode: null,
-      cardGameRulesError: null,
-      cardGameRulesLoading: false,
     });
 
   return {
@@ -187,9 +176,6 @@ export const useGameStore = create<GameState>((set, get) => {
     privateState: {},
     musicTriviaHostAnswer: null,
     actionLoading: false,
-    cardGameShareCode: null,
-    cardGameRulesError: null,
-    cardGameRulesLoading: false,
     musicTriviaTrackAnswer: null,
     musicTriviaSyncPlay: null,
 
@@ -325,25 +311,8 @@ export const useGameStore = create<GameState>((set, get) => {
           localStorage.removeItem(STORAGE_KEYS.reconnectToken);
           set({ room: null, isSpectator: false, playerId: '' });
         }
-        set({ isLoading: false, actionLoading: false, cardGameRulesLoading: false });
+        set({ isLoading: false, actionLoading: false });
         toast.error(translateError(message));
-      });
-
-      socket.on(SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES, (result: CardGamePublishRulesResult) => {
-        if (!result || typeof result.ok !== 'boolean') return;
-        set({
-          cardGameRulesLoading: false,
-          cardGameShareCode: result.ok ? result.shareCode ?? null : null,
-          cardGameRulesError: result.ok ? null : result.error ?? 'UNKNOWN',
-        });
-      });
-
-      socket.on(SOCKET_EVENTS.CARD_GAME_IMPORT_RULES, (result: CardGameImportRulesResult) => {
-        if (!result || typeof result.ok !== 'boolean') return;
-        set({
-          cardGameRulesLoading: false,
-          cardGameRulesError: result.ok ? null : result.error ?? 'UNKNOWN',
-        });
       });
 
       socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_TRACK_ANSWER, (data: MusicTriviaTrackAnswerPayload) => {
@@ -424,22 +393,6 @@ export const useGameStore = create<GameState>((set, get) => {
     cardGameAction: (action: CardGameAction) => {
       emitGameAction(SOCKET_EVENTS.CARD_GAME_ACTION, { payload: () => ({ action }) });
     },
-
-    cardGamePublishRules: (config: CardGameConfig) => {
-      const { socket, room } = get();
-      if (!socket || !room) return;
-      set({ cardGameRulesLoading: true, cardGameRulesError: null, cardGameShareCode: null });
-      socket.emit(SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES, { code: room.code, config });
-    },
-
-    cardGameImportRules: (shareCode: string) => {
-      const { socket, room } = get();
-      if (!socket || !room) return;
-      set({ cardGameRulesLoading: true, cardGameRulesError: null });
-      socket.emit(SOCKET_EVENTS.CARD_GAME_IMPORT_RULES, { code: room.code, shareCode });
-    },
-
-    clearCardGameShareCode: () => set({ cardGameShareCode: null }),
 
     tttJoinSide: (side: 'X' | 'O') => {
       emitGameAction(SOCKET_EVENTS.TTT_JOIN_SIDE, { payload: () => ({ side }) });

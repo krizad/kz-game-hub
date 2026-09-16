@@ -133,8 +133,6 @@ export const SOCKET_EVENTS = {
   UTTT_RESET: 'uttt_reset',
   // Configurable card game
   CARD_GAME_ACTION: 'card_game_action',
-  CARD_GAME_IMPORT_RULES: 'card_game_import_rules',
-  CARD_GAME_PUBLISH_RULES: 'card_game_publish_rules',
 } as const;
 
 export interface UserState {

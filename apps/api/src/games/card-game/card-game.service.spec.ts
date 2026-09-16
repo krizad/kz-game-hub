@@ -1,8 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GameType, PlayingCard, RoomState, RoomStatus } from '@repo/types';
 import { CardGameService } from './card-game.service';
-import { SamSipRuntime } from './sam-sip.runtime';
-import { SAM_SIP_PRESET } from './presets/sam-sip.preset';
 import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 import { PrivateStateService } from '../private-state.service';
 
@@ -115,37 +113,6 @@ describe('CardGameService', () => {
     const target = startRound(room());
     expect(service.handleAction(target, 'p1', null as never)).toBeNull();
     expect(service.handleAction(target, 'p1', {} as never)).toBeNull();
-  });
-
-  it('does not log a draw that ended the round on exhaustion', () => {
-    const target = room();
-    target.cardGameConfig = SAM_SIP_PRESET.defaultConfig;
-    (service as any).cardRuntimes.SAM_SIP = new SamSipRuntime(privateState, () => deckFor([]));
-    service.startCardRound(target, target.roomHostId);
-    privateState.set(target.code, '__card-game-engine__', 'piles', {
-      stock: [],
-      discards: [],
-      reserve: [],
-    });
-
-    service.handleAction(target, 'p1', { type: 'DRAW' });
-
-    expect(target.cardGameLog ?? []).toHaveLength(0);
-  });
-
-  it('stamps a turn deadline when the action policy has a timeout', () => {
-    const target = room();
-    target.cardGameConfig = {
-      ...POK_DENG_PRESET.defaultConfig,
-      actions: { allowed: ['DRAW', 'STAND'], timeoutSeconds: 20, autoAction: 'STAND' },
-    };
-    startRound(target);
-
-    expect(target.cardGameState?.activePlayerId).toBe('p2');
-    expect(typeof target.cardGameState?.turnDeadline).toBe('number');
-
-    finishRound(target);
-    expect(target.cardGameState?.turnDeadline ?? null).toBeNull();
   });
 
   it('stamps a turn deadline when the action policy has a timeout', () => {

@@ -4,7 +4,7 @@ export interface PlayingCard {
   suit: 'CLUBS' | 'DIAMONDS' | 'HEARTS' | 'SPADES';
 }
 
-export type CardGamePreset = 'POK_DENG' | 'SLAVE' | 'SAM_SIP' | 'OLD_MAID';
+export type CardGamePreset = 'POK_DENG' | 'SLAVE';
 
 export type CardGamePhase = 'PLAYER_TURNS' | 'RESULT';
 
@@ -197,26 +197,3 @@ export interface CardGameLogEntry {
   count?: number;
 }
 
-export interface CardGameImportRulesRequest {
-  /** Room code the rules are imported into. */
-  code: string;
-  shareCode: string;
-}
-
-export interface CardGameImportRulesResult {
-  ok: boolean;
-  config?: CardGameConfig;
-  error?: string;
-}
-
-export interface CardGamePublishRulesRequest {
-  /** Room code the rules are published from; only its lobby host may publish. */
-  code: string;
-  config: CardGameConfig;
-}
-
-export interface CardGamePublishRulesResult {
-  ok: boolean;
-  shareCode?: string;
-  error?: string;
-}

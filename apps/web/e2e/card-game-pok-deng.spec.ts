@@ -8,16 +8,20 @@ test.describe('Pok Deng card game flow', () => {
     const host = await hostCtx.newPage();
     const guest = await guestCtx.newPage();
 
-    const roomCode = await createRoom(host, 'Alice', 'Pok Deng');
+    const roomCode = await createRoom(host, 'Alice', 'Thai Card Game');
     expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
     const origin = await getOrigin(host);
     await joinRoom(guest, origin, roomCode, 'Bob');
     await expect(host.getByText('Bob')).toBeVisible({ timeout: 10000 });
 
-    // The rules modal renders the normalized preset config in the active language.
+    // The rules modal opens with mode tabs and static rules per game mode.
     await host.getByRole('button', { name: 'Rules', exact: true }).click();
-    await expect(host.getByText('Standard 52 cards ×1')).toBeVisible({ timeout: 5000 });
-    await expect(host.getByText('Start 100 chips · base stake 1')).toBeVisible({ timeout: 5000 });
+    await expect(host.getByTestId('card-game-rules-content')).toContainText('mod 10', {
+      timeout: 5000,
+    });
+    await host.getByTestId('card-game-rules-tab-slave').click();
+    await expect(host.getByTestId('card-game-rules-tab-slave')).toHaveClass(/bg-lime-300/);
+    await expect(host.getByTestId('card-game-rules-content')).toContainText('highest');
     await host.getByLabel('Close rules').click();
 
     await host.getByText(/Start Game|เริ่มเกม/i).click();

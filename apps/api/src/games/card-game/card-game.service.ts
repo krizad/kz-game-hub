@@ -30,8 +30,6 @@ import {
 import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 import { CARD_GAME_PRESETS, presetForConfig } from './presets';
 import { SlaveRuntime } from './slave.runtime';
-import { SamSipRuntime } from './sam-sip.runtime';
-import { OldMaidRuntime } from './old-maid.runtime';
 
 const PRIVATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
@@ -54,8 +52,6 @@ export class CardGameService {
   constructor(private readonly privateStateService: PrivateStateService) {
     this.cardRuntimes = {
       SLAVE: new SlaveRuntime(privateStateService),
-      SAM_SIP: new SamSipRuntime(privateStateService),
-      OLD_MAID: new OldMaidRuntime(privateStateService),
     };
   }
 
