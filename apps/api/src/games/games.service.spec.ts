@@ -1163,6 +1163,42 @@ describe('GamesService', () => {
       expect(result).toEqual({ room: updatedRoom, roles: {} });
     });
 
+    it('should not resurrect a room deleted while an async start is in flight', async () => {
+      const room = service.createRoom('host1', GameType.SOUNDS_FISHY);
+      let resolveStart!: (value: { room: RoomState; roles: Record<string, Role> }) => void;
+      mockGameServices.soundsFishy.assignRoles.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveStart = resolve;
+          }),
+      );
+
+      const pending = service.assignRoles(room.code, 'host1');
+      (service as any).rooms.delete(room.code);
+      resolveStart({ room, roles: {} });
+
+      await expect(pending).resolves.toBeNull();
+      expect((service as any).rooms.has(room.code)).toBe(false);
+    });
+
+    it('should not resurrect a room deleted while an async who-am-i start is in flight', async () => {
+      const room = service.createRoom('host1', GameType.WHO_AM_I);
+      let resolveStart!: (value: RoomState | null) => void;
+      mockGameServices.whoAmI.startGameRandom.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveStart = resolve;
+          }),
+      );
+
+      const pending = service.assignRoles(room.code, 'host1');
+      (service as any).rooms.delete(room.code);
+      resolveStart(room);
+
+      await expect(pending).resolves.toBeNull();
+      expect((service as any).rooms.has(room.code)).toBe(false);
+    });
+
     it('should route WHO_AM_I RANDOM mode to startGameRandom', async () => {
       const room = service.createRoom('host1', GameType.WHO_AM_I);
       room.config.wordMode = 'RANDOM';
@@ -1681,6 +1717,25 @@ describe('GamesService', () => {
       expect(result?.config.timerMin).toBe(5);
       expect(result?.config.language).toBe('en');
       expect(result?.config).not.toHaveProperty('unknown');
+    });
+
+    it('should not resurrect a room deleted while a music trivia action is in flight', async () => {
+      const room = service.createRoom('host1', GameType.MUSIC_TRIVIA);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      let resolveStart!: (value: { room: RoomState }) => void;
+      mockGameServices.musicTrivia.handleGameAction.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveStart = resolve;
+          }),
+      );
+
+      const pending = service.musicTriviaGameAction(room.code, 'host1', { type: 'X' });
+      (service as any).rooms.delete(room.code);
+      resolveStart({ room });
+
+      await expect(pending).resolves.toBeNull();
+      expect((service as any).rooms.has(room.code)).toBe(false);
     });
   });
 });
