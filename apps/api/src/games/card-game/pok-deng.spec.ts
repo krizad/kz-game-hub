@@ -88,6 +88,23 @@ describe('Pok Deng preset flow', () => {
     expect(result.cardGameChips).toEqual({ p1: 101, p2: 99 });
   });
 
+  it('resolves immediately when the dealer has a natural', () => {
+    // p1 dealer holds A+7 (8) — a natural ends the round before any draws.
+    const result = startRound(room(), [
+      card('p1-a', 'A', 'CLUBS'),
+      card('p2-a', 'K', 'HEARTS'),
+      card('p1-b', '7', 'DIAMONDS'),
+      card('p2-b', '5', 'SPADES'),
+    ]);
+
+    expect(result.cardGameState?.phase).toBe('RESULT');
+    expect(result.cardGameState?.activePlayerId).toBeNull();
+    expect(result.cardGameState?.result?.dealerScore).toBe(8);
+    expect(result.cardGameState?.handCounts).toEqual({ p1: 2, p2: 2 });
+    // The dealer's POK_8 pays 2x — the losing seat pays double the base stake.
+    expect(result.cardGameChips).toEqual({ p1: 102, p2: 98 });
+  });
+
   it('keeps the dealer on two cards once the dealer has five or more', () => {
     // Both seats land on 5, so the dealer does not draw and wins the tie by default policy.
     const result = startRound(room(), [

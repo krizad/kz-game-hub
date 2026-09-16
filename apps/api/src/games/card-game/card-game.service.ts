@@ -139,6 +139,13 @@ export class CardGameService {
       config.visibility,
     );
     room.status = RoomStatus.PLAYING;
+
+    // House rule (D5): a dealer natural (8 or 9) resolves the round immediately.
+    if (mod10Score(hands[dealerId]) >= 8) {
+      this.resolve(room, config);
+      return room;
+    }
+
     this.advance(room);
     return room;
   }
