@@ -12,21 +12,8 @@ import {
 import { PrivateStateService } from '../private-state.service';
 
 const PRIVATE_KEY = 'cardGame';
-const RANKS: PlayingCard['rank'][] = [
-  'A',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '10',
-  'J',
-  'Q',
-  'K',
-];
+const STARTING_CHIPS = 100;
+const RANKS: PlayingCard['rank'][] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const SUITS: PlayingCard['suit'][] = ['CLUBS', 'DIAMONDS', 'HEARTS', 'SPADES'];
 
 @Injectable()
@@ -39,14 +26,18 @@ export class CardGameService {
     if (players.length < 2) return null;
 
     const previousDealer = room.cardGameState?.dealerId;
-    const previousIndex = Math.max(
-      0,
-      players.findIndex((player) => player.socketId === previousDealer),
-    );
-    const dealer = players[(previousIndex + 1) % players.length];
+    const previousIndex = players.findIndex((player) => player.socketId === previousDealer);
+    const dealer =
+      previousIndex === -1 ? players[0] : players[(previousIndex + 1) % players.length];
     const deck = this.shuffle(this.createDeck());
     const hands = new Map<string, PlayingCard[]>();
     for (const player of players) hands.set(player.socketId, [deck.pop()!, deck.pop()!]);
+
+    const chipBalances = room.cardGameChips ?? {};
+    room.cardGameChips = chipBalances;
+    for (const player of players) {
+      chipBalances[player.socketId] = chipBalances[player.socketId] ?? STARTING_CHIPS;
+    }
 
     const state: CardGameState = {
       preset: 'POK_DENG',
@@ -55,7 +46,9 @@ export class CardGameService {
       activePlayerId: null,
       playerOrder: players.map((player) => player.socketId),
       handCounts: Object.fromEntries(players.map((player) => [player.socketId, 2])),
-      chips: Object.fromEntries(players.map((player) => [player.socketId, 100])),
+      chips: Object.fromEntries(
+        players.map((player) => [player.socketId, chipBalances[player.socketId]]),
+      ),
       decisions: {},
     };
 
@@ -74,10 +67,12 @@ export class CardGameService {
 
   handleAction(room: RoomState, socketId: string, action: CardGameAction): RoomState | null {
     const state = room.cardGameState;
-    if (!state || room.gameType !== GameType.CARD_GAME || room.status !== RoomStatus.PLAYING)
-      return null;
-    if (action.type === 'NEXT_ROUND')
-      return state.phase === 'RESULT' ? this.startPokDeng(room, room.roomHostId) : null;
+    if (!state || room.gameType !== GameType.CARD_GAME) return null;
+    if (action.type === 'NEXT_ROUND') {
+      if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;
+      return this.startPokDeng(room, room.roomHostId);
+    }
+    if (room.status !== RoomStatus.PLAYING) return null;
     if (state.phase !== 'PLAYER_TURNS' || state.activePlayerId !== socketId) return null;
     const hand = this.getHand(room.code, socketId);
     if (!hand) return null;
@@ -98,6 +93,17 @@ export class CardGameService {
     return room;
   }
 
+  cancelRound(room: RoomState): void {
+    const state = room.cardGameState;
+    if (!state || room.gameType !== GameType.CARD_GAME) return;
+    for (const socketId of state.playerOrder) {
+      this.privateStateService.delete(room.code, socketId, PRIVATE_KEY);
+    }
+    this.privateStateService.delete(room.code, '__card-game-engine__', 'deck');
+    room.cardGameState = undefined;
+    room.status = RoomStatus.LOBBY;
+  }
+
   remapSocketId(state: CardGameState, oldSocketId: string, newSocketId: string): void {
     if (state.dealerId === oldSocketId) state.dealerId = newSocketId;
     if (state.activePlayerId === oldSocketId) state.activePlayerId = newSocketId;
@@ -106,27 +112,15 @@ export class CardGameService {
     state.chips = this.remapRecord(state.chips, oldSocketId, newSocketId);
     state.decisions = this.remapRecord(state.decisions, oldSocketId, newSocketId);
     if (state.result) {
-      state.result.playerScores = this.remapRecord(
-        state.result.playerScores,
-        oldSocketId,
-        newSocketId,
-      );
-      state.result.winnerIds = state.result.winnerIds.map((id) =>
-        id === oldSocketId ? newSocketId : id,
-      );
-      state.result.revealedHands = this.remapRecord(
-        state.result.revealedHands,
-        oldSocketId,
-        newSocketId,
-      );
+      state.result.playerScores = this.remapRecord(state.result.playerScores, oldSocketId, newSocketId);
+      state.result.winnerIds = state.result.winnerIds.map((id) => (id === oldSocketId ? newSocketId : id));
+      state.result.revealedHands = this.remapRecord(state.result.revealedHands, oldSocketId, newSocketId);
     }
   }
 
   private advance(room: RoomState, deck: PlayingCard[]): void {
     const state = room.cardGameState!;
-    const next = state.playerOrder.find(
-      (id) => id !== state.dealerId && state.decisions[id] === 'PENDING',
-    );
+    const next = state.playerOrder.find((id) => id !== state.dealerId && state.decisions[id] === 'PENDING');
     if (next) {
       state.activePlayerId = next;
       this.setDeck(room.code, deck);
@@ -167,6 +161,8 @@ export class CardGameService {
     state.phase = 'RESULT';
     state.activePlayerId = null;
     state.result = { dealerScore, playerScores, winnerIds, revealedHands };
+    room.cardGameChips = state.chips;
+    room.status = RoomStatus.RESULT;
   }
 
   private createDeck(): PlayingCard[] {
@@ -182,9 +178,7 @@ export class CardGameService {
   }
 
   private score(hand: PlayingCard[]): number {
-    return (
-      hand.reduce((total, card) => total + (card.rank === 'A' ? 1 : Number(card.rank) || 0), 0) % 10
-    );
+    return hand.reduce((total, card) => total + (card.rank === 'A' ? 1 : Number(card.rank) || 0), 0) % 10;
   }
 
   private setHand(roomCode: string, socketId: string, hand: PlayingCard[]): void {
@@ -195,8 +189,7 @@ export class CardGameService {
   }
 
   private getHand(roomCode: string, socketId: string): PlayingCard[] | undefined {
-    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)
-      ?.hand;
+    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)?.hand;
   }
 
   private setDeck(roomCode: string, deck: PlayingCard[]): void {
@@ -207,11 +200,7 @@ export class CardGameService {
     return this.privateStateService.get<PlayingCard[]>(roomCode, '__card-game-engine__', 'deck');
   }
 
-  private remapRecord<T>(
-    record: Record<string, T>,
-    oldKey: string,
-    newKey: string,
-  ): Record<string, T> {
+  private remapRecord<T>(record: Record<string, T>, oldKey: string, newKey: string): Record<string, T> {
     if (!(oldKey in record)) return record;
     const { [oldKey]: value, ...remaining } = record;
     return { ...remaining, [newKey]: value };

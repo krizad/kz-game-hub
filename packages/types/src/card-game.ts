@@ -6,7 +6,7 @@ export interface PlayingCard {
 }
 
 export type CardGamePreset = 'POK_DENG';
-export type PokDengPhase = 'PLAYER_TURNS' | 'DEALER_TURN' | 'RESULT';
+export type PokDengPhase = 'PLAYER_TURNS' | 'RESULT';
 
 /** Public-safe state: it deliberately contains card counts, never hidden cards. */
 export interface CardGameState {

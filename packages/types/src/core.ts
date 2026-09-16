@@ -228,6 +228,8 @@ export interface RoomState {
   ultimateTicTacToeState?: UltimateTicTacToeState;
   /** Contains only public card-game information; hands are private socket state. */
   cardGameState?: CardGameState;
+  /** Match-scoped virtual chip balances, keyed by socket id (ADR 0004). */
+  cardGameChips?: Record<string, number>;
 }
 
 export interface AvailableRoom {

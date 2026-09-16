@@ -1,7 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GameType, RoomState, RoomStatus } from '@repo/types';
+import { GameType, PlayingCard, RoomState, RoomStatus } from '@repo/types';
 import { CardGameService } from './card-game.service';
 import { PrivateStateService } from '../private-state.service';
+
+const card = (
+  id: string,
+  rank: PlayingCard['rank'],
+  suit: PlayingCard['suit'],
+): PlayingCard => ({ id, rank, suit });
+
+// Cards are popped from the tail of the deck, so `popOrder` is reversed on top of the filler.
+const deckFor = (popOrder: PlayingCard[]): PlayingCard[] => [
+  ...Array.from({ length: 52 - popOrder.length }, (_, index) =>
+    card(`filler-${index}`, '2', 'CLUBS'),
+  ),
+  ...[...popOrder].reverse(),
+];
+
+// Deal order: p1 card 1, p1 card 2, p2 card 1, p2 card 2, then the dealer's third card.
+// p1 (dealer) scores 3 and draws to 8; p2 scores 7 and loses one chip to p1.
+const DEAL_P1_BEATS_P2: PlayingCard[] = [
+  card('p1-a', 'A', 'CLUBS'),
+  card('p1-b', '2', 'DIAMONDS'),
+  card('p2-a', '3', 'HEARTS'),
+  card('p2-b', '4', 'SPADES'),
+  card('draw-1', '5', 'CLUBS'),
+];
 
 describe('CardGameService', () => {
   let service: CardGameService;
@@ -33,9 +57,26 @@ describe('CardGameService', () => {
     })),
   });
 
+  const fixedDeal = (popOrder: PlayingCard[] = DEAL_P1_BEATS_P2): void => {
+    (service as any).createDeck = jest.fn(() => deckFor(popOrder));
+    (service as any).shuffle = jest.fn((deck: PlayingCard[]) => deck);
+  };
+
+  const startRound = (target: RoomState): RoomState => {
+    fixedDeal();
+    return service.startPokDeng(target, target.roomHostId)!;
+  };
+
+  const finishRound = (target: RoomState): void => {
+    const active = target.cardGameState!.activePlayerId!;
+    expect(service.handleAction(target, active, { type: 'STAND' })).not.toBeNull();
+  };
+
   it('deals hidden hands without leaking them into public room state', () => {
-    const result = service.startPokDeng(room(), 'p1')!;
+    const result = startRound(room());
     expect(result.status).toBe(RoomStatus.PLAYING);
+    expect(result.cardGameState?.phase).toBe('PLAYER_TURNS');
+    expect(result.cardGameState?.activePlayerId).toBe('p2');
     expect(result.cardGameState?.handCounts).toEqual({ p1: 2, p2: 2 });
     expect(JSON.stringify(result)).not.toContain('CLUBS');
     expect(privateState.get(result.code, 'p1', 'cardGame')).toBeDefined();
@@ -43,17 +84,69 @@ describe('CardGameService', () => {
   });
 
   it('rejects actions from a player who does not own the active turn', () => {
-    const result = service.startPokDeng(room(), 'p1')!;
+    const result = startRound(room());
     const active = result.cardGameState!.activePlayerId;
     const other = active === 'p1' ? 'p2' : 'p1';
     expect(service.handleAction(result, other, { type: 'STAND' })).toBeNull();
   });
 
+  it('deals the first round to the first seated player and rotates the dealer', () => {
+    const result = startRound(room());
+    expect(result.cardGameState?.dealerId).toBe('p1');
+    finishRound(result);
+    const second = service.handleAction(result, 'p1', { type: 'NEXT_ROUND' })!;
+    expect(second.cardGameState?.dealerId).toBe('p2');
+  });
+
+  it('keeps chip balances across rounds for the whole match', () => {
+    const result = startRound(room());
+    finishRound(result);
+    expect(result.status).toBe(RoomStatus.RESULT);
+    expect(result.cardGameState?.phase).toBe('RESULT');
+    expect(result.cardGameChips).toEqual({ p1: 101, p2: 99 });
+    expect(result.cardGameState?.chips).toEqual({ p1: 101, p2: 99 });
+
+    const second = service.handleAction(result, 'p1', { type: 'NEXT_ROUND' })!;
+    expect(second.cardGameChips).toEqual({ p1: 101, p2: 99 });
+    expect(second.cardGameState?.chips).toEqual({ p1: 101, p2: 99 });
+  });
+
+  it('accepts NEXT_ROUND only from the host and only after a result', () => {
+    const result = startRound(room());
+    expect(service.handleAction(result, 'p1', { type: 'NEXT_ROUND' })).toBeNull();
+    finishRound(result);
+    expect(service.handleAction(result, 'p2', { type: 'NEXT_ROUND' })).toBeNull();
+    expect(service.handleAction(result, 'p1', { type: 'NEXT_ROUND' })).not.toBeNull();
+  });
+
+  it('allows balances to go negative instead of clamping them', () => {
+    const target = room();
+    target.cardGameChips = { p1: 0, p2: 0 };
+    startRound(target);
+    finishRound(target);
+    expect(target.cardGameChips).toEqual({ p1: 1, p2: -1 });
+  });
+
+  it('cancels the round, clears private hands, and keeps balances', () => {
+    const result = startRound(room());
+    const balances = { ...result.cardGameChips! };
+    service.cancelRound(result);
+    expect(result.cardGameState).toBeUndefined();
+    expect(result.status).toBe(RoomStatus.LOBBY);
+    expect(result.cardGameChips).toEqual(balances);
+    expect(privateState.get(result.code, 'p1', 'cardGame')).toBeUndefined();
+    expect(privateState.get(result.code, 'p2', 'cardGame')).toBeUndefined();
+    expect(privateState.get(result.code, '__card-game-engine__', 'deck')).toBeUndefined();
+  });
+
   it('remaps every public state reference on reconnect', () => {
-    const result = service.startPokDeng(room(), 'p1')!;
+    const result = startRound(room());
+    result.cardGameChips!.p1 = 37;
+    result.cardGameState!.chips.p1 = 37;
     service.remapSocketId(result.cardGameState!, 'p1', 'p1-new');
     expect(result.cardGameState!.playerOrder).toContain('p1-new');
     expect(result.cardGameState!.handCounts['p1-new']).toBe(2);
-    expect(result.cardGameState!.chips['p1-new']).toBe(100);
+    expect(result.cardGameState!.chips['p1-new']).toBe(37);
+    expect(result.cardGameState!.chips['p2']).toBe(100);
   });
 });
