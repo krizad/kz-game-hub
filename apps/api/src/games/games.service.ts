@@ -307,6 +307,11 @@ export class GamesService {
         room.cardGameChips[user.socketId] = room.cardGameChips[oldSocketId];
         delete room.cardGameChips[oldSocketId];
       }
+      if (room.cardGameLog) {
+        for (const entry of room.cardGameLog) {
+          if (entry.actorId === oldSocketId) entry.actorId = user.socketId;
+        }
+      }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
       this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
