@@ -287,7 +287,7 @@ export function HomeView() {
             >
               <span className="text-xl">🃏</span>
               <span className="text-xs tracking-wider text-center px-1 uppercase">
-                {t('lobby.gameNames.pokDeng')}
+                {t('lobby.gameNames.cardGame')}
               </span>
             </button>
           </div>

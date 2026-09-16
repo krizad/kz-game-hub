@@ -89,7 +89,7 @@ describe('CardEngineService', () => {
     });
 
     it('rejects a config for another preset', () => {
-      const result = validateConfig({ preset: 'OLD_MAID' as never }, PRESET);
+      const result = validateConfig({ preset: 'SLAVE' as never }, PRESET);
       expect(result.ok).toBe(false);
       expect(result.errors).toContain('preset: expected POK_DENG');
     });

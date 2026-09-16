@@ -28,8 +28,6 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
-  CardGameImportRulesRequest,
-  CardGamePublishRulesRequest,
 } from '@repo/types';
 import {
   MusicTriviaActionResult,
@@ -414,32 +412,6 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid card game action.' });
     }
-  }
-
-  @SubscribeMessage(SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES)
-  async handleCardGamePublishRules(
-    @MessageBody() data: CardGamePublishRulesRequest,
-    @ConnectedSocket() client: Socket,
-  ) {
-    const result = await this.gamesService.cardGamePublishRules(data.code, client.id, data.config);
-    client.emit(SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES, result);
-  }
-
-  @SubscribeMessage(SOCKET_EVENTS.CARD_GAME_IMPORT_RULES)
-  async handleCardGameImportRules(
-    @MessageBody() data: CardGameImportRulesRequest,
-    @ConnectedSocket() client: Socket,
-  ) {
-    const result = await this.gamesService.cardGameImportRules(
-      data.code,
-      client.id,
-      data.shareCode,
-    );
-    if (result.ok) {
-      const room = this.gamesService.getRoom(data.code);
-      if (room) this.broadcastRoomState(room);
-    }
-    client.emit(SOCKET_EVENTS.CARD_GAME_IMPORT_RULES, result);
   }
 
   // --- Tic-Tac-Toe Game Actions ---

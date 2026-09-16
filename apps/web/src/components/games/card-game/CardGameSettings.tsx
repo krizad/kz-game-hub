@@ -5,7 +5,7 @@ import { CardGamePreset, DealCountMode, GameType, RoomStatus, StarterPolicy, Tie
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
-const PRESET_OPTIONS: CardGamePreset[] = ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID'];
+const PRESET_OPTIONS: CardGamePreset[] = ['POK_DENG', 'SLAVE'];
 
 interface DealPreview {
   ok: boolean;
@@ -38,26 +38,15 @@ function computeDealPreview(
 }
 
 export function CardGameSettings() {
-  const {
-    room,
-    socketId,
-    cardGameShareCode,
-    cardGameRulesError,
-    cardGameRulesLoading,
-    updateConfig,
-    cardGamePublishRules,
-    cardGameImportRules,
-  } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore();
   const { t } = useTranslate();
-  const [shareCodeInput, setShareCodeInput] = useState('');
-  const [copied, setCopied] = useState(false);
 
   if (!room || room.gameType !== GameType.CARD_GAME || room.status !== RoomStatus.LOBBY) return null;
   const config = room.cardGameConfig;
   if (!config) return null;
 
   const isHost = socketId === room.roomHostId;
-  const disabled = !isHost || cardGameRulesLoading;
+  const disabled = !isHost;
   const playerCount = room.players.filter((player) => !player.isViewer).length;
   const preview = computeDealPreview(
     52 * config.deck.copies,
@@ -84,16 +73,6 @@ export function CardGameSettings() {
       active ? 'bg-lime-300 shadow-[2px_2px_0_0_#000]' : 'bg-white hover:bg-amber-100'
     } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`;
 
-  const copyShareCode = async () => {
-    if (!cardGameShareCode || !navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(cardGameShareCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   return (
     <div className="w-full max-w-md flex flex-col gap-3" data-testid="card-game-settings">
@@ -200,68 +179,6 @@ export function CardGameSettings() {
         </p>
       </div>
 
-      <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
-        <div className="flex gap-2 items-center flex-wrap">
-          <button
-            type="button"
-            data-testid="card-game-publish"
-            disabled={disabled}
-            className={optionClass(false)}
-            onClick={() => cardGamePublishRules(config)}
-          >
-            {cardGameRulesLoading
-              ? t('cardGameSettings.publishing')
-              : t('cardGameSettings.publish')}
-          </button>
-          {cardGameShareCode && (
-            <span className="flex items-center gap-2">
-              <code
-                data-testid="card-game-share-code"
-                className="font-black bg-amber-200 border-2 border-black px-2 py-0.5 text-xs"
-              >
-                {t('cardGameSettings.published', { code: cardGameShareCode })}
-              </code>
-              <button
-                type="button"
-                onClick={copyShareCode}
-                className="px-2 py-0.5 border-2 border-black bg-white font-black uppercase text-[10px] hover:bg-amber-100"
-              >
-                {copied ? t('cardGameSettings.copied') : t('cardGameSettings.copy')}
-              </button>
-            </span>
-          )}
-        </div>
-
-        <p className="text-xs font-black uppercase">{t('cardGameSettings.import')}</p>
-        <div className="flex gap-2">
-          <input
-            value={shareCodeInput}
-            data-testid="card-game-import-input"
-            onChange={(event) => setShareCodeInput(event.target.value.toUpperCase())}
-            placeholder={t('cardGameSettings.importPlaceholder')}
-            maxLength={12}
-            className="flex-1 min-w-0 border-4 border-black px-2 py-1 font-black uppercase text-sm"
-          />
-          <button
-            type="button"
-            data-testid="card-game-import-button"
-            disabled={disabled || shareCodeInput.trim().length === 0}
-            className={optionClass(false)}
-            onClick={() => cardGameImportRules(shareCodeInput.trim())}
-          >
-            {cardGameRulesLoading
-              ? t('cardGameSettings.importing')
-              : t('cardGameSettings.importButton')}
-          </button>
-        </div>
-
-        {cardGameRulesError && (
-          <p data-testid="card-game-rules-error" className="text-xs font-black text-red-600">
-            {t(`cardGameSettings.errors.${cardGameRulesError}`)}
-          </p>
-        )}
-        <p className="text-[10px] font-bold opacity-70">{t('cardGameSettings.copyOnEdit')}</p>
-      </div>
     </div>
   );
 }

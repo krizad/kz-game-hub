@@ -17,8 +17,6 @@ import {
   BOT_PLAYER_NAME,
   CardGameAction,
   CardGameConfig,
-  CardGameImportRulesResult,
-  CardGamePublishRulesResult,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -40,7 +38,6 @@ import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
-import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
 export type LeaveRoomResult =
@@ -83,7 +80,6 @@ export class GamesService {
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
     private readonly cardGameService: CardGameService,
-    private readonly cardRulePresetRepository: CardRulePresetRepository,
   ) {}
 
   setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void {
@@ -713,7 +709,7 @@ export class GamesService {
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
     copyEnum('language', ['en', 'th']);
-    copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID']);
+    copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE']);
     copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
     copyBoolean('ticTacToeVsBot');
     copyEnum('ticTacToeBotDifficulty', ['EASY', 'GOD']);
@@ -1021,38 +1017,6 @@ export class GamesService {
   cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
-  }
-
-  async cardGamePublishRules(
-    code: string,
-    requesterId: string,
-    config: CardGameConfig,
-  ): Promise<CardGamePublishRulesResult> {
-    const room = this.rooms.get(code);
-    if (!room || room.gameType !== GameType.CARD_GAME) return { ok: false, error: 'INVALID_ROOM' };
-    if (room.roomHostId !== requesterId) return { ok: false, error: 'NOT_HOST' };
-    if (room.status !== RoomStatus.LOBBY) return { ok: false, error: 'NOT_LOBBY' };
-    return this.cardRulePresetRepository.publish(config, presetForConfig(room.cardGameConfig));
-  }
-
-  async cardGameImportRules(
-    code: string,
-    requesterId: string,
-    shareCode: string,
-  ): Promise<CardGameImportRulesResult> {
-    const room = this.rooms.get(code);
-    if (!room || room.gameType !== GameType.CARD_GAME) return { ok: false, error: 'INVALID_ROOM' };
-    if (room.roomHostId !== requesterId) return { ok: false, error: 'NOT_HOST' };
-    if (room.status !== RoomStatus.LOBBY) return { ok: false, error: 'NOT_LOBBY' };
-    const imported = await this.cardRulePresetRepository.importByCode(
-      shareCode,
-      presetForConfig(room.cardGameConfig),
-    );
-    if (!imported.ok || !imported.config) return imported;
-    room.cardGameConfig = imported.config;
-    room.cardGameAllowedOptions = presetForConfig(room.cardGameConfig).allowed;
-    this.rooms.set(code, room);
-    return imported;
   }
 
   getPlayerRole(code: string, socketId: string): Role | undefined {
