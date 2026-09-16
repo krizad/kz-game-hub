@@ -11,6 +11,7 @@ import {
   PLAYER_COLORS,
   ANIMAL_EMOJIS,
   CoupActionType,
+  CoupRole,
   TicTacToeMode,
   BOT_SOCKET_ID,
   BOT_PLAYER_NAME,
@@ -1334,9 +1335,9 @@ export class GamesService {
     return this.withRoom(code, (room) => this.coupService.handleChallengeTimeoutForRoom(room));
   }
 
-  coupBlock(code: string, clientId: string): RoomState | null {
+  coupBlock(code: string, clientId: string, role?: CoupRole): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.coupService.block(room, clientId));
+    return this.withRoom(code, (room) => this.coupService.block(room, clientId, role));
   }
 
   coupBlockTimeout(code: string): RoomState | null {

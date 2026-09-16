@@ -231,7 +231,25 @@ export function CoupView() {
               isSteal &&
               state.pendingAction!.targetId === socketId &&
               (state.influences[socketId]?.count ?? 0) > 0;
-            if (canBlockForeignAid || canBlockAssassinate || canBlockSteal) {
+            if (canBlockSteal) {
+              return (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => coupBlock(CoupRole.CAPTAIN)}
+                    className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
+                  >
+                    Captain
+                  </button>
+                  <button
+                    onClick={() => coupBlock(CoupRole.AMBASSADOR)}
+                    className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
+                  >
+                    Ambassador
+                  </button>
+                </div>
+              );
+            }
+            if (canBlockForeignAid || canBlockAssassinate) {
               return (
                 <button
                   onClick={() => coupBlock()}

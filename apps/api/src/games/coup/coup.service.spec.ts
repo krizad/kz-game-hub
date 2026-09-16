@@ -605,6 +605,27 @@ describe('CoupService (05 steal & exchange)', () => {
     expect(room.coupState!.pendingBlock).toBeNull();
   });
 
+  it('lets the target choose which role claims the block', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.DUKE]);
+    service.declareAction(room, 's1', CoupActionType.STEAL, 's2');
+    service.handleChallengeTimeoutForRoom(room);
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+
+    expect(service.block(room, 's2', CoupRole.AMBASSADOR)).not.toBeNull();
+    expect(room.coupState!.pendingBlock?.claimedRole).toBe(CoupRole.AMBASSADOR);
+  });
+
+  it('rejects a block role the action cannot be blocked with', () => {
+    const room = startRoom();
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.DUKE]);
+    service.declareAction(room, 's1', CoupActionType.STEAL, 's2');
+    service.handleChallengeTimeoutForRoom(room);
+
+    expect(service.block(room, 's2', CoupRole.DUKE)).toBeNull();
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+  });
+
   it('Foreign Aid pendingAction carries no claimedRole key', () => {
     const room = startRoom();
     service.declareAction(room, 's1', CoupActionType.FOREIGN_AID);
