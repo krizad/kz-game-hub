@@ -30,10 +30,15 @@ describe('TicTacToeAI', () => {
   });
 
   describe('getRandomMove (Easy Mode)', () => {
-    it('returns an empty cell index', () => {
-      const board: TicTacToeCell[] = ['X', 'O', 'X', 'O', null, 'X', 'O', 'X', 'O'];
-      const move = getRandomMove(board);
-      expect(move).toBe(4);
+    it('only ever picks an empty cell and can pick either of them', () => {
+      const board: TicTacToeCell[] = ['X', 'O', 'X', 'O', null, 'X', 'O', 'X', null];
+      const picked = new Set<number>();
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const move = getRandomMove(board);
+        expect([4, 8]).toContain(move);
+        picked.add(move);
+      }
+      expect(picked.size).toBe(2);
     });
 
     it('returns -1 when board is full', () => {

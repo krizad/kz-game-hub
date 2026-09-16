@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from './helpers';
 
 test.describe('Tic-Tac-Toe Unified Modes', () => {
-  test('host can switch modes in lobby dynamically and seats are preserved', async ({
+  test('host can switch modes in the lobby and each mode renders its lobby', async ({
     browser,
   }) => {
     const p1Ctx = await browser.newContext();
@@ -54,24 +54,38 @@ test.describe('Tic-Tac-Toe Unified Modes', () => {
     await expect(changeModeBtn).toBeVisible({ timeout: 5000 });
     await changeModeBtn.click();
 
-    // Verify returned to lobby
+    // Verify returned to lobby: returning to the lobby clears the seats, so the
+    // classic lobby offers the X seat again
     await expect(p1.locator('[data-testid="ttt-mode-classic"]')).toBeVisible({ timeout: 5000 });
+    await expect(p1.locator('[data-testid="ttt-mode-classic"]')).toHaveClass(/bg-yellow-300/);
+    await expect(p1.locator('[data-testid="ttt-join-x"]')).toBeVisible({ timeout: 5000 });
 
     // Host switches mode to Gobbler
     await p1.locator('[data-testid="ttt-mode-gobbler"]').click();
     await p1.waitForTimeout(1500);
 
-    // Verify Gobbler elements appear and seated players are preserved
-    await expect(p1.getByText('HostAlice').first()).toBeVisible({ timeout: 5000 });
-    await expect(p1.getByText('GuestBob').first()).toBeVisible({ timeout: 5000 });
+    // The lobby reflects the Gobbler mode and both players stay in the room
+    await expect(p1.locator('[data-testid="ttt-mode-gobbler"]')).toHaveClass(/bg-cyan-300/, {
+      timeout: 5000,
+    });
+    await expect(
+      p1.getByText('Larger pieces can gobble smaller ones!', { exact: false }),
+    ).toBeVisible();
+    await expect(p1.locator('[data-testid="ttt-join-x"]')).toBeHidden();
+    await expect(p1.getByText('HostAlice').first()).toBeVisible();
+    await expect(p1.getByText('GuestBob').first()).toBeVisible();
 
     // Host switches mode to Ultimate
     await p1.locator('[data-testid="ttt-mode-ultimate"]').click();
     await p1.waitForTimeout(1500);
 
-    // Verify Ultimate elements appear and seated players are preserved
-    await expect(p1.getByText('HostAlice').first()).toBeVisible({ timeout: 5000 });
-    await expect(p1.getByText('GuestBob').first()).toBeVisible({ timeout: 5000 });
+    // The lobby reflects the Ultimate mode with its own seat pickers
+    await expect(p1.locator('[data-testid="ttt-mode-ultimate"]')).toHaveClass(/bg-pink-300/, {
+      timeout: 5000,
+    });
+    await expect(p1.locator('[data-testid="uttt-join-x"]')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('HostAlice').first()).toBeVisible();
+    await expect(p1.getByText('GuestBob').first()).toBeVisible();
 
     await p1Ctx.close();
     await p2Ctx.close();
