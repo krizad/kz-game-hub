@@ -348,7 +348,21 @@ export class MusicTriviaService {
       state.phase = 'GET_READY';
       state.readyPlayerIds = [];
 
-      return { room };
+      const result: MusicTriviaActionResult = { room };
+      if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
+        const trackAnswer = this.getTrackAnswer(room, 1);
+        const hostPlayer = room.players.find((p) => p.socketId === room.roomHostId);
+        if (hostPlayer && trackAnswer) {
+          result.hostAnswerTo = {
+            socketId: hostPlayer.socketId,
+            title: trackAnswer.title,
+            artist: trackAnswer.artist,
+            artworkUrl: firstTrack.artworkUrl,
+            trackViewUrl: trackAnswer.trackViewUrl,
+          };
+        }
+      }
+      return result;
     } catch (error) {
       this.logger.error('configureSource failed', error as Error);
       state.phase = 'SETUP'; // Reset back on error
