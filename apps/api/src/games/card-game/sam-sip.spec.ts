@@ -38,6 +38,31 @@ const config = SAM_SIP_DEFAULT_CONFIG;
 const singleCardConfig = { ...config, deal: { ...config.deal, cardsPerPlayer: 1 } };
 
 describe('SamSipRuntime', () => {
+  it('rotates the starter across rounds per the deal policy', () => {
+    const popOrder = [
+      card('p1-a', '3', 'CLUBS'),
+      card('p2-a', '5', 'HEARTS'),
+      card('p1-b', '6', 'DIAMONDS'),
+      card('p2-b', '7', 'SPADES'),
+      card('p1-c', '8', 'CLUBS'),
+      card('p2-c', '9', 'DIAMONDS'),
+      card('p1-d', 'K', 'CLUBS'),
+      card('p2-d', 'Q', 'DIAMONDS'),
+      card('p1-e', 'J', 'SPADES'),
+      card('p2-e', '10', 'HEARTS'),
+      card('flip', '2', 'SPADES'),
+      ...pad(3),
+    ];
+    const target = room();
+    const runtime = runtimeFor(popOrder);
+
+    const first = runtime.startRound(target, config, ['p1', 'p2']);
+    expect(first?.cardGameState?.dealerId).toBe('p1');
+
+    const second = runtime.startRound(target, config, ['p1', 'p2']);
+    expect(second?.cardGameState?.dealerId).toBe('p2');
+  });
+
   it('deals five cards each, flips a discard, and gives the first seat the turn', () => {
     const popOrder = [
       card('p1-a', '3', 'CLUBS'),

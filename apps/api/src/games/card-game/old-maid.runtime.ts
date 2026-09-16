@@ -8,7 +8,13 @@ import {
   RoomState,
   RoomStatus,
 } from '@repo/types';
-import { PileStacks, createDeck, shuffleDeck, toPublicState } from './card-engine.service';
+import {
+  PileStacks,
+  createDeck,
+  resolveStarter,
+  shuffleDeck,
+  toPublicState,
+} from './card-engine.service';
 import { PrivateStateService } from '../private-state.service';
 
 const PRIVATE_KEY = 'cardGame';
@@ -49,12 +55,26 @@ export class OldMaidRuntime {
       this.setHand(room.code, id, hands[id]);
     }
 
-    const activePlayerId = playerIds.find((id) => hands[id].length > 0) ?? playerIds[0];
+    const starterId =
+      resolveStarter(config.deal.starterPolicy, {
+        playerOrder: playerIds,
+        previousStarterId: room.cardGameState?.dealerId,
+        previousWinnerId: room.cardGameState?.result?.winnerIds[0],
+      }) ?? playerIds[0];
+    const startIndex = Math.max(0, playerIds.indexOf(starterId));
+    let activePlayerId = playerIds[0];
+    for (let offset = 0; offset < playerIds.length; offset += 1) {
+      const candidate = playerIds[(startIndex + offset) % playerIds.length];
+      if (hands[candidate].length > 0) {
+        activePlayerId = candidate;
+        break;
+      }
+    }
     room.cardGameState = toPublicState(
       {
         preset: 'OLD_MAID',
         phase: 'PLAYER_TURNS',
-        dealerId: playerIds[0],
+        dealerId: starterId,
         activePlayerId,
         playerOrder: playerIds,
         hands,

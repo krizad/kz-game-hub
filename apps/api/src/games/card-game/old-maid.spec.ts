@@ -38,6 +38,17 @@ const FOUR_CARDS = [
 ];
 
 describe('OldMaidRuntime', () => {
+  it('rotates the starter across rounds per the deal policy', () => {
+    const target = room();
+    const runtime = runtimeFor([...FOUR_CARDS]);
+
+    const first = runtime.startRound(target, OLD_MAID_DEFAULT_CONFIG, ['p1', 'p2']);
+    expect(first?.cardGameState?.dealerId).toBe('p1');
+
+    const second = runtime.startRound(target, OLD_MAID_DEFAULT_CONFIG, ['p1', 'p2']);
+    expect(second?.cardGameState?.dealerId).toBe('p2');
+  });
+
   it('deals every card round-robin and lets the first holder lead', () => {
     const target = room();
     const runtime = runtimeFor(FOUR_CARDS);

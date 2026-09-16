@@ -10,7 +10,14 @@ import {
   RoomState,
   RoomStatus,
 } from '@repo/types';
-import { PileStacks, createDeck, dealRound, shuffleDeck, toPublicState } from './card-engine.service';
+import {
+  PileStacks,
+  createDeck,
+  dealRound,
+  resolveStarter,
+  shuffleDeck,
+  toPublicState,
+} from './card-engine.service';
 import { PrivateStateService } from '../private-state.service';
 import { SAM_SIP_CARD_VALUES } from './presets/sam-sip.preset';
 
@@ -55,7 +62,12 @@ export class SamSipRuntime {
       this.setHand(room.code, id, hands[id]);
     }
 
-    const starterId = playerIds[0];
+    const starterId =
+      resolveStarter(config.deal.starterPolicy, {
+        playerOrder: playerIds,
+        previousStarterId: room.cardGameState?.dealerId,
+        previousWinnerId: room.cardGameState?.result?.winnerIds[0],
+      }) ?? playerIds[0];
     room.cardGameState = toPublicState(
       {
         preset: 'SAM_SIP',
