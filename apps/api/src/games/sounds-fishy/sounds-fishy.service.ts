@@ -66,7 +66,10 @@ export class SoundsFishyService {
     room: RoomState,
     requesterId: string,
   ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
-    const connectedPlayers = room.players.filter((p) => p.connected !== false);
+    if (room.status !== RoomStatus.LOBBY) return null;
+    const connectedPlayers = room.players.filter(
+      (p) => !p.isViewer && p.connected !== false,
+    );
     if (connectedPlayers.length < 3) return null; // Need at least 3 players
     if (room.roomHostId !== requesterId) return null;
 
@@ -111,6 +114,10 @@ export class SoundsFishyService {
     }
 
     if (!questionRecord) return null;
+
+    // A new round starts clean — drop stale answers and typing drafts.
+    this.privateState.takeRoomData(room.code, SF_MY_ANSWER);
+    for (const p of room.players) this.privateState.delete(room.code, p.socketId, SF_TYPING_TEXTS);
 
     // Assign roles randomly among connected players
     // 1 Picker, 1 Blue Fish, rest are Red Herrings
@@ -191,11 +198,15 @@ export class SoundsFishyService {
       return false;
     const state = room.soundsFishyState;
 
-    const requiredAnswersCount = room.players.filter(
+    const requiredAnswerers = room.players.filter(
       (p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false,
-    ).length;
-    const answeredCount = this.privateState.getRoomData(room.code, SF_MY_ANSWER).size;
-    if (answeredCount >= requiredAnswersCount && requiredAnswersCount > 0) {
+    );
+    const answers = this.privateState.getRoomData<{ playerId: string; answer: string }>(
+      room.code,
+      SF_MY_ANSWER,
+    );
+    const answeredCount = requiredAnswerers.filter((p) => answers.has(p.socketId)).length;
+    if (answeredCount >= requiredAnswerers.length && requiredAnswerers.length > 0) {
       state.currentPhase = SoundsFishyPhase.THE_PITCH;
       return true;
     }
@@ -418,6 +429,22 @@ export class SoundsFishyService {
     state.typingPlayerIds = state.typingPlayerIds.map((id) =>
       id === oldSocketId ? newSocketId : id,
     );
+  }
+
+  handlePlayerDisconnect(room: RoomState, socketId: string): boolean {
+    const state = room.soundsFishyState;
+    if (!state) return false;
+    if (state.pickerId !== socketId) return this.checkAnswerResolution(room);
+
+    const replacement = room.players.find(
+      (p) => !p.isViewer && p.connected !== false && p.socketId !== socketId,
+    );
+    if (!replacement) return false;
+
+    state.pickerId = replacement.socketId;
+    // The replacement must not hold the true answer privately anymore.
+    this.privateState.delete(room.code, replacement.socketId, SF_TRUE_ANSWER);
+    return true;
   }
 
   private applyTyping(room: RoomState, playerId: string, text: string): void {

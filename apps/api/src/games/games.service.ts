@@ -490,7 +490,7 @@ export class GamesService {
       this.whoKnowService.checkVoteResolution(room);
     }
     if (room.gameType === GameType.SOUNDS_FISHY && room.status === RoomStatus.QUESTIONING) {
-      this.soundsFishyService.checkAnswerResolution(room);
+      this.soundsFishyService.handlePlayerDisconnect(room, socketId);
     }
     if (room.gameType === GameType.DETECTIVE_CLUB && room.detectiveClubState) {
       this.detectiveClubService.handlePlayerDisconnect(room, socketId);

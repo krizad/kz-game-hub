@@ -88,6 +88,7 @@ describe('GamesService', () => {
       assignRoles: jest.fn(),
       typeAnswer: jest.fn(),
       checkAnswerResolution: jest.fn(),
+      handlePlayerDisconnect: jest.fn(),
       submitAnswer: jest.fn(),
       revealPlayer: jest.fn(),
       eliminatePlayer: jest.fn(),
@@ -908,7 +909,7 @@ describe('GamesService', () => {
       service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
 
       service.leaveRoom('p1', false);
-      expect(soundsFishyService.checkAnswerResolution).toHaveBeenCalled();
+      expect(soundsFishyService.handlePlayerDisconnect).toHaveBeenCalledWith(room, 'p1');
     });
   });
 
