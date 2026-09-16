@@ -91,12 +91,22 @@ test.describe('Music Trivia Game Flow', () => {
   }
 
   test('music trivia lobby keeps Start disabled until the source is configured', async ({
-    page,
+    browser,
   }) => {
-    await createRoom(page, 'Solo', 'Music Trivia');
+    const hostCtx = await browser.newContext();
+    const guestCtx = await browser.newContext();
+    const host = await hostCtx.newPage();
+    const guest = await guestCtx.newPage();
 
-    const startBtn = page.getByRole('button', { name: /Start Game|เริ่มเกม/i });
+    const roomCode = await createRoom(host, 'Solo', 'Music Trivia');
+    const origin = await getOrigin(host);
+    await joinRoom(guest, origin, roomCode, 'Guest');
+
+    const startBtn = host.getByRole('button', { name: /Start Game|เริ่มเกม/i });
     await expect(startBtn).toBeVisible({ timeout: 10000 });
     await expect(startBtn).toBeDisabled();
+
+    await hostCtx.close();
+    await guestCtx.close();
   });
 });

@@ -39,14 +39,29 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
     await p2Ctx.close();
   });
 
-  test('can join side X and see inventory', async ({ page }) => {
-    await createRoom(page, 'Solo', 'Gobbler Tic Tac Toe');
-    await page.locator('button:has-text("Join X")').click();
-    await page.waitForTimeout(500);
-    await expect(page.locator('body')).not.toContainText('Connecting');
-    await expect(page.locator('[data-testid^="gobbler-inventory-X-"]').first()).toBeVisible({
+  test('both players joining sides auto-starts and shows inventories', async ({ browser }) => {
+    const p1Ctx = await browser.newContext();
+    const p2Ctx = await browser.newContext();
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+
+    const roomCode = await createRoom(p1, 'GX', 'Gobbler Tic Tac Toe');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'GO');
+
+    await p1.locator('button:has-text("Join X")').click();
+    await p2.locator('button:has-text("Join O")').click();
+    await p1.waitForTimeout(1500);
+
+    await expect(p1.locator('[data-testid^="gobbler-inventory-X-"]').first()).toBeVisible({
       timeout: 10000,
     });
+    await expect(p2.locator('[data-testid^="gobbler-inventory-O-"]').first()).toBeVisible({
+      timeout: 10000,
+    });
+
+    await p1Ctx.close();
+    await p2Ctx.close();
   });
 
   test('two players can play moves and X wins a row', async ({ browser }) => {
