@@ -12,7 +12,7 @@ import { getRandomMove, getBestMove } from './tic-tac-toe-ai';
 @Injectable()
 export class TicTacToeService {
   private isMember(room: RoomState, clientId: string): boolean {
-    return clientId === BOT_SOCKET_ID || room.players.some((p) => p.socketId === clientId);
+    return room.players.some((p) => p.socketId === clientId);
   }
 
   private isClassicTTTRoom(room: RoomState): boolean {

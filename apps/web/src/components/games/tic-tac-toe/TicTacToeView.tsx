@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore } from '@/store/useGameStore';
-import { RoomStatus } from '@repo/types';
+import { BOT_SOCKET_ID, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
@@ -19,16 +19,16 @@ export function TicTacToeView() {
 
   const isVsBot = !!room.config?.ticTacToeVsBot;
   const botSide =
-    ttt.playerXId === 'bot-player' ? 'X' : ttt.playerOId === 'bot-player' ? 'O' : null;
+    ttt.playerXId === BOT_SOCKET_ID ? 'X' : ttt.playerOId === BOT_SOCKET_ID ? 'O' : null;
   const isBotTurn = room.status === RoomStatus.PLAYING && botSide === ttt.currentTurn;
 
   const playerXName =
-    ttt.playerXId === 'bot-player'
+    ttt.playerXId === BOT_SOCKET_ID
       ? `${t('gameTicTacToe.bot.botBadge')} (${room.config?.ticTacToeBotDifficulty === 'EASY' ? 'Easy' : 'God'})`
       : room.players.find((p) => p.socketId === ttt.playerXId)?.name;
 
   const playerOName =
-    ttt.playerOId === 'bot-player'
+    ttt.playerOId === BOT_SOCKET_ID
       ? `${t('gameTicTacToe.bot.botBadge')} (${room.config?.ticTacToeBotDifficulty === 'EASY' ? 'Easy' : 'God'})`
       : room.players.find((p) => p.socketId === ttt.playerOId)?.name;
 
@@ -56,9 +56,7 @@ export function TicTacToeView() {
                   disabled={actionLoading}
                   className="bg-white border-2 border-black hover:bg-gray-200 px-3 py-2 font-black text-black text-sm disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
                 >
-                  {isVsBot
-                    ? t('gameTicTacToe.joinAs', { side: 'X' })
-                    : t('gameTicTacToe.joinAs', { side: 'X' })}
+                  {t('gameTicTacToe.joinAs', { side: 'X' })}
                 </button>
               )}
             </div>
@@ -78,9 +76,7 @@ export function TicTacToeView() {
                   disabled={actionLoading}
                   className="bg-white border-2 border-black hover:bg-gray-200 px-3 py-2 font-black text-black text-sm disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
                 >
-                  {isVsBot
-                    ? t('gameTicTacToe.joinAs', { side: 'O' })
-                    : t('gameTicTacToe.joinAs', { side: 'O' })}
+                  {t('gameTicTacToe.joinAs', { side: 'O' })}
                 </button>
               )}
             </div>
