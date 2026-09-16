@@ -45,6 +45,7 @@ test.describe('Coup Game Flow', () => {
             if (
               await page
                 .getByText(/Your Turn|ตาของคุณ/i)
+                .first()
                 .isVisible()
                 .catch(() => false)
             ) {
