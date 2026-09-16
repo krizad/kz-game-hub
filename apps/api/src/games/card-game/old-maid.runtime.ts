@@ -147,7 +147,7 @@ export class OldMaidRuntime {
         chips[loserId] -= stake;
       }
     }
-    room.cardGameChips = chips;
+    room.cardGameChips = { ...room.cardGameChips, ...chips };
 
     const revealedHands: Record<string, PlayingCard[]> = {};
     for (const id of state.playerOrder) revealedHands[id] = this.getHand(room.code, id) ?? [];

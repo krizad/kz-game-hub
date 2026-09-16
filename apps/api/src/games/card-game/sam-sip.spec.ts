@@ -221,6 +221,22 @@ describe('SamSipRuntime', () => {
     expect(state.result?.placements).toEqual(['p1', 'p2']);
   });
 
+  it('keeps balances of seats that were not dealt into the round', () => {
+    const target = room();
+    target.cardGameChips = { p1: 100, p2: 100, ghost: 42 };
+    const runtime = runtimeFor([
+      card('p1-a', '4', 'CLUBS'),
+      card('p2-a', 'K', 'HEARTS'),
+      card('flip', '2', 'SPADES'),
+      card('stock-1', '6', 'DIAMONDS'),
+    ]);
+
+    runtime.startRound(target, singleCardConfig, ['p1', 'p2']);
+    runtime.handleAction(target, 'p1', { type: 'DRAW' }, singleCardConfig);
+
+    expect(target.cardGameChips).toEqual({ p1: 101, p2: 99, ghost: 42 });
+  });
+
   it('ends the round without a transfer when the stock runs out in a tie', () => {
     const popOrder = [
       card('p1-a', 'K', 'CLUBS'),

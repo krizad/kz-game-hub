@@ -225,4 +225,15 @@ describe('SlaveRuntime', () => {
     expect(state.result!.revealedHands.p1).toHaveLength(0);
     expect(state.result!.revealedHands.p2).toHaveLength(1);
   });
+
+  it('keeps balances of seats that were not dealt into the round', () => {
+    const target = room();
+    target.cardGameChips = { p1: 100, p2: 100, ghost: 42 };
+    const runtime = runtimeFor([card('3-CLUBS', '3', 'CLUBS'), card('5-HEARTS', '5', 'HEARTS')]);
+    runtime.startRound(target, singleCardConfig, ['p1', 'p2']);
+
+    runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] }, singleCardConfig);
+
+    expect(target.cardGameChips).toEqual({ p1: 101, p2: 99, ghost: 42 });
+  });
 });

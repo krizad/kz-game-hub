@@ -199,7 +199,7 @@ export class SlaveRuntime {
       chips[id] = (chips[id] ?? config.scoring.startingChips) - stake;
       chips[winnerId] = (chips[winnerId] ?? config.scoring.startingChips) + stake;
     }
-    room.cardGameChips = chips;
+    room.cardGameChips = { ...room.cardGameChips, ...chips };
     const revealedHands: Record<string, PlayingCard[]> = {};
     for (const id of state.playerOrder) revealedHands[id] = this.getHand(room.code, id) ?? [];
     room.cardGameState = toPublicState(
