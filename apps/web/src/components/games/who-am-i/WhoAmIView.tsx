@@ -9,7 +9,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function WhoAmIView() {
-  const { room, socketId, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
+  const { room, socketId, privateState, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
     useGameStore();
   const { t } = useTranslate();
 
@@ -20,6 +20,7 @@ export function WhoAmIView() {
 
   if (!room || !room.whoAmIState) return null;
   const gameState = room.whoAmIState as WhoAmIGameState;
+  const visibleWords = (privateState?.waiVisibleWords || {}) as Record<string, string>;
 
   const isSpectator = !room.players.find((p) => p.socketId === socketId);
   const isMyTurn =
@@ -222,9 +223,9 @@ export function WhoAmIView() {
                   {room.players.map((player) => {
                     const isActive = player.socketId === gameState.currentTurn;
                     const isMe = player.socketId === socketId;
-                    const word = (gameState.revealedWords || ({} as Record<string, string>))[
-                      player.socketId
-                    ];
+                    const word =
+                      visibleWords[player.socketId] ??
+                      (gameState.revealedWords || ({} as Record<string, string>))[player.socketId];
                     const isEliminated = gameState.eliminatedPlayers?.includes(player.socketId);
 
                     return (

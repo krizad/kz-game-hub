@@ -136,6 +136,7 @@ export class WhoAmIService {
     for (const p of gamePlayers) {
       this.setMyWord(room, p.socketId, trimmedWords[p.socketId]);
     }
+    this.syncVisibleWords(room);
 
     const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
     room.whoAmIState = gameState;
@@ -257,6 +258,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     shuffledPlayers.forEach((p, idx) => {
       this.setMyWord(room, p.socketId, words[idx]);
     });
+    this.syncVisibleWords(room);
 
     const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
     room.whoAmIState = gameState;
@@ -286,6 +288,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       const w = words[idx];
       this.setMyWord(room, p.socketId, w.emoji ? `${w.emoji} ${w.word}` : w.word);
     });
+    this.syncVisibleWords(room);
 
     const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
     room.whoAmIState = gameState;
@@ -395,6 +398,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     playerIds.forEach((id, i) => {
       this.setMyWord(room, id, shuffled[i]);
     });
+    this.syncVisibleWords(room);
 
     gameState.phase = 'ASKING';
     gameState.wordSubmittedIds = [];
