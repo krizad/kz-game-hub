@@ -89,4 +89,14 @@ test.describe('Music Trivia Game Flow', () => {
       await p2Ctx.close();
     });
   }
+
+  test('music trivia lobby keeps Start disabled until the source is configured', async ({
+    page,
+  }) => {
+    await createRoom(page, 'Solo', 'Music Trivia');
+
+    const startBtn = page.getByRole('button', { name: /Start Game|เริ่มเกม/i });
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    await expect(startBtn).toBeDisabled();
+  });
 });

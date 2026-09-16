@@ -45,7 +45,7 @@ test.describe('Detective Club Gameplay', () => {
 
     // Informer should submit a word if visible
     for (const page of [p1, p2, p3]) {
-      const wordInput = page.locator('input').filter({ hasText: '' }).first();
+      const wordInput = page.locator('input#wordInput');
       if (await wordInput.isVisible({ timeout: 2000 }).catch(() => false)) {
         await wordInput.fill('Mystery');
         await page
@@ -98,9 +98,9 @@ test.describe('Detective Club Gameplay', () => {
     }
 
     // Wait for Round Results
-    await expect(p1.locator('text=Round Results').or(p1.locator('text=Scoreboard')))
-      .toBeVisible({ timeout: 10000 })
-      .catch(() => {});
+    await expect(p1.locator('text=Round Results').or(p1.locator('text=Scoreboard'))).toBeVisible({
+      timeout: 10000,
+    });
 
     await p1.waitForTimeout(1000);
     await Promise.all(contexts.map((c) => c.close()));
