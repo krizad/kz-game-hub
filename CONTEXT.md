@@ -35,7 +35,13 @@ This document defines the shared vocabulary and boundaries for the configurable 
 | Match | One continuous play session of a room. It starts when the host starts the game from the lobby and ends when the room returns to the lobby or is deleted. Virtual chip balances persist across rounds within a match and reset only when a match starts. |
 | Round cancellation | The server-side outcome when a seated player is removed (explicit leave or reconnect-grace expiry) during a live round: the round ends without a result, chip balances are preserved, and the room returns to the lobby. |
 | Reconnect grace | The bounded window after a disconnect during which the player keeps their seat, private state, and pending turn; the round waits for them. On expiry the player is removed and a live round is cancelled. |
-| Dealer | The player assigned the deal/compare role for a round. Dealer selection is a configurable policy (ADR 0001). Until the engine lands, the first dealer of a match is the first seated player and later dealers rotate in seat order. |
+| Dealer | The player assigned the deal/compare role for a round (for Slave and Old Maid, the opening leader). Dealer selection follows the preset's starter policy via `resolveStarter`; `ROTATE` moves to the next seat each round, and the first dealer of a match is the first seated player. |
+| Natural | A dealt hand worth 8 or 9 (mod 10). A dealer natural resolves the round immediately, before any third-card draw. |
+| Live typing | In-progress answer text. The server relays it privately to every member except the picker, and it is never placed in public room state. |
+| Allowed options | The allow-listed policy variants of the active preset, projected to clients so Advanced Rules controls offer only selectable values. |
+| Natural | A dealt hand worth 8 or 9 (mod 10). A dealer natural resolves the round immediately, before any third-card draw. |
+| Live typing | In-progress answer text. The server relays it privately to every member except the picker, and it is never placed in public room state. |
+| Allowed options | The allow-listed policy variants of the active preset, projected to clients so Advanced Rules controls offer only selectable values. |
 | Forfeit prompt | Informational, host-configured end-of-round text. It has no effect outside the application and never requires proof of an offline action. |
 
 ## MVP preset contracts
