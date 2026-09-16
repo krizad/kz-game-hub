@@ -423,7 +423,7 @@ export class CoupService {
     }
   }
 
-  block(room: RoomState, blockerId: string): RoomState | null {
+  block(room: RoomState, blockerId: string, role?: CoupRole): RoomState | null {
     if (room.gameType !== GameType.COUP || !room.coupState) return null;
     const state = room.coupState;
     if (state.phase !== CoupPhase.AWAITING_BLOCK || !state.pendingAction) return null;
@@ -438,7 +438,8 @@ export class CoupService {
     if (pending.type === CoupActionType.ASSASSINATE && blockerId !== pending.targetId) return null;
     if (pending.type === CoupActionType.STEAL && blockerId !== pending.targetId) return null;
 
-    const claimedRole = allowed[0];
+    if (role && !allowed.includes(role)) return null;
+    const claimedRole = role ?? allowed[0];
 
     this.roomTimerService.cancel(room.code, 'coup-block');
     state.blockWindowDeadline = null;

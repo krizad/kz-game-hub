@@ -17,6 +17,7 @@ import {
   WordCategory,
   SaboteurTool,
   CoupActionType,
+  CoupRole,
   CardGameAction,
   CardGameConfig,
   CardGameImportRulesResult,
@@ -119,7 +120,7 @@ interface GameState {
   saboteurReset: () => void;
   coupDeclare: (type: CoupActionType, targetId?: string) => void;
   coupChallenge: () => void;
-  coupBlock: () => void;
+    coupBlock: (role?: CoupRole) => void;
   coupExchangeSelect: (keepIndices: number[]) => void;
   cardGameAction: (action: CardGameAction) => void;
   cardGamePublishRules: (config: CardGameConfig) => void;
@@ -633,8 +634,8 @@ export const useGameStore = create<GameState>((set, get) => {
       emitGameAction(SOCKET_EVENTS.COUP_CHALLENGE);
     },
 
-    coupBlock: () => {
-      emitGameAction(SOCKET_EVENTS.COUP_BLOCK);
+    coupBlock: (role?: CoupRole) => {
+      emitGameAction(SOCKET_EVENTS.COUP_BLOCK, { payload: () => (role ? { role } : {}) });
     },
 
     coupExchangeSelect: (keepIndices: number[]) => {

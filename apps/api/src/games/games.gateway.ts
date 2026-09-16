@@ -25,6 +25,7 @@ import {
   RoomConfig,
   RPSChoice,
   CoupActionType,
+  CoupRole,
   CardGameAction,
   CardGameConfig,
   CardGameImportRulesRequest,
@@ -974,8 +975,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   @SubscribeMessage(SOCKET_EVENTS.COUP_BLOCK)
-  handleCoupBlock(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
-    const room = this.gamesService.coupBlock(data.code, client.id);
+  handleCoupBlock(
+    @MessageBody() data: { code: string; role?: CoupRole },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.coupBlock(data.code, client.id, data.role);
     if (room) {
       this.broadcastRoomState(room);
     } else {
@@ -1555,8 +1559,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         (data.targetId === undefined || typeof data.targetId === 'string')
       );
     }
-    if (event === SOCKET_EVENTS.COUP_CHALLENGE || event === SOCKET_EVENTS.COUP_BLOCK) {
+    if (event === SOCKET_EVENTS.COUP_CHALLENGE) {
       return true;
+    }
+    if (event === SOCKET_EVENTS.COUP_BLOCK) {
+      return data.role === undefined || typeof data.role === 'string';
     }
     if (event === SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
       return (
