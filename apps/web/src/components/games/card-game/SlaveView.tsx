@@ -5,6 +5,7 @@ import { CardGamePrivateState, PlayingCard } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from './CardHand';
+import { CardGameLog } from './CardGameLog';
 
 export function SlaveView() {
   const { room, socketId, privateState, cardGameAction, actionLoading } = useGameStore();
@@ -46,6 +47,7 @@ export function SlaveView() {
 
   return (
     <section className="flex-1 min-h-[300px] bg-[#FDE68A] border-4 border-black p-4 shadow-[4px_4px_0_0_#000] space-y-4">
+      <CardGameLog />
       <div className="border-b-4 border-black pb-3">
         <h2 className="text-xl font-black">{t('gameSlave.title')}</h2>
         <p className="text-sm font-bold">{t('gameSlave.leaderLine', { name: leaderName })}</p>

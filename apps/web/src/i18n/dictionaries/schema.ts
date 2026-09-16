@@ -539,6 +539,18 @@ export interface Dictionary {
     waiting: string;
     loserLine: string;
   };
+  cardGameLog: {
+    title: string;
+    kinds: {
+      DREW: string;
+      STOOD: string;
+      PLAYED: string;
+      PASSED: string;
+      CLAIMED: string;
+      DISCARDED: string;
+      TOOK: string;
+    };
+  };
   gamePokDeng: {
     title: string;
     dealerLine: string;

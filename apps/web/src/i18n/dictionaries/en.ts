@@ -593,6 +593,18 @@ export const en: Dictionary = {
     waiting: 'Waiting for other players…',
     loserLine: 'Loser: {name}',
   },
+  cardGameLog: {
+    title: 'Action log',
+    kinds: {
+      DREW: '{actor} drew a card',
+      STOOD: '{actor} stood',
+      PLAYED: '{actor} played {count} card(s)',
+      PASSED: '{actor} passed',
+      CLAIMED: '{actor} claimed the discard',
+      DISCARDED: '{actor} discarded',
+      TOOK: '{actor} took a card',
+    },
+  },
   gamePokDeng: {
     title: '🃏 Pok Deng',
     dealerLine: 'Dealer: {name} · starting chips 100',

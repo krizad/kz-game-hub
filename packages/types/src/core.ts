@@ -11,7 +11,7 @@ import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
 import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
-import { CardGameConfig, CardGamePreset, CardGamePublicState } from './card-game';
+import { CardGameConfig, CardGameLogEntry, CardGamePreset, CardGamePublicState } from './card-game';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -237,6 +237,8 @@ export interface RoomState {
   cardGameConfig?: CardGameConfig;
   /** Match-scoped virtual chip balances, keyed by socket id (ADR 0004). */
   cardGameChips?: Record<string, number>;
+  /** Public-safe card-game action log entries (no hidden card identities, ADR 0002). */
+  cardGameLog?: CardGameLogEntry[];
 }
 
 export interface AvailableRoom {

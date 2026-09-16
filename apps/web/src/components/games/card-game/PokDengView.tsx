@@ -4,6 +4,7 @@ import { CardGamePrivateState } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from './CardHand';
+import { CardGameLog } from './CardGameLog';
 import { CardGameActionPanel } from './CardGameActionPanel';
 
 export function PokDengView() {
@@ -57,6 +58,7 @@ export function PokDengView() {
         <CardHand cards={privateCardState?.hand ?? []} />
       </div>
 
+      <CardGameLog />
       <CardGameActionPanel />
     </section>
   );

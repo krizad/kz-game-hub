@@ -4,6 +4,7 @@ import { CardGamePrivateState, PlayingCard } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from './CardHand';
+import { CardGameLog } from './CardGameLog';
 
 const CARD_VALUES: Record<PlayingCard['rank'], number> = {
   A: 1,
@@ -48,6 +49,7 @@ export function SamSipView() {
 
   return (
     <section className="flex-1 min-h-[300px] bg-[#FDE68A] border-4 border-black p-4 shadow-[4px_4px_0_0_#000] space-y-4">
+      <CardGameLog />
       <div className="border-b-4 border-black pb-3">
         <h2 className="text-xl font-black">{t('gameSamSip.title')}</h2>
         <span className="inline-block mt-1 px-2 py-0.5 border-2 border-black bg-white text-xs font-black uppercase">

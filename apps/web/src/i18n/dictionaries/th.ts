@@ -581,6 +581,18 @@ export const th: Dictionary = {
     waiting: 'รอผู้เล่นอื่น…',
     loserLine: 'ผู้แพ้: {name}',
   },
+  cardGameLog: {
+    title: 'บันทึกเกม',
+    kinds: {
+      DREW: '{actor} จั่วไพ่',
+      STOOD: '{actor} อยู่',
+      PLAYED: '{actor} ลงไพ่ {count} ใบ',
+      PASSED: '{actor} ผ่าน',
+      CLAIMED: '{actor} เก็บไพ่ทิ้ง',
+      DISCARDED: '{actor} ทิ้งไพ่',
+      TOOK: '{actor} หยิบไพ่จากเพื่อน',
+    },
+  },
   gamePokDeng: {
     title: '🃏 ป๊อกเด้ง',
     dealerLine: 'เจ้ามือ: {name} · ชิปเริ่มต้น 100',

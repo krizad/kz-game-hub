@@ -3,6 +3,8 @@ import {
   CardDecision,
   CardGameAction,
   CardGameConfig,
+  CardGameLogEntry,
+  CardGameLogKind,
   CardGamePreset,
   CardGamePrivateState,
   CardGamePublicState,
@@ -67,13 +69,17 @@ export class CardGameService {
         (player) => !player.isViewer && player.connected !== false,
       );
       if (players.length < preset.minPlayers || players.length > preset.maxPlayers) return null;
-      return runtime.startRound(
+      const started = runtime.startRound(
         room,
         this.configFor(room),
         players.map((player) => player.socketId),
       );
+      if (started) room.cardGameLog = [];
+      return started;
     }
-    return this.startPokDeng(room, requesterId);
+    const startedPokDeng = this.startPokDeng(room, requesterId);
+    if (startedPokDeng) room.cardGameLog = [];
+    return startedPokDeng;
   }
 
   startPokDeng(room: RoomState, requesterId: string): RoomState | null {
@@ -146,7 +152,9 @@ export class CardGameService {
         if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;
         return this.startCardRound(room, room.roomHostId);
       }
-      return runtime.handleAction(room, socketId, action, this.configFor(room));
+      const handled = runtime.handleAction(room, socketId, action, this.configFor(room));
+      if (handled) this.appendLog(room, socketId, action);
+      return handled;
     }
     if (action.type === 'NEXT_ROUND') {
       if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;
@@ -174,6 +182,7 @@ export class CardGameService {
     } else {
       state.decisions[socketId] = 'STAND';
     }
+    this.appendLog(room, socketId, action);
     this.advance(room);
     return room;
   }
@@ -212,6 +221,26 @@ export class CardGameService {
         );
       }
     }
+  }
+
+  private appendLog(room: RoomState, socketId: string, action: CardGameAction): void {
+    const kinds: Partial<Record<CardGameAction['type'], CardGameLogKind>> = {
+      DRAW: 'DREW',
+      STAND: 'STOOD',
+      PLAY: 'PLAYED',
+      PASS: 'PASSED',
+      CLAIM: 'CLAIMED',
+      DISCARD: 'DISCARDED',
+      TAKE_CARD: 'TOOK',
+    };
+    const kind = kinds[action.type];
+    if (!kind) return;
+    const log = room.cardGameLog ?? [];
+    const entry: CardGameLogEntry = { actorId: socketId, kind };
+    if (action.type === 'PLAY') entry.count = action.cards.length;
+    log.push(entry);
+    if (log.length > 40) log.splice(0, log.length - 40);
+    room.cardGameLog = log;
   }
 
   private configFor(room: RoomState): CardGameConfig {

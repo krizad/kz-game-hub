@@ -170,6 +170,22 @@ export type CardGameAction =
   | { type: 'DISCARD'; cardId: string }
   | { type: 'TAKE_CARD'; index: number };
 
+export type CardGameLogKind =
+  | 'DREW'
+  | 'STOOD'
+  | 'PLAYED'
+  | 'PASSED'
+  | 'CLAIMED'
+  | 'DISCARDED'
+  | 'TOOK';
+
+/** Public-safe action log entry: never carries hidden card identities (ADR 0002). */
+export interface CardGameLogEntry {
+  actorId: string;
+  kind: CardGameLogKind;
+  count?: number;
+}
+
 export interface CardGameImportRulesRequest {
   /** Room code the rules are imported into. */
   code: string;
