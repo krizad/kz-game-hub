@@ -26,8 +26,10 @@ import {
 } from './card-engine.service';
 import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 import { SLAVE_PRESET } from './presets/slave.preset';
+import { SAM_SIP_PRESET } from './presets/sam-sip.preset';
 import { presetForConfig } from './presets';
 import { SlaveRuntime } from './slave.runtime';
+import { SamSipRuntime } from './sam-sip.runtime';
 
 const PRIVATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
@@ -36,25 +38,28 @@ const PILES_KEY = 'piles';
 @Injectable()
 export class CardGameService {
   private readonly slaveRuntime: SlaveRuntime;
+  private readonly samSipRuntime: SamSipRuntime;
 
   constructor(private readonly privateStateService: PrivateStateService) {
     this.slaveRuntime = new SlaveRuntime(privateStateService);
+    this.samSipRuntime = new SamSipRuntime(privateStateService);
   }
 
   startCardRound(room: RoomState, requesterId: string): RoomState | null {
     if (room.gameType !== GameType.CARD_GAME || room.roomHostId !== requesterId) return null;
-    if ((room.cardGameConfig?.preset ?? 'POK_DENG') === 'SLAVE') {
+    const presetId = room.cardGameConfig?.preset ?? 'POK_DENG';
+    if (presetId === 'SLAVE' || presetId === 'SAM_SIP') {
+      const preset = presetId === 'SLAVE' ? SLAVE_PRESET : SAM_SIP_PRESET;
       const players = room.players.filter(
         (player) => !player.isViewer && player.connected !== false,
       );
-      if (players.length < SLAVE_PRESET.minPlayers || players.length > SLAVE_PRESET.maxPlayers) {
+      if (players.length < preset.minPlayers || players.length > preset.maxPlayers) {
         return null;
       }
-      return this.slaveRuntime.startRound(
-        room,
-        this.configFor(room),
-        players.map((player) => player.socketId),
-      );
+      const playerIds = players.map((player) => player.socketId);
+      return presetId === 'SLAVE'
+        ? this.slaveRuntime.startRound(room, this.configFor(room), playerIds)
+        : this.samSipRuntime.startRound(room, this.configFor(room), playerIds);
     }
     return this.startPokDeng(room, requesterId);
   }
@@ -122,12 +127,15 @@ export class CardGameService {
   handleAction(room: RoomState, socketId: string, action: CardGameAction): RoomState | null {
     const state = room.cardGameState;
     if (!state || room.gameType !== GameType.CARD_GAME) return null;
-    if ((room.cardGameConfig?.preset ?? 'POK_DENG') === 'SLAVE') {
+    const presetId = room.cardGameConfig?.preset ?? 'POK_DENG';
+    if (presetId === 'SLAVE' || presetId === 'SAM_SIP') {
       if (action.type === 'NEXT_ROUND') {
         if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;
         return this.startCardRound(room, room.roomHostId);
       }
-      return this.slaveRuntime.handleAction(room, socketId, action, this.configFor(room));
+      return presetId === 'SLAVE'
+        ? this.slaveRuntime.handleAction(room, socketId, action, this.configFor(room))
+        : this.samSipRuntime.handleAction(room, socketId, action, this.configFor(room));
     }
     if (action.type === 'NEXT_ROUND') {
       if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;

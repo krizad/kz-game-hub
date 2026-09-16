@@ -4,11 +4,19 @@ export interface PlayingCard {
   suit: 'CLUBS' | 'DIAMONDS' | 'HEARTS' | 'SPADES';
 }
 
-export type CardGamePreset = 'POK_DENG' | 'SLAVE';
+export type CardGamePreset = 'POK_DENG' | 'SLAVE' | 'SAM_SIP';
 
 export type CardGamePhase = 'PLAYER_TURNS' | 'RESULT';
 
-export type CardDecision = 'PENDING' | 'STAND' | 'DRAWN' | 'NATURAL' | 'PLAYED' | 'PASSED';
+export type CardDecision =
+  | 'PENDING'
+  | 'STAND'
+  | 'DRAWN'
+  | 'NATURAL'
+  | 'PLAYED'
+  | 'PASSED'
+  | 'CLAIMED'
+  | 'DISCARDED';
 
 export interface DeckPolicy {
   kind: 'STANDARD_52';
@@ -36,7 +44,7 @@ export interface DealPolicy {
   starterPolicy: StarterPolicy;
 }
 
-export type CardActionKind = 'DRAW' | 'STAND' | 'PLAY' | 'PASS';
+export type CardActionKind = 'DRAW' | 'STAND' | 'PLAY' | 'PASS' | 'CLAIM' | 'DISCARD';
 
 export interface ActionPolicy {
   allowed: CardActionKind[];
@@ -89,7 +97,7 @@ export interface RoundEndCondition {
   kind: RoundEndConditionKind;
 }
 
-export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING';
+export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING' | 'PAIR_REMOVAL';
 
 export interface CardGamePresetDefinition {
   id: CardGamePreset;
@@ -138,6 +146,8 @@ export interface CardGamePublicState {
   chips: Record<string, number>;
   decisions: Record<string, CardDecision>;
   trick?: TrickState;
+  /** Top card of the discard pile, revealed by design (Sam Sip claim window). */
+  discardTop?: PlayingCard | null;
   result?: CardGameResult;
 }
 
@@ -153,7 +163,9 @@ export type CardGameAction =
   | { type: 'STAND' }
   | { type: 'NEXT_ROUND' }
   | { type: 'PLAY'; cards: string[] }
-  | { type: 'PASS' };
+  | { type: 'PASS' }
+  | { type: 'CLAIM' }
+  | { type: 'DISCARD'; cardId: string };
 
 export interface CardGameImportRulesRequest {
   /** Room code the rules are imported into. */

@@ -18,6 +18,7 @@ import { CardGameService } from './card-game/card-game.service';
 import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
+import { SAM_SIP_PRESET } from './card-game/presets/sam-sip.preset';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -321,6 +322,16 @@ describe('GamesService', () => {
       expect(room.gameType).toBe(GameType.CARD_GAME);
       expect(room.config.cardGamePreset).toBe('SLAVE');
       expect(room.cardGameConfig).toEqual(SLAVE_PRESET.defaultConfig);
+    });
+
+    it('should create a card-game room with the Sam Sip default config when selected', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME, {
+        cardGamePreset: 'SAM_SIP',
+      });
+
+      expect(room.gameType).toBe(GameType.CARD_GAME);
+      expect(room.config.cardGamePreset).toBe('SAM_SIP');
+      expect(room.cardGameConfig).toEqual(SAM_SIP_PRESET.defaultConfig);
     });
 
     it('should create an RPS room with initial state', () => {
