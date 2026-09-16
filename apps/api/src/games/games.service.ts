@@ -433,20 +433,38 @@ export class GamesService {
     this.privateStateService.clearSocket(code, player.socketId);
 
     if (room.ticTacToeState) {
+      const seatCleared =
+        room.ticTacToeState.playerXId === player.socketId ||
+        room.ticTacToeState.playerOId === player.socketId;
       if (room.ticTacToeState.playerXId === player.socketId)
         room.ticTacToeState.playerXId = undefined;
       if (room.ticTacToeState.playerOId === player.socketId)
         room.ticTacToeState.playerOId = undefined;
+      if (seatCleared && room.status === RoomStatus.PLAYING) {
+        room.status = RoomStatus.RESULT;
+      }
     }
     if (room.gobblerState) {
+      const seatCleared =
+        room.gobblerState.playerXId === player.socketId ||
+        room.gobblerState.playerOId === player.socketId;
       if (room.gobblerState.playerXId === player.socketId) room.gobblerState.playerXId = undefined;
       if (room.gobblerState.playerOId === player.socketId) room.gobblerState.playerOId = undefined;
+      if (seatCleared && room.status === RoomStatus.PLAYING) {
+        room.status = RoomStatus.RESULT;
+      }
     }
     if (room.ultimateTicTacToeState) {
+      const seatCleared =
+        room.ultimateTicTacToeState.playerXId === player.socketId ||
+        room.ultimateTicTacToeState.playerOId === player.socketId;
       if (room.ultimateTicTacToeState.playerXId === player.socketId)
         room.ultimateTicTacToeState.playerXId = undefined;
       if (room.ultimateTicTacToeState.playerOId === player.socketId)
         room.ultimateTicTacToeState.playerOId = undefined;
+      if (seatCleared && room.status === RoomStatus.PLAYING) {
+        room.status = RoomStatus.RESULT;
+      }
     }
     // Only cancel a live round when an actual seated player is removed — a
     // spectator leaving must not blow up the table.
