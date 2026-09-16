@@ -1414,6 +1414,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (event === SOCKET_EVENTS.LEADERBOARD_GET) {
       return data.gameType === undefined || typeof data.gameType === 'string';
     }
+    if (event === SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
+      return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
+    }
     if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code)) return false;
     if (event === SOCKET_EVENTS.JOIN_ROOM || event === SOCKET_EVENTS.SPECTATE_JOIN) {
       return (
