@@ -156,4 +156,12 @@ describe('GamesGateway payload guard', () => {
     expect(schedule.mock.calls[1][2]).toBe(60_000);
     jest.useRealTimers();
   });
+
+  it('requires a well-formed card-game action payload', () => {
+    expect(isValid(SOCKET_EVENTS.CARD_GAME_ACTION, { code: 'abc123', action: null })).toBe(false);
+    expect(isValid(SOCKET_EVENTS.CARD_GAME_ACTION, { code: 'abc123', action: {} })).toBe(false);
+    expect(
+      isValid(SOCKET_EVENTS.CARD_GAME_ACTION, { code: 'abc123', action: { type: 'DRAW' } }),
+    ).toBe(true);
+  });
 });

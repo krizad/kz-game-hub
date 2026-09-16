@@ -153,6 +153,7 @@ export class CardGameService {
   handleAction(room: RoomState, socketId: string, action: CardGameAction): RoomState | null {
     const state = room.cardGameState;
     if (!state || room.gameType !== GameType.CARD_GAME) return null;
+    if (!action || typeof action !== 'object' || typeof action.type !== 'string') return null;
     const presetId = room.cardGameConfig?.preset ?? 'POK_DENG';
     const runtime = this.cardRuntimes[presetId];
     if (runtime) {
@@ -161,7 +162,12 @@ export class CardGameService {
         return this.startCardRound(room, room.roomHostId);
       }
       const handled = runtime.handleAction(room, socketId, action, this.configFor(room));
-      if (handled) this.appendLog(room, socketId, action);
+      if (handled) {
+        // A draw can end the round without drawing (empty stock) — do not log it.
+        const exhaustedDraw =
+          action.type === 'DRAW' && room.cardGameState?.decisions[socketId] === 'PENDING';
+        if (!exhaustedDraw) this.appendLog(room, socketId, action);
+      }
       return handled;
     }
     if (action.type === 'NEXT_ROUND') {
