@@ -605,6 +605,11 @@ export interface Dictionary {
     actionNames: {
       DRAW: string;
       STAND: string;
+      PLAY: string;
+      PASS: string;
+      CLAIM: string;
+      DISCARD: string;
+      TAKE_CARD: string;
     };
     exhaustionPolicies: {
       END_ROUND: string;

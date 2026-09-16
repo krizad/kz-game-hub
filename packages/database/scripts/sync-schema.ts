@@ -25,6 +25,16 @@ function resolveProvider(): Provider {
   const detected = detectProviderFromUrl(url);
   if (detected) return detected;
 
+  // Keep the provider already tracked in the schema when DATABASE_URL is
+  // absent (CI, fresh clone) so generate/build steps still work.
+  const schema = readFileSync(SCHEMA_PATH, 'utf-8');
+  const match = PROVIDER_RE.exec(schema);
+  const current = match?.[2];
+  if (current === 'mysql' || current === 'postgresql') {
+    console.warn(`DATABASE_URL is not set; keeping the schema provider "${current}".`);
+    return current;
+  }
+
   console.error(
     `Cannot determine database provider. Set DATABASE_URL (postgresql:// or mysql://) or pass "postgresql" | "mysql" as an argument.`,
   );

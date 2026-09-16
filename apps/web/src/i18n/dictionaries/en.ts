@@ -656,7 +656,15 @@ export const en: Dictionary = {
       PREVIOUS_WINNER: 'Previous winner',
       PREVIOUS_LOSER: 'Previous loser',
     },
-    actionNames: { DRAW: 'Draw', STAND: 'Stand' },
+    actionNames: {
+      DRAW: 'Draw',
+      STAND: 'Stand',
+      PLAY: 'Play',
+      PASS: 'Pass',
+      CLAIM: 'Claim',
+      DISCARD: 'Discard',
+      TAKE_CARD: 'Take a card',
+    },
     exhaustionPolicies: {
       END_ROUND: 'End the round',
       RESHUFFLE_DISCARDS_EXCEPT_TOP: 'Reshuffle discards (keep top card)',

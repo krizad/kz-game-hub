@@ -22,7 +22,8 @@ export function WhoAmIView() {
   const gameState = room.whoAmIState as WhoAmIGameState;
   const visibleWords = (privateState?.waiVisibleWords || {}) as Record<string, string>;
 
-  const isSpectator = !room.players.find((p) => p.socketId === socketId);
+  const me = room.players.find((p) => p.socketId === socketId);
+  const isSpectator = !me || !!me.isViewer;
   const isMyTurn =
     !isSpectator && gameState.currentTurn === socketId && room.status === RoomStatus.PLAYING;
 

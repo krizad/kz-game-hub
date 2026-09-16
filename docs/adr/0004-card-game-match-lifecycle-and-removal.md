@@ -7,7 +7,7 @@
 
 ADR 0003 defines virtual chips as match-scoped, and `CONTEXT.md` defines a match as a sequence of rounds, but neither fixes the match boundary for a live room. The interim Pok Deng adapter (pre-engine MVP, see `plan/feature-configurable-card-platform-1.md`) reset every balance to 100 at each deal, which made round-to-round settlement cosmetic, and it had no removal path: when the dealer left mid-round the next action threw a `TypeError`, and when a pending player left, the round stalled forever on a departed socket.
 
-The declarative engine of ADR 0001 is planned but not yet implemented. The MVP adapter needs explicit interim rules so that play is safe and deterministic, and so the engine can later replace them without changing player-visible semantics.
+The declarative engine of ADR 0001 has since been implemented (`card-engine.service.ts` with presets under `games/card-game/presets`); these interim rules were written so the engine replaced them without changing player-visible semantics.
 
 ## Decision
 

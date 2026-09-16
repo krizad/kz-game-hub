@@ -52,12 +52,14 @@ export function CoupView() {
         <h2 className="text-xl font-black uppercase tracking-widest">Coup — {state.phase}</h2>
         <div className="flex gap-2">
           <CoupHelpModal />
-          <button
-            onClick={() => resetRoom()}
-            className="bg-black text-white px-3 py-1 text-xs font-black uppercase"
-          >
-            Reset
-          </button>
+          {room.roomHostId === socketId && (
+            <button
+              onClick={() => resetRoom()}
+              className="bg-black text-white px-3 py-1 text-xs font-black uppercase"
+            >
+              Reset
+            </button>
+          )}
         </div>
       </div>
       {isSpectator && (
