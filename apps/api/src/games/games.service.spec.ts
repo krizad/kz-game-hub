@@ -526,6 +526,19 @@ describe('GamesService', () => {
       expect(retried!.players.find((player) => player.name === 'Player1')!.socketId).toBe('p1b');
     });
 
+    it('remaps the card-game action log on reconnection', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const reconnectToken = service.getReconnectToken(room.code, 'p1')!;
+      room.cardGameLog = [{ actorId: 'p1', kind: 'DREW' }];
+      service.leaveRoom('p1', false);
+
+      service.joinRoom(room.code, { id: 'p1b', name: 'Player1', socketId: 'p1b' }, reconnectToken);
+
+      expect(room.cardGameLog).toEqual([{ actorId: 'p1b', kind: 'DREW' }]);
+    });
+
     it('should reject reconnect attempts that only reuse an existing player name', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
