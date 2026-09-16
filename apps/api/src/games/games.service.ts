@@ -767,10 +767,11 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const result = await action(room);
-    if (result) {
-      this.clearViewerFlagsOnLobby(result.room);
-      this.rooms.set(code, result.room);
-    }
+    // The room may have been deleted while the action was in flight (host leave, grace expiry).
+    // Never re-insert a stale room object, or it would resurrect as a ghost.
+    if (!result || this.rooms.get(code) !== room) return null;
+    this.clearViewerFlagsOnLobby(result.room);
+    this.rooms.set(code, result.room);
     return result;
   }
 
@@ -879,10 +880,10 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const updatedRoom = await action(room);
-    if (updatedRoom) {
-      this.clearViewerFlagsOnLobby(updatedRoom);
-      this.rooms.set(code, updatedRoom);
-    }
+    // Same ghost-room guard as withRoomResultAsync.
+    if (!updatedRoom || this.rooms.get(code) !== room) return null;
+    this.clearViewerFlagsOnLobby(updatedRoom);
+    this.rooms.set(code, updatedRoom);
     return updatedRoom;
   }
 
@@ -1380,7 +1381,9 @@ export class GamesService {
       clientId,
       action as Parameters<typeof this.musicTriviaService.handleGameAction>[2],
     );
-    if (result) this.rooms.set(code, result.room);
+    // Do not resurrect a room that was deleted while the action was in flight.
+    if (!result || this.rooms.get(code) !== room) return null;
+    this.rooms.set(code, result.room);
     return result;
   }
 
