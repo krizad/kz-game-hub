@@ -490,6 +490,11 @@ export class GamesService {
     room.roomHostId = nextHost.socketId;
   }
 
+  /** Remove a room that never became usable (e.g. its creator could not join it). */
+  deleteRoom(code: string): void {
+    this.deleteRoomData(code);
+  }
+
   private deleteRoomData(code: string): void {
     this.rooms.delete(code);
     this.secretWords.delete(code);

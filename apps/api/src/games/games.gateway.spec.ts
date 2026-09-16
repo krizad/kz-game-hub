@@ -71,4 +71,58 @@ describe('GamesGateway payload guard', () => {
     expect(toMock).toHaveBeenCalledWith('ABC123');
     expect(getAvailableRooms).toHaveBeenCalled();
   });
+
+  it('leaves the previous room before joining another', () => {
+    const leaveRoom = jest.fn(() => ({ outcome: 'NOT_IN_ROOM' as const }));
+    const joinRoom = jest.fn(() => null);
+    const findRoomCodeBySocketId = jest.fn(() => 'OLD123');
+    const gateway = new GamesGateway(
+      { leaveRoom, joinRoom, findRoomCodeBySocketId } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
+
+    gateway.handleJoinRoom({ code: 'abc123', name: 'Player' }, client);
+
+    expect(findRoomCodeBySocketId).toHaveBeenCalledWith('sock1');
+    expect(leaveRoom).toHaveBeenCalledWith('sock1', true);
+    expect(joinRoom).toHaveBeenCalled();
+  });
+
+  it('does not leave when joining the same room again', () => {
+    const leaveRoom = jest.fn(() => ({ outcome: 'NOT_IN_ROOM' as const }));
+    const joinRoom = jest.fn(() => null);
+    const findRoomCodeBySocketId = jest.fn(() => 'ABC123');
+    const gateway = new GamesGateway(
+      { leaveRoom, joinRoom, findRoomCodeBySocketId } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
+
+    gateway.handleJoinRoom({ code: 'abc123', name: 'Player' }, client);
+
+    expect(leaveRoom).not.toHaveBeenCalled();
+    expect(joinRoom).toHaveBeenCalled();
+  });
+
+  it('deletes the room when the creator cannot join it', () => {
+    const createRoom = jest.fn(() => ({ code: 'NEW123' }));
+    const joinRoom = jest.fn(() => null);
+    const deleteRoom = jest.fn();
+    const gateway = new GamesGateway(
+      { createRoom, joinRoom, deleteRoom, findRoomCodeBySocketId: jest.fn(() => null) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
+
+    gateway.handleCreateRoom({ name: 'Host' }, client);
+
+    expect(deleteRoom).toHaveBeenCalledWith('NEW123');
+  });
 });
