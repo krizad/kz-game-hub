@@ -24,6 +24,7 @@ import {
   RPSChoice,
   CoupActionType,
   CardGameAction,
+  CardGameConfig,
 } from '@repo/types';
 import {
   MusicTriviaActionResult,
@@ -338,10 +339,20 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(SOCKET_EVENTS.UPDATE_CONFIG)
   handleUpdateConfig(
-    @MessageBody() data: { code: string; config: Partial<RoomState['config']> },
+    @MessageBody()
+    data: {
+      code: string;
+      config: Partial<RoomState['config']>;
+      cardGameConfig?: Partial<CardGameConfig>;
+    },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.updateConfig(data.code, client.id, data.config);
+    const room = this.gamesService.updateConfig(
+      data.code,
+      client.id,
+      data.config,
+      data.cardGameConfig,
+    );
 
     if (room) {
       this.broadcastRoomState(room);

@@ -15,6 +15,7 @@ import {
   BOT_SOCKET_ID,
   BOT_PLAYER_NAME,
   CardGameAction,
+  CardGameConfig,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -34,6 +35,8 @@ import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
+import { validateConfig } from './card-game/card-engine.service';
+import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
 export type LeaveRoomResult =
@@ -200,6 +203,8 @@ export class GamesService {
       // SaboteurState is initialized when the game starts via assignRoles
     } else if (gameType === GameType.ULTIMATE_TIC_TAC_TOE) {
       room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
+    } else if (gameType === GameType.CARD_GAME) {
+      room.cardGameConfig = POK_DENG_PRESET.defaultConfig;
     }
 
     this.syncBotPlayer(room);
@@ -499,11 +504,19 @@ export class GamesService {
     code: string,
     requesterId: string,
     config: Partial<RoomState['config']>,
+    cardGameConfig?: Partial<CardGameConfig>,
   ): RoomState | null {
     const room = this.rooms.get(code);
     if (!room || room.status !== RoomStatus.LOBBY) return null;
 
     if (room.roomHostId !== requesterId) return null;
+
+    if (cardGameConfig) {
+      if (room.gameType !== GameType.CARD_GAME) return null;
+      const validated = validateConfig({ ...room.cardGameConfig, ...cardGameConfig }, POK_DENG_PRESET);
+      if (!validated.ok || !validated.config) return null;
+      room.cardGameConfig = validated.config;
+    }
 
     const safeConfig = this.sanitizeRoomConfig(config);
     if (

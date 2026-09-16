@@ -15,6 +15,7 @@ import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { CardGameService } from './card-game/card-game.service';
+import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -292,6 +293,14 @@ describe('GamesService', () => {
       expect(room.config.ticTacToeMode).toBe('ULTIMATE');
       expect(room.ultimateTicTacToeState).toBeDefined();
       expect(room.ultimateTicTacToeState!.subBoards).toHaveLength(9);
+    });
+
+    it('should create a card-game room with the Pok Deng default config', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+
+      expect(room.gameType).toBe(GameType.CARD_GAME);
+      expect(room.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
+      expect(room.status).toBe(RoomStatus.LOBBY);
     });
 
     it('should create an RPS room with initial state', () => {
@@ -943,6 +952,32 @@ describe('GamesService', () => {
       });
       expect(withoutBot!.players.some((p) => p.socketId === 'bot-player')).toBe(false);
       expect(withoutBot!.config.ticTacToeVsBot).toBe(false);
+    });
+
+    it('should accept an allow-listed card-game config from the host', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      const updated = service.updateConfig(room.code, 'host1', {}, {
+        scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, tiePolicy: 'PUSH' },
+      });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.cardGameConfig!.scoring.tiePolicy).toBe('PUSH');
+    });
+
+    it('should reject a card-game config outside the preset allow-list', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      const invalid = service.updateConfig(room.code, 'host1', {}, {
+        scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, baseStake: 0 },
+      });
+
+      expect(invalid).toBeNull();
+      expect(service.getRoom(room.code)!.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
+    });
+
+    it('should reject a card-game config for a non card-game room', () => {
+      const room = service.createRoom('host1');
+
+      expect(service.updateConfig(room.code, 'host1', {}, {})).toBeNull();
     });
   });
 

@@ -1,21 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import { randomInt } from 'crypto';
 import {
+  CardDecision,
   CardGameAction,
+  CardGameConfig,
   CardGamePrivateState,
   CardGamePublicState,
+  DeckPolicy,
   GameType,
   PlayingCard,
   RoomState,
   RoomStatus,
 } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
-import { outcomeTagForMod10 } from './card-engine.service';
+import {
+  PileStacks,
+  createDeck as buildDeck,
+  dealRound,
+  drawFromStacks,
+  mod10Score,
+  resolveStarter,
+  settleMod10Showdown,
+  shuffleDeck,
+  toPublicState,
+  validateConfig,
+} from './card-engine.service';
+import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 
 const PRIVATE_KEY = 'cardGame';
-const STARTING_CHIPS = 100;
-const RANKS: PlayingCard['rank'][] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const SUITS: PlayingCard['suit'][] = ['CLUBS', 'DIAMONDS', 'HEARTS', 'SPADES'];
+const ENGINE_SOCKET_ID = '__card-game-engine__';
+const PILES_KEY = 'piles';
 
 @Injectable()
 export class CardGameService {
@@ -24,45 +37,60 @@ export class CardGameService {
   startPokDeng(room: RoomState, requesterId: string): RoomState | null {
     if (room.gameType !== GameType.CARD_GAME || room.roomHostId !== requesterId) return null;
     const players = room.players.filter((player) => !player.isViewer && player.connected !== false);
-    if (players.length < 2) return null;
+    if (players.length < POK_DENG_PRESET.minPlayers || players.length > POK_DENG_PRESET.maxPlayers)
+      return null;
 
-    const previousDealer = room.cardGameState?.dealerId;
-    const previousIndex = players.findIndex((player) => player.socketId === previousDealer);
-    const dealer =
-      previousIndex === -1 ? players[0] : players[(previousIndex + 1) % players.length];
-    const deck = this.shuffle(this.createDeck());
-    const hands = new Map<string, PlayingCard[]>();
-    for (const player of players) hands.set(player.socketId, [deck.pop()!, deck.pop()!]);
+    const config = this.configFor(room);
+    const playerOrder = players.map((player) => player.socketId);
+    const dealerId =
+      resolveStarter(config.deal.starterPolicy, {
+        playerOrder,
+        previousStarterId: room.cardGameState?.dealerId,
+        previousWinnerId: room.cardGameState?.result?.winnerIds[0],
+      }) ?? playerOrder[0];
+
+    const dealt = dealRound(
+      this.shuffle(this.createDeck(config.deck)),
+      playerOrder,
+      config.deal,
+      config.piles.reserveSize,
+    );
+    if (!dealt.ok || !dealt.hands) return null;
+    const hands = dealt.hands;
+    this.setPiles(room.code, {
+      stock: dealt.stock ?? [],
+      discards: [],
+      reserve: dealt.reserve ?? [],
+    });
 
     const chipBalances = room.cardGameChips ?? {};
     room.cardGameChips = chipBalances;
-    for (const player of players) {
-      chipBalances[player.socketId] = chipBalances[player.socketId] ?? STARTING_CHIPS;
+    for (const id of playerOrder) {
+      chipBalances[id] = chipBalances[id] ?? config.scoring.startingChips;
     }
 
-    const state: CardGamePublicState = {
-      preset: 'POK_DENG',
-      phase: 'PLAYER_TURNS',
-      dealerId: dealer.socketId,
-      activePlayerId: null,
-      playerOrder: players.map((player) => player.socketId),
-      handCounts: Object.fromEntries(players.map((player) => [player.socketId, 2])),
-      chips: Object.fromEntries(
-        players.map((player) => [player.socketId, chipBalances[player.socketId]]),
-      ),
-      decisions: {},
-    };
-
-    for (const player of players) {
-      const hand = hands.get(player.socketId)!;
-      const natural = this.score(hand) >= 8;
-      state.decisions[player.socketId] =
-        player.socketId === dealer.socketId || natural ? 'NATURAL' : 'PENDING';
-      this.setHand(room.code, player.socketId, hand);
+    const decisions: Record<string, CardDecision> = {};
+    for (const id of playerOrder) {
+      const natural = mod10Score(hands[id]) >= 8;
+      decisions[id] = id === dealerId || natural ? 'NATURAL' : 'PENDING';
+      this.setHand(room.code, id, hands[id]);
     }
-    room.cardGameState = state;
+
+    room.cardGameState = toPublicState(
+      {
+        preset: POK_DENG_PRESET.id,
+        phase: 'PLAYER_TURNS',
+        dealerId,
+        activePlayerId: null,
+        playerOrder,
+        hands,
+        chips: Object.fromEntries(playerOrder.map((id) => [id, chipBalances[id]])),
+        decisions,
+      },
+      config.visibility,
+    );
     room.status = RoomStatus.PLAYING;
-    this.advance(room, deck);
+    this.advance(room);
     return room;
   }
 
@@ -75,22 +103,27 @@ export class CardGameService {
     }
     if (room.status !== RoomStatus.PLAYING) return null;
     if (state.phase !== 'PLAYER_TURNS' || state.activePlayerId !== socketId) return null;
+
+    const config = this.configFor(room);
+    if (!config.actions.allowed.includes(action.type)) return null;
     const hand = this.getHand(room.code, socketId);
     if (!hand) return null;
+
     if (action.type === 'DRAW') {
-      const deck = this.getDeck(room.code);
-      const card = deck.pop();
-      if (!card) return null;
-      hand.push(card);
+      const drawn = drawFromStacks(this.pilesFor(room.code), config.piles);
+      if (!drawn.ok || !drawn.card) {
+        this.resolve(room, config);
+        return room;
+      }
+      this.setPiles(room.code, drawn.stacks);
+      hand.push(drawn.card);
       this.setHand(room.code, socketId, hand);
       state.handCounts[socketId] = hand.length;
       state.decisions[socketId] = 'DRAWN';
-    } else if (action.type === 'STAND') {
-      state.decisions[socketId] = 'STAND';
     } else {
-      return null;
+      state.decisions[socketId] = 'STAND';
     }
-    this.advance(room, deckOrEmpty(this.getDeck(room.code)));
+    this.advance(room);
     return room;
   }
 
@@ -100,7 +133,7 @@ export class CardGameService {
     for (const socketId of state.playerOrder) {
       this.privateStateService.delete(room.code, socketId, PRIVATE_KEY);
     }
-    this.privateStateService.delete(room.code, '__card-game-engine__', 'deck');
+    this.privateStateService.delete(room.code, ENGINE_SOCKET_ID, PILES_KEY);
     room.cardGameState = undefined;
     room.status = RoomStatus.LOBBY;
   }
@@ -114,74 +147,90 @@ export class CardGameService {
     state.decisions = this.remapRecord(state.decisions, oldSocketId, newSocketId);
     if (state.result) {
       state.result.playerScores = this.remapRecord(state.result.playerScores, oldSocketId, newSocketId);
+      state.result.outcomeTags = this.remapRecord(state.result.outcomeTags, oldSocketId, newSocketId);
       state.result.winnerIds = state.result.winnerIds.map((id) => (id === oldSocketId ? newSocketId : id));
       state.result.revealedHands = this.remapRecord(state.result.revealedHands, oldSocketId, newSocketId);
     }
   }
 
-  private advance(room: RoomState, deck: PlayingCard[]): void {
-    const state = room.cardGameState!;
-    const next = state.playerOrder.find((id) => id !== state.dealerId && state.decisions[id] === 'PENDING');
-    if (next) {
-      state.activePlayerId = next;
-      this.setDeck(room.code, deck);
-      return;
-    }
-    const dealerHand = this.getHand(room.code, state.dealerId)!;
-    if (this.score(dealerHand) < 5) {
-      const card = deck.pop();
-      if (card) dealerHand.push(card);
-      this.setHand(room.code, state.dealerId, dealerHand);
-      state.handCounts[state.dealerId] = dealerHand.length;
-    }
-    this.setDeck(room.code, deck);
-    this.resolve(room);
+  private configFor(room: RoomState): CardGameConfig {
+    const validated = validateConfig(room.cardGameConfig, POK_DENG_PRESET);
+    return validated.config ?? POK_DENG_PRESET.defaultConfig;
   }
 
-  private resolve(room: RoomState): void {
+  private advance(room: RoomState): void {
     const state = room.cardGameState!;
-    const dealerHand = this.getHand(room.code, state.dealerId)!;
-    const dealerScore = this.score(dealerHand);
-    const playerScores: Record<string, number> = {};
-    const outcomeTags: Record<string, string> = {};
-    const revealedHands: Record<string, PlayingCard[]> = {};
-    const winnerIds: string[] = [];
-    for (const id of state.playerOrder) {
-      const hand = this.getHand(room.code, id)!;
-      revealedHands[id] = hand;
-      playerScores[id] = this.score(hand);
-      outcomeTags[id] = outcomeTagForMod10(hand);
-      if (id === state.dealerId) continue;
-      if (playerScores[id] > dealerScore) {
-        state.chips[id] += 1;
-        state.chips[state.dealerId] -= 1;
-        winnerIds.push(id);
-      } else {
-        state.chips[id] -= 1;
-        state.chips[state.dealerId] += 1;
+    const config = this.configFor(room);
+    const next = state.playerOrder.find(
+      (id) => id !== state.dealerId && state.decisions[id] === 'PENDING',
+    );
+    if (next) {
+      state.activePlayerId = next;
+      return;
+    }
+
+    const dealerHand = this.getHand(room.code, state.dealerId) ?? [];
+    if (mod10Score(dealerHand) < 5) {
+      const drawn = drawFromStacks(this.pilesFor(room.code), config.piles);
+      if (drawn.ok && drawn.card) {
+        dealerHand.push(drawn.card);
+        this.setHand(room.code, state.dealerId, dealerHand);
+        this.setPiles(room.code, drawn.stacks);
+        state.handCounts[state.dealerId] = dealerHand.length;
       }
     }
-    state.phase = 'RESULT';
-    state.activePlayerId = null;
-    state.result = { dealerScore, playerScores, outcomeTags, winnerIds, revealedHands };
-    room.cardGameChips = state.chips;
+    this.resolve(room, config);
+  }
+
+  private resolve(room: RoomState, config: CardGameConfig): void {
+    const state = room.cardGameState!;
+    const hands: Record<string, PlayingCard[]> = {};
+    for (const id of state.playerOrder) hands[id] = this.getHand(room.code, id) ?? [];
+
+    const outcome = settleMod10Showdown({
+      playerOrder: state.playerOrder,
+      dealerId: state.dealerId,
+      hands,
+      tiePolicy: config.scoring.tiePolicy,
+      baseStake: config.scoring.baseStake,
+      multipliers: config.scoring.multipliers,
+    });
+
+    const chips: Record<string, number> = { ...state.chips };
+    for (const id of state.playerOrder) {
+      chips[id] = (chips[id] ?? 0) + (outcome.deltas[id] ?? 0);
+    }
+    room.cardGameChips = chips;
+
+    room.cardGameState = toPublicState(
+      {
+        preset: POK_DENG_PRESET.id,
+        phase: 'RESULT',
+        dealerId: state.dealerId,
+        activePlayerId: null,
+        playerOrder: state.playerOrder,
+        hands,
+        chips,
+        decisions: state.decisions,
+        result: {
+          dealerScore: outcome.dealerScore,
+          playerScores: outcome.scores,
+          outcomeTags: outcome.outcomeTags,
+          winnerIds: outcome.winnerIds,
+          revealedHands: outcome.revealedHands,
+        },
+      },
+      config.visibility,
+    );
     room.status = RoomStatus.RESULT;
   }
 
-  private createDeck(): PlayingCard[] {
-    return SUITS.flatMap((suit) => RANKS.map((rank) => ({ id: `${rank}-${suit}`, rank, suit })));
+  private createDeck(policy: DeckPolicy): PlayingCard[] {
+    return buildDeck(policy);
   }
 
   private shuffle(deck: PlayingCard[]): PlayingCard[] {
-    for (let index = deck.length - 1; index > 0; index -= 1) {
-      const target = randomInt(index + 1);
-      [deck[index], deck[target]] = [deck[target], deck[index]];
-    }
-    return deck;
-  }
-
-  private score(hand: PlayingCard[]): number {
-    return hand.reduce((total, card) => total + (card.rank === 'A' ? 1 : Number(card.rank) || 0), 0) % 10;
+    return shuffleDeck(deck);
   }
 
   private setHand(roomCode: string, socketId: string, hand: PlayingCard[]): void {
@@ -195,12 +244,18 @@ export class CardGameService {
     return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)?.hand;
   }
 
-  private setDeck(roomCode: string, deck: PlayingCard[]): void {
-    this.privateStateService.set(roomCode, '__card-game-engine__', 'deck', deck);
+  private setPiles(roomCode: string, piles: PileStacks): void {
+    this.privateStateService.set(roomCode, ENGINE_SOCKET_ID, PILES_KEY, piles);
   }
 
-  private getDeck(roomCode: string): PlayingCard[] | undefined {
-    return this.privateStateService.get<PlayingCard[]>(roomCode, '__card-game-engine__', 'deck');
+  private pilesFor(roomCode: string): PileStacks {
+    return (
+      this.privateStateService.get<PileStacks>(roomCode, ENGINE_SOCKET_ID, PILES_KEY) ?? {
+        stock: [],
+        discards: [],
+        reserve: [],
+      }
+    );
   }
 
   private remapRecord<T>(record: Record<string, T>, oldKey: string, newKey: string): Record<string, T> {
@@ -208,8 +263,4 @@ export class CardGameService {
     const { [oldKey]: value, ...remaining } = record;
     return { ...remaining, [newKey]: value };
   }
-}
-
-function deckOrEmpty(deck: PlayingCard[] | undefined): PlayingCard[] {
-  return deck ?? [];
 }

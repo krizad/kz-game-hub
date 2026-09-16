@@ -17,14 +17,22 @@ const deckFor = (popOrder: PlayingCard[]): PlayingCard[] => [
   ...[...popOrder].reverse(),
 ];
 
-// Deal order: p1 card 1, p1 card 2, p2 card 1, p2 card 2, then the dealer's third card.
+// Round-robin deal order: p1 card 1, p2 card 1, p1 card 2, p2 card 2, then the dealer's third card.
 // p1 (dealer) scores 3 and draws to 8; p2 scores 7 and loses one chip to p1.
 const DEAL_P1_BEATS_P2: PlayingCard[] = [
   card('p1-a', 'A', 'CLUBS'),
-  card('p1-b', '2', 'DIAMONDS'),
   card('p2-a', '3', 'HEARTS'),
+  card('p1-b', '2', 'DIAMONDS'),
   card('p2-b', '4', 'SPADES'),
   card('draw-1', '5', 'CLUBS'),
+];
+
+// p1 (dealer) stands on 5; p2 holds a natural Pok 9 and wins a double stake.
+const DEAL_P2_POK_9: PlayingCard[] = [
+  card('p1-a', 'A', 'CLUBS'),
+  card('p2-a', '9', 'HEARTS'),
+  card('p1-b', '4', 'DIAMONDS'),
+  card('p2-b', 'K', 'SPADES'),
 ];
 
 describe('CardGameService', () => {
@@ -62,8 +70,8 @@ describe('CardGameService', () => {
     (service as any).shuffle = jest.fn((deck: PlayingCard[]) => deck);
   };
 
-  const startRound = (target: RoomState): RoomState => {
-    fixedDeal();
+  const startRound = (target: RoomState, popOrder?: PlayingCard[]): RoomState => {
+    fixedDeal(popOrder);
     return service.startPokDeng(target, target.roomHostId)!;
   };
 
@@ -103,12 +111,22 @@ describe('CardGameService', () => {
     finishRound(result);
     expect(result.status).toBe(RoomStatus.RESULT);
     expect(result.cardGameState?.phase).toBe('RESULT');
+    expect(result.cardGameState?.handCounts.p1).toBe(3);
     expect(result.cardGameChips).toEqual({ p1: 101, p2: 99 });
     expect(result.cardGameState?.chips).toEqual({ p1: 101, p2: 99 });
 
     const second = service.handleAction(result, 'p1', { type: 'NEXT_ROUND' })!;
     expect(second.cardGameChips).toEqual({ p1: 101, p2: 99 });
     expect(second.cardGameState?.chips).toEqual({ p1: 101, p2: 99 });
+  });
+
+  it('settles a natural Pok 9 with the preset multiplier', () => {
+    const result = startRound(room(), DEAL_P2_POK_9);
+    expect(result.cardGameState?.phase).toBe('RESULT');
+    expect(result.cardGameState?.result?.outcomeTags.p2).toBe('POK_9');
+    expect(result.cardGameState?.result?.winnerIds).toEqual(['p2']);
+    expect(result.cardGameState?.result?.dealerScore).toBe(5);
+    expect(result.cardGameChips).toEqual({ p1: 98, p2: 102 });
   });
 
   it('accepts NEXT_ROUND only from the host and only after a result', () => {
@@ -136,17 +154,19 @@ describe('CardGameService', () => {
     expect(result.cardGameChips).toEqual(balances);
     expect(privateState.get(result.code, 'p1', 'cardGame')).toBeUndefined();
     expect(privateState.get(result.code, 'p2', 'cardGame')).toBeUndefined();
-    expect(privateState.get(result.code, '__card-game-engine__', 'deck')).toBeUndefined();
+    expect(privateState.get(result.code, '__card-game-engine__', 'piles')).toBeUndefined();
   });
 
   it('remaps every public state reference on reconnect', () => {
     const result = startRound(room());
+    finishRound(result);
     result.cardGameChips!.p1 = 37;
     result.cardGameState!.chips.p1 = 37;
     service.remapSocketId(result.cardGameState!, 'p1', 'p1-new');
     expect(result.cardGameState!.playerOrder).toContain('p1-new');
-    expect(result.cardGameState!.handCounts['p1-new']).toBe(2);
     expect(result.cardGameState!.chips['p1-new']).toBe(37);
-    expect(result.cardGameState!.chips['p2']).toBe(100);
+    expect(result.cardGameState!.chips['p2']).toBe(99);
+    expect(result.cardGameState!.result!.outcomeTags['p1-new']).toBeDefined();
+    expect(result.cardGameState!.result!.outcomeTags['p1']).toBeUndefined();
   });
 });
