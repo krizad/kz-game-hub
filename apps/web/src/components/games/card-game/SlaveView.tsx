@@ -21,7 +21,8 @@ export function SlaveView() {
   const leading = !trick || trick.playedById === null;
   const cards = privateCardState?.hand ?? [];
   const leaderName =
-    room.players.find((player) => player.socketId === state.dealerId)?.name ?? '—';
+    room.players.find((player) => player.socketId === (trick?.leaderId ?? state.dealerId))?.name ??
+    '—';
   const playedByName = room.players.find((player) => player.socketId === trick?.playedById)?.name;
   const winnerNames = (state.result?.winnerIds ?? [])
     .map((id) => room.players.find((player) => player.socketId === id)?.name ?? id)

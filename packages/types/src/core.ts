@@ -58,7 +58,6 @@ export const SOCKET_EVENTS = {
   WORD_SETTING_COMPLETED: 'word_setting_completed',
   END_QUESTIONING: 'end_questioning',
   STOP_TIMER: 'stop_timer',
-  TIMER_UPDATE: 'timer_update',
   SUBMIT_VOTE: 'submit_vote',
   RESET_GAME: 'reset_game',
   UPDATE_CONFIG: 'update_config',
@@ -126,7 +125,6 @@ export const SOCKET_EVENTS = {
   COUP_DECLARE: 'coup_declare',
   COUP_CHALLENGE: 'coup_challenge',
   COUP_BLOCK: 'coup_block',
-  COUP_REVEAL: 'coup_reveal',
   COUP_EXCHANGE_SELECT: 'coup_exchange_select',
   COUP_RESET: 'coup_reset',
   // Ultimate Tic-Tac-Toe specific events
@@ -135,7 +133,6 @@ export const SOCKET_EVENTS = {
   UTTT_RESET: 'uttt_reset',
   // Configurable card game
   CARD_GAME_ACTION: 'card_game_action',
-  CARD_GAME_PRIVATE_STATE_UPDATED: 'card_game_private_state_updated',
   CARD_GAME_IMPORT_RULES: 'card_game_import_rules',
   CARD_GAME_PUBLISH_RULES: 'card_game_publish_rules',
 } as const;

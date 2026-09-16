@@ -2,7 +2,7 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GameType, SoundsFishyPhase } from '@repo/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
@@ -22,6 +22,15 @@ export function SoundsFishyView() {
   const { t } = useTranslate();
 
   const [answerInput, setAnswerInput] = useState('');
+  const roundPhase = room?.soundsFishyState?.currentPhase ?? '';
+  useEffect(() => {
+    setAnswerInput('');
+  }, [roundPhase]);
+  const answerPhase = room?.soundsFishyState?.currentPhase ?? '';
+
+  useEffect(() => {
+    setAnswerInput('');
+  }, [answerPhase]);
 
   if (!room || room.gameType !== GameType.SOUNDS_FISHY) return null;
 
