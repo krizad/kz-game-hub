@@ -233,7 +233,7 @@ export class TheMindService {
     if (pile === 'DOWN') {
       if (card >= currentDOWN && card !== currentDOWN + 10) isDirectMistake = true;
     } else {
-      if (card <= currentUP && card !== currentUP - 10) isDirectMistake = true;
+      if (card <= currentUP && !(isExtreme && card === currentUP - 10)) isDirectMistake = true;
     }
 
     const nextUP = pile === 'UP' ? card : currentUP;
@@ -249,7 +249,7 @@ export class TheMindService {
         if (isExtreme) {
           isDead = c <= nextUP && c >= nextDOWN && c !== nextUP - 10 && c !== nextDOWN + 10;
         } else {
-          isDead = c <= nextUP && c !== nextUP - 10;
+          isDead = c <= nextUP;
         }
 
         if (isDead) {
