@@ -1,4 +1,4 @@
-import { SOCKET_EVENTS } from '@repo/types';
+import { GameType, RoomState, SOCKET_EVENTS } from '@repo/types';
 import { GamesGateway } from './games.gateway';
 
 describe('GamesGateway payload guard', () => {
@@ -124,5 +124,36 @@ describe('GamesGateway payload guard', () => {
     gateway.handleCreateRoom({ name: 'Host' }, client);
 
     expect(deleteRoom).toHaveBeenCalledWith('NEW123');
+  });
+
+  it('keeps the saboteur auto-pass deadline stable across unrelated broadcasts', () => {
+    jest.useFakeTimers({ now: 0 });
+    const schedule = jest.fn();
+    const cancel = jest.fn();
+    const gatewayInstance = new GamesGateway(
+      {} as never,
+      {} as never,
+      { schedule, cancel } as never,
+      { getSocketData: jest.fn(() => ({})) } as never,
+    );
+    gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() } as never;
+    const room = {
+      code: 'SAB123',
+      gameType: GameType.SABOTEUR,
+      config: { saboteurTurnTimerEnabled: true, saboteurTurnTimerSeconds: 60 },
+      players: [],
+      saboteurState: { currentPhase: 'PLAYING', activePlayerId: 'p1' },
+    } as unknown as RoomState;
+    const broadcast = (
+      gatewayInstance as unknown as { broadcastRoomState: (room: RoomState) => void }
+    ).broadcastRoomState.bind(gatewayInstance);
+
+    broadcast(room);
+    jest.advanceTimersByTime(5_000);
+    broadcast(room);
+
+    expect(schedule.mock.calls[0][2]).toBe(60_000);
+    expect(schedule.mock.calls[1][2]).toBe(60_000);
+    jest.useRealTimers();
   });
 });

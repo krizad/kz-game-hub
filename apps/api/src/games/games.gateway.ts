@@ -50,6 +50,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   private readonly logger = new Logger(GamesGateway.name);
   private readonly recordedResults = new Set<string>();
+  private readonly saboteurDeadlines = new Map<string, { playerId: string; deadline: number }>();
 
   constructor(
     private readonly gamesService: GamesService,
@@ -63,6 +64,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       if (event.type === 'ROOM_DELETED') {
         this.server.to(event.code).emit(SOCKET_EVENTS.ROOM_DELETED);
         this.forgetRecordedResult(event.code);
+        this.saboteurDeadlines.delete(event.code);
       } else {
         this.broadcastRoomState(event.room);
       }
@@ -1295,12 +1297,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const seconds = room.config.saboteurTurnTimerSeconds ?? 60;
 
     if (!enabled || !state || state.currentPhase !== 'PLAYING' || !state.activePlayerId) {
+      this.saboteurDeadlines.delete(room.code);
       this.roomTimerService.cancel(room.code, 'saboteur');
       return;
     }
 
     const activePlayerId = state.activePlayerId;
-    const deadline = Date.now() + seconds * 1000;
+    const current = this.saboteurDeadlines.get(room.code);
+    const deadline =
+      current && current.playerId === activePlayerId
+        ? current.deadline
+        : Date.now() + seconds * 1000;
+    this.saboteurDeadlines.set(room.code, { playerId: activePlayerId, deadline });
     this.roomTimerService.schedule(room.code, 'saboteur', deadline, () => {
       const currentRoom = this.gamesService.getRoom(room.code);
       const currentState = currentRoom?.saboteurState;
@@ -1313,6 +1321,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         return; // turn already advanced elsewhere
       }
       const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
+      this.saboteurDeadlines.delete(currentRoom.code);
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
       }
