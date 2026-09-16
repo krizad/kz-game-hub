@@ -17,6 +17,7 @@ const SF_MY_ANSWER = 'sfMyAnswer';
 const SF_ROOM_TRUE_ANSWER = 'sfRoomTrueAnswer';
 const SF_ROOM_BLUE_FISH = 'sfRoomBlueFish';
 const SF_ROOM_RED_HERRINGS = 'sfRoomRedHerrings';
+const SF_TYPING_TEXTS = 'sfTypingTexts';
 
 const MAX_ANSWER_LENGTH = 200;
 
@@ -157,7 +158,7 @@ export class SoundsFishyService {
       eliminatedPlayers: [],
       roundScorePool: 0,
       roundPoints: {},
-      typingAnswers: {},
+      typingPlayerIds: [],
     };
 
     room.status = RoomStatus.QUESTIONING;
@@ -180,7 +181,7 @@ export class SoundsFishyService {
     if (!this.isMember(room, playerId)) return null;
     if (playerId === state.pickerId) return null;
 
-    state.typingAnswers[playerId] = answer.slice(0, MAX_ANSWER_LENGTH);
+    this.applyTyping(room, playerId, answer.slice(0, MAX_ANSWER_LENGTH));
 
     return room;
   }
@@ -222,7 +223,7 @@ export class SoundsFishyService {
       if (normalized === trueAnswer) return null; // Red herring must not copy the truth
     }
 
-    if (state.typingAnswers) delete state.typingAnswers[playerId];
+    this.clearTyping(room, playerId);
 
     this.privateState.set(room.code, playerId, SF_MY_ANSWER, { playerId, answer: trimmed });
     if (!state.answeredPlayerIds.includes(playerId)) {
@@ -414,9 +415,46 @@ export class SoundsFishyService {
       delete state.roundPoints[oldSocketId];
     }
 
-    if (state.typingAnswers[oldSocketId] !== undefined) {
-      state.typingAnswers[newSocketId] = state.typingAnswers[oldSocketId];
-      delete state.typingAnswers[oldSocketId];
+    state.typingPlayerIds = state.typingPlayerIds.map((id) =>
+      id === oldSocketId ? newSocketId : id,
+    );
+  }
+
+  private applyTyping(room: RoomState, playerId: string, text: string): void {
+    const state = room.soundsFishyState;
+    if (!state) return;
+    if (!state.typingPlayerIds.includes(playerId)) state.typingPlayerIds.push(playerId);
+    for (const player of room.players) {
+      if (player.socketId === state.pickerId) continue; // picker never sees live drafts
+      const view =
+        this.privateState.get<Record<string, string>>(
+          room.code,
+          player.socketId,
+          SF_TYPING_TEXTS,
+        ) ?? {};
+      view[playerId] = text;
+      this.privateState.set(room.code, player.socketId, SF_TYPING_TEXTS, view);
+    }
+  }
+
+  private clearTyping(room: RoomState, playerId: string): void {
+    const state = room.soundsFishyState;
+    if (!state) return;
+    state.typingPlayerIds = state.typingPlayerIds.filter((id) => id !== playerId);
+    for (const player of room.players) {
+      if (player.socketId === state.pickerId) continue;
+      const view = this.privateState.get<Record<string, string>>(
+        room.code,
+        player.socketId,
+        SF_TYPING_TEXTS,
+      );
+      if (!view || view[playerId] === undefined) continue;
+      delete view[playerId];
+      if (Object.keys(view).length === 0) {
+        this.privateState.delete(room.code, player.socketId, SF_TYPING_TEXTS);
+      } else {
+        this.privateState.set(room.code, player.socketId, SF_TYPING_TEXTS, view);
+      }
     }
   }
 
