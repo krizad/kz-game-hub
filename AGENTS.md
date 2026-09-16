@@ -9,7 +9,7 @@ pnpm db:push            # push schema (no migration file needed in dev)
 pnpm db:seed            # seed SoundsFishyQuestion (150+ Thai trivia) + WhoAmI words
 pnpm dev                # turbo dev (web:3000 + api:3001)
 pnpm -F api test        # run all API tests (Jest)
-pnpm -F api test -- --testPathPattern=sounds-fishy   # single test file
+pnpm -F api test -- --testPathPatterns=sounds-fishy   # single test file
 pnpm test:e2e           # run all E2E tests (Playwright)
 pnpm test:e2e:ui        # run E2E tests with Playwright UI
 pnpm format             # Prettier
@@ -99,7 +99,7 @@ API tests use Jest + `@nestjs/testing` `Test.createTestingModule`. Sounds Fishy 
 
 ```bash
 pnpm -F api test                          # all tests
-pnpm -F api test -- --testPathPattern=rps  # single game
+pnpm -F api test -- --testPathPatterns=rps  # single game
 ```
 
 No frontend tests exist.
