@@ -26,4 +26,25 @@ describe('PlayerSessionService', () => {
     expect(service.consume('ABCDEF', firstToken)).toBeNull();
     expect(service.consume('ABCDEF', secondToken)).toBe('player-1');
   });
+
+  it('verify does not consume the token', () => {
+    service.issue('ABCDEF', 'player-1', 'socket-1');
+    const token = service.takePendingToken('socket-1')!;
+
+    expect(service.verify('ABCDEF', token)).toBe('player-1');
+    expect(service.verify('ABCDEF', token)).toBe('player-1');
+    expect(service.consume('ABCDEF', token)).toBe('player-1');
+    expect(service.verify('ABCDEF', token)).toBeNull();
+  });
+
+  it('consume ignores unknown tokens without revoking others', () => {
+    service.issue('ABCDEF', 'player-1', 'socket-1');
+    const firstToken = service.takePendingToken('socket-1')!;
+    service.issue('ABCDEF', 'player-2', 'socket-2');
+    const secondToken = service.takePendingToken('socket-2')!;
+
+    expect(service.consume('ABCDEF', 'not-a-token')).toBeNull();
+    expect(service.consume('ABCDEF', firstToken)).toBe('player-1');
+    expect(service.consume('ABCDEF', secondToken)).toBe('player-2');
+  });
 });
