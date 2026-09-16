@@ -6,6 +6,7 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Logger, UseFilters } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
@@ -43,7 +44,7 @@ import {
   pingInterval: 20_000,
   pingTimeout: 60_000,
 })
-export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
@@ -56,6 +57,21 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly roomTimerService: RoomTimerService,
     private readonly privateStateService: PrivateStateService,
   ) {}
+
+  afterInit(): void {
+    this.gamesService.setRoomLifecycleListener((event) => {
+      if (event.type === 'ROOM_DELETED') {
+        this.server.to(event.code).emit(SOCKET_EVENTS.ROOM_DELETED);
+        this.forgetRecordedResult(event.code);
+      } else {
+        this.broadcastRoomState(event.room);
+      }
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    });
+  }
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
