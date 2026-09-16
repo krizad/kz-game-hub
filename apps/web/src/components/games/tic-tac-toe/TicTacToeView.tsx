@@ -17,6 +17,21 @@ export function TicTacToeView() {
   const mySide = isX ? 'X' : isO ? 'O' : null;
   const isMyTurn = mySide === ttt.currentTurn;
 
+  const isVsBot = !!room.config?.ticTacToeVsBot;
+  const botSide =
+    ttt.playerXId === 'bot-player' ? 'X' : ttt.playerOId === 'bot-player' ? 'O' : null;
+  const isBotTurn = room.status === RoomStatus.PLAYING && botSide === ttt.currentTurn;
+
+  const playerXName =
+    ttt.playerXId === 'bot-player'
+      ? `${t('gameTicTacToe.bot.botBadge')} (${room.config?.ticTacToeBotDifficulty === 'EASY' ? 'Easy' : 'God'})`
+      : room.players.find((p) => p.socketId === ttt.playerXId)?.name;
+
+  const playerOName =
+    ttt.playerOId === 'bot-player'
+      ? `${t('gameTicTacToe.bot.botBadge')} (${room.config?.ticTacToeBotDifficulty === 'EASY' ? 'Easy' : 'God'})`
+      : room.players.find((p) => p.socketId === ttt.playerOId)?.name;
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative font-mono h-full overflow-y-auto overflow-x-hidden w-full">
       {actionLoading && <ActionLoadingOverlay />}
@@ -27,56 +42,62 @@ export function TicTacToeView() {
           </h2>
           <div className="flex gap-6 mt-4">
             <div
-              className={`p-6 border-4 border-black flex flex-col items-center gap-4 w-40 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-transform ${ttt.playerXId ? 'bg-cyan-300' : 'bg-white'}`}
+              className={`p-6 border-4 border-black flex flex-col items-center gap-4 w-44 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-transform ${ttt.playerXId ? 'bg-cyan-300' : 'bg-white'}`}
             >
               <div className="text-6xl font-black text-black">X</div>
               {ttt.playerXId ? (
                 <div className="text-black font-bold text-center truncate w-full px-2">
-                  {room.players.find((p) => p.socketId === ttt.playerXId)?.name}
+                  {playerXName}
                 </div>
               ) : (
                 <button
+                  data-testid="ttt-join-x"
                   onClick={() => tttJoinSide('X')}
                   disabled={actionLoading}
-                  className="bg-white border-2 border-black hover:bg-gray-200 px-4 py-2 font-black text-black disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
+                  className="bg-white border-2 border-black hover:bg-gray-200 px-3 py-2 font-black text-black text-sm disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
                 >
-                  {t('gameTicTacToe.joinAs', { side: 'X' })}
+                  {isVsBot
+                    ? t('gameTicTacToe.joinAs', { side: 'X' })
+                    : t('gameTicTacToe.joinAs', { side: 'X' })}
                 </button>
               )}
             </div>
 
             <div
-              className={`p-6 border-4 border-black flex flex-col items-center gap-4 w-40 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-transform - ${ttt.playerOId ? 'bg-pink-300' : 'bg-white'}`}
+              className={`p-6 border-4 border-black flex flex-col items-center gap-4 w-44 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-transform - ${ttt.playerOId ? 'bg-pink-300' : 'bg-white'}`}
             >
               <div className="text-6xl font-black text-black">O</div>
               {ttt.playerOId ? (
                 <div className="text-black font-bold text-center truncate w-full px-2">
-                  {room.players.find((p) => p.socketId === ttt.playerOId)?.name}
+                  {playerOName}
                 </div>
               ) : (
                 <button
+                  data-testid="ttt-join-o"
                   onClick={() => tttJoinSide('O')}
                   disabled={actionLoading}
-                  className="bg-white border-2 border-black hover:bg-gray-200 px-4 py-2 font-black text-black disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
+                  className="bg-white border-2 border-black hover:bg-gray-200 px-3 py-2 font-black text-black text-sm disabled:opacity-50 disabled:cursor-not-allowed w-full active:translate-y-1"
                 >
-                  {t('gameTicTacToe.joinAs', { side: 'O' })}
+                  {isVsBot
+                    ? t('gameTicTacToe.joinAs', { side: 'O' })
+                    : t('gameTicTacToe.joinAs', { side: 'O' })}
                 </button>
               )}
             </div>
           </div>
-          <p className="text-black font-bold bg-white border-2 border-black px-4 py-1 mt-4 ">
-            {t('gameTicTacToe.waitingJoin')}
+          <p className="text-black font-bold bg-white border-2 border-black px-4 py-1 mt-4">
+            {isVsBot ? t('gameTicTacToe.bot.playVsBotAs') : t('gameTicTacToe.waitingJoin')}
           </p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-8 w-full max-w-md">
+        <div className="flex flex-col items-center gap-6 w-full max-w-md">
           <div className="flex justify-between w-full items-center">
             <div
-              className={`flex flex-col items-center bg-cyan-300 border-4 border-black p-3 min-w-[100px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform ${ttt.currentTurn === 'X' ? 'scale-110 -' : 'opacity-70 scale-90'}`}
+              className={`flex flex-col items-center bg-cyan-300 border-4 border-black p-3 min-w-[110px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform ${ttt.currentTurn === 'X' ? 'scale-110 -' : 'opacity-70 scale-90'}`}
             >
               <span className="text-black font-black text-4xl">X</span>
-              <span className="text-black font-bold text-sm truncate max-w-[90px]">
-                {room.players.find((p) => p.socketId === ttt.playerXId)?.name}
+              <span className="text-black font-bold text-xs truncate max-w-[100px]">
+                {playerXName}
               </span>
               <span className="text-black text-xs mt-1 bg-white px-2 py-0.5 border-2 border-black font-black">
                 {t('gameTicTacToe.score')}:{' '}
@@ -84,18 +105,25 @@ export function TicTacToeView() {
               </span>
             </div>
 
-            <div className="text-sm font-black tracking-widest uppercase text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10">
-              {room.status === RoomStatus.RESULT
-                ? t('gameTicTacToe.gameOver')
-                : t('gameTicTacToe.playing')}
+            <div className="flex flex-col items-center gap-1">
+              <div className="text-sm font-black tracking-widest uppercase text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10">
+                {room.status === RoomStatus.RESULT
+                  ? t('gameTicTacToe.gameOver')
+                  : t('gameTicTacToe.playing')}
+              </div>
+              {isBotTurn && (
+                <div className="text-xs font-black text-black bg-yellow-300 border-2 border-black px-2 py-0.5 animate-pulse">
+                  {t('gameTicTacToe.bot.thinking')}
+                </div>
+              )}
             </div>
 
             <div
-              className={`flex flex-col items-center bg-pink-300 border-4 border-black p-3 min-w-[100px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform ${ttt.currentTurn === 'O' ? 'scale-110 ' : 'opacity-70 scale-90'}`}
+              className={`flex flex-col items-center bg-pink-300 border-4 border-black p-3 min-w-[110px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform ${ttt.currentTurn === 'O' ? 'scale-110 ' : 'opacity-70 scale-90'}`}
             >
               <span className="text-black font-black text-4xl">O</span>
-              <span className="text-black font-bold text-sm truncate max-w-[90px]">
-                {room.players.find((p) => p.socketId === ttt.playerOId)?.name}
+              <span className="text-black font-bold text-xs truncate max-w-[100px]">
+                {playerOName}
               </span>
               <span className="text-black text-xs mt-1 bg-white px-2 py-0.5 border-2 border-black font-black">
                 {t('gameTicTacToe.score')}:{' '}
@@ -111,6 +139,7 @@ export function TicTacToeView() {
               return (
                 <button
                   key={index}
+                  data-testid={`ttt-cell-${index}`}
                   disabled={
                     room.status !== RoomStatus.PLAYING ||
                     !isMyTurn ||
@@ -125,7 +154,7 @@ export function TicTacToeView() {
  ${isWinningCell ? 'bg-green-300 animate-pulse' : ''}
  `}
                 >
-                  <span className={`${isWinningCell ? '' : ''}`}>{cell}</span>
+                  <span>{cell}</span>
                 </button>
               );
             })}
@@ -146,13 +175,24 @@ export function TicTacToeView() {
               )}
 
               {(room.roomHostId === socketId || mySide) && (
-                <button
-                  onClick={tttReset}
-                  disabled={actionLoading}
-                  className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-4 border-4 border-black mt-4 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
-                >
-                  {t('gameTicTacToe.playAgain')}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <button
+                    onClick={() => tttReset(false)}
+                    disabled={actionLoading}
+                    className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
+                  >
+                    {t('gameTicTacToe.playAgain')}
+                  </button>
+                  {room.roomHostId === socketId && (
+                    <button
+                      onClick={() => tttReset(true)}
+                      disabled={actionLoading}
+                      className="bg-white hover:bg-gray-100 text-black font-black px-6 py-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
+                    >
+                      {t('gameTicTacToe.modes.changeMode')}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}

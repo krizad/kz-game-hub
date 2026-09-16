@@ -20,8 +20,10 @@ import {
   RoomStatus,
   Role,
   GameType,
+  RoomConfig,
   RPSChoice,
   CoupActionType,
+  CardGameAction,
 } from '@repo/types';
 import {
   MusicTriviaActionResult,
@@ -119,10 +121,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(SOCKET_EVENTS.CREATE_ROOM)
   handleCreateRoom(
-    @MessageBody() data: { name: string; gameType?: GameType },
+    @MessageBody() data: { name: string; gameType?: GameType; config?: Partial<RoomConfig> },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.createRoom(client.id, data.gameType);
+    const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
     const updatedRoom = this.gamesService.joinRoom(room.code, {
       id: client.id,
       name: data.name.trim(),
@@ -350,6 +352,19 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.CARD_GAME_ACTION)
+  handleCardGameAction(
+    @MessageBody() data: { code: string; action: CardGameAction },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cardGameAction(data.code, client.id, data.action);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid card game action.' });
+    }
+  }
+
   // --- Tic-Tac-Toe Game Actions ---
 
   @SubscribeMessage(SOCKET_EVENTS.TTT_JOIN_SIDE)
@@ -385,8 +400,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.TTT_RESET)
-  handleTTTReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
-    const room = this.gamesService.tttReset(data.code, client.id);
+  handleTTTReset(
+    @MessageBody() data: { code: string; toLobby?: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.tttReset(data.code, client.id, data.toLobby);
     if (room) {
       this.broadcastRoomState(room);
       this.server.emit(
@@ -439,8 +457,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.UTTT_RESET)
-  handleUTTTReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
-    const room = this.gamesService.utttReset(data.code, client.id);
+  handleUTTTReset(
+    @MessageBody() data: { code: string; toLobby?: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.utttReset(data.code, client.id, data.toLobby);
     if (room) {
       this.broadcastRoomState(room);
       this.server.emit(
@@ -549,8 +570,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.GOBBLER_RESET)
-  handleGobblerReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
-    const room = this.gamesService.gobblerReset(data.code, client.id);
+  handleGobblerReset(
+    @MessageBody() data: { code: string; toLobby?: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.gobblerReset(data.code, client.id, data.toLobby);
     if (room) {
       this.broadcastRoomState(room);
       this.server.emit(

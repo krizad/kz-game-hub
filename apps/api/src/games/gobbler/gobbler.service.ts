@@ -31,9 +31,15 @@ export class GobblerService {
     return Number.isInteger(index) && (index as number) >= 0 && (index as number) < 9;
   }
 
+  private isGobblerRoom(room: RoomState): boolean {
+    return (
+      room.gameType === GameType.GOBBLER_TIC_TAC_TOE ||
+      (room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER')
+    );
+  }
+
   joinSide(room: RoomState, clientId: string, side: PlayerSide): RoomState | null {
-    if (room.gameType !== GameType.GOBBLER_TIC_TAC_TOE || room.status !== RoomStatus.LOBBY)
-      return null;
+    if (!this.isGobblerRoom(room) || room.status !== RoomStatus.LOBBY) return null;
     if (!room.gobblerState) return null;
     if (!this.isMember(room, clientId)) return null;
     if (side !== 'X' && side !== 'O') return null;
@@ -130,8 +136,7 @@ export class GobblerService {
     pieceId: string,
     toIndex: number,
   ): RoomState | null {
-    if (room.gameType !== GameType.GOBBLER_TIC_TAC_TOE || room.status !== RoomStatus.PLAYING)
-      return null;
+    if (!this.isGobblerRoom(room) || room.status !== RoomStatus.PLAYING) return null;
 
     const gb = room.gobblerState;
     if (!gb || gb.winner) return null;
@@ -164,8 +169,7 @@ export class GobblerService {
     fromIndex: number,
     toIndex: number,
   ): RoomState | null {
-    if (room.gameType !== GameType.GOBBLER_TIC_TAC_TOE || room.status !== RoomStatus.PLAYING)
-      return null;
+    if (!this.isGobblerRoom(room) || room.status !== RoomStatus.PLAYING) return null;
 
     const gb = room.gobblerState;
     if (!gb || gb.winner) return null;
@@ -219,9 +223,8 @@ export class GobblerService {
     return room;
   }
 
-  reset(room: RoomState, clientId: string): RoomState | null {
-    if (room.gameType !== GameType.GOBBLER_TIC_TAC_TOE || room.status !== RoomStatus.RESULT)
-      return null;
+  reset(room: RoomState, clientId: string, toLobby = false): RoomState | null {
+    if (!this.isGobblerRoom(room) || room.status !== RoomStatus.RESULT) return null;
 
     if (
       room.roomHostId !== clientId &&
@@ -231,7 +234,8 @@ export class GobblerService {
       return null;
     }
 
-    const willStartImmediately = !!(room.gobblerState?.playerXId && room.gobblerState?.playerOId);
+    const willStartImmediately =
+      !toLobby && !!(room.gobblerState?.playerXId && room.gobblerState?.playerOId);
     room.status = willStartImmediately ? RoomStatus.PLAYING : RoomStatus.LOBBY;
 
     const previousWinner = room.gobblerState?.winner;

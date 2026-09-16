@@ -272,13 +272,26 @@ export function UltimateTicTacToeView() {
               )}
 
               {(room.roomHostId === socketId || mySide) && (
-                <button
-                  onClick={utttReset}
-                  disabled={actionLoading}
-                  className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
-                >
-                  {t('gameTicTacToe.playAgain')}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => utttReset(false)}
+                    disabled={actionLoading}
+                    className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
+                  >
+                    {t('gameTicTacToe.playAgain')}
+                  </button>
+                  {room.roomHostId === socketId && (
+                    <button
+                      type="button"
+                      onClick={() => utttReset(true)}
+                      disabled={actionLoading}
+                      className="bg-white hover:bg-gray-100 text-black font-black px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
+                    >
+                      {t('gameTicTacToe.modes.changeMode')}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}

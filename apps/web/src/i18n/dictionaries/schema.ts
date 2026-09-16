@@ -25,6 +25,7 @@ export interface Dictionary {
       musicTrivia: string;
       coup: string;
       saboteur: string;
+      pokDeng: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -458,6 +459,33 @@ export interface Dictionary {
     draw: string;
     wins: string;
     playAgain: string;
+    modes: {
+      title: string;
+      classic: string;
+      classicDesc: string;
+      gobbler: string;
+      gobblerDesc: string;
+      ultimate: string;
+      ultimateDesc: string;
+      hostSelectingMode: string;
+      changeMode: string;
+    };
+    bot: {
+      title: string;
+      pvp: string;
+      pvpDesc: string;
+      vsBot: string;
+      vsBotDesc: string;
+      difficulty: string;
+      easy: string;
+      easyDesc: string;
+      god: string;
+      godDesc: string;
+      thinking: string;
+      botBadge: string;
+      playVsBotAs: string;
+      hostSelectingBot: string;
+    };
   };
   gameUltimateTTT: {
     title: string;

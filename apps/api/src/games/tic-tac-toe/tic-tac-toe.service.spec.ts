@@ -173,4 +173,87 @@ describe('TicTacToeService', () => {
       expect(room.status).toBe(RoomStatus.RESULT);
     });
   });
+
+  describe('vs Bot mode', () => {
+    it('automatically seats bot on opposing side when human joins X and starts game', () => {
+      const room = createRoom(RoomStatus.LOBBY, { playerXId: undefined, playerOId: undefined }, [
+        { socketId: 'p1' },
+        { socketId: 'bot-player' },
+      ]);
+      room.config.ticTacToeVsBot = true;
+      room.config.ticTacToeBotDifficulty = 'GOD';
+
+      const result = service.joinSide(room, 'p1', 'X');
+      expect(result).not.toBeNull();
+      expect(result!.ticTacToeState!.playerXId).toBe('p1');
+      expect(result!.ticTacToeState!.playerOId).toBe('bot-player');
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.ticTacToeState!.currentTurn).toBe('X');
+    });
+
+    it('automatically seats bot on X when human joins O, and bot takes first move immediately', () => {
+      const room = createRoom(RoomStatus.LOBBY, { playerXId: undefined, playerOId: undefined }, [
+        { socketId: 'p1' },
+        { socketId: 'bot-player' },
+      ]);
+      room.config.ticTacToeVsBot = true;
+      room.config.ticTacToeBotDifficulty = 'GOD';
+
+      const result = service.joinSide(room, 'p1', 'O');
+      expect(result).not.toBeNull();
+      expect(result!.ticTacToeState!.playerXId).toBe('bot-player');
+      expect(result!.ticTacToeState!.playerOId).toBe('p1');
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      // Bot already played its 'X' move
+      expect(result!.ticTacToeState!.board.filter((c) => c === 'X').length).toBe(1);
+      expect(result!.ticTacToeState!.currentTurn).toBe('O');
+    });
+
+    it('triggers bot response move after human makes a move', () => {
+      const room = createRoom(
+        RoomStatus.PLAYING,
+        {
+          playerXId: 'p1',
+          playerOId: 'bot-player',
+          board: Array(9).fill(null),
+          currentTurn: 'X',
+        },
+        [{ socketId: 'p1' }, { socketId: 'bot-player' }],
+      );
+      room.config.ticTacToeVsBot = true;
+      room.config.ticTacToeBotDifficulty = 'GOD';
+
+      const result = service.makeMove(room, 'p1', 4);
+      expect(result).not.toBeNull();
+      expect(result!.ticTacToeState!.board[4]).toBe('X');
+      // Bot should have moved as O
+      expect(result!.ticTacToeState!.board.filter((c) => c === 'O').length).toBe(1);
+      expect(result!.ticTacToeState!.currentTurn).toBe('X');
+    });
+
+    it('bot wins in God mode if human misses a block and awards score to bot', () => {
+      const room = createRoom(
+        RoomStatus.PLAYING,
+        {
+          playerXId: 'p1',
+          playerOId: 'bot-player',
+          board: ['O', 'O', null, 'X', 'X', null, null, null, null],
+          currentTurn: 'O',
+        },
+        [
+          { socketId: 'p1', score: 0 },
+          { socketId: 'bot-player', score: 0 },
+        ],
+      );
+      room.config.ticTacToeVsBot = true;
+      room.config.ticTacToeBotDifficulty = 'GOD';
+
+      const executed = service.executeBotMoveIfNeeded(room);
+      expect(executed).toBe(true);
+      expect(room.ticTacToeState!.board[2]).toBe('O');
+      expect(room.ticTacToeState!.winner).toBe('O');
+      expect(room.status).toBe(RoomStatus.RESULT);
+      expect(room.players.find((p) => p.socketId === 'bot-player')!.score).toBe(1);
+    });
+  });
 });

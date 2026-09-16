@@ -18,6 +18,7 @@ import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-ta
 import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
+import { CardGameService } from './card-game/card-game.service';
 
 @Module({
   providers: [
@@ -40,6 +41,7 @@ import { PrivateStateService } from './private-state.service';
     PlayerSessionService,
     RoomTimerService,
     PrivateStateService,
+    CardGameService,
   ],
 })
 export class GamesModule {}

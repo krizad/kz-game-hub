@@ -32,7 +32,11 @@ export function RoomHeader() {
               {room.gameType === GameType.GOBBLER_TIC_TAC_TOE
                 ? t('lobby.gameNames.gobbler')
                 : room.gameType === GameType.TIC_TAC_TOE
-                  ? t('lobby.gameNames.ticTacToe')
+                  ? room.config?.ticTacToeMode === 'GOBBLER'
+                    ? t('lobby.gameNames.gobbler')
+                    : room.config?.ticTacToeMode === 'ULTIMATE'
+                      ? t('lobby.gameNames.ultimateTTT')
+                      : t('lobby.gameNames.ticTacToe')
                   : room.gameType === GameType.ULTIMATE_TIC_TAC_TOE
                     ? t('lobby.gameNames.ultimateTTT')
                     : room.gameType === GameType.RPS
@@ -53,7 +57,9 @@ export function RoomHeader() {
                                     ? 'Saboteur'
                                     : room.gameType === GameType.COUP
                                       ? 'Coup'
-                                      : t('lobby.gameNames.whoKnow')}
+                                      : room.gameType === GameType.CARD_GAME
+                                        ? t('lobby.gameNames.pokDeng')
+                                        : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

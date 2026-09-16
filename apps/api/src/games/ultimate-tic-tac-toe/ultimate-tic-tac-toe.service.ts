@@ -53,8 +53,15 @@ export class UltimateTicTacToeService {
     return { winner: null };
   }
 
+  private isUltimateTTTRoom(room: RoomState): boolean {
+    return (
+      room.gameType === GameType.ULTIMATE_TIC_TAC_TOE ||
+      (room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE')
+    );
+  }
+
   joinSide(room: RoomState, clientId: string, side: 'X' | 'O'): RoomState | null {
-    if (room.gameType !== GameType.ULTIMATE_TIC_TAC_TOE || room.status !== RoomStatus.LOBBY) {
+    if (!this.isUltimateTTTRoom(room) || room.status !== RoomStatus.LOBBY) {
       return null;
     }
     if (!room.ultimateTicTacToeState) return null;
@@ -98,7 +105,7 @@ export class UltimateTicTacToeService {
     macroIndex: number,
     microIndex: number,
   ): RoomState | null {
-    if (room.gameType !== GameType.ULTIMATE_TIC_TAC_TOE || room.status !== RoomStatus.PLAYING) {
+    if (!this.isUltimateTTTRoom(room) || room.status !== RoomStatus.PLAYING) {
       return null;
     }
 
@@ -177,8 +184,8 @@ export class UltimateTicTacToeService {
     return room;
   }
 
-  reset(room: RoomState, clientId: string): RoomState | null {
-    if (room.gameType !== GameType.ULTIMATE_TIC_TAC_TOE || room.status !== RoomStatus.RESULT) {
+  reset(room: RoomState, clientId: string, toLobby = false): RoomState | null {
+    if (!this.isUltimateTTTRoom(room) || room.status !== RoomStatus.RESULT) {
       return null;
     }
 
@@ -191,7 +198,7 @@ export class UltimateTicTacToeService {
     }
 
     const uttt = room.ultimateTicTacToeState;
-    const willStartImmediately = !!(uttt?.playerXId && uttt?.playerOId);
+    const willStartImmediately = !toLobby && !!(uttt?.playerXId && uttt?.playerOId);
     room.status = willStartImmediately ? RoomStatus.PLAYING : RoomStatus.LOBBY;
 
     const previousWinner = uttt?.winner;

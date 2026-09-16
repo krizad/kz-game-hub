@@ -8,6 +8,7 @@ import {
   MusicTriviaTrackAnswerPayload,
   RoomState,
   RoomStatus,
+  RoomConfig,
   Role,
   SOCKET_EVENTS,
   AvailableRoom,
@@ -16,6 +17,7 @@ import {
   WordCategory,
   SaboteurTool,
   CoupActionType,
+  CardGameAction,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -51,7 +53,7 @@ interface GameState {
   actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
-  createRoom: (gameType?: GameType) => void;
+  createRoom: (gameType?: GameType, config?: Partial<RoomConfig>) => void;
   joinRoom: (code: string) => void;
   startGame: () => void;
   setWord: (word: string) => void;
@@ -63,17 +65,17 @@ interface GameState {
   updateConfig: (config: Partial<RoomState['config']>) => void;
   tttJoinSide: (side: 'X' | 'O') => void;
   tttMakeMove: (index: number) => void;
-  tttReset: () => void;
+  tttReset: (toLobby?: boolean) => void;
   utttJoinSide: (side: 'X' | 'O') => void;
   utttMakeMove: (macroIndex: number, microIndex: number) => void;
-  utttReset: () => void;
+  utttReset: (toLobby?: boolean) => void;
   rpsMakeChoice: (choice: 'ROCK' | 'PAPER' | 'SCISSORS') => void;
   rpsNextRound: () => void;
   rpsReset: () => void;
   gobblerJoinSide: (side: 'X' | 'O') => void;
   gobblerPlacePiece: (pieceId: string, toIndex: number) => void;
   gobblerMovePiece: (fromIndex: number, toIndex: number) => void;
-  gobblerReset: () => void;
+  gobblerReset: (toLobby?: boolean) => void;
   soundsFishyTypeAnswer: (answer: string) => void;
   soundsFishySubmitAnswer: (answer: string) => void;
   soundsFishyRevealAnswer: (targetId: string) => void;
@@ -116,6 +118,7 @@ interface GameState {
   coupChallenge: () => void;
   coupBlock: () => void;
   coupExchangeSelect: (keepIndices: number[]) => void;
+  cardGameAction: (action: CardGameAction) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -316,14 +319,18 @@ export const useGameStore = create<GameState>((set, get) => {
       });
     },
 
-    createRoom: (gameType: GameType = GameType.WHO_KNOW) => {
+    createRoom: (gameType: GameType = GameType.WHO_KNOW, config?: Partial<RoomConfig>) => {
       const { socket, myName } = get();
       if (!myName) {
         toast.error(translateError('Please enter your name first'));
         return;
       }
       if (socket) {
-        socket.emit(SOCKET_EVENTS.CREATE_ROOM, { name: myName, gameType });
+        socket.emit(SOCKET_EVENTS.CREATE_ROOM, {
+          name: myName,
+          gameType,
+          ...(config ? { config } : {}),
+        });
       }
     },
 
@@ -376,6 +383,10 @@ export const useGameStore = create<GameState>((set, get) => {
       emitGameAction(SOCKET_EVENTS.UPDATE_CONFIG, { payload: () => ({ config }) });
     },
 
+    cardGameAction: (action: CardGameAction) => {
+      emitGameAction(SOCKET_EVENTS.CARD_GAME_ACTION, { payload: () => ({ action }) });
+    },
+
     tttJoinSide: (side: 'X' | 'O') => {
       emitGameAction(SOCKET_EVENTS.TTT_JOIN_SIDE, { payload: () => ({ side }) });
     },
@@ -384,8 +395,8 @@ export const useGameStore = create<GameState>((set, get) => {
       emitGameAction(SOCKET_EVENTS.TTT_MAKE_MOVE, { payload: () => ({ index }) });
     },
 
-    tttReset: () => {
-      emitGameAction(SOCKET_EVENTS.TTT_RESET);
+    tttReset: (toLobby?: boolean) => {
+      emitGameAction(SOCKET_EVENTS.TTT_RESET, { payload: () => ({ toLobby }) });
     },
 
     utttJoinSide: (side: 'X' | 'O') => {
@@ -398,8 +409,8 @@ export const useGameStore = create<GameState>((set, get) => {
       });
     },
 
-    utttReset: () => {
-      emitGameAction(SOCKET_EVENTS.UTTT_RESET);
+    utttReset: (toLobby?: boolean) => {
+      emitGameAction(SOCKET_EVENTS.UTTT_RESET, { payload: () => ({ toLobby }) });
     },
 
     rpsNextRound: () => {
@@ -426,8 +437,8 @@ export const useGameStore = create<GameState>((set, get) => {
       emitGameAction(SOCKET_EVENTS.GOBBLER_MOVE, { payload: () => ({ fromIndex, toIndex }) });
     },
 
-    gobblerReset: () => {
-      emitGameAction(SOCKET_EVENTS.GOBBLER_RESET);
+    gobblerReset: (toLobby?: boolean) => {
+      emitGameAction(SOCKET_EVENTS.GOBBLER_RESET, { payload: () => ({ toLobby }) });
     },
 
     soundsFishyTypeAnswer: (answer: string) => {

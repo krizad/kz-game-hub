@@ -247,10 +247,35 @@ describe('GamesService', () => {
       const room = service.createRoom('host1', GameType.TIC_TAC_TOE);
 
       expect(room.gameType).toBe(GameType.TIC_TAC_TOE);
+      expect(room.config.ticTacToeMode).toBe('CLASSIC');
       expect(room.ticTacToeState).toBeDefined();
       expect(room.ticTacToeState!.board).toHaveLength(9);
       expect(room.ticTacToeState!.board.every((c) => c === null)).toBe(true);
       expect(room.ticTacToeState!.currentTurn).toBe('X');
+    });
+
+    it('should create a Tic-Tac-Toe room in GOBBLER mode', () => {
+      const room = service.createRoom('host1', GameType.TIC_TAC_TOE, {
+        ticTacToeMode: 'GOBBLER',
+      });
+
+      expect(room.gameType).toBe(GameType.TIC_TAC_TOE);
+      expect(room.config.ticTacToeMode).toBe('GOBBLER');
+      expect(room.gobblerState).toBeDefined();
+      expect(room.gobblerState!.board).toHaveLength(9);
+      expect(room.gobblerState!.inventory.X).toHaveLength(6);
+      expect(room.gobblerState!.inventory.O).toHaveLength(6);
+    });
+
+    it('should create a Tic-Tac-Toe room in ULTIMATE mode', () => {
+      const room = service.createRoom('host1', GameType.TIC_TAC_TOE, {
+        ticTacToeMode: 'ULTIMATE',
+      });
+
+      expect(room.gameType).toBe(GameType.TIC_TAC_TOE);
+      expect(room.config.ticTacToeMode).toBe('ULTIMATE');
+      expect(room.ultimateTicTacToeState).toBeDefined();
+      expect(room.ultimateTicTacToeState!.subBoards).toHaveLength(9);
     });
 
     it('should create an RPS room with initial state', () => {
@@ -835,6 +860,25 @@ describe('GamesService', () => {
     it('should return null if requester is not host', () => {
       const room = service.createRoom('host1');
       expect(service.updateConfig(room.code, 'p2', {})).toBeNull();
+    });
+
+    it('should add bot player when ticTacToeVsBot is enabled and remove when disabled', () => {
+      const room = service.createRoom('host1', GameType.TIC_TAC_TOE);
+      expect(room.players.some((p) => p.socketId === 'bot-player')).toBe(false);
+
+      const withBot = service.updateConfig(room.code, 'host1', {
+        ticTacToeVsBot: true,
+        ticTacToeBotDifficulty: 'GOD',
+      });
+      expect(withBot!.players.some((p) => p.socketId === 'bot-player')).toBe(true);
+      expect(withBot!.config.ticTacToeVsBot).toBe(true);
+      expect(withBot!.config.ticTacToeBotDifficulty).toBe('GOD');
+
+      const withoutBot = service.updateConfig(room.code, 'host1', {
+        ticTacToeVsBot: false,
+      });
+      expect(withoutBot!.players.some((p) => p.socketId === 'bot-player')).toBe(false);
+      expect(withoutBot!.config.ticTacToeVsBot).toBe(false);
     });
   });
 

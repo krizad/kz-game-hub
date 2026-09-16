@@ -1,4 +1,6 @@
 export type TicTacToeCell = 'X' | 'O' | null;
+export type TicTacToeMode = 'CLASSIC' | 'GOBBLER' | 'ULTIMATE';
+export type TicTacToeBotDifficulty = 'EASY' | 'GOD';
 
 export interface TicTacToeState {
   board: TicTacToeCell[]; // Array of 9 cells

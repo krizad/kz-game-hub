@@ -504,22 +504,34 @@ export function GobblerView() {
                       )}
 
                       {(room.roomHostId === socketId || mySide) && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={gobblerReset}
-                          disabled={actionLoading}
-                          className={clsx(
-                            'font-black px-8 sm:px-12 py-4 sm:py-5 transition-transform uppercase tracking-widest text-sm sm:text-lg overflow-hidden relative group disabled:opacity-50 disabled:cursor-not-allowed border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]',
-                            gb.winner === 'X'
-                              ? 'bg-yellow-300 text-black'
-                              : gb.winner === 'O'
-                                ? 'bg-emerald-300 text-black'
-                                : 'bg-white text-black',
+                        <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => gobblerReset(false)}
+                            disabled={actionLoading}
+                            className={clsx(
+                              'font-black px-8 sm:px-12 py-4 sm:py-5 transition-transform uppercase tracking-widest text-sm sm:text-lg overflow-hidden relative group disabled:opacity-50 disabled:cursor-not-allowed border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]',
+                              gb.winner === 'X'
+                                ? 'bg-yellow-300 text-black'
+                                : gb.winner === 'O'
+                                  ? 'bg-emerald-300 text-black'
+                                  : 'bg-white text-black',
+                            )}
+                          >
+                            {t('gameGobbler.playAgain')}
+                          </motion.button>
+                          {room.roomHostId === socketId && (
+                            <button
+                              type="button"
+                              onClick={() => gobblerReset(true)}
+                              disabled={actionLoading}
+                              className="bg-white hover:bg-gray-100 text-black font-black px-6 py-4 sm:py-5 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-lg"
+                            >
+                              {t('gameTicTacToe.modes.changeMode')}
+                            </button>
                           )}
-                        >
-                          {t('gameGobbler.playAgain')}
-                        </motion.button>
+                        </div>
                       )}
                     </div>
                   </motion.div>

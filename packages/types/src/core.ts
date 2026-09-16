@@ -1,4 +1,4 @@
-import { TicTacToeState } from './tic-tac-toe';
+import { TicTacToeState, TicTacToeMode, TicTacToeBotDifficulty } from './tic-tac-toe';
 import { RPSState } from './rps';
 import { GobblerState } from './gobbler-tic-tac-toe';
 import { WinningTeam, Role } from './who-know';
@@ -11,8 +11,11 @@ import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
 import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
+import { CardGameState } from './card-game';
 
 export const APP_VERSION = 'v1.0.0';
+export const BOT_SOCKET_ID = 'bot-player';
+export const BOT_PLAYER_NAME = 'Bot 🤖';
 
 export enum RoomStatus {
   LOBBY = 'LOBBY',
@@ -37,6 +40,7 @@ export enum GameType {
   SABOTEUR = 'SABOTEUR',
   COUP = 'COUP',
   ULTIMATE_TIC_TAC_TOE = 'ULTIMATE_TIC_TAC_TOE',
+  CARD_GAME = 'CARD_GAME',
 }
 
 // Socket Constants
@@ -129,6 +133,8 @@ export const SOCKET_EVENTS = {
   UTTT_JOIN_SIDE: 'uttt_join_side',
   UTTT_MAKE_MOVE: 'uttt_make_move',
   UTTT_RESET: 'uttt_reset',
+  // Configurable card game
+  CARD_GAME_ACTION: 'card_game_action',
 } as const;
 
 export interface UserState {
@@ -152,6 +158,10 @@ export interface RoomConfig {
   rpsBestOf?: number; // e.g., 1, 3, 5
   rpsMode?: '1V1_ROUND_ROBIN' | 'ALL_AT_ONCE';
   language?: 'en' | 'th';
+  // Tic-Tac-Toe config
+  ticTacToeMode?: TicTacToeMode;
+  ticTacToeVsBot?: boolean;
+  ticTacToeBotDifficulty?: TicTacToeBotDifficulty;
   // Who Am I config
   maxRounds?: number;
   wordMode?: 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT' | 'AI_GENERATED';
@@ -216,6 +226,8 @@ export interface RoomState {
   saboteurState?: SaboteurState;
   coupState?: CoupState;
   ultimateTicTacToeState?: UltimateTicTacToeState;
+  /** Contains only public card-game information; hands are private socket state. */
+  cardGameState?: CardGameState;
 }
 
 export interface AvailableRoom {

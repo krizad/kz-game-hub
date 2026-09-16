@@ -36,6 +36,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# typescript incremental build info
+*.tsbuildinfo
+
 # turborepo
 .turbo
 

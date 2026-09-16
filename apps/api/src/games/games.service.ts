@@ -11,6 +11,10 @@ import {
   PLAYER_COLORS,
   ANIMAL_EMOJIS,
   CoupActionType,
+  TicTacToeMode,
+  BOT_SOCKET_ID,
+  BOT_PLAYER_NAME,
+  CardGameAction,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -29,6 +33,7 @@ import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-ta
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
+import { CardGameService } from './card-game/card-game.service';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
 export type LeaveRoomResult =
@@ -65,6 +70,7 @@ export class GamesService {
     private readonly playerSessionService: PlayerSessionService,
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
+    private readonly cardGameService: CardGameService,
   ) {}
 
   isRoomMember(code: string, socketId: string): boolean {
@@ -97,7 +103,11 @@ export class GamesService {
     return this.playerSessionService.takePendingToken(socketId);
   }
 
-  createRoom(hostId: string, gameType: GameType = GameType.WHO_KNOW): RoomState {
+  createRoom(
+    hostId: string,
+    gameType: GameType = GameType.WHO_KNOW,
+    initialConfig?: Partial<RoomConfig>,
+  ): RoomState {
     let code: string;
     do {
       code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -119,11 +129,31 @@ export class GamesService {
       },
     };
 
+    if (initialConfig) {
+      const safeConfig = this.sanitizeRoomConfig(initialConfig);
+      room.config = { ...room.config, ...safeConfig };
+    }
+
     if (gameType === GameType.TIC_TAC_TOE) {
-      room.ticTacToeState = {
-        board: Array(9).fill(null),
-        currentTurn: 'X',
-      };
+      room.config.ticTacToeMode = room.config.ticTacToeMode || 'CLASSIC';
+      if (room.config.ticTacToeMode === 'CLASSIC') {
+        room.ticTacToeState = {
+          board: Array(9).fill(null),
+          currentTurn: 'X',
+        };
+      } else if (room.config.ticTacToeMode === 'GOBBLER') {
+        room.gobblerState = {
+          board: Array.from({ length: 9 }, () => []),
+          currentTurn: 'X',
+          inventory: {
+            X: this.gobblerService.createInitialInventory('X'),
+            O: this.gobblerService.createInitialInventory('O'),
+          },
+          scores: { X: 0, O: 0 },
+        };
+      } else if (room.config.ticTacToeMode === 'ULTIMATE') {
+        room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
+      }
     } else if (gameType === GameType.RPS) {
       room.rpsState = {
         activePlayers: [],
@@ -172,6 +202,7 @@ export class GamesService {
       room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
     }
 
+    this.syncBotPlayer(room);
     this.rooms.set(code, room);
     return room;
   }
@@ -249,6 +280,9 @@ export class GamesService {
           user.socketId,
         );
       }
+      if (room.cardGameState) {
+        this.cardGameService.remapSocketId(room.cardGameState, oldSocketId, user.socketId);
+      }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
       this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -306,7 +340,9 @@ export class GamesService {
       if (explicitLeave) {
         this.removePlayerFromRoom(code, room, playerIndex);
 
-        const activePlayers = room.players.filter((p) => p.connected !== false).length;
+        const activePlayers = room.players.filter(
+          (p) => p.connected !== false && p.socketId !== BOT_SOCKET_ID,
+        ).length;
         if (activePlayers === 0) {
           this.deleteRoomData(code);
           return { outcome: 'ROOM_EMPTIED', code };
@@ -347,7 +383,7 @@ export class GamesService {
       this.transferHost(room, socketId);
     }
 
-    if (!room.players.some((p) => p.connected !== false)) {
+    if (!room.players.some((p) => p.connected !== false && p.socketId !== BOT_SOCKET_ID)) {
       this.deleteRoomData(code);
       return;
     }
@@ -406,7 +442,8 @@ export class GamesService {
   /** Hand room ownership to the first remaining connected player after the host lost connection. */
   private transferHost(room: RoomState, formerHostSocketId: string): void {
     const candidates = room.players.filter(
-      (p) => p.connected !== false && p.socketId !== formerHostSocketId,
+      (p) =>
+        p.connected !== false && p.socketId !== formerHostSocketId && p.socketId !== BOT_SOCKET_ID,
     );
     const nextHost = candidates.find((p) => !p.isViewer) ?? candidates[0];
     if (!nextHost) return;
@@ -453,9 +490,99 @@ export class GamesService {
     if (room.roomHostId !== requesterId) return null;
 
     const safeConfig = this.sanitizeRoomConfig(config);
+    if (
+      room.gameType === GameType.TIC_TAC_TOE &&
+      safeConfig.ticTacToeMode &&
+      safeConfig.ticTacToeMode !== room.config.ticTacToeMode
+    ) {
+      this.switchTicTacToeMode(room, safeConfig.ticTacToeMode);
+    }
     room.config = { ...room.config, ...safeConfig };
+    this.syncBotPlayer(room);
     this.rooms.set(code, room);
     return room;
+  }
+
+  private switchTicTacToeMode(room: RoomState, newMode: TicTacToeMode) {
+    const playerXId =
+      room.ticTacToeState?.playerXId ||
+      room.gobblerState?.playerXId ||
+      room.ultimateTicTacToeState?.playerXId;
+    const playerOId =
+      room.ticTacToeState?.playerOId ||
+      room.gobblerState?.playerOId ||
+      room.ultimateTicTacToeState?.playerOId;
+
+    room.ticTacToeState = undefined;
+    room.gobblerState = undefined;
+    room.ultimateTicTacToeState = undefined;
+
+    if (newMode === 'CLASSIC') {
+      room.ticTacToeState = {
+        board: Array(9).fill(null),
+        playerXId,
+        playerOId,
+        currentTurn: 'X',
+      };
+    } else if (newMode === 'GOBBLER') {
+      room.gobblerState = {
+        board: Array.from({ length: 9 }, () => []),
+        playerXId,
+        playerOId,
+        currentTurn: 'X',
+        inventory: {
+          X: this.gobblerService.createInitialInventory('X'),
+          O: this.gobblerService.createInitialInventory('O'),
+        },
+        scores: { X: 0, O: 0 },
+      };
+    } else if (newMode === 'ULTIMATE') {
+      room.ultimateTicTacToeState = {
+        ...this.ultimateTicTacToeService.createInitialState(),
+        playerXId,
+        playerOId,
+      };
+    }
+
+    this.syncBotPlayer(room);
+  }
+
+  private syncBotPlayer(room: RoomState): void {
+    const isClassicTTT =
+      room.gameType === GameType.TIC_TAC_TOE &&
+      (!room.config.ticTacToeMode || room.config.ticTacToeMode === 'CLASSIC');
+    const vsBot = isClassicTTT && !!room.config.ticTacToeVsBot;
+
+    const botIndex = room.players.findIndex((p) => p.socketId === BOT_SOCKET_ID);
+
+    if (vsBot) {
+      if (botIndex === -1) {
+        room.players.push({
+          id: BOT_SOCKET_ID,
+          socketId: BOT_SOCKET_ID,
+          name: BOT_PLAYER_NAME,
+          avatar: '🤖',
+          color: '#64748B',
+          score: 0,
+          roomId: room.id,
+          connected: true,
+          hasBeenHost: true,
+        });
+      }
+      if (!room.config.ticTacToeBotDifficulty) {
+        room.config.ticTacToeBotDifficulty = 'GOD';
+      }
+    } else if (botIndex !== -1) {
+      room.players.splice(botIndex, 1);
+      if (room.ticTacToeState) {
+        if (room.ticTacToeState.playerXId === BOT_SOCKET_ID) {
+          room.ticTacToeState.playerXId = undefined;
+        }
+        if (room.ticTacToeState.playerOId === BOT_SOCKET_ID) {
+          room.ticTacToeState.playerOId = undefined;
+        }
+      }
+    }
   }
 
   private sanitizeRoomConfig(config: Partial<RoomConfig>): Partial<RoomConfig> {
@@ -479,6 +606,9 @@ export class GamesService {
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
     copyEnum('language', ['en', 'th']);
+    copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
+    copyBoolean('ticTacToeVsBot');
+    copyEnum('ticTacToeBotDifficulty', ['EASY', 'GOD']);
     copyInteger('maxRounds', 1, 100);
     copyEnum('wordMode', ['HOST_INPUT', 'RANDOM', 'PLAYER_INPUT', 'AI_GENERATED']);
     if (typeof config.wordCategory === 'string' && config.wordCategory.length <= 100) {
@@ -651,6 +781,13 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.CARD_GAME) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.cardGameService.startPokDeng(r, requesterId),
+      );
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     // Default to WHO_KNOW
     return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
   }
@@ -710,6 +847,15 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
 
+    if (room.gameType === GameType.CARD_GAME) {
+      if (room.roomHostId !== requesterId) return null;
+      room.status = RoomStatus.LOBBY;
+      room.cardGameState = undefined;
+      this.privateStateService.clearRoom(code);
+      this.rooms.set(code, room);
+      return room;
+    }
+
     if (room.gameType === GameType.COUP) {
       return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
     }
@@ -720,7 +866,15 @@ export class GamesService {
           this.whoKnowService.resetGame(r, requesterId, this.secretWords),
         );
       case GameType.TIC_TAC_TOE:
-        return this.withRoom(code, (r) => this.ticTacToeService.reset(r, requesterId));
+        return this.withRoom(code, (r) => {
+          if (r.config.ticTacToeMode === 'GOBBLER') {
+            return this.gobblerService.reset(r, requesterId);
+          }
+          if (r.config.ticTacToeMode === 'ULTIMATE') {
+            return this.ultimateTicTacToeService.reset(r, requesterId);
+          }
+          return this.ticTacToeService.reset(r, requesterId);
+        });
       case GameType.RPS:
         return this.withRoom(code, (r) => this.rpsService.reset(r, requesterId));
       case GameType.GOBBLER_TIC_TAC_TOE:
@@ -750,6 +904,11 @@ export class GamesService {
     return this.secretWords.get(code);
   }
 
+  cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
+  }
+
   getPlayerRole(code: string, socketId: string): Role | undefined {
     const data = this.privateStateService.getSocketData(code, socketId);
     return (data['wkRole'] as Role | undefined) ?? (data['sfRole'] as Role | undefined);
@@ -771,9 +930,13 @@ export class GamesService {
     return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
   }
 
-  tttReset(code: string, clientId: string): RoomState | null {
+  tttReset(code: string, clientId: string, toLobby = false): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
+    return this.withRoom(code, (room) =>
+      toLobby
+        ? this.ticTacToeService.reset(room, clientId, true)
+        : this.ticTacToeService.reset(room, clientId),
+    );
   }
 
   // --- Ultimate Tic-Tac-Toe Logic ---
@@ -797,9 +960,13 @@ export class GamesService {
     );
   }
 
-  utttReset(code: string, clientId: string): RoomState | null {
+  utttReset(code: string, clientId: string, toLobby = false): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.ultimateTicTacToeService.reset(room, clientId));
+    return this.withRoom(code, (room) =>
+      toLobby
+        ? this.ultimateTicTacToeService.reset(room, clientId, true)
+        : this.ultimateTicTacToeService.reset(room, clientId),
+    );
   }
 
   // --- RPS Logic ---
@@ -850,9 +1017,13 @@ export class GamesService {
     );
   }
 
-  gobblerReset(code: string, clientId: string): RoomState | null {
+  gobblerReset(code: string, clientId: string, toLobby = false): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.gobblerService.reset(room, clientId));
+    return this.withRoom(code, (room) =>
+      toLobby
+        ? this.gobblerService.reset(room, clientId, true)
+        : this.gobblerService.reset(room, clientId),
+    );
   }
 
   // --- Sounds Fishy Logic ---
