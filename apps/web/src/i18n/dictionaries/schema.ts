@@ -509,6 +509,21 @@ export interface Dictionary {
     playAgain: string;
     player: string;
   };
+  gamePokDeng: {
+    title: string;
+    dealerLine: string;
+    dealerBadge: string;
+    cards: string;
+    chips: string;
+    yourHand: string;
+    resultLine: string;
+    dealerWins: string;
+    nextRound: string;
+    draw: string;
+    stand: string;
+    waiting: string;
+    revealing: string;
+  };
   gameRps: {
     playing: string;
     matchOver: string;

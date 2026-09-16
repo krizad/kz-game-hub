@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
 import { TicTacToeMode } from '@repo/types';
@@ -13,6 +13,11 @@ export function TicTacToeRules() {
   const [activeMode, setActiveMode] = useState<TicTacToeMode>(
     room?.config?.ticTacToeMode || 'CLASSIC',
   );
+
+  const configuredMode = room?.config?.ticTacToeMode || 'CLASSIC';
+  useEffect(() => {
+    setActiveMode(configuredMode);
+  }, [configuredMode]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300 font-mono">
