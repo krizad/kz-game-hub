@@ -583,6 +583,38 @@ export interface Dictionary {
       NORMAL: string;
     };
   };
+  cardGameSettings: {
+    title: string;
+    hostOnly: string;
+    starter: string;
+    tiePolicy: string;
+    turnTimer: string;
+    timerOff: string;
+    timerSeconds: string;
+    preview: string;
+    previewInvalid: string;
+    publish: string;
+    publishing: string;
+    published: string;
+    copy: string;
+    copied: string;
+    import: string;
+    importPlaceholder: string;
+    importButton: string;
+    importing: string;
+    copyOnEdit: string;
+    errors: {
+      INVALID_CONFIG: string;
+      NOT_FOUND: string;
+      PRESET_MISMATCH: string;
+      INVALID_STORED_CONFIG: string;
+      STORAGE_ERROR: string;
+      SHARE_CODE_EXHAUSTED: string;
+      INVALID_ROOM: string;
+      NOT_HOST: string;
+      NOT_LOBBY: string;
+    };
+  };
   gameRps: {
     playing: string;
     matchOver: string;

@@ -254,7 +254,23 @@ export function validateConfig(
   }
 
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, config: { preset: preset.id, deck, deal, actions, piles, visibility, scoring } };
+  return {
+    ok: true,
+    config: {
+      preset: preset.id,
+      deck: deepCopyJson(deck),
+      deal: deepCopyJson(deal),
+      actions: deepCopyJson(actions),
+      piles: deepCopyJson(piles),
+      visibility: deepCopyJson(visibility),
+      scoring: deepCopyJson(scoring),
+    },
+  };
+}
+
+/** Returns an independent JSON copy so room configs never share references with preset defaults. */
+export function deepCopyJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 export function previewDeal(

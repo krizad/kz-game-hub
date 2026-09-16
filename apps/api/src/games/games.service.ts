@@ -16,6 +16,8 @@ import {
   BOT_PLAYER_NAME,
   CardGameAction,
   CardGameConfig,
+  CardGameImportRulesResult,
+  CardGamePublishRulesResult,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -37,6 +39,7 @@ import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
+import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
 export type LeaveRoomResult =
@@ -74,6 +77,7 @@ export class GamesService {
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
     private readonly cardGameService: CardGameService,
+    private readonly cardRulePresetRepository: CardRulePresetRepository,
   ) {}
 
   isRoomMember(code: string, socketId: string): boolean {
@@ -956,6 +960,34 @@ export class GamesService {
   cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
+  }
+
+  async cardGamePublishRules(
+    code: string,
+    requesterId: string,
+    config: CardGameConfig,
+  ): Promise<CardGamePublishRulesResult> {
+    const room = this.rooms.get(code);
+    if (!room || room.gameType !== GameType.CARD_GAME) return { ok: false, error: 'INVALID_ROOM' };
+    if (room.roomHostId !== requesterId) return { ok: false, error: 'NOT_HOST' };
+    if (room.status !== RoomStatus.LOBBY) return { ok: false, error: 'NOT_LOBBY' };
+    return this.cardRulePresetRepository.publish(config, POK_DENG_PRESET);
+  }
+
+  async cardGameImportRules(
+    code: string,
+    requesterId: string,
+    shareCode: string,
+  ): Promise<CardGameImportRulesResult> {
+    const room = this.rooms.get(code);
+    if (!room || room.gameType !== GameType.CARD_GAME) return { ok: false, error: 'INVALID_ROOM' };
+    if (room.roomHostId !== requesterId) return { ok: false, error: 'NOT_HOST' };
+    if (room.status !== RoomStatus.LOBBY) return { ok: false, error: 'NOT_LOBBY' };
+    const imported = await this.cardRulePresetRepository.importByCode(shareCode, POK_DENG_PRESET);
+    if (!imported.ok || !imported.config) return imported;
+    room.cardGameConfig = imported.config;
+    this.rooms.set(code, room);
+    return imported;
   }
 
   getPlayerRole(code: string, socketId: string): Role | undefined {

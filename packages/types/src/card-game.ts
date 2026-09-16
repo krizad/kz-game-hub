@@ -142,7 +142,9 @@ export type CardGameAction =
   | { type: 'NEXT_ROUND' };
 
 export interface CardGameImportRulesRequest {
+  /** Room code the rules are imported into. */
   code: string;
+  shareCode: string;
 }
 
 export interface CardGameImportRulesResult {
@@ -152,6 +154,8 @@ export interface CardGameImportRulesResult {
 }
 
 export interface CardGamePublishRulesRequest {
+  /** Room code the rules are published from; only its lobby host may publish. */
+  code: string;
   config: CardGameConfig;
 }
 

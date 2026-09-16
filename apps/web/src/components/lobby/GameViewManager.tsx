@@ -16,6 +16,7 @@ import { CoupView } from '@/components/games/coup/CoupView';
 import { UltimateTicTacToeView } from '@/components/games/ultimate-tic-tac-toe/UltimateTicTacToeView';
 import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PokDengView } from '@/components/games/card-game/PokDengView';
+import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -56,6 +57,7 @@ export function GameViewManager() {
               {t('lobby.waitingRoom')}
             </h4>
             <GameSettingsManager />
+            {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
             <LobbyStartButton />
           </div>
         )}
