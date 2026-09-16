@@ -37,7 +37,7 @@ describe('SlaveRuntime', () => {
   const config = SLAVE_PRESET.defaultConfig;
   const singleCardConfig = {
     ...config,
-    deal: { ...config.deal, cardsPerPlayer: 1 },
+    deal: { ...config.deal, cardsPerPlayer: 1, countMode: 'EQUAL_WITH_LEFTOVERS' as const },
   };
 
   it('deals thirteen cards to each player and lets the 3C holder lead', () => {
@@ -56,6 +56,29 @@ describe('SlaveRuntime', () => {
     expect(state.trick).toBeUndefined();
     expect(target.status).toBe(RoomStatus.PLAYING);
     expect(target.cardGameChips).toEqual({ p1: 100, p2: 100 });
+  });
+
+  it('deals the whole deck with the remainder to the earliest seats', () => {
+    const target = room(['p1', 'p2', 'p3']);
+    const popOrder = [card('3-CLUBS', '3', 'CLUBS'), card('5-HEARTS', '5', 'HEARTS'), ...pad(50)];
+    const runtime = runtimeFor(popOrder);
+
+    const result = runtime.startRound(target, config, ['p1', 'p2', 'p3']);
+
+    expect(result.cardGameState!.handCounts).toEqual({ p1: 18, p2: 17, p3: 17 });
+    expect(result.cardGameState!.activePlayerId).toBe('p1');
+  });
+
+  it('relaxes the opening gate when the deck holds no 3C', () => {
+    const target = room();
+    const popOrder = [card('5-HEARTS', '5', 'HEARTS'), card('6-HEARTS', '6', 'HEARTS'), ...pad(24)];
+    const runtime = runtimeFor(popOrder);
+    runtime.startRound(target, config, ['p1', 'p2']);
+
+    const result = runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['pad-0'] }, config);
+
+    expect(result).not.toBeNull();
+    expect(result!.cardGameState!.trick!.playedById).toBe('p1');
   });
 
   it('rejects an opening lead without the 3C', () => {

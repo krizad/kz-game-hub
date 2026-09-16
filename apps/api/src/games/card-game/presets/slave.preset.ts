@@ -16,7 +16,7 @@ const DEFAULT_DECK: DeckPolicy = { kind: 'STANDARD_52', jokers: false, copies: 1
 
 const DEFAULT_DEAL: DealPolicy = {
   cardsPerPlayer: 13,
-  countMode: 'EQUAL_WITH_LEFTOVERS',
+  countMode: 'DEAL_ALL_UNEVEN',
   starterPolicy: 'ROTATE',
 };
 
@@ -52,9 +52,11 @@ const DEFAULT_CONFIG: CardGameConfig = {
 };
 
 /**
- * Slave preset: the 3♣ holder opens with single/pair/triple combinations, following
- * plays must match the size and beat the rank, passing is final for the trick, and
- * the first player to empty their hand wins the round. 2 ranks highest.
+ * Slave preset: every card is dealt (the remainder goes to the earliest seats), so
+ * hand sizes may differ by one. The 3♣ holder opens with single/pair/triple
+ * combinations, following plays must match the size and beat the rank, passing is
+ * final for the trick, and the first player to empty their hand wins the round.
+ * 2 ranks highest.
  */
 export const SLAVE_PRESET: CardGamePresetDefinition = {
   id: 'SLAVE',

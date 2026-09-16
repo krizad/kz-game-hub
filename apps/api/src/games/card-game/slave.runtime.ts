@@ -48,6 +48,9 @@ export class SlaveRuntime {
     room.cardGameChips = chips;
     for (const id of playerIds) chips[id] = chips[id] ?? config.scoring.startingChips;
 
+    const leaderCardDealt = playerIds.some((id) =>
+      (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID),
+    );
     const leaderId =
       playerIds.find((id) => (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID)) ??
       playerIds[0];
@@ -56,7 +59,7 @@ export class SlaveRuntime {
       decisions[id] = 'PENDING';
       this.setHand(room.code, id, hands[id] ?? []);
     }
-    this.setFirstPlayed(room.code, false);
+    this.setFirstPlayed(room.code, !leaderCardDealt);
     room.cardGameState = toPublicState(
       {
         preset: 'SLAVE',

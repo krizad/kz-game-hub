@@ -181,6 +181,36 @@ describe('CardEngineService', () => {
       expect(result.error).toContain('evenly');
     });
 
+    it('deals every card and gives the remainder to the earliest seats', () => {
+      const policy = {
+        cardsPerPlayer: 13,
+        countMode: 'DEAL_ALL_UNEVEN',
+        starterPolicy: 'ROTATE',
+      } as const;
+      expect(previewDeal(52, 2, { ...policy }).preview).toEqual({
+        perPlayer: 26,
+        stockSize: 0,
+        reserveSize: 0,
+      });
+      expect(previewDeal(52, 3, { ...policy }).preview).toEqual({
+        perPlayer: 17,
+        stockSize: 0,
+        reserveSize: 0,
+      });
+      expect(previewDeal(52, 4, { ...policy }).preview).toEqual({
+        perPlayer: 13,
+        stockSize: 0,
+        reserveSize: 0,
+      });
+      const deck = createDeck({ kind: 'STANDARD_52', jokers: false, copies: 1 });
+      const dealt = dealRound(deck, ['a', 'b', 'c'], { ...policy });
+      expect(dealt.ok).toBe(true);
+      expect(dealt.hands?.a).toHaveLength(18);
+      expect(dealt.hands?.b).toHaveLength(17);
+      expect(dealt.hands?.c).toHaveLength(17);
+      expect(dealt.stock).toHaveLength(0);
+    });
+
     it('rejects REJECT_IF_NOT_EVEN when cards would remain', () => {
       const policy = { cardsPerPlayer: 2, countMode: 'REJECT_IF_NOT_EVEN', starterPolicy: 'ROTATE' } as const;
       const result = previewDeal(52, 2, { ...policy });

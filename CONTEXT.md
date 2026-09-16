@@ -43,6 +43,6 @@ This document defines the shared vocabulary and boundaries for the configurable 
 | Preset | Mandatory mechanics | Explicitly deferred |
 | --- | --- | --- |
 | Pok Deng | Rotating human dealer, two-card deal, optional third card, mod-10 comparison, virtual chips, configured multipliers | AI dealer, side bets, real-money handling |
-| Slave | 3♣ opening, single/pair/triple combinations, pass, clear after all eligible opponents pass, 2 as highest rank | Five-card combinations, Joker, rank-based exchanges |
+| Slave | Deal every card, 3♣ opening, single/pair/triple combinations, pass, clear after all eligible opponents pass, 2 as highest rank | Five-card combinations, Joker, rank-based exchanges |
 | Sam Sip | Five-card initial deal, draw/discard, sum-to-ten pair removal, reactive claim of prior discard | Multi-card melds beyond the preset's pair rule |
 | Old Maid | Deal all cards, remove matching ranks, choose one face-down card from the next player's hand, one designated unmatched card, last holder loses | Forced/offline penalties |

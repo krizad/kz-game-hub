@@ -27,6 +27,11 @@ function computeDealPreview(
     if (deckSize % playerCount !== 0) return { ok: false, cards: 0, stock: 0 };
     return { ok: true, cards: deckSize / playerCount, stock: 0 };
   }
+  if (countMode === 'DEAL_ALL_UNEVEN') {
+    const cards = Math.floor(deckSize / playerCount);
+    if (cards < 1) return { ok: false, cards: 0, stock: 0 };
+    return { ok: true, cards, stock: 0 };
+  }
   const dealt = cardsPerPlayer * playerCount;
   if (dealt > deckSize) return { ok: false, cards: 0, stock: 0 };
   if (countMode === 'REJECT_IF_NOT_EVEN' && dealt !== deckSize) {

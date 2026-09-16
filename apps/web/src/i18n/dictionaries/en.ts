@@ -646,6 +646,7 @@ export const en: Dictionary = {
     dealModes: {
       EQUAL_WITH_LEFTOVERS: 'leftovers to the stock',
       DEAL_ALL: 'deal every card',
+      DEAL_ALL_UNEVEN: 'deal every card (remainder to the earliest seats)',
       REJECT_IF_NOT_EVEN: 'reject unless fully consumed',
     },
     starterPolicies: {

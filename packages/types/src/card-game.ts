@@ -28,9 +28,15 @@ export interface DeckPolicy {
 /**
  * EQUAL_WITH_LEFTOVERS: deal exactly `cardsPerPlayer` to each seat, keep the rest in stock.
  * DEAL_ALL: every card is dealt; requires the deck to divide evenly (hand size is derived).
+ * DEAL_ALL_UNEVEN: every card is dealt round-robin, with the remainder going to the earliest
+ * seats, so hands may differ by one and the stock stays empty.
  * REJECT_IF_NOT_EVEN: deal exactly `cardsPerPlayer` to each seat and reject unless the deck is fully consumed.
  */
-export type DealCountMode = 'EQUAL_WITH_LEFTOVERS' | 'DEAL_ALL' | 'REJECT_IF_NOT_EVEN';
+export type DealCountMode =
+  | 'EQUAL_WITH_LEFTOVERS'
+  | 'DEAL_ALL'
+  | 'DEAL_ALL_UNEVEN'
+  | 'REJECT_IF_NOT_EVEN';
 
 export type StarterPolicy =
   | 'RANDOM'

@@ -634,6 +634,7 @@ export const th: Dictionary = {
     dealModes: {
       EQUAL_WITH_LEFTOVERS: 'เหลือเก็บเข้ากองกลาง',
       DEAL_ALL: 'แจกจนหมดกอง',
+      DEAL_ALL_UNEVEN: 'แจกจนหมดกอง (เศษให้คนแรก ๆ)',
       REJECT_IF_NOT_EVEN: 'ต้องหารลงตัวเท่านั้น',
     },
     starterPolicies: {
