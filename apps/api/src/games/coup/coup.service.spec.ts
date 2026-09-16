@@ -556,6 +556,33 @@ describe('CoupService (05 steal & exchange)', () => {
     expect(after!.coupState!.currentTurn).toBe('s2');
   });
 
+  it('lets a one-influence actor exchange and keep a single card', () => {
+    const room = startRoom();
+    room.coupState!.influences['s1'].count = 1;
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.DUKE]);
+    service.declareAction(room, 's1', CoupActionType.EXCHANGE);
+    service.handleChallengeTimeoutForRoom(room);
+    expect(room.coupState!.phase).toBe('AWAITING_EXCHANGE');
+    expect(privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!.length).toBe(3);
+    expect(service.exchangeSelect(room, 's1', [0, 1])).toBeNull();
+    const after = service.exchangeSelect(room, 's1', [1]);
+    expect(after).not.toBeNull();
+    expect(privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!.length).toBe(1);
+    expect(after!.coupState!.phase).toBe('PLAYING');
+  });
+
+  it('restores only the kept count when a one-influence exchanger disconnects', () => {
+    const room = startRoom();
+    room.coupState!.influences['s1'].count = 1;
+    privateState.set(room.code, 's1', 'coupHand', [CoupRole.AMBASSADOR]);
+    service.declareAction(room, 's1', CoupActionType.EXCHANGE);
+    service.handleChallengeTimeoutForRoom(room);
+    expect(privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!.length).toBe(3);
+    service.handlePlayerDisconnect(room, 's1');
+    expect(room.coupState!.phase).toBe('PLAYING');
+    expect(privateState.get<CoupRole[]>(room.code, 's1', 'coupHand')!.length).toBe(1);
+  });
+
   it('Exchange challenge succeeds — actor loses and no draw', () => {
     const room = startRoom();
     privateState.set(room.code, 's1', 'coupHand', [CoupRole.DUKE, CoupRole.CAPTAIN]); // no Ambassador

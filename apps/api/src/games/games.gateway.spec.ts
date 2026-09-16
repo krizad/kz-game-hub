@@ -31,4 +31,19 @@ describe('GamesGateway payload guard', () => {
     expect(isValid(SOCKET_EVENTS.START_GAME, { code: 'abc' })).toBe(false);
     expect(isValid(SOCKET_EVENTS.START_GAME, { code: 'abc123' })).toBe(true);
   });
+
+  it('accepts exchange selections of any small size and rejects malformed ones', () => {
+    expect(isValid(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { code: 'abc123', keepIndices: [0] })).toBe(
+      true,
+    );
+    expect(
+      isValid(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { code: 'abc123', keepIndices: [0, 1] }),
+    ).toBe(true);
+    expect(
+      isValid(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { code: 'abc123', keepIndices: [0, 1, 2, 3, 4] }),
+    ).toBe(false);
+    expect(
+      isValid(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { code: 'abc123', keepIndices: ['0'] }),
+    ).toBe(false);
+  });
 });
