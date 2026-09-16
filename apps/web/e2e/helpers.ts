@@ -54,6 +54,7 @@ export async function extractRoomCode(page: Page): Promise<string> {
     'The Mind',
     'Saboteur',
     'Coup',
+    'Pok Deng',
     'Ultimate Tic-Tac-Toe',
   ];
   for (const name of knownNames) {

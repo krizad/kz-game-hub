@@ -24,12 +24,12 @@ export function TicTacToeView() {
 
   const playerXName =
     ttt.playerXId === BOT_SOCKET_ID
-      ? `${t('gameTicTacToe.bot.botBadge')} (${room.config?.ticTacToeBotDifficulty === 'EASY' ? 'Easy' : 'God'})`
+      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
       : room.players.find((p) => p.socketId === ttt.playerXId)?.name;
 
   const playerOName =
     ttt.playerOId === BOT_SOCKET_ID
-      ? `${t('gameTicTacToe.bot.botBadge')} (${room.config?.ticTacToeBotDifficulty === 'EASY' ? 'Easy' : 'God'})`
+      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
       : room.players.find((p) => p.socketId === ttt.playerOId)?.name;
 
   return (
