@@ -157,6 +157,8 @@ export interface CardGamePublicState {
   chips: Record<string, number>;
   decisions: Record<string, CardDecision>;
   trick?: TrickState;
+  /** Absolute deadline for the active player's auto-action timer, when configured. */
+  turnDeadline?: number | null;
   /** Top card of the discard pile, revealed by design (Sam Sip claim window). */
   discardTop?: PlayingCard | null;
   result?: CardGameResult;

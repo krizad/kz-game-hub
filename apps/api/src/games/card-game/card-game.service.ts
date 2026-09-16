@@ -271,6 +271,10 @@ export class CardGameService {
     );
     if (next) {
       state.activePlayerId = next;
+      state.turnDeadline =
+        config.actions.timeoutSeconds > 0
+          ? Date.now() + config.actions.timeoutSeconds * 1000
+          : null;
       return;
     }
 

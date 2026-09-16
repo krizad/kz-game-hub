@@ -14,6 +14,7 @@ import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
+import { autoActionFor } from './card-game/card-engine.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import {
   SOCKET_EVENTS,
@@ -1251,6 +1252,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       this.syncCoupChallengeTimer(room);
       this.syncCoupBlockTimer(room);
     }
+    if (room.gameType === GameType.CARD_GAME) {
+      this.syncCardGameTimer(room);
+    }
   }
 
   private syncCoupChallengeTimer(room: RoomState): void {
@@ -1322,6 +1326,40 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       }
       const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
       this.saboteurDeadlines.delete(currentRoom.code);
+      if (updatedRoom) {
+        this.broadcastRoomState(updatedRoom);
+      }
+    });
+  }
+
+  /** Per-turn auto-action timer for card games (config-gated by the action policy). */
+  private syncCardGameTimer(room: RoomState): void {
+    const state = room.cardGameState;
+    const activePlayerId = state?.phase === 'PLAYER_TURNS' ? state.activePlayerId : null;
+    const deadline = state?.turnDeadline ?? null;
+
+    if (!state || state.phase !== 'PLAYER_TURNS' || !activePlayerId || !deadline) {
+      this.roomTimerService.cancel(room.code, 'card-game');
+      return;
+    }
+
+    this.roomTimerService.schedule(room.code, 'card-game', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      const currentState = currentRoom?.cardGameState;
+      if (
+        !currentRoom ||
+        !currentState ||
+        currentState.phase !== 'PLAYER_TURNS' ||
+        currentState.activePlayerId !== activePlayerId ||
+        (currentState.turnDeadline ?? null) !== deadline
+      ) {
+        return; // turn already advanced elsewhere
+      }
+      const config = currentRoom.cardGameConfig;
+      if (!config) return;
+      const updatedRoom = this.gamesService.cardGameAction(currentRoom.code, activePlayerId, {
+        type: autoActionFor(config.actions),
+      } as CardGameAction);
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
       }
