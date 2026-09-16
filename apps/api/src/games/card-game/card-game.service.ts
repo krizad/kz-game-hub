@@ -3,13 +3,14 @@ import { randomInt } from 'crypto';
 import {
   CardGameAction,
   CardGamePrivateState,
-  CardGameState,
+  CardGamePublicState,
   GameType,
   PlayingCard,
   RoomState,
   RoomStatus,
 } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
+import { outcomeTagForMod10 } from './card-engine.service';
 
 const PRIVATE_KEY = 'cardGame';
 const STARTING_CHIPS = 100;
@@ -39,7 +40,7 @@ export class CardGameService {
       chipBalances[player.socketId] = chipBalances[player.socketId] ?? STARTING_CHIPS;
     }
 
-    const state: CardGameState = {
+    const state: CardGamePublicState = {
       preset: 'POK_DENG',
       phase: 'PLAYER_TURNS',
       dealerId: dealer.socketId,
@@ -104,7 +105,7 @@ export class CardGameService {
     room.status = RoomStatus.LOBBY;
   }
 
-  remapSocketId(state: CardGameState, oldSocketId: string, newSocketId: string): void {
+  remapSocketId(state: CardGamePublicState, oldSocketId: string, newSocketId: string): void {
     if (state.dealerId === oldSocketId) state.dealerId = newSocketId;
     if (state.activePlayerId === oldSocketId) state.activePlayerId = newSocketId;
     state.playerOrder = state.playerOrder.map((id) => (id === oldSocketId ? newSocketId : id));
@@ -142,12 +143,14 @@ export class CardGameService {
     const dealerHand = this.getHand(room.code, state.dealerId)!;
     const dealerScore = this.score(dealerHand);
     const playerScores: Record<string, number> = {};
+    const outcomeTags: Record<string, string> = {};
     const revealedHands: Record<string, PlayingCard[]> = {};
     const winnerIds: string[] = [];
     for (const id of state.playerOrder) {
       const hand = this.getHand(room.code, id)!;
       revealedHands[id] = hand;
       playerScores[id] = this.score(hand);
+      outcomeTags[id] = outcomeTagForMod10(hand);
       if (id === state.dealerId) continue;
       if (playerScores[id] > dealerScore) {
         state.chips[id] += 1;
@@ -160,7 +163,7 @@ export class CardGameService {
     }
     state.phase = 'RESULT';
     state.activePlayerId = null;
-    state.result = { dealerScore, playerScores, winnerIds, revealedHands };
+    state.result = { dealerScore, playerScores, outcomeTags, winnerIds, revealedHands };
     room.cardGameChips = state.chips;
     room.status = RoomStatus.RESULT;
   }

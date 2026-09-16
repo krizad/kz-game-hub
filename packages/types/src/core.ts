@@ -11,7 +11,7 @@ import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
 import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
-import { CardGameState } from './card-game';
+import { CardGameConfig, CardGamePublicState } from './card-game';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -135,6 +135,9 @@ export const SOCKET_EVENTS = {
   UTTT_RESET: 'uttt_reset',
   // Configurable card game
   CARD_GAME_ACTION: 'card_game_action',
+  CARD_GAME_PRIVATE_STATE_UPDATED: 'card_game_private_state_updated',
+  CARD_GAME_IMPORT_RULES: 'card_game_import_rules',
+  CARD_GAME_PUBLISH_RULES: 'card_game_publish_rules',
 } as const;
 
 export interface UserState {
@@ -227,7 +230,9 @@ export interface RoomState {
   coupState?: CoupState;
   ultimateTicTacToeState?: UltimateTicTacToeState;
   /** Contains only public card-game information; hands are private socket state. */
-  cardGameState?: CardGameState;
+  cardGameState?: CardGamePublicState;
+  /** Normalized, preset-validated Advanced Rules for the current card-game room. */
+  cardGameConfig?: CardGameConfig;
   /** Match-scoped virtual chip balances, keyed by socket id (ADR 0004). */
   cardGameChips?: Record<string, number>;
 }
