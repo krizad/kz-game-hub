@@ -157,6 +157,39 @@ describe('GamesGateway payload guard', () => {
     jest.useRealTimers();
   });
 
+  it('arms the card-game auto-action timer from the stored deadline', () => {
+    const schedule = jest.fn();
+    const cancel = jest.fn();
+    const gatewayInstance = new GamesGateway(
+      {} as never,
+      {} as never,
+      { schedule, cancel } as never,
+      { getSocketData: jest.fn(() => ({})) } as never,
+    );
+    gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() } as never;
+    const broadcast = (
+      gatewayInstance as unknown as { broadcastRoomState: (room: RoomState) => void }
+    ).broadcastRoomState.bind(gatewayInstance);
+
+    broadcast({
+      code: 'CARD1',
+      gameType: GameType.CARD_GAME,
+      config: {},
+      players: [],
+      cardGameState: { phase: 'PLAYER_TURNS', activePlayerId: 'p1', turnDeadline: 12_345 },
+    } as unknown as RoomState);
+    expect(schedule).toHaveBeenCalledWith('CARD1', 'card-game', 12_345, expect.any(Function));
+
+    broadcast({
+      code: 'CARD2',
+      gameType: GameType.CARD_GAME,
+      config: {},
+      players: [],
+      cardGameState: { phase: 'PLAYER_TURNS', activePlayerId: 'p1', turnDeadline: null },
+    } as unknown as RoomState);
+    expect(cancel).toHaveBeenCalledWith('CARD2', 'card-game');
+  });
+
   it('requires a well-formed card-game action payload', () => {
     expect(isValid(SOCKET_EVENTS.CARD_GAME_ACTION, { code: 'abc123', action: null })).toBe(false);
     expect(isValid(SOCKET_EVENTS.CARD_GAME_ACTION, { code: 'abc123', action: {} })).toBe(false);

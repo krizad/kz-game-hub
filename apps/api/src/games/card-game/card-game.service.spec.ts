@@ -3,6 +3,7 @@ import { GameType, PlayingCard, RoomState, RoomStatus } from '@repo/types';
 import { CardGameService } from './card-game.service';
 import { SamSipRuntime } from './sam-sip.runtime';
 import { SAM_SIP_PRESET } from './presets/sam-sip.preset';
+import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 import { PrivateStateService } from '../private-state.service';
 
 const card = (
@@ -130,6 +131,36 @@ describe('CardGameService', () => {
     service.handleAction(target, 'p1', { type: 'DRAW' });
 
     expect(target.cardGameLog ?? []).toHaveLength(0);
+  });
+
+  it('stamps a turn deadline when the action policy has a timeout', () => {
+    const target = room();
+    target.cardGameConfig = {
+      ...POK_DENG_PRESET.defaultConfig,
+      actions: { allowed: ['DRAW', 'STAND'], timeoutSeconds: 20, autoAction: 'STAND' },
+    };
+    startRound(target);
+
+    expect(target.cardGameState?.activePlayerId).toBe('p2');
+    expect(typeof target.cardGameState?.turnDeadline).toBe('number');
+
+    finishRound(target);
+    expect(target.cardGameState?.turnDeadline ?? null).toBeNull();
+  });
+
+  it('stamps a turn deadline when the action policy has a timeout', () => {
+    const target = room();
+    target.cardGameConfig = {
+      ...POK_DENG_PRESET.defaultConfig,
+      actions: { allowed: ['DRAW', 'STAND'], timeoutSeconds: 20, autoAction: 'STAND' },
+    };
+    startRound(target);
+
+    expect(target.cardGameState?.activePlayerId).toBe('p2');
+    expect(typeof target.cardGameState?.turnDeadline).toBe('number');
+
+    finishRound(target);
+    expect(target.cardGameState?.turnDeadline ?? null).toBeNull();
   });
 
   it('deals the first round to the first seated player and rotates the dealer', () => {
