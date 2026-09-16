@@ -160,10 +160,17 @@ describe('MusicTriviaService', () => {
       code: 'ABCDEF',
       status: RoomStatus.LOBBY,
       roomHostId: 'host-1',
-      players: [
-        { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' },
-        { id: '2', socketId: 'player-2', name: 'Player', score: 0, roomId: 'room-1' },
-      ],
+        players: [
+          { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1', connected: true },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
       createdAt: new Date(),
       config: { hostSelection: 'FIXED', timerMin: 5 },
     };
@@ -254,6 +261,75 @@ describe('MusicTriviaService', () => {
     });
   });
 
-  // More tests would be written to cover configureSource (mocking adapter),
+  describe('configureSource', () => {
+    it('sends the host the round-1 answer in GAME_MASTER mode', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'GAME_MASTER',
+          musicTriviaSource: 'ITUNES',
+          musicTriviaRounds: 1,
+          musicTriviaHostPlays: false,
+          musicTriviaAnswerTimeoutMs: 15000,
+        },
+      };
+      expect(service.startGame(room, 'host-1')).not.toBeNull();
+      (service as any).sourceFactory.register({
+        sourceType: 'ITUNES',
+        search: jest.fn().mockResolvedValue([
+          {
+            id: 'v1',
+            title: 'Song A',
+            artist: 'Artist A',
+            trackViewUrl: 'https://x/1',
+            album: 'Album',
+            releaseYear: 2020,
+            artworkUrl: 'https://img/1',
+            durationMs: 30000,
+            previewUrl: 'https://p/1',
+            sourceType: 'ITUNES',
+          },
+        ]),
+      });
+
+      const actionResult = await (service as any).configureSource(room, 'host-1', {
+        type: 'CONFIGURE_SOURCE',
+        query: 'test',
+      });
+
+      expect(actionResult?.hostAnswerTo).toEqual({
+        socketId: 'host-1',
+        title: 'Song A',
+        artist: 'Artist A',
+        artworkUrl: 'https://img/1',
+        trackViewUrl: 'https://x/1',
+      });
+    });
+  });
   // pressBuzzer, submitAnswer, etc. but basic coverage is here for the core logic.
 });
