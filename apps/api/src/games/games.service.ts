@@ -236,7 +236,7 @@ export class GamesService {
     if (!room) return null;
 
     const playerId = reconnectToken
-      ? this.playerSessionService.consume(code, reconnectToken)
+      ? this.playerSessionService.verify(code, reconnectToken)
       : undefined;
     const existingPlayer = playerId
       ? room.players.find((player) => player.id === playerId && player.name === user.name)

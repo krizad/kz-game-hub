@@ -32,9 +32,23 @@ export class PlayerSessionService {
 
     const tokenHash = this.hash(token);
     const session = roomSessions.get(tokenHash);
+    if (!session) return null;
     roomSessions.delete(tokenHash);
+    if (session.expiresAt <= Date.now()) return null;
+    return session.playerId;
+  }
 
-    if (!session || session.expiresAt <= Date.now()) return null;
+  verify(roomCode: string, token: string): string | null {
+    const roomSessions = this.sessions.get(roomCode);
+    if (!roomSessions) return null;
+
+    const tokenHash = this.hash(token);
+    const session = roomSessions.get(tokenHash);
+    if (!session) return null;
+    if (session.expiresAt <= Date.now()) {
+      roomSessions.delete(tokenHash);
+      return null;
+    }
     return session.playerId;
   }
 

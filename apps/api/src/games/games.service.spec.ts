@@ -503,6 +503,29 @@ describe('GamesService', () => {
       expect(updatedRoom!.votes!['p2']).toBe('p1New');
     });
 
+    it('should keep the reconnect token usable when an attempt is rejected', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const reconnectToken = service.getReconnectToken(room.code, 'p1')!;
+      service.leaveRoom('p1', false);
+
+      const rejected = service.joinRoom(
+        room.code,
+        { id: 'p1b', name: 'Host', socketId: 'p1b' },
+        reconnectToken,
+      );
+      expect(rejected).toBeNull();
+
+      const retried = service.joinRoom(
+        room.code,
+        { id: 'p1b', name: 'Player1', socketId: 'p1b' },
+        reconnectToken,
+      );
+      expect(retried).not.toBeNull();
+      expect(retried!.players.find((player) => player.name === 'Player1')!.socketId).toBe('p1b');
+    });
+
     it('should reject reconnect attempts that only reuse an existing player name', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
