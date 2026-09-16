@@ -283,6 +283,10 @@ export class GamesService {
       if (room.cardGameState) {
         this.cardGameService.remapSocketId(room.cardGameState, oldSocketId, user.socketId);
       }
+      if (room.cardGameChips && oldSocketId in room.cardGameChips) {
+        room.cardGameChips[user.socketId] = room.cardGameChips[oldSocketId];
+        delete room.cardGameChips[oldSocketId];
+      }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
       this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -415,6 +419,18 @@ export class GamesService {
     if (room.gobblerState) {
       if (room.gobblerState.playerXId === player.socketId) room.gobblerState.playerXId = undefined;
       if (room.gobblerState.playerOId === player.socketId) room.gobblerState.playerOId = undefined;
+    }
+    if (room.ultimateTicTacToeState) {
+      if (room.ultimateTicTacToeState.playerXId === player.socketId)
+        room.ultimateTicTacToeState.playerXId = undefined;
+      if (room.ultimateTicTacToeState.playerOId === player.socketId)
+        room.ultimateTicTacToeState.playerOId = undefined;
+    }
+    if (room.cardGameState) {
+      this.cardGameService.cancelRound(room);
+    }
+    if (room.cardGameChips) {
+      delete room.cardGameChips[player.socketId];
     }
 
     this.runDisconnectHooks(code, room, player.socketId);
@@ -580,6 +596,22 @@ export class GamesService {
         }
         if (room.ticTacToeState.playerOId === BOT_SOCKET_ID) {
           room.ticTacToeState.playerOId = undefined;
+        }
+      }
+      if (room.gobblerState) {
+        if (room.gobblerState.playerXId === BOT_SOCKET_ID) {
+          room.gobblerState.playerXId = undefined;
+        }
+        if (room.gobblerState.playerOId === BOT_SOCKET_ID) {
+          room.gobblerState.playerOId = undefined;
+        }
+      }
+      if (room.ultimateTicTacToeState) {
+        if (room.ultimateTicTacToeState.playerXId === BOT_SOCKET_ID) {
+          room.ultimateTicTacToeState.playerXId = undefined;
+        }
+        if (room.ultimateTicTacToeState.playerOId === BOT_SOCKET_ID) {
+          room.ultimateTicTacToeState.playerOId = undefined;
         }
       }
     }
@@ -788,8 +820,11 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
-    // Default to WHO_KNOW
-    return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
+    if (room.gameType === GameType.WHO_KNOW) {
+      return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
+    }
+
+    return null;
   }
 
   private async startWhoAmI(room: RoomState, requesterId: string): Promise<RoomState | null> {
@@ -851,6 +886,7 @@ export class GamesService {
       if (room.roomHostId !== requesterId) return null;
       room.status = RoomStatus.LOBBY;
       room.cardGameState = undefined;
+      room.cardGameChips = undefined;
       this.privateStateService.clearRoom(code);
       this.rooms.set(code, room);
       return room;

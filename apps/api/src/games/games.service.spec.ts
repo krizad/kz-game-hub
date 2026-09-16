@@ -226,6 +226,12 @@ describe('GamesService', () => {
     playerSessionService = module.get(PlayerSessionService);
     privateStateService = module.get(PrivateStateService);
     roomTimerService = module.get(RoomTimerService);
+
+    // Real implementation so leave-mid-round tests exercise actual cancellation
+    const cardGameInstance = new CardGameService(privateStateService);
+    mockGameServices.cardGame.cancelRound = jest.fn(
+      cardGameInstance.cancelRound.bind(cardGameInstance),
+    );
     (service as any).rooms.clear();
     (service as any).secretWords.clear();
     playerSessionService.clearAll();
@@ -508,6 +514,54 @@ describe('GamesService', () => {
 
       jest.advanceTimersByTime(60_000);
       expect(service.getRoom(room.code)).toBeUndefined();
+    });
+
+    const startCardRound = (room: RoomState): void => {
+      room.cardGameState = {
+        preset: 'POK_DENG',
+        phase: 'PLAYER_TURNS',
+        dealerId: 'host1',
+        activePlayerId: 'p1',
+        playerOrder: ['host1', 'p1'],
+        handCounts: { host1: 2, p1: 2 },
+        chips: { host1: 101, p1: 99 },
+        decisions: { host1: 'NATURAL', p1: 'PENDING' },
+      };
+      room.cardGameChips = { host1: 101, p1: 99 };
+      room.status = RoomStatus.PLAYING;
+      (service as any).rooms.set(room.code, room);
+    };
+
+    it('should cancel a live card round when a player leaves explicitly', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      startCardRound(room);
+
+      const result = service.leaveRoom('p1', true);
+
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(room.cardGameState).toBeUndefined();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(room.cardGameChips).toEqual({ host1: 101 });
+      expect(cardGameService.cancelRound).toHaveBeenCalledWith(room);
+    });
+
+    it('should cancel a live card round when the reconnect grace expires', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      startCardRound(room);
+
+      service.leaveRoom('p1', false);
+      expect(room.cardGameState).toBeDefined();
+
+      jest.advanceTimersByTime(60_000);
+
+      expect(room.cardGameState).toBeUndefined();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(room.cardGameChips).toEqual({ host1: 101 });
     });
 
     it('should keep room and transfer host to a remaining player on host disconnect from LOBBY', () => {
