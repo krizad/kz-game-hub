@@ -483,6 +483,28 @@ export function outcomeTagForMod10(hand: PlayingCard[]): string {
   return 'NORMAL';
 }
 
+export function rankIndexIn(rankOrder: string[], rank: PlayingCard['rank']): number {
+  return rankOrder.indexOf(rank);
+}
+
+export function isSameRankGroup(cards: PlayingCard[], maxSize = 3): boolean {
+  if (cards.length === 0 || cards.length > maxSize) return false;
+  return cards.every((card) => card.rank === cards[0].rank);
+}
+
+/** Compares same-size same-rank groups under a preset rank order (last index is highest). */
+export function beatsRankGroup(
+  candidate: PlayingCard[],
+  current: PlayingCard[],
+  rankOrder: string[],
+): boolean {
+  if (candidate.length === 0) return false;
+  if (current.length === 0) return true;
+  if (candidate.length !== current.length) return false;
+  if (!isSameRankGroup(candidate) || !isSameRankGroup(current)) return false;
+  return rankIndexIn(rankOrder, candidate[0].rank) > rankIndexIn(rankOrder, current[0].rank);
+}
+
 export function settleMod10Showdown(input: ShowdownInput): ShowdownOutcome {
   const { playerOrder, dealerId, hands } = input;
   const dealerHand = hands[dealerId] ?? [];

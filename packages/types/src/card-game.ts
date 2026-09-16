@@ -4,11 +4,11 @@ export interface PlayingCard {
   suit: 'CLUBS' | 'DIAMONDS' | 'HEARTS' | 'SPADES';
 }
 
-export type CardGamePreset = 'POK_DENG';
+export type CardGamePreset = 'POK_DENG' | 'SLAVE';
 
 export type CardGamePhase = 'PLAYER_TURNS' | 'RESULT';
 
-export type CardDecision = 'PENDING' | 'STAND' | 'DRAWN' | 'NATURAL';
+export type CardDecision = 'PENDING' | 'STAND' | 'DRAWN' | 'NATURAL' | 'PLAYED' | 'PASSED';
 
 export interface DeckPolicy {
   kind: 'STANDARD_52';
@@ -36,7 +36,7 @@ export interface DealPolicy {
   starterPolicy: StarterPolicy;
 }
 
-export type CardActionKind = 'DRAW' | 'STAND';
+export type CardActionKind = 'DRAW' | 'STAND' | 'PLAY' | 'PASS';
 
 export interface ActionPolicy {
   allowed: CardActionKind[];
@@ -82,13 +82,14 @@ export type RoundEndConditionKind =
   | 'NATURAL_HAND'
   | 'ALL_PLAYERS_RESOLVED'
   | 'DEALER_RESOLVED'
-  | 'STOCK_EMPTY';
+  | 'STOCK_EMPTY'
+  | 'FIRST_EMPTY_HAND';
 
 export interface RoundEndCondition {
   kind: RoundEndConditionKind;
 }
 
-export type EvaluationRule = 'MOD_10_SHOWDOWN';
+export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING';
 
 export interface CardGamePresetDefinition {
   id: CardGamePreset;
@@ -109,11 +110,21 @@ export interface CardGamePresetDefinition {
 }
 
 export interface CardGameResult {
-  dealerScore: number;
+  dealerScore?: number;
   playerScores: Record<string, number>;
-  outcomeTags: Record<string, string>;
+  outcomeTags?: Record<string, string>;
+  /** Seat order from first place onwards, when the preset ranks every player. */
+  placements?: string[];
   winnerIds: string[];
   revealedHands: Record<string, PlayingCard[]>;
+}
+
+/** Public view of the trick currently on the table (Slave). Played cards are revealed. */
+export interface TrickState {
+  leaderId: string;
+  playedById: string | null;
+  cards: PlayingCard[];
+  passIds: string[];
 }
 
 /** Redacted snapshot broadcast to every room member. Never carries unrevealed hands. */
@@ -126,6 +137,7 @@ export interface CardGamePublicState {
   handCounts: Record<string, number>;
   chips: Record<string, number>;
   decisions: Record<string, CardDecision>;
+  trick?: TrickState;
   result?: CardGameResult;
 }
 
@@ -139,7 +151,9 @@ export interface CardGamePrivateState {
 export type CardGameAction =
   | { type: 'DRAW' }
   | { type: 'STAND' }
-  | { type: 'NEXT_ROUND' };
+  | { type: 'NEXT_ROUND' }
+  | { type: 'PLAY'; cards: string[] }
+  | { type: 'PASS' };
 
 export interface CardGameImportRulesRequest {
   /** Room code the rules are imported into. */

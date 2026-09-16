@@ -25,6 +25,9 @@ import {
   validateConfig,
 } from './card-engine.service';
 import { POK_DENG_PRESET } from './presets/pok-deng.preset';
+import { SLAVE_PRESET } from './presets/slave.preset';
+import { presetForConfig } from './presets';
+import { SlaveRuntime } from './slave.runtime';
 
 const PRIVATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
@@ -32,7 +35,29 @@ const PILES_KEY = 'piles';
 
 @Injectable()
 export class CardGameService {
-  constructor(private readonly privateStateService: PrivateStateService) {}
+  private readonly slaveRuntime: SlaveRuntime;
+
+  constructor(private readonly privateStateService: PrivateStateService) {
+    this.slaveRuntime = new SlaveRuntime(privateStateService);
+  }
+
+  startCardRound(room: RoomState, requesterId: string): RoomState | null {
+    if (room.gameType !== GameType.CARD_GAME || room.roomHostId !== requesterId) return null;
+    if ((room.cardGameConfig?.preset ?? 'POK_DENG') === 'SLAVE') {
+      const players = room.players.filter(
+        (player) => !player.isViewer && player.connected !== false,
+      );
+      if (players.length < SLAVE_PRESET.minPlayers || players.length > SLAVE_PRESET.maxPlayers) {
+        return null;
+      }
+      return this.slaveRuntime.startRound(
+        room,
+        this.configFor(room),
+        players.map((player) => player.socketId),
+      );
+    }
+    return this.startPokDeng(room, requesterId);
+  }
 
   startPokDeng(room: RoomState, requesterId: string): RoomState | null {
     if (room.gameType !== GameType.CARD_GAME || room.roomHostId !== requesterId) return null;
@@ -97,6 +122,13 @@ export class CardGameService {
   handleAction(room: RoomState, socketId: string, action: CardGameAction): RoomState | null {
     const state = room.cardGameState;
     if (!state || room.gameType !== GameType.CARD_GAME) return null;
+    if ((room.cardGameConfig?.preset ?? 'POK_DENG') === 'SLAVE') {
+      if (action.type === 'NEXT_ROUND') {
+        if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;
+        return this.startCardRound(room, room.roomHostId);
+      }
+      return this.slaveRuntime.handleAction(room, socketId, action, this.configFor(room));
+    }
     if (action.type === 'NEXT_ROUND') {
       if (state.phase !== 'RESULT' || socketId !== room.roomHostId) return null;
       return this.startPokDeng(room, room.roomHostId);
@@ -145,17 +177,28 @@ export class CardGameService {
     state.handCounts = this.remapRecord(state.handCounts, oldSocketId, newSocketId);
     state.chips = this.remapRecord(state.chips, oldSocketId, newSocketId);
     state.decisions = this.remapRecord(state.decisions, oldSocketId, newSocketId);
+    if (state.trick) {
+      if (state.trick.leaderId === oldSocketId) state.trick.leaderId = newSocketId;
+      if (state.trick.playedById === oldSocketId) state.trick.playedById = newSocketId;
+      state.trick.passIds = state.trick.passIds.map((id) => (id === oldSocketId ? newSocketId : id));
+    }
     if (state.result) {
       state.result.playerScores = this.remapRecord(state.result.playerScores, oldSocketId, newSocketId);
       state.result.outcomeTags = this.remapRecord(state.result.outcomeTags, oldSocketId, newSocketId);
       state.result.winnerIds = state.result.winnerIds.map((id) => (id === oldSocketId ? newSocketId : id));
       state.result.revealedHands = this.remapRecord(state.result.revealedHands, oldSocketId, newSocketId);
+      if (state.result.placements) {
+        state.result.placements = state.result.placements.map((id) =>
+          id === oldSocketId ? newSocketId : id,
+        );
+      }
     }
   }
 
   private configFor(room: RoomState): CardGameConfig {
-    const validated = validateConfig(room.cardGameConfig, POK_DENG_PRESET);
-    return validated.config ?? POK_DENG_PRESET.defaultConfig;
+    const preset = presetForConfig(room.cardGameConfig);
+    const validated = validateConfig(room.cardGameConfig, preset);
+    return validated.config ?? preset.defaultConfig;
   }
 
   private advance(room: RoomState): void {

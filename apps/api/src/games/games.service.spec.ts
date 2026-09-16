@@ -17,6 +17,7 @@ import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-ta
 import { CardGameService } from './card-game/card-game.service';
 import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
+import { SLAVE_PRESET } from './card-game/presets/slave.preset';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -177,6 +178,7 @@ describe('GamesService', () => {
     },
     cardGame: {
       startPokDeng: jest.fn(),
+      startCardRound: jest.fn(),
       handleAction: jest.fn(),
       cancelRound: jest.fn(),
       remapSocketId: CardGameService.prototype.remapSocketId,
@@ -311,6 +313,14 @@ describe('GamesService', () => {
       expect(room.gameType).toBe(GameType.CARD_GAME);
       expect(room.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
       expect(room.status).toBe(RoomStatus.LOBBY);
+    });
+
+    it('should create a card-game room with the Slave default config when selected', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME, { cardGamePreset: 'SLAVE' });
+
+      expect(room.gameType).toBe(GameType.CARD_GAME);
+      expect(room.config.cardGamePreset).toBe('SLAVE');
+      expect(room.cardGameConfig).toEqual(SLAVE_PRESET.defaultConfig);
     });
 
     it('should create an RPS room with initial state', () => {
@@ -984,6 +994,17 @@ describe('GamesService', () => {
       expect(service.getRoom(room.code)!.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
     });
 
+    it('should reset the card-game config when the host switches preset', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      expect(room.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
+
+      const updated = service.updateConfig(room.code, 'host1', { cardGamePreset: 'SLAVE' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.config.cardGamePreset).toBe('SLAVE');
+      expect(updated!.cardGameConfig).toEqual(SLAVE_PRESET.defaultConfig);
+    });
+
     it('should reject a card-game config for a non card-game room', () => {
       const room = service.createRoom('host1');
 
@@ -1117,6 +1138,17 @@ describe('GamesService', () => {
       const result = await service.assignRoles(room.code, 'host1');
 
       expect(detectiveClubService.startGame).toHaveBeenCalledWith(room, 'host1');
+      expect(result).toEqual({ room: updatedRoom, roles: {} });
+    });
+
+    it('should delegate a card-game start to startCardRound', async () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      const updatedRoom = { ...room, status: RoomStatus.PLAYING };
+      mockGameServices.cardGame.startCardRound.mockReturnValue(updatedRoom);
+
+      const result = await service.assignRoles(room.code, 'host1');
+
+      expect(mockGameServices.cardGame.startCardRound).toHaveBeenCalledWith(room, 'host1');
       expect(result).toEqual({ room: updatedRoom, roles: {} });
     });
 

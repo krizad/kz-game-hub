@@ -11,7 +11,7 @@ import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
 import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
-import { CardGameConfig, CardGamePublicState } from './card-game';
+import { CardGameConfig, CardGamePreset, CardGamePublicState } from './card-game';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -161,6 +161,8 @@ export interface RoomConfig {
   rpsBestOf?: number; // e.g., 1, 3, 5
   rpsMode?: '1V1_ROUND_ROBIN' | 'ALL_AT_ONCE';
   language?: 'en' | 'th';
+  // Card game config
+  cardGamePreset?: CardGamePreset;
   // Tic-Tac-Toe config
   ticTacToeMode?: TicTacToeMode;
   ticTacToeVsBot?: boolean;

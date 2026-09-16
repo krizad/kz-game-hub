@@ -1,6 +1,5 @@
 'use client';
 
-import { CardActionKind } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
@@ -12,10 +11,9 @@ export function CardGameActionPanel() {
 
   const myTurn = state.phase === 'PLAYER_TURNS' && state.activePlayerId === socketId;
   const isHost = socketId === room.roomHostId;
-  const allowedActions: CardActionKind[] = room.cardGameConfig?.actions.allowed ?? [
-    'DRAW',
-    'STAND',
-  ];
+  const allowedActions = (room.cardGameConfig?.actions.allowed ?? ['DRAW', 'STAND']).filter(
+    (kind): kind is 'DRAW' | 'STAND' => kind === 'DRAW' || kind === 'STAND',
+  );
   const winnerLabel = state.result?.winnerIds.length
     ? state.result.winnerIds
         .map((id) => room.players.find((p) => p.socketId === id)?.name)
@@ -28,7 +26,10 @@ export function CardGameActionPanel() {
         className="border-4 border-black bg-[#86EFAC] p-4 font-black"
         data-testid="card-game-result"
       >
-        {t('gamePokDeng.resultLine', { score: state.result.dealerScore, winners: winnerLabel })}
+        {t('gamePokDeng.resultLine', {
+          score: state.result.dealerScore ?? 0,
+          winners: winnerLabel,
+        })}
         {isHost && (
           <button
             onClick={() => cardGameAction({ type: 'NEXT_ROUND' })}

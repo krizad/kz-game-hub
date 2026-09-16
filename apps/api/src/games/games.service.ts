@@ -38,7 +38,7 @@ import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { validateConfig } from './card-game/card-engine.service';
-import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
+import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
@@ -208,7 +208,8 @@ export class GamesService {
     } else if (gameType === GameType.ULTIMATE_TIC_TAC_TOE) {
       room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
     } else if (gameType === GameType.CARD_GAME) {
-      room.cardGameConfig = POK_DENG_PRESET.defaultConfig;
+      const presetId = initialConfig?.cardGamePreset ?? 'POK_DENG';
+      room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
     }
 
     this.syncBotPlayer(room);
@@ -515,14 +516,24 @@ export class GamesService {
 
     if (room.roomHostId !== requesterId) return null;
 
+    const safeConfig = this.sanitizeRoomConfig(config);
+    if (
+      room.gameType === GameType.CARD_GAME &&
+      safeConfig.cardGamePreset &&
+      safeConfig.cardGamePreset !== room.config.cardGamePreset
+    ) {
+      room.cardGameConfig = CARD_GAME_PRESETS[safeConfig.cardGamePreset].defaultConfig;
+    }
     if (cardGameConfig) {
       if (room.gameType !== GameType.CARD_GAME) return null;
-      const validated = validateConfig({ ...room.cardGameConfig, ...cardGameConfig }, POK_DENG_PRESET);
+      const validated = validateConfig(
+        { ...room.cardGameConfig, ...cardGameConfig },
+        presetForConfig(room.cardGameConfig),
+      );
       if (!validated.ok || !validated.config) return null;
       room.cardGameConfig = validated.config;
     }
 
-    const safeConfig = this.sanitizeRoomConfig(config);
     if (
       room.gameType === GameType.TIC_TAC_TOE &&
       safeConfig.ticTacToeMode &&
@@ -655,6 +666,7 @@ export class GamesService {
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
     copyEnum('language', ['en', 'th']);
+    copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE']);
     copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
     copyBoolean('ticTacToeVsBot');
     copyEnum('ticTacToeBotDifficulty', ['EASY', 'GOD']);
@@ -832,7 +844,7 @@ export class GamesService {
 
     if (room.gameType === GameType.CARD_GAME) {
       const startedRoom = this.withRoom(code, (r) =>
-        this.cardGameService.startPokDeng(r, requesterId),
+        this.cardGameService.startCardRound(r, requesterId),
       );
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
@@ -971,7 +983,7 @@ export class GamesService {
     if (!room || room.gameType !== GameType.CARD_GAME) return { ok: false, error: 'INVALID_ROOM' };
     if (room.roomHostId !== requesterId) return { ok: false, error: 'NOT_HOST' };
     if (room.status !== RoomStatus.LOBBY) return { ok: false, error: 'NOT_LOBBY' };
-    return this.cardRulePresetRepository.publish(config, POK_DENG_PRESET);
+    return this.cardRulePresetRepository.publish(config, presetForConfig(room.cardGameConfig));
   }
 
   async cardGameImportRules(
@@ -983,7 +995,10 @@ export class GamesService {
     if (!room || room.gameType !== GameType.CARD_GAME) return { ok: false, error: 'INVALID_ROOM' };
     if (room.roomHostId !== requesterId) return { ok: false, error: 'NOT_HOST' };
     if (room.status !== RoomStatus.LOBBY) return { ok: false, error: 'NOT_LOBBY' };
-    const imported = await this.cardRulePresetRepository.importByCode(shareCode, POK_DENG_PRESET);
+    const imported = await this.cardRulePresetRepository.importByCode(
+      shareCode,
+      presetForConfig(room.cardGameConfig),
+    );
     if (!imported.ok || !imported.config) return imported;
     room.cardGameConfig = imported.config;
     this.rooms.set(code, room);
