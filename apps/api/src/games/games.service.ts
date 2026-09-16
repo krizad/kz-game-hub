@@ -477,6 +477,9 @@ export class GamesService {
     if (room.gameType === GameType.COUP && room.coupState) {
       this.coupService.handlePlayerDisconnect(room, socketId);
     }
+    if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
+      this.whoAmIService.handlePlayerDisconnect(room, socketId);
+    }
   }
 
   /** Hand room ownership to the first remaining connected player after the host lost connection. */
