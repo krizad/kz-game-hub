@@ -500,7 +500,7 @@ export const th: Dictionary = {
     gameOver: 'จบเกม',
     score: 'คะแนน',
     draw: 'เสมอ!',
-    wins: 'ชนะ!',
+    wins: '{winner} ชนะ!',
     playAgain: 'เล่นอีกครั้ง',
     modes: {
       title: 'โหมดเกม',
@@ -644,7 +644,15 @@ export const th: Dictionary = {
       PREVIOUS_WINNER: 'ผู้ชนะรอบก่อน',
       PREVIOUS_LOSER: 'ผู้แพ้รอบก่อน',
     },
-    actionNames: { DRAW: 'จั่ว', STAND: 'อยู่' },
+    actionNames: {
+      DRAW: 'จั่ว',
+      STAND: 'อยู่',
+      PLAY: 'ลงไพ่',
+      PASS: 'ผ่าน',
+      CLAIM: 'เก็บ',
+      DISCARD: 'ทิ้ง',
+      TAKE_CARD: 'หยิบไพ่',
+    },
     exhaustionPolicies: {
       END_ROUND: 'จบรอบ',
       RESHUFFLE_DISCARDS_EXCEPT_TOP: 'สับกองทิ้งกลับ (เก็บใบบนสุด)',
