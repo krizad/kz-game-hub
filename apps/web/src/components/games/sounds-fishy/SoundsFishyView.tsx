@@ -40,6 +40,7 @@ export function SoundsFishyView() {
   const isBlueFish = myRole === 'BLUE_FISH';
   const trueAnswer = privateState.sfTrueAnswer as string | undefined;
   const myAnswer = privateState.sfMyAnswer as { playerId: string; answer: string } | undefined;
+  const typingTexts = (privateState.sfTypingTexts || {}) as Record<string, string>;
 
   // Check if all players (excluding the Picker) have had their answers revealed
   const nonPickerPlayers = room.players.filter((p) => p.socketId !== state.pickerId);
@@ -163,7 +164,7 @@ export function SoundsFishyView() {
           )}
 
           {/* Live typing display for non-pickers who are still answering */}
-          {!isPicker && state.typingAnswers && Object.keys(state.typingAnswers).length > 0 && (
+          {!isPicker && Object.keys(typingTexts).length > 0 && (
             <div className="w-full mt-10 max-w-2xl mx-auto border-t-4 border-black border-dashed pt-8">
               <p className="text-xs font-black text-black uppercase tracking-widest mb-6 bg-pink-300 px-3 py-1 border-2 border-black inline-block - shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 {t('gameSoundsFishy.otherFishesTyping')}
@@ -173,7 +174,7 @@ export function SoundsFishyView() {
                   if (p.socketId === socketId || p.socketId === state.pickerId) return null; // Don't show myself or the picker
                   if (state.answeredPlayerIds.includes(p.socketId)) return null; // Don't show if they already submitted
 
-                  const typingText = state.typingAnswers?.[p.socketId];
+                  const typingText = typingTexts[p.socketId];
                   if (!typingText) return null;
 
                   return (

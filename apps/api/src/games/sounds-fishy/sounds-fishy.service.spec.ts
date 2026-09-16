@@ -97,6 +97,40 @@ describe('SoundsFishyService', () => {
     });
   });
 
+  describe('typeAnswer', () => {
+    it('shares live typing with every seat except the picker and keeps text out of public state', () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.soundsFishyState = {
+        currentPhase: SoundsFishyPhase.SETUP,
+        pickerId: 'p1',
+        blueFishId: null,
+        redHerringIds: [],
+        question: { id: '1', question: 'Q?', lang: 'th' },
+        playerAnswers: {},
+        answeredPlayerIds: [],
+        eliminatedPlayers: [],
+        roundScorePool: 0,
+        roundPoints: {},
+        typingPlayerIds: [],
+      } as unknown as RoomState['soundsFishyState'];
+
+      const result = service.typeAnswer(room, 'p2', 'draft answer');
+      expect(result).not.toBeNull();
+      expect(result!.soundsFishyState!.typingPlayerIds).toEqual(['p2']);
+      expect(JSON.stringify(result)).not.toContain('draft answer');
+
+      expect(privateState.get(room.code, 'p1', 'sfTypingTexts')).toBeUndefined();
+      expect(privateState.get(room.code, 'p2', 'sfTypingTexts')).toEqual({ p2: 'draft answer' });
+      expect(privateState.get(room.code, 'p3', 'sfTypingTexts')).toEqual({ p2: 'draft answer' });
+
+      const submitted = service.submitAnswer(room, 'p2', 'draft answer');
+      expect(submitted).not.toBeNull();
+      expect(submitted!.soundsFishyState!.typingPlayerIds).toEqual([]);
+      expect(privateState.get(room.code, 'p2', 'sfTypingTexts')).toBeUndefined();
+      expect(privateState.get(room.code, 'p3', 'sfTypingTexts')).toBeUndefined();
+    });
+  });
+
   describe('submitAnswer', () => {
     function seedPrivate(room: RoomState) {
       privateState.set(room.code, '__room__', 'sfRoomTrueAnswer', 'Truth');
@@ -124,7 +158,7 @@ describe('SoundsFishyService', () => {
         eliminatedPlayers: [],
         roundScorePool: 0,
         roundPoints: {},
-        typingAnswers: {},
+        typingPlayerIds: [],
       } as unknown as RoomState['soundsFishyState'];
 
       expect(service.submitAnswer(room, 'p3', 'truth ')).toBeNull();
@@ -150,7 +184,7 @@ describe('SoundsFishyService', () => {
         eliminatedPlayers: [],
         roundScorePool: 0,
         roundPoints: {},
-        typingAnswers: {},
+        typingPlayerIds: [],
       } as unknown as RoomState['soundsFishyState'];
 
       expect(service.submitAnswer(room, 'p2', 'Wrong')).toBeNull();
@@ -172,7 +206,7 @@ describe('SoundsFishyService', () => {
         eliminatedPlayers: [],
         roundScorePool: 0,
         roundPoints: {},
-        typingAnswers: {},
+        typingPlayerIds: [],
       } as unknown as RoomState['soundsFishyState'];
 
       service.submitAnswer(room, 'p2', 'Truth');
@@ -201,7 +235,7 @@ describe('SoundsFishyService', () => {
         eliminatedPlayers: [],
         roundScorePool: 0,
         roundPoints: {},
-        typingAnswers: {},
+        typingPlayerIds: [],
       } as unknown as RoomState['soundsFishyState'];
     }
 

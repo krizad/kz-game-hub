@@ -30,5 +30,6 @@ export interface SoundsFishyState {
   eliminatedPlayers: string[];
   roundScorePool: number;
   roundPoints: Record<string, number>;
-  typingAnswers: Record<string, string>;
+  /** Players currently composing an answer; the text itself is delivered privately per seat. */
+  typingPlayerIds: string[];
 }
