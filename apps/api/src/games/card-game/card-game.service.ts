@@ -292,7 +292,7 @@ export class CardGameService {
     for (const id of state.playerOrder) {
       chips[id] = (chips[id] ?? 0) + (outcome.deltas[id] ?? 0);
     }
-    room.cardGameChips = chips;
+    room.cardGameChips = { ...room.cardGameChips, ...chips };
 
     room.cardGameState = toPublicState(
       {

@@ -116,6 +116,20 @@ describe('OldMaidRuntime', () => {
     expect(target.cardGameChips).toEqual({ p1: 101, p2: 99 });
   });
 
+  it('keeps balances of seats that were not dealt into the round', () => {
+    const target = room();
+    target.cardGameChips = { p1: 100, p2: 100, ghost: 42 };
+    const runtime = runtimeFor([
+      card('QC', 'Q', 'CLUBS'),
+      card('QD', 'Q', 'DIAMONDS'),
+      card('QH', 'Q', 'HEARTS'),
+    ]);
+
+    runtime.startRound(target, OLD_MAID_DEFAULT_CONFIG, ['p1', 'p2']);
+
+    expect(target.cardGameChips).toEqual({ p1: 101, p2: 99, ghost: 42 });
+  });
+
   it('removes matching pairs after a take and hands the turn on', () => {
     const target = room();
     const runtime = runtimeFor([
