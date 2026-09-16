@@ -51,6 +51,10 @@ export type LeaveRoomResult =
 /** RoomTimerService timer name prefix for per-player reconnect grace windows. */
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 
+export type RoomLifecycleEvent =
+  | { type: 'ROOM_STATE_UPDATED'; room: RoomState }
+  | { type: 'ROOM_DELETED'; code: string };
+
 @Injectable()
 export class GamesService {
   /** How long a dropped connection may reclaim its seat before being removed. */
@@ -58,6 +62,7 @@ export class GamesService {
 
   private rooms: Map<string, RoomState> = new Map();
   private readonly secretWords: Map<string, string> = new Map();
+  private roomLifecycleListener?: (event: RoomLifecycleEvent) => void;
 
   constructor(
     private readonly whoKnowService: WhoKnowService,
@@ -79,6 +84,10 @@ export class GamesService {
     private readonly cardGameService: CardGameService,
     private readonly cardRulePresetRepository: CardRulePresetRepository,
   ) {}
+
+  setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void {
+    this.roomLifecycleListener = listener;
+  }
 
   isRoomMember(code: string, socketId: string): boolean {
     const room = this.rooms.get(code);
@@ -400,10 +409,12 @@ export class GamesService {
 
     if (!room.players.some((p) => p.connected !== false && p.socketId !== BOT_SOCKET_ID)) {
       this.deleteRoomData(code);
+      this.roomLifecycleListener?.({ type: 'ROOM_DELETED', code });
       return;
     }
 
     this.rooms.set(code, room);
+    this.roomLifecycleListener?.({ type: 'ROOM_STATE_UPDATED', room });
   }
 
   private scheduleReconnectGrace(code: string, playerId: string): void {

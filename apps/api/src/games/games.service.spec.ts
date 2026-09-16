@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
-import { GamesService } from './games.service';
+import { GamesService, RoomLifecycleEvent } from './games.service';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -614,6 +614,35 @@ describe('GamesService', () => {
       expect(room.cardGameState).toBeUndefined();
       expect(room.status).toBe(RoomStatus.LOBBY);
       expect(room.cardGameChips).toEqual({ host1: 101 });
+    });
+
+    it('should announce a state update when grace expiry removes a player', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1', GameType.WHO_KNOW);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const events: RoomLifecycleEvent[] = [];
+      service.setRoomLifecycleListener((event) => events.push(event));
+
+      service.leaveRoom('p1', false);
+      jest.advanceTimersByTime(60_000);
+
+      expect(events).toEqual([{ type: 'ROOM_STATE_UPDATED', room }]);
+      expect((service as any).rooms.has(room.code)).toBe(true);
+    });
+
+    it('should announce room deletion when grace expiry removes the last player', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1', GameType.WHO_KNOW);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      const events: RoomLifecycleEvent[] = [];
+      service.setRoomLifecycleListener((event) => events.push(event));
+
+      service.leaveRoom('host1', false);
+      jest.advanceTimersByTime(60_000);
+
+      expect(events).toEqual([{ type: 'ROOM_DELETED', code: room.code }]);
+      expect((service as any).rooms.has(room.code)).toBe(false);
     });
 
     it('should not cancel a live card round when a spectator leaves', () => {

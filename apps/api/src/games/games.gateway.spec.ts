@@ -46,4 +46,29 @@ describe('GamesGateway payload guard', () => {
       isValid(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { code: 'abc123', keepIndices: ['0'] }),
     ).toBe(false);
   });
+
+  it('wires grace-expiry broadcasts after init', () => {
+    const setRoomLifecycleListener = jest.fn();
+    const getAvailableRooms = jest.fn(() => []);
+    const lifecycleGateway = new GamesGateway(
+      { setRoomLifecycleListener, getAvailableRooms } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const toMock = jest.fn(() => ({ emit: jest.fn() }));
+    lifecycleGateway.server = { to: toMock, emit: jest.fn() } as never;
+
+    lifecycleGateway.afterInit();
+
+    expect(setRoomLifecycleListener).toHaveBeenCalled();
+    const listener = setRoomLifecycleListener.mock.calls[0][0] as (event: {
+      type: string;
+      code?: string;
+    }) => void;
+    listener({ type: 'ROOM_DELETED', code: 'ABC123' });
+
+    expect(toMock).toHaveBeenCalledWith('ABC123');
+    expect(getAvailableRooms).toHaveBeenCalled();
+  });
 });
