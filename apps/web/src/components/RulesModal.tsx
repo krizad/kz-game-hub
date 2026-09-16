@@ -15,6 +15,7 @@ import { TheMindRules } from './games/the-mind/TheMindRules';
 import { SaboteurRules } from './games/saboteur/SaboteurRules';
 import { CoupRules } from './games/coup/CoupRules';
 import { UltimateTicTacToeRules } from './games/ultimate-tic-tac-toe/UltimateTicTacToeRules';
+import { CardGameRules } from './games/card-game/CardGameRules';
 import { useTranslate } from '@/hooks/useTranslate';
 
 interface RulesModalProps {
@@ -73,6 +74,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <SaboteurRules />;
       case GameType.COUP:
         return <CoupRules />;
+      case GameType.CARD_GAME:
+        return <CardGameRules />;
       default:
         return null;
     }
@@ -236,6 +239,12 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                     className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.COUP ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                   >
                     Coup
+                  </button>
+                  <button
+                    onClick={() => setActiveTab(GameType.CARD_GAME)}
+                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CARD_GAME ? 'bg-lime-300 text-black border-2 border-black border border-lime-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                  >
+                    {t('rules.modal.tabs.pokDeng')}
                   </button>
                 </div>
               </div>

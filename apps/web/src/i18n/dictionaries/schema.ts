@@ -103,6 +103,7 @@ export interface Dictionary {
         theMind: string;
         saboteur: string;
         coup: string;
+        pokDeng: string;
       };
       closeBtn: string;
     };
@@ -523,6 +524,64 @@ export interface Dictionary {
     stand: string;
     waiting: string;
     revealing: string;
+  };
+  cardGameRules: {
+    title: string;
+    preset: string;
+    noConfig: string;
+    deck: string;
+    deckValue: string;
+    dealing: string;
+    dealValue: string;
+    starter: string;
+    actions: string;
+    turnTimer: string;
+    piles: string;
+    reserveValue: string;
+    visibility: string;
+    showHandsAtEnd: string;
+    hideHandsAtEnd: string;
+    showHandCounts: string;
+    hideHandCounts: string;
+    scoring: string;
+    chipsValue: string;
+    tieLine: string;
+    multipliers: string;
+    mod10Note: string;
+    dealModes: {
+      EQUAL_WITH_LEFTOVERS: string;
+      DEAL_ALL: string;
+      REJECT_IF_NOT_EVEN: string;
+    };
+    starterPolicies: {
+      RANDOM: string;
+      HOST_SELECT: string;
+      ROTATE: string;
+      PREVIOUS_WINNER: string;
+      PREVIOUS_LOSER: string;
+    };
+    actionNames: {
+      DRAW: string;
+      STAND: string;
+    };
+    exhaustionPolicies: {
+      END_ROUND: string;
+      RESHUFFLE_DISCARDS_EXCEPT_TOP: string;
+      USE_RESERVE: string;
+    };
+    tiePolicies: {
+      DEALER_WINS: string;
+      PLAYER_WINS: string;
+      PUSH: string;
+    };
+    outcomes: {
+      THREE_OF_A_KIND: string;
+      THREE_FACE: string;
+      STRAIGHT_FLUSH: string;
+      POK_9: string;
+      POK_8: string;
+      NORMAL: string;
+    };
   };
   gameRps: {
     playing: string;
