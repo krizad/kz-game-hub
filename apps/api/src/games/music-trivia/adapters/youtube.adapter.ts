@@ -25,10 +25,16 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       // Dynamic import keeps the ESM-only package out of module-eval, so the
       // adapter (and its tests) load cleanly under CommonJS.
       const { Innertube } = await import('youtubei.js');
-      this.creating = Innertube.create().then((yt) => {
-        this.innertube = yt;
-        return yt;
-      });
+      this.creating = Innertube.create()
+        .then((yt) => {
+          this.innertube = yt;
+          return yt;
+        })
+        .catch((error) => {
+          // Never memoize a failed session — a later search must retry.
+          this.creating = null;
+          throw error;
+        });
     }
     return this.creating;
   }
