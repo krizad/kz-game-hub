@@ -107,6 +107,16 @@ export interface RoundEndCondition {
 
 export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING' | 'PAIR_REMOVAL' | 'LAST_HOLDER_LOSES';
 
+/** Allow-listed policy variants a preset offers, projected to the client for Advanced Rules controls. */
+export interface CardGameAllowedOptions {
+  deck: DeckPolicy[];
+  deal: DealPolicy[];
+  actions: ActionPolicy[];
+  piles: PilePolicy[];
+  visibility: VisibilityPolicy[];
+  scoring: ScoringPolicy[];
+}
+
 export interface CardGamePresetDefinition {
   id: CardGamePreset;
   minPlayers: number;
@@ -115,14 +125,7 @@ export interface CardGamePresetDefinition {
   evaluation: EvaluationRule;
   roundEndConditions: RoundEndCondition[];
   defaultConfig: CardGameConfig;
-  allowed: {
-    deck: DeckPolicy[];
-    deal: DealPolicy[];
-    actions: ActionPolicy[];
-    piles: PilePolicy[];
-    visibility: VisibilityPolicy[];
-    scoring: ScoringPolicy[];
-  };
+  allowed: CardGameAllowedOptions;
 }
 
 export interface CardGameResult {

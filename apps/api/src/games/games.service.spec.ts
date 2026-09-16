@@ -313,6 +313,7 @@ describe('GamesService', () => {
 
       expect(room.gameType).toBe(GameType.CARD_GAME);
       expect(room.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
+      expect(room.cardGameAllowedOptions).toEqual(POK_DENG_PRESET.allowed);
       expect(room.status).toBe(RoomStatus.LOBBY);
     });
 
@@ -322,6 +323,7 @@ describe('GamesService', () => {
       expect(room.gameType).toBe(GameType.CARD_GAME);
       expect(room.config.cardGamePreset).toBe('SLAVE');
       expect(room.cardGameConfig).toEqual(SLAVE_PRESET.defaultConfig);
+      expect(room.cardGameAllowedOptions).toEqual(SLAVE_PRESET.allowed);
     });
 
     it('should create a card-game room with the Sam Sip default config when selected', () => {
@@ -332,6 +334,7 @@ describe('GamesService', () => {
       expect(room.gameType).toBe(GameType.CARD_GAME);
       expect(room.config.cardGamePreset).toBe('SAM_SIP');
       expect(room.cardGameConfig).toEqual(SAM_SIP_PRESET.defaultConfig);
+      expect(room.cardGameAllowedOptions).toEqual(SAM_SIP_PRESET.allowed);
     });
 
     it('should create an RPS room with initial state', () => {
@@ -1014,6 +1017,7 @@ describe('GamesService', () => {
       expect(updated).not.toBeNull();
       expect(updated!.config.cardGamePreset).toBe('SLAVE');
       expect(updated!.cardGameConfig).toEqual(SLAVE_PRESET.defaultConfig);
+      expect(updated!.cardGameAllowedOptions).toEqual(SLAVE_PRESET.allowed);
     });
 
     it('should reject a card-game config for a non card-game room', () => {
@@ -1098,6 +1102,7 @@ describe('GamesService', () => {
       );
       expect(result).toEqual({ ok: true, config: importedConfig });
       expect(service.getRoom(room.code)!.cardGameConfig).toEqual(importedConfig);
+      expect(service.getRoom(room.code)!.cardGameAllowedOptions).toEqual(POK_DENG_PRESET.allowed);
     });
 
     it('should pass import failures through without touching the room', async () => {

@@ -210,6 +210,7 @@ export class GamesService {
     } else if (gameType === GameType.CARD_GAME) {
       const presetId = initialConfig?.cardGamePreset ?? 'POK_DENG';
       room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
+      room.cardGameAllowedOptions = CARD_GAME_PRESETS[presetId].allowed;
     }
 
     this.syncBotPlayer(room);
@@ -523,6 +524,7 @@ export class GamesService {
       safeConfig.cardGamePreset !== room.config.cardGamePreset
     ) {
       room.cardGameConfig = CARD_GAME_PRESETS[safeConfig.cardGamePreset].defaultConfig;
+      room.cardGameAllowedOptions = CARD_GAME_PRESETS[safeConfig.cardGamePreset].allowed;
     }
     if (cardGameConfig) {
       if (room.gameType !== GameType.CARD_GAME) return null;
@@ -917,6 +919,7 @@ export class GamesService {
       room.status = RoomStatus.LOBBY;
       room.cardGameState = undefined;
       room.cardGameChips = undefined;
+      room.cardGameAllowedOptions = presetForConfig(room.cardGameConfig).allowed;
       this.privateStateService.clearRoom(code);
       this.rooms.set(code, room);
       return room;
@@ -1002,6 +1005,7 @@ export class GamesService {
     );
     if (!imported.ok || !imported.config) return imported;
     room.cardGameConfig = imported.config;
+    room.cardGameAllowedOptions = presetForConfig(room.cardGameConfig).allowed;
     this.rooms.set(code, room);
     return imported;
   }

@@ -5,9 +5,6 @@ import { CardGamePreset, DealCountMode, GameType, RoomStatus, StarterPolicy, Tie
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
-const STARTER_OPTIONS: StarterPolicy[] = ['ROTATE', 'RANDOM', 'HOST_SELECT'];
-const TIE_OPTIONS: TiePolicy[] = ['DEALER_WINS', 'PUSH'];
-const TIMER_OPTIONS = [0, 20] as const;
 const PRESET_OPTIONS: CardGamePreset[] = ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID'];
 
 interface DealPreview {
@@ -69,6 +66,19 @@ export function CardGameSettings() {
     config.deal.countMode,
   );
 
+  const allowedOptions = room.cardGameAllowedOptions;
+  const starterPolicies: StarterPolicy[] = allowedOptions
+    ? allowedOptions.deal
+        .map((policy) => policy.starterPolicy)
+        .filter((policy, index, list) => list.indexOf(policy) === index)
+    : [];
+  const tiePolicies: TiePolicy[] = allowedOptions
+    ? allowedOptions.scoring
+        .map((policy) => policy.tiePolicy)
+        .filter((policy, index, list) => list.indexOf(policy) === index)
+    : [];
+  const actionPolicies = allowedOptions?.actions ?? [];
+
   const optionClass = (active: boolean) =>
     `px-3 py-1 border-4 border-black font-black uppercase text-xs transition-all ${
       active ? 'bg-lime-300 shadow-[2px_2px_0_0_#000]' : 'bg-white hover:bg-amber-100'
@@ -112,68 +122,71 @@ export function CardGameSettings() {
         </div>
       </div>
 
-      <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
-        <p className="text-xs font-black uppercase">{t('cardGameSettings.starter')}</p>
-        <div className="flex gap-2 flex-wrap">
-          {STARTER_OPTIONS.map((policy) => (
-            <button
-              key={policy}
-              type="button"
-              data-testid={`card-game-starter-${policy}`}
-              disabled={disabled}
-              className={optionClass(config.deal.starterPolicy === policy)}
-              onClick={() => updateConfig({}, { deal: { ...config.deal, starterPolicy: policy } })}
-            >
-              {t(`cardGameRules.starterPolicies.${policy}`)}
-            </button>
-          ))}
+      {starterPolicies.length > 1 && (
+        <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
+          <p className="text-xs font-black uppercase">{t('cardGameSettings.starter')}</p>
+          <div className="flex gap-2 flex-wrap">
+            {starterPolicies.map((policy) => (
+              <button
+                key={policy}
+                type="button"
+                data-testid={`card-game-starter-${policy}`}
+                disabled={disabled}
+                className={optionClass(config.deal.starterPolicy === policy)}
+                onClick={() =>
+                  updateConfig({}, { deal: { ...config.deal, starterPolicy: policy } })
+                }
+              >
+                {t(`cardGameRules.starterPolicies.${policy}`)}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
-        <p className="text-xs font-black uppercase">{t('cardGameSettings.tiePolicy')}</p>
-        <div className="flex gap-2 flex-wrap">
-          {TIE_OPTIONS.map((policy) => (
-            <button
-              key={policy}
-              type="button"
-              data-testid={`card-game-tie-${policy}`}
-              disabled={disabled}
-              className={optionClass(config.scoring.tiePolicy === policy)}
-              onClick={() =>
-                updateConfig({}, { scoring: { ...config.scoring, tiePolicy: policy } })
-              }
-            >
-              {t(`cardGameRules.tiePolicies.${policy}`)}
-            </button>
-          ))}
+      {tiePolicies.length > 1 && (
+        <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
+          <p className="text-xs font-black uppercase">{t('cardGameSettings.tiePolicy')}</p>
+          <div className="flex gap-2 flex-wrap">
+            {tiePolicies.map((policy) => (
+              <button
+                key={policy}
+                type="button"
+                data-testid={`card-game-tie-${policy}`}
+                disabled={disabled}
+                className={optionClass(config.scoring.tiePolicy === policy)}
+                onClick={() =>
+                  updateConfig({}, { scoring: { ...config.scoring, tiePolicy: policy } })
+                }
+              >
+                {t(`cardGameRules.tiePolicies.${policy}`)}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
-        <p className="text-xs font-black uppercase">{t('cardGameSettings.turnTimer')}</p>
-        <div className="flex gap-2 flex-wrap">
-          {TIMER_OPTIONS.map((seconds) => (
-            <button
-              key={seconds}
-              type="button"
-              data-testid={`card-game-timer-${seconds}`}
-              disabled={disabled}
-              className={optionClass(config.actions.timeoutSeconds === seconds)}
-              onClick={() =>
-                updateConfig(
-                  {},
-                  { actions: { ...config.actions, timeoutSeconds: seconds, autoAction: 'STAND' } },
-                )
-              }
-            >
-              {seconds === 0
-                ? t('cardGameSettings.timerOff')
-                : t('cardGameSettings.timerSeconds', { seconds })}
-            </button>
-          ))}
+      {actionPolicies.length > 1 && (
+        <div className="border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2">
+          <p className="text-xs font-black uppercase">{t('cardGameSettings.turnTimer')}</p>
+          <div className="flex gap-2 flex-wrap">
+            {actionPolicies.map((policy) => (
+              <button
+                key={policy.timeoutSeconds}
+                type="button"
+                data-testid={`card-game-timer-${policy.timeoutSeconds}`}
+                disabled={disabled}
+                className={optionClass(config.actions.timeoutSeconds === policy.timeoutSeconds)}
+                onClick={() => updateConfig({}, { actions: policy })}
+              >
+                {policy.timeoutSeconds === 0
+                  ? t('cardGameSettings.timerOff')
+                  : t('cardGameSettings.timerSeconds', { seconds: policy.timeoutSeconds })}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className="border-4 border-black bg-amber-100 p-3 shadow-[4px_4px_0_0_#000]"
