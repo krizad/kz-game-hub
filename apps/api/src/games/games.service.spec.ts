@@ -683,6 +683,25 @@ describe('GamesService', () => {
       expect(mockGameServices.cardGame.cancelRound).not.toHaveBeenCalled();
     });
 
+    it('should end a live Tic-Tac-Toe match when a seated player leaves', () => {
+      const room = service.createRoom('host1', GameType.TIC_TAC_TOE);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      room.ticTacToeState = {
+        board: Array(9).fill(null),
+        playerXId: 'host1',
+        playerOId: 'p1',
+        currentTurn: 'X',
+      };
+      room.status = RoomStatus.PLAYING;
+
+      service.leaveRoom('p1', true);
+
+      expect(room.status).toBe(RoomStatus.RESULT);
+      expect(room.ticTacToeState?.playerOId).toBeUndefined();
+      expect(room.ticTacToeState?.playerXId).toBe('host1');
+    });
+
     it('should keep room and transfer host to a remaining player on host disconnect from LOBBY', () => {
       const room = service.createRoom('host1');
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
