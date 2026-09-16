@@ -666,7 +666,7 @@ export class GamesService {
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
     copyEnum('language', ['en', 'th']);
-    copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE', 'SAM_SIP']);
+    copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID']);
     copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
     copyBoolean('ticTacToeVsBot');
     copyEnum('ticTacToeBotDifficulty', ['EASY', 'GOD']);

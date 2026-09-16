@@ -4,7 +4,7 @@ export interface PlayingCard {
   suit: 'CLUBS' | 'DIAMONDS' | 'HEARTS' | 'SPADES';
 }
 
-export type CardGamePreset = 'POK_DENG' | 'SLAVE' | 'SAM_SIP';
+export type CardGamePreset = 'POK_DENG' | 'SLAVE' | 'SAM_SIP' | 'OLD_MAID';
 
 export type CardGamePhase = 'PLAYER_TURNS' | 'RESULT';
 
@@ -16,7 +16,8 @@ export type CardDecision =
   | 'PLAYED'
   | 'PASSED'
   | 'CLAIMED'
-  | 'DISCARDED';
+  | 'DISCARDED'
+  | 'TOOK';
 
 export interface DeckPolicy {
   kind: 'STANDARD_52';
@@ -44,7 +45,7 @@ export interface DealPolicy {
   starterPolicy: StarterPolicy;
 }
 
-export type CardActionKind = 'DRAW' | 'STAND' | 'PLAY' | 'PASS' | 'CLAIM' | 'DISCARD';
+export type CardActionKind = 'DRAW' | 'STAND' | 'PLAY' | 'PASS' | 'CLAIM' | 'DISCARD' | 'TAKE_CARD';
 
 export interface ActionPolicy {
   allowed: CardActionKind[];
@@ -91,13 +92,14 @@ export type RoundEndConditionKind =
   | 'ALL_PLAYERS_RESOLVED'
   | 'DEALER_RESOLVED'
   | 'STOCK_EMPTY'
-  | 'FIRST_EMPTY_HAND';
+  | 'FIRST_EMPTY_HAND'
+  | 'LAST_HOLDER_STANDING';
 
 export interface RoundEndCondition {
   kind: RoundEndConditionKind;
 }
 
-export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING' | 'PAIR_REMOVAL';
+export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING' | 'PAIR_REMOVAL' | 'LAST_HOLDER_LOSES';
 
 export interface CardGamePresetDefinition {
   id: CardGamePreset;
@@ -165,7 +167,8 @@ export type CardGameAction =
   | { type: 'PLAY'; cards: string[] }
   | { type: 'PASS' }
   | { type: 'CLAIM' }
-  | { type: 'DISCARD'; cardId: string };
+  | { type: 'DISCARD'; cardId: string }
+  | { type: 'TAKE_CARD'; index: number };
 
 export interface CardGameImportRulesRequest {
   /** Room code the rules are imported into. */
