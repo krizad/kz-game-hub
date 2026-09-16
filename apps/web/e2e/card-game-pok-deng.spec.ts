@@ -15,7 +15,7 @@ test.describe('Pok Deng card game flow', () => {
     await expect(host.getByText('Bob')).toBeVisible({ timeout: 10000 });
 
     // The rules modal renders the normalized preset config in the active language.
-    await host.getByRole('button', { name: 'Rules' }).click();
+    await host.getByRole('button', { name: 'Rules', exact: true }).click();
     await expect(host.getByText('Standard 52 cards ×1')).toBeVisible({ timeout: 5000 });
     await expect(host.getByText('Start 100 chips · base stake 1')).toBeVisible({ timeout: 5000 });
     await host.getByLabel('Close rules').click();
