@@ -142,11 +142,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     client.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
   }
 
+  private leavePreviousRoom(client: Socket, nextRoomCode?: string): void {
+    const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
+    if (!previousRoomCode || previousRoomCode === nextRoomCode) return;
+
+    const leaveResult = this.gamesService.leaveRoom(client.id, true);
+    if (leaveResult.outcome !== 'NOT_IN_ROOM') {
+      this.handleLeaveResult(client, leaveResult);
+    }
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.CREATE_ROOM)
   handleCreateRoom(
     @MessageBody() data: { name: string; gameType?: GameType; config?: Partial<RoomConfig> },
     @ConnectedSocket() client: Socket,
   ) {
+    this.leavePreviousRoom(client);
     const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
     const updatedRoom = this.gamesService.joinRoom(room.code, {
       id: client.id,
@@ -162,6 +173,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
       );
+    } else {
+      this.gamesService.deleteRoom(room.code);
     }
   }
 
@@ -170,6 +183,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; name: string; reconnectToken?: string },
     @ConnectedSocket() client: Socket,
   ) {
+    this.leavePreviousRoom(client, data.code.toUpperCase());
     const room = this.gamesService.joinRoom(
       data.code.toUpperCase(),
       {
