@@ -86,6 +86,26 @@ describe('WhoAmIService', () => {
       expect(['p1', 'p2']).toContain(result!.whoAmIState!.currentTurn);
     });
 
+    it("should publish each player's view of the other players' words", () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      const result = service.startGameHostInput(room, 'host1', { p1: 'Apple', p2: 'Banana' });
+
+      expect(result).not.toBeNull();
+      expect(privateState.get('test-room', 'p1', 'waiVisibleWords')).toEqual({ p2: 'Banana' });
+      expect(privateState.get('test-room', 'p2', 'waiVisibleWords')).toEqual({ p1: 'Apple' });
+      expect(privateState.get('test-room', 'host1', 'waiVisibleWords')).toEqual({
+        p1: 'Apple',
+        p2: 'Banana',
+      });
+    });
+
     it('should return null if requester is not host', () => {
       const room = {
         code: 'test-room',
@@ -158,6 +178,31 @@ describe('WhoAmIService', () => {
       expect(prisma.word.findMany).toHaveBeenCalledWith({
         where: { category: 'Food', lang: 'th' },
         select: { word: true, emoji: true },
+      });
+    });
+
+    it('should give each player a visible-word map that excludes their own word', async () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'RANDOM', wordCategory: 'Food', maxRounds: 3 },
+      } as unknown as RoomState;
+
+      (prisma.word.findMany as jest.Mock).mockResolvedValue([
+        { word: 'Pizza', emoji: '🍕' },
+        { word: 'Sushi', emoji: '🍣' },
+      ]);
+
+      const result = await service.startGameRandom(room, 'host1');
+      expect(result).not.toBeNull();
+
+      expect(privateState.get('test-room', 'host1', 'waiVisibleWords')).toEqual({
+        p1: expect.any(String),
+      });
+      expect(privateState.get('test-room', 'p1', 'waiVisibleWords')).toEqual({
+        host1: expect.any(String),
       });
     });
 
