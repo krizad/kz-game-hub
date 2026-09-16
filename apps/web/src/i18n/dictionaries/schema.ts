@@ -592,6 +592,7 @@ export interface Dictionary {
     dealModes: {
       EQUAL_WITH_LEFTOVERS: string;
       DEAL_ALL: string;
+      DEAL_ALL_UNEVEN: string;
       REJECT_IF_NOT_EVEN: string;
     };
     starterPolicies: {

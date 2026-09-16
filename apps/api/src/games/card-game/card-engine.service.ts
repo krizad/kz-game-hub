@@ -297,6 +297,12 @@ export function previewDeal(
     return { ok: true, preview: { perPlayer, stockSize: 0, reserveSize: reserved } };
   }
 
+  if (policy.countMode === 'DEAL_ALL_UNEVEN') {
+    const perPlayer = Math.floor(usable / playerCount);
+    if (perPlayer < 1) return { ok: false, error: 'deal: not enough cards to deal' };
+    return { ok: true, preview: { perPlayer, stockSize: 0, reserveSize: reserved } };
+  }
+
   const dealt = policy.cardsPerPlayer * playerCount;
   if (policy.countMode === 'REJECT_IF_NOT_EVEN' && dealt !== usable) {
     return { ok: false, error: 'deal: the deck would not be fully consumed' };
@@ -331,6 +337,13 @@ export function dealRound(
   for (const id of playerIds) hands[id] = [];
   for (let round = 0; round < preview.perPlayer; round += 1) {
     for (const id of playerIds) hands[id].push(stock.pop()!);
+  }
+  if (policy.countMode === 'DEAL_ALL_UNEVEN') {
+    let seat = 0;
+    while (stock.length > 0) {
+      hands[playerIds[seat]].push(stock.pop()!);
+      seat = (seat + 1) % playerIds.length;
+    }
   }
   return { ok: true, hands, stock, reserve };
 }
