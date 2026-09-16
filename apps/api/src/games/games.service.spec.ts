@@ -337,6 +337,15 @@ describe('GamesService', () => {
       expect(room.cardGameAllowedOptions).toEqual(SAM_SIP_PRESET.allowed);
     });
 
+    it('should fall back to Pok Deng when an unknown card preset is requested', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME, {
+        cardGamePreset: 'EVIL',
+      } as never);
+
+      expect(room.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);
+      expect(room.cardGameAllowedOptions).toEqual(POK_DENG_PRESET.allowed);
+    });
+
     it('should create an RPS room with initial state', () => {
       const room = service.createRoom('host1', GameType.RPS);
 
@@ -605,6 +614,21 @@ describe('GamesService', () => {
       expect(room.cardGameState).toBeUndefined();
       expect(room.status).toBe(RoomStatus.LOBBY);
       expect(room.cardGameChips).toEqual({ host1: 101 });
+    });
+
+    it('should not cancel a live card round when a spectator leaves', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      startCardRound(room);
+      service.joinRoom(room.code, { id: 'viewer1', name: 'Viewer', socketId: 'viewer1' });
+
+      const result = service.leaveRoom('viewer1', true);
+
+      expect(result.outcome).toBe('PLAYER_LEFT');
+      expect(room.cardGameState).toBeDefined();
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(mockGameServices.cardGame.cancelRound).not.toHaveBeenCalled();
     });
 
     it('should keep room and transfer host to a remaining player on host disconnect from LOBBY', () => {

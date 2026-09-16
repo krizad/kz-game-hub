@@ -208,7 +208,7 @@ export class GamesService {
     } else if (gameType === GameType.ULTIMATE_TIC_TAC_TOE) {
       room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
     } else if (gameType === GameType.CARD_GAME) {
-      const presetId = initialConfig?.cardGamePreset ?? 'POK_DENG';
+      const presetId = room.config.cardGamePreset ?? 'POK_DENG';
       room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
       room.cardGameAllowedOptions = CARD_GAME_PRESETS[presetId].allowed;
     }
@@ -437,7 +437,9 @@ export class GamesService {
       if (room.ultimateTicTacToeState.playerOId === player.socketId)
         room.ultimateTicTacToeState.playerOId = undefined;
     }
-    if (room.cardGameState) {
+    // Only cancel a live round when an actual seated player is removed — a
+    // spectator leaving must not blow up the table.
+    if (room.cardGameState && room.cardGameState.playerOrder.includes(player.socketId)) {
       this.cardGameService.cancelRound(room);
     }
     if (room.cardGameChips) {
