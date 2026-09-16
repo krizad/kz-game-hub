@@ -69,3 +69,16 @@ model GameResult {
   @@index([gameType])
   @@index([playerName])
 }
+
+/// Immutable, validated card-game rule configuration shared through an opaque code.
+/// Never stores hands, stock order, chips, or any live gameplay state (ADR 0002).
+model CardRulePreset {
+  id        String   @id @default(uuid())
+  presetId  String
+  shareCode String   @unique
+  version   Int      @default(1)
+  config    Json
+  createdAt DateTime @default(now())
+
+  @@index([presetId])
+}

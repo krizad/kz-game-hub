@@ -3,6 +3,7 @@ export declare class GobblerService {
     createInitialInventory(side: PlayerSide): GobblerPiece[];
     private isMember;
     private isValidIndex;
+    private isGobblerRoom;
     joinSide(room: RoomState, clientId: string, side: PlayerSide): RoomState | null;
     private checkWin;
     private sizeValue;
@@ -10,6 +11,6 @@ export declare class GobblerService {
     placePiece(room: RoomState, clientId: string, pieceId: string, toIndex: number): RoomState | null;
     movePiece(room: RoomState, clientId: string, fromIndex: number, toIndex: number): RoomState | null;
     private handlePostMove;
-    reset(room: RoomState, clientId: string): RoomState | null;
+    reset(room: RoomState, clientId: string, toLobby?: boolean): RoomState | null;
     remapSocketId(state: GobblerState, oldSocketId: string, newSocketId: string): void;
 }

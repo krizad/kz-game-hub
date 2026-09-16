@@ -27,8 +27,12 @@ let GobblerService = class GobblerService {
     isValidIndex(index) {
         return Number.isInteger(index) && index >= 0 && index < 9;
     }
+    isGobblerRoom(room) {
+        return (room.gameType === types_1.GameType.GOBBLER_TIC_TAC_TOE ||
+            (room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER'));
+    }
     joinSide(room, clientId, side) {
-        if (room.gameType !== types_1.GameType.GOBBLER_TIC_TAC_TOE || room.status !== types_1.RoomStatus.LOBBY)
+        if (!this.isGobblerRoom(room) || room.status !== types_1.RoomStatus.LOBBY)
             return null;
         if (!room.gobblerState)
             return null;
@@ -116,7 +120,7 @@ let GobblerService = class GobblerService {
         return this.sizeValue(newPiece.size) > this.sizeValue(topPiece.size);
     }
     placePiece(room, clientId, pieceId, toIndex) {
-        if (room.gameType !== types_1.GameType.GOBBLER_TIC_TAC_TOE || room.status !== types_1.RoomStatus.PLAYING)
+        if (!this.isGobblerRoom(room) || room.status !== types_1.RoomStatus.PLAYING)
             return null;
         const gb = room.gobblerState;
         if (!gb || gb.winner)
@@ -144,7 +148,7 @@ let GobblerService = class GobblerService {
         return this.handlePostMove(room, gb);
     }
     movePiece(room, clientId, fromIndex, toIndex) {
-        if (room.gameType !== types_1.GameType.GOBBLER_TIC_TAC_TOE || room.status !== types_1.RoomStatus.PLAYING)
+        if (!this.isGobblerRoom(room) || room.status !== types_1.RoomStatus.PLAYING)
             return null;
         const gb = room.gobblerState;
         if (!gb || gb.winner)
@@ -196,15 +200,15 @@ let GobblerService = class GobblerService {
         }
         return room;
     }
-    reset(room, clientId) {
-        if (room.gameType !== types_1.GameType.GOBBLER_TIC_TAC_TOE || room.status !== types_1.RoomStatus.RESULT)
+    reset(room, clientId, toLobby = false) {
+        if (!this.isGobblerRoom(room) || room.status !== types_1.RoomStatus.RESULT)
             return null;
         if (room.roomHostId !== clientId &&
             room.gobblerState?.playerXId !== clientId &&
             room.gobblerState?.playerOId !== clientId) {
             return null;
         }
-        const willStartImmediately = !!(room.gobblerState?.playerXId && room.gobblerState?.playerOId);
+        const willStartImmediately = !toLobby && !!(room.gobblerState?.playerXId && room.gobblerState?.playerOId);
         room.status = willStartImmediately ? types_1.RoomStatus.PLAYING : types_1.RoomStatus.LOBBY;
         const previousWinner = room.gobblerState?.winner;
         room.gobblerState = {

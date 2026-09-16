@@ -9,15 +9,54 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TicTacToeService = void 0;
 const common_1 = require("@nestjs/common");
 const types_1 = require("@repo/types");
+const tic_tac_toe_ai_1 = require("./tic-tac-toe-ai");
 let TicTacToeService = class TicTacToeService {
     isMember(room, clientId) {
         return room.players.some((p) => p.socketId === clientId);
     }
+    isClassicTTTRoom(room) {
+        return (room.gameType === types_1.GameType.TIC_TAC_TOE &&
+            (!room.config.ticTacToeMode || room.config.ticTacToeMode === 'CLASSIC'));
+    }
     isValidIndex(index) {
         return Number.isInteger(index) && index >= 0 && index < 9;
     }
+    executeBotMoveIfNeeded(room) {
+        if (!this.isClassicTTTRoom(room) || room.status !== types_1.RoomStatus.PLAYING)
+            return false;
+        if (!room.config.ticTacToeVsBot)
+            return false;
+        const ttt = room.ticTacToeState;
+        if (!ttt || ttt.winner)
+            return false;
+        const botSide = ttt.playerXId === types_1.BOT_SOCKET_ID ? 'X' : ttt.playerOId === types_1.BOT_SOCKET_ID ? 'O' : null;
+        if (!botSide || ttt.currentTurn !== botSide)
+            return false;
+        const difficulty = room.config.ticTacToeBotDifficulty ?? 'GOD';
+        const move = difficulty === 'EASY' ? (0, tic_tac_toe_ai_1.getRandomMove)(ttt.board) : (0, tic_tac_toe_ai_1.getBestMove)(ttt.board, botSide);
+        if (move < 0 || move >= 9 || ttt.board[move] !== null)
+            return false;
+        ttt.board[move] = botSide;
+        const { winner, line } = this.checkWin(ttt.board);
+        if (winner) {
+            ttt.winner = winner;
+            ttt.winningLine = line;
+            room.status = types_1.RoomStatus.RESULT;
+            const botPlayer = room.players.find((p) => p.socketId === types_1.BOT_SOCKET_ID);
+            if (botPlayer)
+                botPlayer.score += 1;
+        }
+        else if (!ttt.board.includes(null)) {
+            ttt.winner = 'DRAW';
+            room.status = types_1.RoomStatus.RESULT;
+        }
+        else {
+            ttt.currentTurn = botSide === 'X' ? 'O' : 'X';
+        }
+        return true;
+    }
     joinSide(room, clientId, side) {
-        if (room.gameType !== types_1.GameType.TIC_TAC_TOE || room.status !== types_1.RoomStatus.LOBBY)
+        if (!this.isClassicTTTRoom(room) || room.status !== types_1.RoomStatus.LOBBY)
             return null;
         if (!room.ticTacToeState)
             return null;
@@ -26,6 +65,20 @@ let TicTacToeService = class TicTacToeService {
         if (side !== 'X' && side !== 'O')
             return null;
         const ttt = room.ticTacToeState;
+        const isVsBot = !!room.config.ticTacToeVsBot;
+        if (isVsBot) {
+            if (side === 'X') {
+                ttt.playerXId = clientId;
+                ttt.playerOId = types_1.BOT_SOCKET_ID;
+            }
+            else {
+                ttt.playerOId = clientId;
+                ttt.playerXId = types_1.BOT_SOCKET_ID;
+            }
+            room.status = types_1.RoomStatus.PLAYING;
+            this.executeBotMoveIfNeeded(room);
+            return room;
+        }
         const otherSide = side === 'X' ? 'O' : 'X';
         const targetSeat = side === 'X' ? ttt.playerXId : ttt.playerOId;
         if (targetSeat && targetSeat !== clientId)
@@ -73,7 +126,7 @@ let TicTacToeService = class TicTacToeService {
         return { winner: null };
     }
     makeMove(room, clientId, index) {
-        if (room.gameType !== types_1.GameType.TIC_TAC_TOE || room.status !== types_1.RoomStatus.PLAYING)
+        if (!this.isClassicTTTRoom(room) || room.status !== types_1.RoomStatus.PLAYING)
             return null;
         const ttt = room.ticTacToeState;
         if (!ttt || ttt.winner)
@@ -104,28 +157,34 @@ let TicTacToeService = class TicTacToeService {
         }
         else {
             ttt.currentTurn = ttt.currentTurn === 'X' ? 'O' : 'X';
+            if (room.config.ticTacToeVsBot) {
+                this.executeBotMoveIfNeeded(room);
+            }
         }
         return room;
     }
-    reset(room, clientId) {
-        if (room.gameType !== types_1.GameType.TIC_TAC_TOE || room.status !== types_1.RoomStatus.RESULT)
+    reset(room, clientId, toLobby = false) {
+        if (!this.isClassicTTTRoom(room) || room.status !== types_1.RoomStatus.RESULT)
             return null;
         if (room.roomHostId !== clientId &&
             room.ticTacToeState?.playerXId !== clientId &&
             room.ticTacToeState?.playerOId !== clientId) {
             return null;
         }
-        const willStartImmediately = !!(room.ticTacToeState?.playerXId && room.ticTacToeState?.playerOId);
+        const willStartImmediately = !toLobby && !!(room.ticTacToeState?.playerXId && room.ticTacToeState?.playerOId);
         room.status = willStartImmediately ? types_1.RoomStatus.PLAYING : types_1.RoomStatus.LOBBY;
         const previousWinner = room.ticTacToeState?.winner;
         room.ticTacToeState = {
             board: Array(9).fill(null),
-            playerXId: room.ticTacToeState?.playerXId,
-            playerOId: room.ticTacToeState?.playerOId,
+            playerXId: toLobby ? undefined : room.ticTacToeState?.playerXId,
+            playerOId: toLobby ? undefined : room.ticTacToeState?.playerOId,
             currentTurn: previousWinner === 'X' ? 'O' : 'X',
         };
         if (previousWinner === 'DRAW') {
             room.ticTacToeState.currentTurn = 'X';
+        }
+        if (room.status === types_1.RoomStatus.PLAYING && room.config.ticTacToeVsBot) {
+            this.executeBotMoveIfNeeded(room);
         }
         return room;
     }

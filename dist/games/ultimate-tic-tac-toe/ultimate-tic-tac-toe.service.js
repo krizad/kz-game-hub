@@ -47,8 +47,12 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         }
         return { winner: null };
     }
+    isUltimateTTTRoom(room) {
+        return (room.gameType === types_1.GameType.ULTIMATE_TIC_TAC_TOE ||
+            (room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE'));
+    }
     joinSide(room, clientId, side) {
-        if (room.gameType !== types_1.GameType.ULTIMATE_TIC_TAC_TOE || room.status !== types_1.RoomStatus.LOBBY) {
+        if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.LOBBY) {
             return null;
         }
         if (!room.ultimateTicTacToeState)
@@ -86,7 +90,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         return room;
     }
     makeMove(room, clientId, macroIndex, microIndex) {
-        if (room.gameType !== types_1.GameType.ULTIMATE_TIC_TAC_TOE || room.status !== types_1.RoomStatus.PLAYING) {
+        if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.PLAYING) {
             return null;
         }
         const uttt = room.ultimateTicTacToeState;
@@ -148,8 +152,8 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         uttt.currentTurn = uttt.currentTurn === 'X' ? 'O' : 'X';
         return room;
     }
-    reset(room, clientId) {
-        if (room.gameType !== types_1.GameType.ULTIMATE_TIC_TAC_TOE || room.status !== types_1.RoomStatus.RESULT) {
+    reset(room, clientId, toLobby = false) {
+        if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.RESULT) {
             return null;
         }
         if (room.roomHostId !== clientId &&
@@ -158,7 +162,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
             return null;
         }
         const uttt = room.ultimateTicTacToeState;
-        const willStartImmediately = !!(uttt?.playerXId && uttt?.playerOId);
+        const willStartImmediately = !toLobby && !!(uttt?.playerXId && uttt?.playerOId);
         room.status = willStartImmediately ? types_1.RoomStatus.PLAYING : types_1.RoomStatus.LOBBY;
         const previousWinner = uttt?.winner;
         room.ultimateTicTacToeState = {

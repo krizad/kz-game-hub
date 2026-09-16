@@ -12,4 +12,5 @@ export * from './the-mind';
 export * from './saboteur';
 export * from './coup';
 export * from './ultimate-tic-tac-toe';
+export * from './card-game';
 export * from './utils';

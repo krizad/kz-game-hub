@@ -79,7 +79,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         client.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
     }
     handleCreateRoom(data, client) {
-        const room = this.gamesService.createRoom(client.id, data.gameType);
+        const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
         const updatedRoom = this.gamesService.joinRoom(room.code, {
             id: client.id,
             name: data.name.trim(),
@@ -237,7 +237,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleUpdateConfig(data, client) {
-        const room = this.gamesService.updateConfig(data.code, client.id, data.config);
+        const room = this.gamesService.updateConfig(data.code, client.id, data.config, data.cardGameConfig);
         if (room) {
             this.broadcastRoomState(room);
         }
@@ -246,6 +246,28 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 message: 'Not authorized to update config or invalid state.',
             });
         }
+    }
+    handleCardGameAction(data, client) {
+        const room = this.gamesService.cardGameAction(data.code, client.id, data.action);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid card game action.' });
+        }
+    }
+    async handleCardGamePublishRules(data, client) {
+        const result = await this.gamesService.cardGamePublishRules(data.code, client.id, data.config);
+        client.emit(types_1.SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES, result);
+    }
+    async handleCardGameImportRules(data, client) {
+        const result = await this.gamesService.cardGameImportRules(data.code, client.id, data.shareCode);
+        if (result.ok) {
+            const room = this.gamesService.getRoom(data.code);
+            if (room)
+                this.broadcastRoomState(room);
+        }
+        client.emit(types_1.SOCKET_EVENTS.CARD_GAME_IMPORT_RULES, result);
     }
     handleTTTJoinSide(data, client) {
         const room = this.gamesService.tttJoinSide(data.code, client.id, data.side);
@@ -267,7 +289,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleTTTReset(data, client) {
-        const room = this.gamesService.tttReset(data.code, client.id);
+        const room = this.gamesService.tttReset(data.code, client.id, data.toLobby);
         if (room) {
             this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
@@ -299,7 +321,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleUTTTReset(data, client) {
-        const room = this.gamesService.utttReset(data.code, client.id);
+        const room = this.gamesService.utttReset(data.code, client.id, data.toLobby);
         if (room) {
             this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
@@ -367,7 +389,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleGobblerReset(data, client) {
-        const room = this.gamesService.gobblerReset(data.code, client.id);
+        const room = this.gamesService.gobblerReset(data.code, client.id, data.toLobby);
         if (room) {
             this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
@@ -1131,6 +1153,30 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleUpdateConfig", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CARD_GAME_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCardGameAction", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], GamesGateway.prototype, "handleCardGamePublishRules", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CARD_GAME_IMPORT_RULES),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], GamesGateway.prototype, "handleCardGameImportRules", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.TTT_JOIN_SIDE),
     __param(0, (0, websockets_1.MessageBody)()),

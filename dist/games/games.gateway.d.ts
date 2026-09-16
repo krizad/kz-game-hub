@@ -4,7 +4,7 @@ import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
-import { RoomState, GameType, RPSChoice, CoupActionType } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CardGameAction, CardGameConfig, CardGameImportRulesRequest, CardGamePublishRulesRequest } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -23,6 +23,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleCreateRoom(data: {
         name: string;
         gameType?: GameType;
+        config?: Partial<RoomConfig>;
     }, client: Socket): void;
     handleJoinRoom(data: {
         code: string;
@@ -53,7 +54,14 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleUpdateConfig(data: {
         code: string;
         config: Partial<RoomState['config']>;
+        cardGameConfig?: Partial<CardGameConfig>;
     }, client: Socket): void;
+    handleCardGameAction(data: {
+        code: string;
+        action: CardGameAction;
+    }, client: Socket): void;
+    handleCardGamePublishRules(data: CardGamePublishRulesRequest, client: Socket): Promise<void>;
+    handleCardGameImportRules(data: CardGameImportRulesRequest, client: Socket): Promise<void>;
     handleTTTJoinSide(data: {
         code: string;
         side: 'X' | 'O';
@@ -64,6 +72,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     }, client: Socket): void;
     handleTTTReset(data: {
         code: string;
+        toLobby?: boolean;
     }, client: Socket): void;
     handleUTTTJoinSide(data: {
         code: string;
@@ -76,6 +85,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     }, client: Socket): void;
     handleUTTTReset(data: {
         code: string;
+        toLobby?: boolean;
     }, client: Socket): void;
     handleRPSNextRound(data: {
         code: string;
@@ -103,6 +113,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     }, client: Socket): void;
     handleGobblerReset(data: {
         code: string;
+        toLobby?: boolean;
     }, client: Socket): void;
     handleSoundsFishyTypeAnswer(data: {
         code: string;

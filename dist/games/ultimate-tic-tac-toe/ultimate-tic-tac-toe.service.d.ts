@@ -8,8 +8,9 @@ export declare class UltimateTicTacToeService {
         winner: 'X' | 'O' | null;
         line?: number[];
     };
+    private isUltimateTTTRoom;
     joinSide(room: RoomState, clientId: string, side: 'X' | 'O'): RoomState | null;
     makeMove(room: RoomState, clientId: string, macroIndex: number, microIndex: number): RoomState | null;
-    reset(room: RoomState, clientId: string): RoomState | null;
+    reset(room: RoomState, clientId: string, toLobby?: boolean): RoomState | null;
     remapSocketId(state: UltimateTicTacToeState, oldSocketId: string, newSocketId: string): void;
 }

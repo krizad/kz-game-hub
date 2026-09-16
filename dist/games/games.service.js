@@ -30,9 +30,13 @@ const ultimate_tic_tac_toe_service_1 = require("./ultimate-tic-tac-toe/ultimate-
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
+const card_game_service_1 = require("./card-game/card-game.service");
+const card_engine_service_1 = require("./card-game/card-engine.service");
+const presets_1 = require("./card-game/presets");
+const card_rule_preset_repository_1 = require("./card-game/card-rule-preset.repository");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, cardRulePresetRepository) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -49,6 +53,8 @@ let GamesService = GamesService_1 = class GamesService {
         this.playerSessionService = playerSessionService;
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
+        this.cardGameService = cardGameService;
+        this.cardRulePresetRepository = cardRulePresetRepository;
         this.rooms = new Map();
         this.secretWords = new Map();
     }
@@ -77,7 +83,7 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.playerSessionService.takePendingToken(socketId);
     }
-    createRoom(hostId, gameType = types_1.GameType.WHO_KNOW) {
+    createRoom(hostId, gameType = types_1.GameType.WHO_KNOW, initialConfig) {
         let code;
         do {
             code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -98,11 +104,32 @@ let GamesService = GamesService_1 = class GamesService {
                 language: 'th',
             },
         };
+        if (initialConfig) {
+            const safeConfig = this.sanitizeRoomConfig(initialConfig);
+            room.config = { ...room.config, ...safeConfig };
+        }
         if (gameType === types_1.GameType.TIC_TAC_TOE) {
-            room.ticTacToeState = {
-                board: Array(9).fill(null),
-                currentTurn: 'X',
-            };
+            room.config.ticTacToeMode = room.config.ticTacToeMode || 'CLASSIC';
+            if (room.config.ticTacToeMode === 'CLASSIC') {
+                room.ticTacToeState = {
+                    board: Array(9).fill(null),
+                    currentTurn: 'X',
+                };
+            }
+            else if (room.config.ticTacToeMode === 'GOBBLER') {
+                room.gobblerState = {
+                    board: Array.from({ length: 9 }, () => []),
+                    currentTurn: 'X',
+                    inventory: {
+                        X: this.gobblerService.createInitialInventory('X'),
+                        O: this.gobblerService.createInitialInventory('O'),
+                    },
+                    scores: { X: 0, O: 0 },
+                };
+            }
+            else if (room.config.ticTacToeMode === 'ULTIMATE') {
+                room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
+            }
         }
         else if (gameType === types_1.GameType.RPS) {
             room.rpsState = {
@@ -156,6 +183,11 @@ let GamesService = GamesService_1 = class GamesService {
         else if (gameType === types_1.GameType.ULTIMATE_TIC_TAC_TOE) {
             room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
         }
+        else if (gameType === types_1.GameType.CARD_GAME) {
+            const presetId = initialConfig?.cardGamePreset ?? 'POK_DENG';
+            room.cardGameConfig = presets_1.CARD_GAME_PRESETS[presetId].defaultConfig;
+        }
+        this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
     }
@@ -215,6 +247,13 @@ let GamesService = GamesService_1 = class GamesService {
             if (room.ultimateTicTacToeState) {
                 this.ultimateTicTacToeService.remapSocketId(room.ultimateTicTacToeState, oldSocketId, user.socketId);
             }
+            if (room.cardGameState) {
+                this.cardGameService.remapSocketId(room.cardGameState, oldSocketId, user.socketId);
+            }
+            if (room.cardGameChips && oldSocketId in room.cardGameChips) {
+                room.cardGameChips[user.socketId] = room.cardGameChips[oldSocketId];
+                delete room.cardGameChips[oldSocketId];
+            }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
         }
@@ -259,7 +298,7 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (explicitLeave) {
                 this.removePlayerFromRoom(code, room, playerIndex);
-                const activePlayers = room.players.filter((p) => p.connected !== false).length;
+                const activePlayers = room.players.filter((p) => p.connected !== false && p.socketId !== types_1.BOT_SOCKET_ID).length;
                 if (activePlayers === 0) {
                     this.deleteRoomData(code);
                     return { outcome: 'ROOM_EMPTIED', code };
@@ -292,7 +331,7 @@ let GamesService = GamesService_1 = class GamesService {
         if (wasHost) {
             this.transferHost(room, socketId);
         }
-        if (!room.players.some((p) => p.connected !== false)) {
+        if (!room.players.some((p) => p.connected !== false && p.socketId !== types_1.BOT_SOCKET_ID)) {
             this.deleteRoomData(code);
             return;
         }
@@ -317,6 +356,18 @@ let GamesService = GamesService_1 = class GamesService {
             if (room.gobblerState.playerOId === player.socketId)
                 room.gobblerState.playerOId = undefined;
         }
+        if (room.ultimateTicTacToeState) {
+            if (room.ultimateTicTacToeState.playerXId === player.socketId)
+                room.ultimateTicTacToeState.playerXId = undefined;
+            if (room.ultimateTicTacToeState.playerOId === player.socketId)
+                room.ultimateTicTacToeState.playerOId = undefined;
+        }
+        if (room.cardGameState) {
+            this.cardGameService.cancelRound(room);
+        }
+        if (room.cardGameChips) {
+            delete room.cardGameChips[player.socketId];
+        }
         this.runDisconnectHooks(code, room, player.socketId);
     }
     runDisconnectHooks(code, room, socketId) {
@@ -337,7 +388,7 @@ let GamesService = GamesService_1 = class GamesService {
         }
     }
     transferHost(room, formerHostSocketId) {
-        const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId);
+        const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId && p.socketId !== types_1.BOT_SOCKET_ID);
         const nextHost = candidates.find((p) => !p.isViewer) ?? candidates[0];
         if (!nextHost)
             return;
@@ -365,16 +416,126 @@ let GamesService = GamesService_1 = class GamesService {
         }
         return availableRooms;
     }
-    updateConfig(code, requesterId, config) {
+    updateConfig(code, requesterId, config, cardGameConfig) {
         const room = this.rooms.get(code);
         if (!room || room.status !== types_1.RoomStatus.LOBBY)
             return null;
         if (room.roomHostId !== requesterId)
             return null;
         const safeConfig = this.sanitizeRoomConfig(config);
+        if (room.gameType === types_1.GameType.CARD_GAME &&
+            safeConfig.cardGamePreset &&
+            safeConfig.cardGamePreset !== room.config.cardGamePreset) {
+            room.cardGameConfig = presets_1.CARD_GAME_PRESETS[safeConfig.cardGamePreset].defaultConfig;
+        }
+        if (cardGameConfig) {
+            if (room.gameType !== types_1.GameType.CARD_GAME)
+                return null;
+            const validated = (0, card_engine_service_1.validateConfig)({ ...room.cardGameConfig, ...cardGameConfig }, (0, presets_1.presetForConfig)(room.cardGameConfig));
+            if (!validated.ok || !validated.config)
+                return null;
+            room.cardGameConfig = validated.config;
+        }
+        if (room.gameType === types_1.GameType.TIC_TAC_TOE &&
+            safeConfig.ticTacToeMode &&
+            safeConfig.ticTacToeMode !== room.config.ticTacToeMode) {
+            this.switchTicTacToeMode(room, safeConfig.ticTacToeMode);
+        }
         room.config = { ...room.config, ...safeConfig };
+        this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
+    }
+    switchTicTacToeMode(room, newMode) {
+        const playerXId = room.ticTacToeState?.playerXId ||
+            room.gobblerState?.playerXId ||
+            room.ultimateTicTacToeState?.playerXId;
+        const playerOId = room.ticTacToeState?.playerOId ||
+            room.gobblerState?.playerOId ||
+            room.ultimateTicTacToeState?.playerOId;
+        room.ticTacToeState = undefined;
+        room.gobblerState = undefined;
+        room.ultimateTicTacToeState = undefined;
+        if (newMode === 'CLASSIC') {
+            room.ticTacToeState = {
+                board: Array(9).fill(null),
+                playerXId,
+                playerOId,
+                currentTurn: 'X',
+            };
+        }
+        else if (newMode === 'GOBBLER') {
+            room.gobblerState = {
+                board: Array.from({ length: 9 }, () => []),
+                playerXId,
+                playerOId,
+                currentTurn: 'X',
+                inventory: {
+                    X: this.gobblerService.createInitialInventory('X'),
+                    O: this.gobblerService.createInitialInventory('O'),
+                },
+                scores: { X: 0, O: 0 },
+            };
+        }
+        else if (newMode === 'ULTIMATE') {
+            room.ultimateTicTacToeState = {
+                ...this.ultimateTicTacToeService.createInitialState(),
+                playerXId,
+                playerOId,
+            };
+        }
+        this.syncBotPlayer(room);
+    }
+    syncBotPlayer(room) {
+        const isClassicTTT = room.gameType === types_1.GameType.TIC_TAC_TOE &&
+            (!room.config.ticTacToeMode || room.config.ticTacToeMode === 'CLASSIC');
+        const vsBot = isClassicTTT && !!room.config.ticTacToeVsBot;
+        const botIndex = room.players.findIndex((p) => p.socketId === types_1.BOT_SOCKET_ID);
+        if (vsBot) {
+            if (botIndex === -1) {
+                room.players.push({
+                    id: types_1.BOT_SOCKET_ID,
+                    socketId: types_1.BOT_SOCKET_ID,
+                    name: types_1.BOT_PLAYER_NAME,
+                    avatar: '🤖',
+                    color: '#64748B',
+                    score: 0,
+                    roomId: room.id,
+                    connected: true,
+                    hasBeenHost: true,
+                });
+            }
+            if (!room.config.ticTacToeBotDifficulty) {
+                room.config.ticTacToeBotDifficulty = 'GOD';
+            }
+        }
+        else if (botIndex !== -1) {
+            room.players.splice(botIndex, 1);
+            if (room.ticTacToeState) {
+                if (room.ticTacToeState.playerXId === types_1.BOT_SOCKET_ID) {
+                    room.ticTacToeState.playerXId = undefined;
+                }
+                if (room.ticTacToeState.playerOId === types_1.BOT_SOCKET_ID) {
+                    room.ticTacToeState.playerOId = undefined;
+                }
+            }
+            if (room.gobblerState) {
+                if (room.gobblerState.playerXId === types_1.BOT_SOCKET_ID) {
+                    room.gobblerState.playerXId = undefined;
+                }
+                if (room.gobblerState.playerOId === types_1.BOT_SOCKET_ID) {
+                    room.gobblerState.playerOId = undefined;
+                }
+            }
+            if (room.ultimateTicTacToeState) {
+                if (room.ultimateTicTacToeState.playerXId === types_1.BOT_SOCKET_ID) {
+                    room.ultimateTicTacToeState.playerXId = undefined;
+                }
+                if (room.ultimateTicTacToeState.playerOId === types_1.BOT_SOCKET_ID) {
+                    room.ultimateTicTacToeState.playerOId = undefined;
+                }
+            }
+        }
     }
     sanitizeRoomConfig(config) {
         const result = {};
@@ -397,6 +558,10 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('rpsBestOf', 1, 9);
         copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
         copyEnum('language', ['en', 'th']);
+        copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID']);
+        copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
+        copyBoolean('ticTacToeVsBot');
+        copyEnum('ticTacToeBotDifficulty', ['EASY', 'GOD']);
         copyInteger('maxRounds', 1, 100);
         copyEnum('wordMode', ['HOST_INPUT', 'RANDOM', 'PLAYER_INPUT', 'AI_GENERATED']);
         if (typeof config.wordCategory === 'string' && config.wordCategory.length <= 100) {
@@ -524,7 +689,14 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.coupService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
-        return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
+        if (room.gameType === types_1.GameType.CARD_GAME) {
+            const startedRoom = this.withRoom(code, (r) => this.cardGameService.startCardRound(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
+        if (room.gameType === types_1.GameType.WHO_KNOW) {
+            return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
+        }
+        return null;
     }
     async startWhoAmI(room, requesterId) {
         switch (room.config.wordMode) {
@@ -569,6 +741,16 @@ let GamesService = GamesService_1 = class GamesService {
         const room = this.rooms.get(code);
         if (!room)
             return null;
+        if (room.gameType === types_1.GameType.CARD_GAME) {
+            if (room.roomHostId !== requesterId)
+                return null;
+            room.status = types_1.RoomStatus.LOBBY;
+            room.cardGameState = undefined;
+            room.cardGameChips = undefined;
+            this.privateStateService.clearRoom(code);
+            this.rooms.set(code, room);
+            return room;
+        }
         if (room.gameType === types_1.GameType.COUP) {
             return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
         }
@@ -576,7 +758,15 @@ let GamesService = GamesService_1 = class GamesService {
             case types_1.GameType.WHO_KNOW:
                 return this.withRoom(code, (r) => this.whoKnowService.resetGame(r, requesterId, this.secretWords));
             case types_1.GameType.TIC_TAC_TOE:
-                return this.withRoom(code, (r) => this.ticTacToeService.reset(r, requesterId));
+                return this.withRoom(code, (r) => {
+                    if (r.config.ticTacToeMode === 'GOBBLER') {
+                        return this.gobblerService.reset(r, requesterId);
+                    }
+                    if (r.config.ticTacToeMode === 'ULTIMATE') {
+                        return this.ultimateTicTacToeService.reset(r, requesterId);
+                    }
+                    return this.ticTacToeService.reset(r, requesterId);
+                });
             case types_1.GameType.RPS:
                 return this.withRoom(code, (r) => this.rpsService.reset(r, requesterId));
             case types_1.GameType.GOBBLER_TIC_TAC_TOE:
@@ -604,6 +794,36 @@ let GamesService = GamesService_1 = class GamesService {
     getSecretWord(code) {
         return this.secretWords.get(code);
     }
+    cardGameAction(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
+    }
+    async cardGamePublishRules(code, requesterId, config) {
+        const room = this.rooms.get(code);
+        if (!room || room.gameType !== types_1.GameType.CARD_GAME)
+            return { ok: false, error: 'INVALID_ROOM' };
+        if (room.roomHostId !== requesterId)
+            return { ok: false, error: 'NOT_HOST' };
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return { ok: false, error: 'NOT_LOBBY' };
+        return this.cardRulePresetRepository.publish(config, (0, presets_1.presetForConfig)(room.cardGameConfig));
+    }
+    async cardGameImportRules(code, requesterId, shareCode) {
+        const room = this.rooms.get(code);
+        if (!room || room.gameType !== types_1.GameType.CARD_GAME)
+            return { ok: false, error: 'INVALID_ROOM' };
+        if (room.roomHostId !== requesterId)
+            return { ok: false, error: 'NOT_HOST' };
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return { ok: false, error: 'NOT_LOBBY' };
+        const imported = await this.cardRulePresetRepository.importByCode(shareCode, (0, presets_1.presetForConfig)(room.cardGameConfig));
+        if (!imported.ok || !imported.config)
+            return imported;
+        room.cardGameConfig = imported.config;
+        this.rooms.set(code, room);
+        return imported;
+    }
     getPlayerRole(code, socketId) {
         const data = this.privateStateService.getSocketData(code, socketId);
         return data['wkRole'] ?? data['sfRole'];
@@ -621,10 +841,12 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
     }
-    tttReset(code, clientId) {
+    tttReset(code, clientId, toLobby = false) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.ticTacToeService.reset(room, clientId));
+        return this.withRoom(code, (room) => toLobby
+            ? this.ticTacToeService.reset(room, clientId, true)
+            : this.ticTacToeService.reset(room, clientId));
     }
     utttJoinSide(code, clientId, side) {
         if (this.rejectViewer(code, clientId))
@@ -636,10 +858,12 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.ultimateTicTacToeService.makeMove(room, clientId, macroIndex, microIndex));
     }
-    utttReset(code, clientId) {
+    utttReset(code, clientId, toLobby = false) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.ultimateTicTacToeService.reset(room, clientId));
+        return this.withRoom(code, (room) => toLobby
+            ? this.ultimateTicTacToeService.reset(room, clientId, true)
+            : this.ultimateTicTacToeService.reset(room, clientId));
     }
     rpsMakeChoice(code, clientId, choice) {
         if (this.rejectViewer(code, clientId))
@@ -671,10 +895,12 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.gobblerService.movePiece(room, clientId, fromIndex, toIndex));
     }
-    gobblerReset(code, clientId) {
+    gobblerReset(code, clientId, toLobby = false) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.gobblerService.reset(room, clientId));
+        return this.withRoom(code, (room) => toLobby
+            ? this.gobblerService.reset(room, clientId, true)
+            : this.gobblerService.reset(room, clientId));
     }
     soundsFishyTypeAnswer(code, clientId, answer) {
         if (this.rejectViewer(code, clientId))
@@ -941,6 +1167,8 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         ultimate_tic_tac_toe_service_1.UltimateTicTacToeService,
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
-        room_timer_service_1.RoomTimerService])
+        room_timer_service_1.RoomTimerService,
+        card_game_service_1.CardGameService,
+        card_rule_preset_repository_1.CardRulePresetRepository])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map
