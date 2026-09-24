@@ -426,7 +426,8 @@ export const WhoFirstView = () => {
                 .filter(
                   (p) =>
                     p.connected &&
-                    (!isHost || hostPlays) &&
+                    // The host only appears here when the host is allowed to play
+                    (p.socketId !== room.roomHostId || hostPlays) &&
                     !state.presses.some((press) => press.socketId === p.socketId),
                 )
                 .map((p) => (

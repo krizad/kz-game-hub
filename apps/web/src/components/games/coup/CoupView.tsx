@@ -37,8 +37,7 @@ export function CoupView() {
   const [stealTarget, setStealTarget] = useState<string>('');
   const [exchangeKeep, setExchangeKeep] = useState<number[]>([]);
 
-  if (!room || !room.coupState) return <div className="p-6 font-black">Loading Coup...</div>;
-  const state = room.coupState;
+  const state = room?.coupState;
 
   // ── Sound effects: derive cues from server-state deltas ─────────────
   // 1) a declared action (pendingAction appears) → sound per action type
@@ -50,6 +49,7 @@ export function CoupView() {
     winner: string | null;
   }>({ pending: null, influences: null, winner: null });
   useEffect(() => {
+    if (!state) return;
     const pendingKey = state.pendingAction
       ? `${state.pendingAction.actorId}:${state.pendingAction.type}:${state.pendingAction.targetId ?? ''}`
       : null;
@@ -97,6 +97,7 @@ export function CoupView() {
 
     lastSeq.current = { pending: pendingKey, influences: influencesKey, winner: winnerKey };
   }, [state, playSound]);
+  if (!room || !state) return <div className="p-6 font-black">Loading Coup...</div>;
   const hand = (privateState as any)?.coupHand as CoupRole[] | undefined;
   const exchangeKeepCount = hand ? Math.max(1, hand.length - 2) : 2;
   const isMyTurn = state.currentTurn === socketId;
@@ -105,6 +106,11 @@ export function CoupView() {
   const aliveTargets = room.players.filter(
     (p) => p.socketId !== socketId && (state.influences[p.socketId]?.count ?? 0) > 0,
   );
+  // A remembered target can die (or leave) between its selection and the
+  // declare — never let a stale id arm the action buttons.
+  const assassinateTargetValid = aliveTargets.some((p) => p.socketId === assassinateTarget);
+  const stealTargetValid = aliveTargets.some((p) => p.socketId === stealTarget);
+  const coupTargetValid = aliveTargets.some((p) => p.socketId === coupTarget);
 
   const isSpectator =
     room.players.find((p) => p.socketId === socketId)?.isViewer ||
@@ -440,9 +446,9 @@ export function CoupView() {
                 ))}
               </select>
               <button
-                disabled={!isMyTurn || !assassinateTarget || myCoins < 3 || forcedCoup}
+                disabled={!isMyTurn || !assassinateTargetValid || myCoins < 3 || forcedCoup}
                 onClick={() => {
-                  if (!assassinateTarget) {
+                  if (!assassinateTargetValid) {
                     toast.error('Pick target');
                     return;
                   }
@@ -468,9 +474,9 @@ export function CoupView() {
                 ))}
               </select>
               <button
-                disabled={!isMyTurn || !stealTarget || forcedCoup}
+                disabled={!isMyTurn || !stealTargetValid || forcedCoup}
                 onClick={() => {
-                  if (!stealTarget) {
+                  if (!stealTargetValid) {
                     toast.error('Pick target');
                     return;
                   }
@@ -503,9 +509,9 @@ export function CoupView() {
                 ))}
               </select>
               <button
-                disabled={!isMyTurn || !coupTarget || myCoins < 7}
+                disabled={!isMyTurn || !coupTargetValid || myCoins < 7}
                 onClick={() => {
-                  if (!coupTarget) {
+                  if (!coupTargetValid) {
                     toast.error('Pick target');
                     return;
                   }

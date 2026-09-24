@@ -23,6 +23,14 @@ export function MusicTriviaView() {
   const reactPlayerRef = useRef<any>(null);
   const [hasTestedAudio, setHasTestedAudio] = useState(false);
 
+  // Leaving the room (or it being deleted) unmounts this view — nothing else
+  // will stop the preview then, so pause it here.
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
   // Reset local pause when round changes
   useEffect(() => {
     setIsLocalPaused(false);

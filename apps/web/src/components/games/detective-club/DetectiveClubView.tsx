@@ -38,7 +38,11 @@ export function DetectiveClubView() {
   // Role-reveal cue: fire once when scoring deltas land (detective vs conspirator win)
   const lastScoredRef = useRef(false);
   useEffect(() => {
-    if (!dcState?.scoreDeltas || Object.keys(dcState.scoreDeltas).length === 0) return;
+    if (!dcState?.scoreDeltas || Object.keys(dcState.scoreDeltas).length === 0) {
+      // Server clears deltas between rounds — re-arm so round 2+ stings play.
+      lastScoredRef.current = false;
+      return;
+    }
     if (lastScoredRef.current) return;
     lastScoredRef.current = true;
     const myRole = (room?.detectiveClubState?.players[socketId]?.role ?? privateState?.dcRole) as

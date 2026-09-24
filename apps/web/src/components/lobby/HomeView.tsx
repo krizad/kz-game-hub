@@ -21,19 +21,21 @@ const getGameName = (gameType: GameType, t: any) => {
     case GameType.RPS:
       return t('lobby.gameNames.handDuel').toUpperCase();
     case GameType.DETECTIVE_CLUB:
-      return 'DETECTIVE CLUB';
+      return t('lobby.gameNames.detectiveClub').toUpperCase();
     case GameType.SOUNDS_FISHY:
-      return 'SOUNDS FISHY';
+      return t('lobby.gameNames.soundsFishy').toUpperCase();
     case GameType.MUSIC_TRIVIA:
-      return 'MUSIC TRIVIA';
+      return t('lobby.gameNames.musicTrivia').toUpperCase();
     case GameType.WHO_AM_I:
-      return 'WHO AM I';
+      return t('lobby.gameNames.whoAmI').toUpperCase();
     case GameType.WHO_FIRST:
-      return 'WHO FIRST';
+      return t('lobby.gameNames.whoFirst').toUpperCase();
     case GameType.THE_MIND:
-      return 'THE MIND';
+      return t('lobby.gameNames.theMind').toUpperCase();
     case GameType.SABOTEUR:
-      return 'SABOTEUR';
+      return t('lobby.gameNames.saboteur').toUpperCase();
+    case GameType.COUP:
+      return t('lobby.gameNames.coup').toUpperCase();
     case GameType.CARD_GAME:
       return t('lobby.gameNames.cardGame').toUpperCase();
     default:

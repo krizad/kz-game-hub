@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CardGamePrivateState, PlayingCard } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -14,9 +14,17 @@ export function SlaveView() {
   const state = room?.cardGameState;
   const privateCardState = privateState.cardGame as CardGamePrivateState | undefined;
 
+  const myTurn = state?.phase === 'PLAYER_TURNS' && state?.activePlayerId === socketId;
+
+  // Card ids are deterministic per deal, so a selection left over from a
+  // passed trick would resurface pre-highlighted on the next deal — drop it
+  // as soon as the turn is no longer ours.
+  useEffect(() => {
+    if (!myTurn) setSelected([]);
+  }, [myTurn]);
+
   if (!room || !state) return null;
 
-  const myTurn = state.phase === 'PLAYER_TURNS' && state.activePlayerId === socketId;
   const trick = state.trick;
   const leading = !trick || trick.playedById === null;
   const cards = privateCardState?.hand ?? [];
@@ -129,7 +137,10 @@ export function SlaveView() {
           <button
             type="button"
             disabled={leading || actionLoading}
-            onClick={() => cardGameAction({ type: 'PASS' })}
+            onClick={() => {
+              cardGameAction({ type: 'PASS' });
+              setSelected([]);
+            }}
             className="px-4 py-2 border-4 border-black bg-white font-black uppercase disabled:opacity-50"
           >
             {t('gameSlave.pass')}

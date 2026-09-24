@@ -16,7 +16,7 @@ export function CardGameActionPanel() {
   );
   const winnerLabel = state.result?.winnerIds.length
     ? state.result.winnerIds
-        .map((id) => room.players.find((p) => p.socketId === id)?.name)
+        .map((id) => room.players.find((p) => p.socketId === id)?.name ?? id)
         .join(', ')
     : t('gamePokDeng.dealerWins');
 

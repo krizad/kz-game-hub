@@ -441,7 +441,8 @@ export function TheMindView() {
           )}
         </div>
         <p className="text-sm text-black font-bold uppercase tracking-widest bg-white border-2 border-black inline-block px-3 py-1 -">
-          {state.readyPlayers.length}/{room.players.filter((p) => p.connected).length}{' '}
+          {state.readyPlayers.length}/
+          {room.players.filter((p) => p.connected && !p.isViewer).length}{' '}
           {t('gameTheMind.game.ready')}
         </p>
       </div>
@@ -717,7 +718,7 @@ export function TheMindView() {
               </div>
               <p className="text-sm text-black font-bold uppercase tracking-widest border-2 border-black p-2 bg-cyan-300 -">
                 {t('gameTheMind.game.waitingForVotes')} ({Object.keys(state.shurikenVotes).length}/
-                {room.players.filter((p) => p.connected).length})
+                {room.players.filter((p) => p.connected && !p.isViewer).length})
               </p>
             </div>
           )}
