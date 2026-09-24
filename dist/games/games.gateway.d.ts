@@ -4,16 +4,18 @@ import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig } from '@repo/types';
+import { GameSettingsService } from './game-settings.service';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, SetGameEnabledPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
     private readonly roomTimerService;
     private readonly privateStateService;
+    private readonly gameSettingsService;
     server: Server;
     private readonly logger;
     private readonly recordedResults;
-    constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService);
+    constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService);
     afterInit(): void;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
@@ -21,6 +23,8 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private handleLeaveResult;
     private forgetRecordedResult;
     handleGetAvailableRooms(client: Socket): void;
+    handleGetGameSettings(client: Socket): void;
+    handleSetGameEnabled(data: SetGameEnabledPayload, client: Socket): Promise<void>;
     private leavePreviousRoom;
     handleCreateRoom(data: {
         name: string;

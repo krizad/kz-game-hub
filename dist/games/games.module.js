@@ -28,6 +28,7 @@ const player_session_service_1 = require("./player-session.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
 const card_game_service_1 = require("./card-game/card-game.service");
+const game_settings_service_1 = require("./game-settings.service");
 let GamesModule = class GamesModule {
 };
 exports.GamesModule = GamesModule;
@@ -54,6 +55,7 @@ exports.GamesModule = GamesModule = __decorate([
             room_timer_service_1.RoomTimerService,
             private_state_service_1.PrivateStateService,
             card_game_service_1.CardGameService,
+            game_settings_service_1.GameSettingsService,
         ],
     })
 ], GamesModule);

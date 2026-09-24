@@ -22,6 +22,7 @@ const types_1 = require("@repo/types");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
+const game_settings_service_1 = require("./game-settings.service");
 describe('GamesService', () => {
     let service;
     let whoKnowService;
@@ -202,6 +203,7 @@ describe('GamesService', () => {
                 player_session_service_1.PlayerSessionService,
                 private_state_service_1.PrivateStateService,
                 room_timer_service_1.RoomTimerService,
+                game_settings_service_1.GameSettingsService,
             ],
         }).compile();
         service = module.get(games_service_1.GamesService);
@@ -1383,6 +1385,16 @@ describe('GamesService', () => {
             resolveStart({ room });
             await expect(pending).resolves.toBeNull();
             expect(service.rooms.has(room.code)).toBe(false);
+        });
+        it('hides available rooms of disabled games from the lobby list', () => {
+            const room = service.createRoom('host1', types_1.GameType.COUP);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            const enabledRoom = service.createRoom('host2', types_1.GameType.THE_MIND);
+            service.joinRoom(enabledRoom.code, { id: 'host2', name: 'Host2', socketId: 'host2' });
+            service.gameSettings.enabled.set(types_1.GameType.COUP, false);
+            const codes = service.getAvailableRooms().map((r) => r.code);
+            expect(codes).toContain(enabledRoom.code);
+            expect(codes).not.toContain(room.code);
         });
         it('keeps the saboteur auto-pass deadline stable per turn and resets on turn change', () => {
             jest.useFakeTimers({ now: 0 });

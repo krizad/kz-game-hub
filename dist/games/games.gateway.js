@@ -21,14 +21,17 @@ const games_service_1 = require("./games.service");
 const leaderboard_service_1 = require("./leaderboard/leaderboard.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
+const game_settings_service_1 = require("./game-settings.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
+const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 let GamesGateway = GamesGateway_1 = class GamesGateway {
-    constructor(gamesService, leaderboardService, roomTimerService, privateStateService) {
+    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService) {
         this.gamesService = gamesService;
         this.leaderboardService = leaderboardService;
         this.roomTimerService = roomTimerService;
         this.privateStateService = privateStateService;
+        this.gameSettingsService = gameSettingsService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
     }
@@ -43,6 +46,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         });
+        void this.gameSettingsService.load();
     }
     handleConnection(client) {
         this.logger.log(`Client connected: ${client.id}`);
@@ -52,6 +56,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
             next(new Error('Invalid request payload'));
         });
+        client.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
     }
     handleDisconnect(client) {
         this.logger.log(`Client disconnected: ${client.id}`);
@@ -92,6 +97,33 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     handleGetAvailableRooms(client) {
         client.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
     }
+    handleGetGameSettings(client) {
+        client.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
+    }
+    async handleSetGameEnabled(data, client) {
+        const adminSecret = process.env.ADMIN_SECRET;
+        if (!adminSecret || !data || data.adminKey !== adminSecret) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+            return;
+        }
+        if (!data ||
+            !Object.values(types_1.GameType).includes(data.gameType) ||
+            typeof data.enabled !== 'boolean') {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+            return;
+        }
+        try {
+            await this.gameSettingsService.setEnabled(data.gameType, data.enabled);
+        }
+        catch (error) {
+            this.logger.error(`Failed to persist game setting for ${data.gameType}`, error);
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Failed to update the game setting.' });
+            return;
+        }
+        this.logger.log(`Game ${data.gameType} ${data.enabled ? 'enabled' : 'disabled'}`);
+        this.server.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
+        this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+    }
     leavePreviousRoom(client, nextRoomCode) {
         const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
         if (!previousRoomCode || previousRoomCode === nextRoomCode)
@@ -102,6 +134,11 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleCreateRoom(data, client) {
+        const requestedGameType = data.gameType ?? types_1.GameType.WHO_KNOW;
+        if (!this.gamesService.isGameEnabled(requestedGameType)) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
+            return;
+        }
         this.leavePreviousRoom(client);
         const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
         const updatedRoom = this.gamesService.joinRoom(room.code, {
@@ -121,6 +158,12 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     handleJoinRoom(data, client) {
         this.leavePreviousRoom(client, data.code.toUpperCase());
+        const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
+        const isSeatedMember = targetRoom?.players.some((p) => p.socketId === client.id) ?? false;
+        if (targetRoom && !isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
+            return;
+        }
         const room = this.gamesService.joinRoom(data.code.toUpperCase(), {
             id: client.id,
             name: data.name.trim(),
@@ -1005,13 +1048,21 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         });
     }
     isValidPayload(event, payload) {
-        if (event === types_1.SOCKET_EVENTS.LEAVE_ROOM || event === types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
+        if (event === types_1.SOCKET_EVENTS.LEAVE_ROOM ||
+            event === types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS ||
+            event === types_1.SOCKET_EVENTS.GET_GAME_SETTINGS)
             return true;
         if (!payload || typeof payload !== 'object' || Array.isArray(payload))
             return false;
         const data = payload;
         if (!this.hasSafeValues(data))
             return false;
+        if (event === types_1.SOCKET_EVENTS.SET_GAME_ENABLED) {
+            return (Object.values(types_1.GameType).includes(data.gameType) &&
+                typeof data.enabled === 'boolean' &&
+                typeof data.adminKey === 'string' &&
+                data.adminKey.length <= 200);
+        }
         if (event === types_1.SOCKET_EVENTS.CREATE_ROOM) {
             return (this.isValidName(data.name) &&
                 (data.gameType === undefined || Object.values(types_1.GameType).includes(data.gameType)));
@@ -1141,6 +1192,21 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleGetAvailableRooms", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.GET_GAME_SETTINGS),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleGetGameSettings", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SET_GAME_ENABLED),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], GamesGateway.prototype, "handleSetGameEnabled", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CREATE_ROOM),
     __param(0, (0, websockets_1.MessageBody)()),
@@ -1625,6 +1691,7 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
     __metadata("design:paramtypes", [games_service_1.GamesService,
         leaderboard_service_1.LeaderboardService,
         room_timer_service_1.RoomTimerService,
-        private_state_service_1.PrivateStateService])
+        private_state_service_1.PrivateStateService,
+        game_settings_service_1.GameSettingsService])
 ], GamesGateway);
 //# sourceMappingURL=games.gateway.js.map

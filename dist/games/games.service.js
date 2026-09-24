@@ -31,11 +31,12 @@ const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
 const card_game_service_1 = require("./card-game/card-game.service");
+const game_settings_service_1 = require("./game-settings.service");
 const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, gameSettings) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -53,6 +54,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
         this.cardGameService = cardGameService;
+        this.gameSettings = gameSettings;
         this.rooms = new Map();
         this.secretWords = new Map();
         this.saboteurTurnDeadlines = new Map();
@@ -77,6 +79,9 @@ let GamesService = GamesService_1 = class GamesService {
     }
     getRoom(code) {
         return this.rooms.get(code);
+    }
+    isGameEnabled(gameType) {
+        return this.gameSettings.isEnabled(gameType);
     }
     getReconnectToken(code, socketId) {
         const room = this.rooms.get(code);
@@ -438,7 +443,7 @@ let GamesService = GamesService_1 = class GamesService {
     getAvailableRooms() {
         const availableRooms = [];
         for (const room of this.rooms.values()) {
-            if (room.status === types_1.RoomStatus.LOBBY) {
+            if (room.status === types_1.RoomStatus.LOBBY && this.gameSettings.isEnabled(room.gameType)) {
                 availableRooms.push({
                     code: room.code,
                     gameType: room.gameType,
@@ -1196,6 +1201,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
         room_timer_service_1.RoomTimerService,
-        card_game_service_1.CardGameService])
+        card_game_service_1.CardGameService,
+        game_settings_service_1.GameSettingsService])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map
