@@ -450,6 +450,8 @@ export const en: Dictionary = {
     submitGuess: 'Submit Guess',
   },
   gameDetectiveClub: {
+    soundOn: 'Sound effects on',
+    soundOff: 'Sound effects off',
     loading: 'Loading Detective Club...',
     yourRole: 'Your Role',
     yourScore: 'Your Score',
@@ -627,8 +629,10 @@ export const en: Dictionary = {
   cardGameRules: {
     title: 'Advanced Rules',
     preset: 'Preset',
-    pokDengText: 'Goal: get closer to 10 points than the dealer.\nDeck: standard 52 cards, no jokers; 2 cards each; the dealer rotates every round.\nCard values: A = 1, 2-9 = face value, 10/J/Q/K = 0. Compare hands by the nearest unit digit (mod 10).\nDraw: you may draw up to one extra card, or stand to keep your total.\nPok: a two-card 8 or 9 beats everything and pays double.\nSpecial hands: three of a kind pays x5; three face cards pay x3; a straight flush pays x3.\nTie: the dealer wins equal totals.\nChips: start 100, base stake 1.',
-    slaveText: 'Goal: be the first to empty your hand.\nDeck: standard 52 cards, no jokers; every card is dealt - 13 each (2-4 players), leftovers go to the earliest seats.\nRank order (odd on purpose): 3 is the lowest rank, climbing up to 2 which is the highest rank.\nOpening: the holder of 3C opens the first trick.\nPlay: lead a single, pair, or triple; each following play must match the count and beat the rank. Passing skips you for that trick; when everyone else passes, the last player leads the next trick.\nWinner: the first player to run out of cards wins the round. Equal results settle as a push.\nChips: start 100, base stake 1.',
+    pokDengText:
+      'Goal: get closer to 10 points than the dealer.\nDeck: standard 52 cards, no jokers; 2 cards each; the dealer rotates every round.\nCard values: A = 1, 2-9 = face value, 10/J/Q/K = 0. Compare hands by the nearest unit digit (mod 10).\nDraw: you may draw up to one extra card, or stand to keep your total.\nPok: a two-card 8 or 9 beats everything and pays double.\nSpecial hands: three of a kind pays x5; three face cards pay x3; a straight flush pays x3.\nTie: the dealer wins equal totals.\nChips: start 100, base stake 1.',
+    slaveText:
+      'Goal: be the first to empty your hand.\nDeck: standard 52 cards, no jokers; every card is dealt - 13 each (2-4 players), leftovers go to the earliest seats.\nRank order (odd on purpose): 3 is the lowest rank, climbing up to 2 which is the highest rank.\nOpening: the holder of 3C opens the first trick.\nPlay: lead a single, pair, or triple; each following play must match the count and beat the rank. Passing skips you for that trick; when everyone else passes, the last player leads the next trick.\nWinner: the first player to run out of cards wins the round. Equal results settle as a push.\nChips: start 100, base stake 1.',
     noConfig: 'Advanced rules appear once you are in a Thai Card Game room.',
     deck: 'Deck',
     deckValue: 'Standard 52 cards ×{copies}',
@@ -1043,6 +1047,8 @@ export const en: Dictionary = {
     },
   },
   gameCoup: {
+    soundOn: 'Sound effects on',
+    soundOff: 'Sound effects off',
     yourCoins: 'Your Coins',
     yourInfluence: 'Your Influence',
     coins: 'Coins',

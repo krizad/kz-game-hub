@@ -82,22 +82,22 @@ export function DetectiveClubView() {
         <div className="text-center sm:text-right flex items-center gap-2">
           <button
             onClick={toggleSound}
-            title={soundsEnabled ? 'Sound effects on' : 'Sound effects off'}
+            title={soundsEnabled ? t('gameDetectiveClub.soundOn') : t('gameDetectiveClub.soundOff')}
             className={`flex items-center justify-center w-8 h-8 border-4 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] text-sm transition-all active:translate-y-0.5 ${soundsEnabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'}`}
             data-testid="dc-sound-toggle"
           >
             {soundsEnabled ? '🔊' : '🔇'}
           </button>
           <div>
-          <p className="text-black uppercase tracking-widest text-xs font-black mb-1">
-            {t('gameDetectiveClub.yourScore')}
-          </p>
-          <span className="text-2xl font-black text-black bg-yellow-300 px-3 py-1 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block -">
-            {myPlayer?.score || 0}{' '}
-            <span className="text-sm text-black font-bold uppercase">
-              {t('gameDetectiveClub.pts')}
+            <p className="text-black uppercase tracking-widest text-xs font-black mb-1">
+              {t('gameDetectiveClub.yourScore')}
+            </p>
+            <span className="text-2xl font-black text-black bg-yellow-300 px-3 py-1 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-block -">
+              {myPlayer?.score || 0}{' '}
+              <span className="text-sm text-black font-bold uppercase">
+                {t('gameDetectiveClub.pts')}
+              </span>
             </span>
-          </span>
           </div>
         </div>
       </div>
