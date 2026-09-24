@@ -972,6 +972,8 @@ export const en: Dictionary = {
     chooseGoalToPeek: 'Click a goal card to peek at it',
     chooseRockfallCell: 'Click a tunnel tile to remove (start/goals are safe)',
     choosePlacement: 'Click a ghost tunnel to build it (⟳ to rotate)',
+    soundOn: 'Sound effects on',
+    soundOff: 'Sound effects off',
     selectCardHint: 'Pick a card from your hand',
     handSize: 'Cards in hand',
     players: 'Players',
