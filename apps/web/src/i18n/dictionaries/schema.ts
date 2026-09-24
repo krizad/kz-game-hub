@@ -93,6 +93,17 @@ export interface Dictionary {
     unlock: string;
     hint: string;
   };
+  appInfo: {
+    button: string;
+    title: string;
+    tagline: string;
+    version: string;
+    creator: string;
+    games: string;
+    languages: string;
+    description: string;
+    close: string;
+  };
   rules: {
     button: string;
     modal: {
