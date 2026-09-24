@@ -62,3 +62,6 @@ tmp-script/
 
 # local issue tracker (not committed per user request)
 .scratch/
+
+# local delivery/e2e report artifacts
+DELIVERY/
