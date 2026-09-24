@@ -87,6 +87,14 @@ export const th: Dictionary = {
     enterNameFirst: 'กรุณากรอกชื่อก่อน',
     inviteLinkCopied: 'คัดลอกลิงก์เชิญแล้ว!',
   },
+  adminSettings: {
+    button: 'แอดมิน',
+    title: 'เปิด/ปิดเกม',
+    keyLabel: 'รหัสแอดมิน',
+    keyPlaceholder: 'กรอกรหัสแอดมิน',
+    unlock: 'ปลดล็อก',
+    hint: 'รหัสแอดมินคือค่า ADMIN_SECRET บนเกมเซิร์ฟเวอร์ เกมที่ปิดจะหายจากหน้าล็อบบี้และเข้าร่วมไม่ได้จนกว่าจะเปิดใหม่',
+  },
   rules: {
     button: 'กฎกติกา',
     modal: {

@@ -88,6 +88,14 @@ export const en: Dictionary = {
     enterNameFirst: 'Please enter your display name first',
     inviteLinkCopied: 'Invite link copied!',
   },
+  adminSettings: {
+    button: 'Admin',
+    title: 'Game Availability',
+    keyLabel: 'Admin key',
+    keyPlaceholder: 'Enter the admin key',
+    unlock: 'Unlock',
+    hint: 'The admin key comes from ADMIN_SECRET on the game server. Disabled games disappear from the lobby and cannot be joined until re-enabled.',
+  },
   rules: {
     button: 'Rules',
     modal: {

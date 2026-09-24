@@ -1,11 +1,24 @@
 import { GameType, RoomState, SOCKET_EVENTS } from '@repo/types';
 import { GamesGateway } from './games.gateway';
 
+const gameSettingsStub = () => ({
+  load: jest.fn(),
+  snapshot: jest.fn(() => ({})),
+  setEnabled: jest.fn(),
+  isEnabled: jest.fn(() => true),
+});
+
 describe('GamesGateway payload guard', () => {
   let gateway: GamesGateway;
 
   beforeEach(() => {
-    gateway = new GamesGateway({} as never, {} as never, {} as never, {} as never);
+    gateway = new GamesGateway(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+    );
   });
 
   const isValid = (event: string, payload: unknown): boolean =>
@@ -55,6 +68,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       {} as never,
+      gameSettingsStub() as never,
     );
     const toMock = jest.fn(() => ({ emit: jest.fn() }));
     lifecycleGateway.server = { to: toMock, emit: jest.fn() } as never;
@@ -77,10 +91,11 @@ describe('GamesGateway payload guard', () => {
     const joinRoom = jest.fn(() => null);
     const findRoomCodeBySocketId = jest.fn(() => 'OLD123');
     const gateway = new GamesGateway(
-      { leaveRoom, joinRoom, findRoomCodeBySocketId } as never,
+      { leaveRoom, joinRoom, findRoomCodeBySocketId, getRoom: jest.fn(() => undefined) } as never,
       {} as never,
       {} as never,
       {} as never,
+      gameSettingsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
 
@@ -96,10 +111,11 @@ describe('GamesGateway payload guard', () => {
     const joinRoom = jest.fn(() => null);
     const findRoomCodeBySocketId = jest.fn(() => 'ABC123');
     const gateway = new GamesGateway(
-      { leaveRoom, joinRoom, findRoomCodeBySocketId } as never,
+      { leaveRoom, joinRoom, findRoomCodeBySocketId, getRoom: jest.fn(() => undefined) } as never,
       {} as never,
       {} as never,
       {} as never,
+      gameSettingsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
 
@@ -114,10 +130,17 @@ describe('GamesGateway payload guard', () => {
     const joinRoom = jest.fn(() => null);
     const deleteRoom = jest.fn();
     const gateway = new GamesGateway(
-      { createRoom, joinRoom, deleteRoom, findRoomCodeBySocketId: jest.fn(() => null) } as never,
+      {
+        createRoom,
+        joinRoom,
+        deleteRoom,
+        findRoomCodeBySocketId: jest.fn(() => null),
+        isGameEnabled: jest.fn(() => true),
+      } as never,
       {} as never,
       {} as never,
       {} as never,
+      gameSettingsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
 
@@ -149,6 +172,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       { schedule, cancel } as never,
       { getSocketData: jest.fn(() => ({})) } as never,
+      gameSettingsStub() as never,
     );
     gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() } as never;
     const room = {
@@ -179,6 +203,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       { schedule, cancel } as never,
       { getSocketData: jest.fn(() => ({})) } as never,
+      gameSettingsStub() as never,
     );
     gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() } as never;
     const broadcast = (
@@ -210,5 +235,108 @@ describe('GamesGateway payload guard', () => {
     expect(
       isValid(SOCKET_EVENTS.CARD_GAME_ACTION, { code: 'abc123', action: { type: 'DRAW' } }),
     ).toBe(true);
+  });
+
+  it('requires a well-formed set_game_enabled payload', () => {
+    expect(
+      isValid(SOCKET_EVENTS.SET_GAME_ENABLED, { gameType: GameType.COUP, enabled: true }),
+    ).toBe(false);
+    expect(
+      isValid(SOCKET_EVENTS.SET_GAME_ENABLED, {
+        gameType: GameType.COUP,
+        enabled: true,
+        adminKey: 'secret',
+      }),
+    ).toBe(true);
+    expect(
+      isValid(SOCKET_EVENTS.SET_GAME_ENABLED, {
+        gameType: 'NOT_A_GAME',
+        enabled: true,
+        adminKey: 'secret',
+      }),
+    ).toBe(false);
+  });
+
+  it('blocks creating a room for a disabled game', () => {
+    const createRoom = jest.fn();
+    const gateway = new GamesGateway(
+      {
+        createRoom,
+        isGameEnabled: jest.fn(() => false),
+        findRoomCodeBySocketId: jest.fn(),
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+    );
+    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() };
+
+    gateway.handleCreateRoom({ name: 'Host', gameType: GameType.COUP }, client as never);
+
+    expect(createRoom).not.toHaveBeenCalled();
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'This game is currently disabled.',
+    });
+  });
+
+  it('blocks a new player from joining a disabled game but lets seated members return', () => {
+    const joinRoom = jest.fn(() => null);
+    const disabledRoom = {
+      code: 'ABC123',
+      gameType: GameType.COUP,
+      players: [{ socketId: 'member1' }],
+    };
+    const gamesService = {
+      joinRoom,
+      findRoomCodeBySocketId: jest.fn(() => null),
+      getRoom: jest.fn(() => disabledRoom),
+      isGameEnabled: jest.fn(() => false),
+    };
+    const gateway = new GamesGateway(
+      gamesService as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+    );
+    const newcomer = { id: 'newcomer', join: jest.fn(), emit: jest.fn() };
+    const member = { id: 'member1', join: jest.fn(), emit: jest.fn() };
+
+    gateway.handleJoinRoom({ code: 'abc123', name: 'Newcomer' }, newcomer as never);
+    expect(joinRoom).not.toHaveBeenCalled();
+    expect(newcomer.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'This game is currently disabled.',
+    });
+
+    gateway.handleJoinRoom({ code: 'abc123', name: 'Member' }, member as never);
+    expect(joinRoom).toHaveBeenCalled();
+  });
+
+  it('rejects set_game_enabled without the admin key', async () => {
+    const setEnabled = jest.fn();
+    const gateway = new GamesGateway(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { load: jest.fn(), snapshot: jest.fn(() => ({})), setEnabled, isEnabled: jest.fn() } as never,
+    );
+    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() };
+    const previousSecret = process.env.ADMIN_SECRET;
+    delete process.env.ADMIN_SECRET;
+
+    try {
+      await gateway.handleSetGameEnabled(
+        { gameType: GameType.COUP, enabled: false, adminKey: 'guess' },
+        client as never,
+      );
+    } finally {
+      if (previousSecret === undefined) delete process.env.ADMIN_SECRET;
+      else process.env.ADMIN_SECRET = previousSecret;
+    }
+
+    expect(setEnabled).not.toHaveBeenCalled();
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
   });
 });

@@ -14,6 +14,7 @@ import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
+import { GameSettingsService } from './game-settings.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import {
   SOCKET_EVENTS,
@@ -27,7 +28,11 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
+  SetGameEnabledPayload,
 } from '@repo/types';
+
+/** Server string the client localizes via i18n/serverErrors. */
+const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 import {
   MusicTriviaActionResult,
   MusicTriviaTimerCommand,
@@ -55,6 +60,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     private readonly leaderboardService: LeaderboardService,
     private readonly roomTimerService: RoomTimerService,
     private readonly privateStateService: PrivateStateService,
+    private readonly gameSettingsService: GameSettingsService,
   ) {}
 
   afterInit(): void {
@@ -70,6 +76,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         this.gamesService.getAvailableRooms(),
       );
     });
+    void this.gameSettingsService.load();
   }
 
   handleConnection(client: Socket) {
@@ -79,6 +86,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
       next(new Error('Invalid request payload'));
     });
+    client.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
   }
 
   handleDisconnect(client: Socket) {
@@ -141,6 +149,42 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     client.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.GET_GAME_SETTINGS)
+  handleGetGameSettings(@ConnectedSocket() client: Socket) {
+    client.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
+  }
+
+  /** Admin-only: flip a game's enabled flag; needs ADMIN_SECRET from the server env. */
+  @SubscribeMessage(SOCKET_EVENTS.SET_GAME_ENABLED)
+  async handleSetGameEnabled(
+    @MessageBody() data: SetGameEnabledPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret || !data || data.adminKey !== adminSecret) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+      return;
+    }
+    if (
+      !data ||
+      !Object.values(GameType).includes(data.gameType) ||
+      typeof data.enabled !== 'boolean'
+    ) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+      return;
+    }
+    try {
+      await this.gameSettingsService.setEnabled(data.gameType, data.enabled);
+    } catch (error) {
+      this.logger.error(`Failed to persist game setting for ${data.gameType}`, error as Error);
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to update the game setting.' });
+      return;
+    }
+    this.logger.log(`Game ${data.gameType} ${data.enabled ? 'enabled' : 'disabled'}`);
+    this.server.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
+    this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+  }
+
   private leavePreviousRoom(client: Socket, nextRoomCode?: string): void {
     const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
     if (!previousRoomCode || previousRoomCode === nextRoomCode) return;
@@ -156,6 +200,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { name: string; gameType?: GameType; config?: Partial<RoomConfig> },
     @ConnectedSocket() client: Socket,
   ) {
+    const requestedGameType = data.gameType ?? GameType.WHO_KNOW;
+    if (!this.gamesService.isGameEnabled(requestedGameType)) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
+      return;
+    }
     this.leavePreviousRoom(client);
     const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
     const updatedRoom = this.gamesService.joinRoom(room.code, {
@@ -183,6 +232,14 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @ConnectedSocket() client: Socket,
   ) {
     this.leavePreviousRoom(client, data.code.toUpperCase());
+    // Block new entries into a disabled game, but never strand a seated player:
+    // existing members (reconnecting) may always return to their room.
+    const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
+    const isSeatedMember = targetRoom?.players.some((p) => p.socketId === client.id) ?? false;
+    if (targetRoom && !isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
+      return;
+    }
     const room = this.gamesService.joinRoom(
       data.code.toUpperCase(),
       {
@@ -1450,12 +1507,24 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   private isValidPayload(event: string, payload: unknown): boolean {
-    if (event === SOCKET_EVENTS.LEAVE_ROOM || event === SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
+    if (
+      event === SOCKET_EVENTS.LEAVE_ROOM ||
+      event === SOCKET_EVENTS.GET_AVAILABLE_ROOMS ||
+      event === SOCKET_EVENTS.GET_GAME_SETTINGS
+    )
       return true;
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
 
     const data = payload as Record<string, unknown>;
     if (!this.hasSafeValues(data)) return false;
+    if (event === SOCKET_EVENTS.SET_GAME_ENABLED) {
+      return (
+        Object.values(GameType).includes(data.gameType as GameType) &&
+        typeof data.enabled === 'boolean' &&
+        typeof data.adminKey === 'string' &&
+        data.adminKey.length <= 200
+      );
+    }
     if (event === SOCKET_EVENTS.CREATE_ROOM) {
       return (
         this.isValidName(data.name) &&

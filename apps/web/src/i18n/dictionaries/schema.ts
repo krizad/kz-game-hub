@@ -85,6 +85,14 @@ export interface Dictionary {
     enterNameFirst: string;
     inviteLinkCopied: string;
   };
+  adminSettings: {
+    button: string;
+    title: string;
+    keyLabel: string;
+    keyPlaceholder: string;
+    unlock: string;
+    hint: string;
+  };
   rules: {
     button: string;
     modal: {

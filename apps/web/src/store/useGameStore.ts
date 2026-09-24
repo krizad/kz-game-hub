@@ -12,6 +12,8 @@ import {
   Role,
   SOCKET_EVENTS,
   AvailableRoom,
+  GameSettingsMap,
+  SetGameEnabledPayload,
   GameType,
   WhoFirstGameActionType,
   WordCategory,
@@ -48,6 +50,7 @@ interface GameState {
   playerId: string;
   secretWord: string | null;
   availableRooms: AvailableRoom[];
+  gameSettings: GameSettingsMap;
   categories: WordCategory[];
   isLoading: boolean;
   privateState: Record<string, unknown>;
@@ -55,6 +58,8 @@ interface GameState {
   actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
+  isGameEnabled: (gameType: GameType) => boolean;
+  setGameEnabled: (gameType: GameType, enabled: boolean, adminKey: string) => void;
   createRoom: (gameType?: GameType, config?: Partial<RoomConfig>) => void;
   joinRoom: (code: string) => void;
   startGame: () => void;
@@ -173,6 +178,7 @@ export const useGameStore = create<GameState>((set, get) => {
     playerId: '',
     secretWord: null,
     availableRooms: [],
+    gameSettings: {},
     categories: [],
 
     isLoading: false,
@@ -183,6 +189,17 @@ export const useGameStore = create<GameState>((set, get) => {
     musicTriviaSyncPlay: null,
 
     setName: (name) => set({ myName: name }),
+
+    isGameEnabled: (gameType) => get().gameSettings[gameType] ?? true,
+
+    setGameEnabled: (gameType, enabled, adminKey) => {
+      const { socket } = get();
+      socket?.emit(SOCKET_EVENTS.SET_GAME_ENABLED, {
+        gameType,
+        enabled,
+        adminKey,
+      } satisfies SetGameEnabledPayload);
+    },
 
     connect: () => {
       if (get().socket) return;
@@ -215,6 +232,11 @@ export const useGameStore = create<GameState>((set, get) => {
 
         // Request active rooms lobby
         socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
+        socket.emit(SOCKET_EVENTS.GET_GAME_SETTINGS);
+      });
+
+      socket.on(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, (settings: GameSettingsMap) => {
+        set({ gameSettings: settings });
       });
 
       socket.on('disconnect', () => {

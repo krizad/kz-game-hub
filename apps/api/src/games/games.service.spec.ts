@@ -21,6 +21,7 @@ import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
+import { GameSettingsService } from './game-settings.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -207,6 +208,7 @@ describe('GamesService', () => {
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,
+        GameSettingsService,
       ],
     }).compile();
 
@@ -1745,6 +1747,19 @@ describe('GamesService', () => {
 
       await expect(pending).resolves.toBeNull();
       expect((service as any).rooms.has(room.code)).toBe(false);
+    });
+
+    it('hides available rooms of disabled games from the lobby list', () => {
+      const room = service.createRoom('host1', GameType.COUP);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      const enabledRoom = service.createRoom('host2', GameType.THE_MIND);
+      service.joinRoom(enabledRoom.code, { id: 'host2', name: 'Host2', socketId: 'host2' });
+
+      (service as any).gameSettings.enabled.set(GameType.COUP, false);
+
+      const codes = service.getAvailableRooms().map((r) => r.code);
+      expect(codes).toContain(enabledRoom.code);
+      expect(codes).not.toContain(room.code);
     });
 
     it('keeps the saboteur auto-pass deadline stable per turn and resets on turn change', () => {

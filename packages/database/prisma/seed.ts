@@ -50,6 +50,33 @@ async function main() {
     }
     console.log(`Successfully seeded ${wordsData.length} Who Am I words.`);
   }
+
+  console.log('Seeding game settings...');
+  const gameTypes = [
+    'WHO_KNOW',
+    'TIC_TAC_TOE',
+    'RPS',
+    'GOBBLER_TIC_TAC_TOE',
+    'SOUNDS_FISHY',
+    'DETECTIVE_CLUB',
+    'WHO_AM_I',
+    'WHO_FIRST',
+    'MUSIC_TRIVIA',
+    'THE_MIND',
+    'SABOTEUR',
+    'COUP',
+    'ULTIMATE_TIC_TAC_TOE',
+    'CARD_GAME',
+  ];
+  for (const gameType of gameTypes) {
+    // Upsert: never re-enable a game an admin deliberately turned off.
+    await prisma.gameSetting.upsert({
+      where: { gameType },
+      update: {},
+      create: { gameType, enabled: true },
+    });
+  }
+  console.log(`Game settings ready for ${gameTypes.length} games.`);
 }
 
 main()

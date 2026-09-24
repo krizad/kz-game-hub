@@ -71,3 +71,8 @@ model GameResult {
 }
 
 
+model GameSetting {
+  gameType  String  @id
+  enabled   Boolean @default(true)
+  updatedAt DateTime @updatedAt
+}

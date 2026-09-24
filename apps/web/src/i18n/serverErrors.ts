@@ -38,6 +38,9 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     'Cannot propose shuriken.': 'ไม่สามารถเสนอใช้ดาวกระจายได้',
     'Cannot vote on shuriken.': 'ไม่สามารถโหวตดาวกระจายได้',
     'Cannot cancel shuriken proposal.': 'ไม่สามารถยกเลิกการเสนอใช้ดาวกระจายได้',
+    'This game is currently disabled.': 'เกมนี้ถูกปิดใช้งานชั่วคราว',
+    'Unauthorized.': 'ไม่ได้รับอนุญาต',
+    'Failed to update the game setting.': 'อัปเดตการตั้งค่าเกมไม่สำเร็จ',
   },
 };
 
