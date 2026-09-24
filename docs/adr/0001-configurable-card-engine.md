@@ -30,3 +30,6 @@ Implement one `CARD_GAME` room type backed by a declarative card-engine model.
 - **One independent `GameType` per card game:** rejected because it duplicates generic state, privacy, and configuration logic and makes variants harder to share.
 - **Hard-coded games without Advanced Rules:** rejected because it does not meet the house-rule requirement.
 
+## Amendment (2026-09-24)
+
+The shipped preset set was trimmed to **Pok Deng and Slave** only; the Sam Sip and Old Maid runtimes, presets, and tests were removed with the Thai Card Game two-mode cleanup (PR #3). The engine and configuration model described above are unchanged; the removed presets can be reintroduced as new preset capabilities if needed.
