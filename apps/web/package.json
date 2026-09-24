@@ -29,7 +29,6 @@
     "react-player": "^2.16.1",
     "socket.io-client": "^4.7.5",
     "tailwind-merge": "^2.3.0",
-    "use-sound": "^5.0.0",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

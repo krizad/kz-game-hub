@@ -8,8 +8,7 @@ import type { DetectiveClubSound } from '@/hooks/useDetectiveClubSounds';
  * Derives sound cues from Detective Club server-state deltas:
  * - phase change → word / discussion / vote / scoring stings
  * - a card lands on the table (any player's playedCards grows) → card snap
- * - SCORING reached → role-reveal sting; the winner line plays one more cue
- *   via scoreDeltas sign (detective vs conspirator victory)
+ * The role-reveal victory stings play from the scoring view itself.
  */
 export function useDetectiveClubSoundCues(
   state: DetectiveClubState | null | undefined,
@@ -18,8 +17,7 @@ export function useDetectiveClubSoundCues(
   const last = useRef<{
     phase: string | null;
     playedTotal: number | null;
-    scored: boolean;
-  }>({ phase: null, playedTotal: null, scored: false });
+  }>({ phase: null, playedTotal: null });
 
   useEffect(() => {
     if (!state) return;
@@ -28,7 +26,6 @@ export function useDetectiveClubSoundCues(
       (sum, p) => sum + p.playedCards.length,
       0,
     );
-    const scored = Boolean(state.scoreDeltas && Object.keys(state.scoreDeltas).length > 0);
 
     const prev = last.current;
     const first = prev.phase === null && prev.playedTotal === null;
@@ -52,6 +49,6 @@ export function useDetectiveClubSoundCues(
       }
     }
 
-    last.current = { phase, playedTotal, scored };
+    last.current = { phase, playedTotal };
   }, [state, playSound]);
 }

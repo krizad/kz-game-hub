@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { SoundToggle } from '@/components/core/SoundToggle';
 import { CoupHelpModal } from './CoupHelpModal';
 import { CoupRole, CoupActionType } from '@repo/types';
 import { toast } from 'react-hot-toast';
@@ -109,14 +110,14 @@ export function CoupView() {
     room.players.find((p) => p.socketId === socketId)?.isViewer ||
     state.influences[socketId]?.count === 0;
   const renderSoundToggle = () => (
-    <button
-      onClick={toggleSound}
-      title={soundsEnabled ? t('gameCoup.soundOn') : t('gameCoup.soundOff')}
-      className={`flex items-center justify-center w-8 h-8 border-4 border-black shadow-[2px_2px_0_0_#000] text-sm transition-all active:translate-y-0.5 ${soundsEnabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'}`}
-      data-testid="coup-sound-toggle"
-    >
-      {soundsEnabled ? '🔊' : '🔇'}
-    </button>
+    <SoundToggle
+      enabled={soundsEnabled}
+      onToggle={toggleSound}
+      titleOn={t('gameCoup.soundOn')}
+      titleOff={t('gameCoup.soundOff')}
+      testId="coup-sound-toggle"
+      className="w-8 h-8 shadow-[2px_2px_0_0_#000]"
+    />
   );
 
   return (
