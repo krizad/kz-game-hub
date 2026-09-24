@@ -11,6 +11,7 @@ pnpm dev                # turbo dev (web:3000 + api:3001)
 pnpm -F api test        # run all API tests (Jest)
 pnpm -F api test -- --testPathPatterns=sounds-fishy   # single test file
 pnpm test:e2e           # run all E2E tests (Playwright)
+E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -c playwright.sim.config.ts  # simulated play-to-completion for every game/mode
 pnpm test:e2e:ui        # run E2E tests with Playwright UI
 pnpm format             # Prettier
 ```
