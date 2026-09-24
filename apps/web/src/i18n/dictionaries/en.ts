@@ -96,6 +96,18 @@ export const en: Dictionary = {
     unlock: 'Unlock',
     hint: 'The admin key comes from ADMIN_SECRET on the game server. Disabled games disappear from the lobby and cannot be joined until re-enabled.',
   },
+  appInfo: {
+    button: 'Info',
+    title: 'About KZ Game Hub',
+    tagline: 'Real-time party games for everyone',
+    version: 'Version',
+    creator: 'Created by',
+    games: 'Games',
+    languages: 'Languages',
+    description:
+      'A real-time party game hub — create a room, share the code, and play mini-games together from any device.',
+    close: 'Close',
+  },
   rules: {
     button: 'Rules',
     modal: {

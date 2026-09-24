@@ -6,6 +6,7 @@ import { GameType } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
+import { AppInfoModal } from '@/components/core/AppInfoModal';
 import { RulesModal } from '@/components/RulesModal';
 import { AdminGameSettings } from './AdminGameSettings';
 
@@ -54,6 +55,7 @@ export function HomeView() {
           <LanguageSwitcher />
         </div>
         <div className="flex">
+          <AppInfoModal triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center gap-2 px-4 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] text-nowrap" />
           <RulesModal triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center gap-2 px-4 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] text-nowrap" />
           <AdminGameSettings triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center px-3 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]" />
         </div>
