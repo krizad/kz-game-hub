@@ -230,6 +230,14 @@ let WhoKnowService = class WhoKnowService {
             }
         });
     }
+    remapPrivateVotes(code, oldSocketId, newSocketId) {
+        const votes = this.privateState.getRoomData(code, WK_VOTE);
+        for (const [voterId, targetId] of votes.entries()) {
+            if (targetId === oldSocketId) {
+                this.privateState.set(code, voterId, WK_VOTE, newSocketId);
+            }
+        }
+    }
 };
 exports.WhoKnowService = WhoKnowService;
 exports.WhoKnowService = WhoKnowService = __decorate([

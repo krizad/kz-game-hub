@@ -103,7 +103,8 @@ let WhoAmIService = class WhoAmIService {
         return this.shuffleArray(words).slice(0, count);
     }
     startGameHostInput(room, requesterId, playerWords) {
-        if (room.status !== types_1.RoomStatus.LOBBY)
+        const awaitingHostInput = room.status === types_1.RoomStatus.PLAYING && room.whoAmIState?.phase === 'AWAITING_HOST_INPUT';
+        if (room.status !== types_1.RoomStatus.LOBBY && !awaitingHostInput)
             return null;
         if (room.roomHostId !== requesterId)
             return null;
@@ -126,6 +127,7 @@ let WhoAmIService = class WhoAmIService {
         }
         this.syncVisibleWords(room);
         const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
+        gameState.hostSocketId = requesterId;
         room.whoAmIState = gameState;
         return room;
     }
@@ -200,7 +202,13 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         }
         if (words.length < room.players.length) {
             console.log('Falling back to database for words...');
-            const category = room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
+            let category = room.config.wordCategory;
+            if (!category) {
+                const categories = (await this.getCategories(lang)).filter((c) => c.count >= room.players.length);
+                if (categories.length === 0)
+                    return null;
+                category = categories[Math.floor(Math.random() * categories.length)].name;
+            }
             const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
             if (dbWords.length < room.players.length)
                 return null;
@@ -285,6 +293,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             return null;
         room.status = types_1.RoomStatus.PLAYING;
         const gameState = this.createGameState(room, '', 'AWAITING_HOST_INPUT');
+        gameState.hostSocketId = requesterId;
         room.whoAmIState = gameState;
         return room;
     }
@@ -364,8 +373,9 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         gameState.currentTurn = shuffledPlayers[0].socketId;
     }
     eligiblePlayers(room) {
+        const gameHostId = room.whoAmIState?.hostSocketId ?? room.roomHostId;
         const base = room.config?.wordMode === 'HOST_INPUT'
-            ? room.players.filter((p) => p.socketId !== room.roomHostId)
+            ? room.players.filter((p) => p.socketId !== gameHostId)
             : room.players;
         return base.filter((p) => !p.isViewer);
     }
@@ -413,6 +423,15 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         const gameState = room.whoAmIState;
         if (!gameState)
             return null;
+        if (gameState.phase === 'COLLECTING_WORDS') {
+            const connectedPlayers = room.players.filter((p) => p.connected !== false && !p.isViewer);
+            const allSubmitted = connectedPlayers.every((p) => this.privateState.has(room.code, p.socketId, WAI_SUBMITTED));
+            if (allSubmitted && connectedPlayers.length > 0) {
+                this.assignShuffledWords(room, gameState);
+                return room;
+            }
+            return null;
+        }
         if (gameState.currentTurn !== socketId || gameState.turnStatus !== 'VOTING')
             return null;
         const nextPlayer = this.findNextPlayer(room, gameState, socketId);
@@ -574,12 +593,19 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             state.currentTurn = newSocketId;
         if (state.winner === oldSocketId)
             state.winner = newSocketId;
+        if (state.hostSocketId === oldSocketId)
+            state.hostSocketId = newSocketId;
         if (state.votes[oldSocketId]) {
             state.votes[newSocketId] = state.votes[oldSocketId];
             delete state.votes[oldSocketId];
         }
         state.eliminatedPlayers = state.eliminatedPlayers.map((id) => id === oldSocketId ? newSocketId : id);
         state.finalGuessUsed = state.finalGuessUsed.map((id) => id === oldSocketId ? newSocketId : id);
+        state.wordSubmittedIds = state.wordSubmittedIds.map((id) => id === oldSocketId ? newSocketId : id);
+        if (state.revealedWords && state.revealedWords[oldSocketId] !== undefined) {
+            state.revealedWords[newSocketId] = state.revealedWords[oldSocketId];
+            delete state.revealedWords[oldSocketId];
+        }
     }
 };
 exports.WhoAmIService = WhoAmIService;

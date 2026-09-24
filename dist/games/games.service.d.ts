@@ -68,6 +68,7 @@ export declare class GamesService {
     getRoom(code: string): RoomState | undefined;
     isGameEnabled(gameType: GameType): boolean;
     getReconnectToken(code: string, socketId: string): string | null;
+    hasSeatedSession(code: string, reconnectToken: string): boolean;
     createRoom(hostId: string, gameType?: GameType, initialConfig?: Partial<RoomConfig>): RoomState;
     joinRoom(code: string, user: Omit<UserState, 'score' | 'roomId' | 'role'>, reconnectToken?: string): RoomState | null;
     leaveRoom(clientId: string, explicitLeave?: boolean): LeaveRoomResult;

@@ -73,7 +73,7 @@ class YouTubeAdapter {
         }
         catch (error) {
             console.error('[YouTubeAdapter] Search error:', error);
-            return [];
+            throw error;
         }
     }
 }

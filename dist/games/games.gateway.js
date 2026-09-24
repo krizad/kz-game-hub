@@ -149,7 +149,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (updatedRoom) {
             client.join(updatedRoom.code);
             this.emitSessionToken(client, updatedRoom.code);
-            client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+            client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(updatedRoom));
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -159,7 +159,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     handleJoinRoom(data, client) {
         this.leavePreviousRoom(client, data.code.toUpperCase());
         const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
-        const isSeatedMember = targetRoom?.players.some((p) => p.socketId === client.id) ?? false;
+        const isSeatedMember = (targetRoom?.players.some((p) => p.socketId === client.id) ?? false) ||
+            (!!data.reconnectToken &&
+                this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
         if (targetRoom && !isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
             return;
@@ -296,8 +298,19 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     handleResetGame(data, client) {
         const room = this.gamesService.resetGame(data.code, client.id);
         if (room) {
-            this.roomTimerService.cancel(room.code, 'who-know');
-            this.roomTimerService.cancel(room.code, 'the-mind');
+            for (const timerName of [
+                'who-know',
+                'the-mind',
+                'who-first',
+                'saboteur',
+                'card-game',
+                'coup-challenge',
+                'coup-block',
+                'music-trivia-countdown',
+                'music-trivia-answer',
+            ]) {
+                this.roomTimerService.cancel(room.code, timerName);
+            }
             this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
@@ -851,11 +864,15 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         client.join(room.code);
         client.data.spectatingRoomCode = room.code;
-        client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+        client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
     }
     broadcastRoomState(room) {
-        this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+        this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
         this.emitPrivateStates(room);
+        this.maybeRecordGameResult(room);
+        if (room.gameType === types_1.GameType.WHO_KNOW) {
+            this.revealSecretWordIfResult(room);
+        }
         if (room.gameType === types_1.GameType.SABOTEUR) {
             this.syncSaboteurTimer(room);
         }
@@ -865,6 +882,26 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (room.gameType === types_1.GameType.CARD_GAME) {
             this.syncCardGameTimer(room);
+        }
+    }
+    publicRoomView(room) {
+        if (room.gameType === types_1.GameType.COUP && room.coupState) {
+            return {
+                ...room,
+                coupState: {
+                    ...room.coupState,
+                    deck: room.coupState.deck.map(() => 'HIDDEN'),
+                },
+            };
+        }
+        return room;
+    }
+    revealSecretWordIfResult(room) {
+        if (room.status !== types_1.RoomStatus.RESULT)
+            return;
+        const secretWord = this.gamesService.getSecretWord(room.code);
+        if (secretWord) {
+            this.server.to(room.code).emit(types_1.SOCKET_EVENTS.WORD_SETTING_COMPLETED, { word: secretWord });
         }
     }
     syncCoupChallengeTimer(room) {

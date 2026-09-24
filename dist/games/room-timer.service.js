@@ -5,11 +5,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var RoomTimerService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoomTimerService = void 0;
 const common_1 = require("@nestjs/common");
-let RoomTimerService = class RoomTimerService {
+let RoomTimerService = RoomTimerService_1 = class RoomTimerService {
     constructor() {
+        this.logger = new common_1.Logger(RoomTimerService_1.name);
         this.timers = new Map();
     }
     schedule(roomCode, timerName, deadline, callback) {
@@ -18,7 +20,12 @@ let RoomTimerService = class RoomTimerService {
         const delay = Math.max(0, deadline - Date.now());
         const timer = setTimeout(() => {
             this.timers.delete(key);
-            callback();
+            try {
+                callback();
+            }
+            catch (error) {
+                this.logger.error(`Timer ${timerName} for room ${roomCode} threw`, error);
+            }
         }, delay);
         timer.unref();
         this.timers.set(key, timer);
@@ -49,7 +56,7 @@ let RoomTimerService = class RoomTimerService {
     }
 };
 exports.RoomTimerService = RoomTimerService;
-exports.RoomTimerService = RoomTimerService = __decorate([
+exports.RoomTimerService = RoomTimerService = RoomTimerService_1 = __decorate([
     (0, common_1.Injectable)()
 ], RoomTimerService);
 //# sourceMappingURL=room-timer.service.js.map

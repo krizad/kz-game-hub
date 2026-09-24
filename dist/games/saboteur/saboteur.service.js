@@ -637,6 +637,14 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
                 delete state.roundResult.picks[oldSocketId];
             }
         }
+        if (state.lastAction?.playerId === oldSocketId)
+            state.lastAction.playerId = newSocketId;
+        for (const entry of state.log) {
+            if (entry.playerId === oldSocketId)
+                entry.playerId = newSocketId;
+            if (entry.targetId === oldSocketId)
+                entry.targetId = newSocketId;
+        }
     }
 };
 exports.SaboteurService = SaboteurService;

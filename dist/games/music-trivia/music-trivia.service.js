@@ -51,6 +51,8 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
         this.sourceFactory.register(new soundcloud_adapter_1.SoundcloudAdapter());
     }
     startGame(room, requesterId) {
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return null;
         if (room.roomHostId !== requesterId)
             return null;
         if (room.players.length < 2)
@@ -170,7 +172,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
     }
     finalizeCountdown(room) {
         const state = room.musicTriviaState;
-        if (state.phase !== 'COUNTDOWN')
+        if (!state || state.phase !== 'COUNTDOWN')
             return null;
         state.phase = 'PLAYING';
         state.playStartTime = Date.now();

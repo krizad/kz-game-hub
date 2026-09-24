@@ -8,6 +8,7 @@ const types_1 = require("@repo/types");
 describe('CoupService (01 scaffold)', () => {
     let service;
     let privateState;
+    let roomTimer;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -21,6 +22,7 @@ describe('CoupService (01 scaffold)', () => {
         }).compile();
         service = module.get(coup_service_1.CoupService);
         privateState = module.get(private_state_service_1.PrivateStateService);
+        roomTimer = module.get(room_timer_service_1.RoomTimerService);
     });
     function makeRoom(overrides = {}) {
         const players = [
@@ -99,6 +101,7 @@ describe('CoupService (01 scaffold)', () => {
 describe('CoupService (02 core economy)', () => {
     let service;
     let privateState;
+    let roomTimer;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -112,6 +115,7 @@ describe('CoupService (02 core economy)', () => {
         }).compile();
         service = module.get(coup_service_1.CoupService);
         privateState = module.get(private_state_service_1.PrivateStateService);
+        roomTimer = module.get(room_timer_service_1.RoomTimerService);
     });
     function makeRoom(overrides = {}) {
         const players = [
@@ -220,6 +224,7 @@ describe('CoupService (02 core economy)', () => {
 describe('CoupService (03 challenge)', () => {
     let service;
     let privateState;
+    let roomTimer;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -233,6 +238,7 @@ describe('CoupService (03 challenge)', () => {
         }).compile();
         service = module.get(coup_service_1.CoupService);
         privateState = module.get(private_state_service_1.PrivateStateService);
+        roomTimer = module.get(room_timer_service_1.RoomTimerService);
     });
     function makeRoom(overrides = {}) {
         const players = [
@@ -299,6 +305,7 @@ describe('CoupService (03 challenge)', () => {
 describe('CoupService (04 block)', () => {
     let service;
     let privateState;
+    let roomTimer;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -312,6 +319,7 @@ describe('CoupService (04 block)', () => {
         }).compile();
         service = module.get(coup_service_1.CoupService);
         privateState = module.get(private_state_service_1.PrivateStateService);
+        roomTimer = module.get(room_timer_service_1.RoomTimerService);
     });
     function makeRoom(overrides = {}) {
         const players = [
@@ -397,6 +405,7 @@ describe('CoupService (04 block)', () => {
 describe('CoupService (05 steal & exchange)', () => {
     let service;
     let privateState;
+    let roomTimer;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -410,6 +419,7 @@ describe('CoupService (05 steal & exchange)', () => {
         }).compile();
         service = module.get(coup_service_1.CoupService);
         privateState = module.get(private_state_service_1.PrivateStateService);
+        roomTimer = module.get(room_timer_service_1.RoomTimerService);
     });
     function makeRoom(overrides = {}) {
         const players = [
@@ -561,6 +571,7 @@ describe('CoupService (05 steal & exchange)', () => {
 describe('CoupService (06 disconnect)', () => {
     let service;
     let privateState;
+    let roomTimer;
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -574,6 +585,7 @@ describe('CoupService (06 disconnect)', () => {
         }).compile();
         service = module.get(coup_service_1.CoupService);
         privateState = module.get(private_state_service_1.PrivateStateService);
+        roomTimer = module.get(room_timer_service_1.RoomTimerService);
     });
     function makeRoom(overrides = {}) {
         const players = [
@@ -657,6 +669,44 @@ describe('CoupService (06 disconnect)', () => {
         expect(room.coupState.phase).toBe('AWAITING_CHALLENGE');
         expect(room.coupState.pendingAction).not.toBeNull();
         expect(room.coupState.currentTurn).toBe('s1');
+    });
+    describe('endgame and disconnect integrity', () => {
+        it('keeps RESULT when a successful challenge eliminates the last rival influence', () => {
+            const room = makeRoom();
+            service.startGame(room, 's1');
+            const state = room.coupState;
+            state.influences['s1'].count = 1;
+            state.influences['s3'].count = 0;
+            state.currentTurn = 's1';
+            privateState.set(room.code, 's1', 'coupHand', [types_1.CoupRole.CAPTAIN, types_1.CoupRole.AMBASSADOR]);
+            expect(service.declareAction(room, 's1', types_1.CoupActionType.TAX)).not.toBeNull();
+            const result = service.challenge(room, 's2');
+            expect(result).not.toBeNull();
+            expect(result.status).toBe(types_1.RoomStatus.RESULT);
+            expect(result.coupState.phase).toBe('RESULT');
+            expect(result.coupState.winnerId).toBe('s2');
+            expect(result.coupState.currentTurn).toBe('s1');
+        });
+        it('refunds the assassinate cost when the actor disconnects mid-window', () => {
+            const room = makeRoom();
+            service.startGame(room, 's1');
+            const state = room.coupState;
+            state.coins['s1'] = 5;
+            privateState.set(room.code, 's1', 'coupHand', [types_1.CoupRole.ASSASSIN, types_1.CoupRole.DUKE]);
+            expect(service.declareAction(room, 's1', types_1.CoupActionType.ASSASSINATE, 's2')).not.toBeNull();
+            expect(state.coins['s1']).toBe(2);
+            service.handlePlayerDisconnect(room, 's1');
+            expect(state.coins['s1']).toBe(5);
+            expect(state.pendingAction).toBeNull();
+        });
+        it('resetGame cancels only the coup timers, preserving reconnect-grace timers', () => {
+            const room = makeRoom();
+            service.startGame(room, 's1');
+            expect(service.resetGame(room, 's1')).not.toBeNull();
+            expect(roomTimer.clearRoom).not.toHaveBeenCalled();
+            expect(roomTimer.cancel).toHaveBeenCalledWith(room.code, 'coup-challenge');
+            expect(roomTimer.cancel).toHaveBeenCalledWith(room.code, 'coup-block');
+        });
     });
 });
 //# sourceMappingURL=coup.service.spec.js.map

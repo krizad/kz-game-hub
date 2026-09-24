@@ -898,5 +898,69 @@ describe('WhoAmIService', () => {
             expect(resolved.whoAmIState.currentTurn).toBe('p1');
         });
     });
+    describe('two-phase HOST_INPUT start', () => {
+        it('accepts word submission after startGameAwaitHostInput flipped the room to PLAYING', () => {
+            const room = {
+                code: 'test-room',
+                status: types_1.RoomStatus.LOBBY,
+                roomHostId: 'host1',
+                players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+                config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+            };
+            expect(service.startGameAwaitHostInput(room, 'host1')).not.toBeNull();
+            expect(room.status).toBe(types_1.RoomStatus.PLAYING);
+            expect(room.whoAmIState.phase).toBe('AWAITING_HOST_INPUT');
+            expect(service.startGameHostInput(room, 'host1', { p1: 'Firefighter', p2: 'Astronaut' })).not.toBeNull();
+            expect(room.whoAmIState.phase).toBe('ASKING');
+            expect(room.whoAmIState.hostSocketId).toBe('host1');
+        });
+    });
+    describe('COLLECTING_WORDS disconnect', () => {
+        it('starts the round when the last holdout disconnects after all connected players submitted', () => {
+            const room = {
+                code: 'test-room',
+                status: types_1.RoomStatus.LOBBY,
+                roomHostId: 'host1',
+                players: [
+                    { socketId: 'host1', connected: true },
+                    { socketId: 'p1', connected: true },
+                    { socketId: 'p2', connected: true },
+                    { socketId: 'p3', connected: true },
+                ],
+                config: { wordMode: 'PLAYER_INPUT', maxRounds: 5 },
+            };
+            expect(service.startGamePlayerInput(room, 'host1')).not.toBeNull();
+            expect(service.submitPlayerWord(room, 'host1', 'Wizard')).not.toBeNull();
+            expect(service.submitPlayerWord(room, 'p1', 'Pirate')).not.toBeNull();
+            expect(service.submitPlayerWord(room, 'p3', 'Chef')).not.toBeNull();
+            expect(room.whoAmIState.phase).toBe('COLLECTING_WORDS');
+            room.players.find((p) => p.socketId === 'p2').connected = false;
+            expect(service.handlePlayerDisconnect(room, 'p2')).not.toBeNull();
+            expect(room.whoAmIState.phase).toBe('ASKING');
+        });
+    });
+    describe('remapSocketId (reconnection)', () => {
+        it('re-points wordSubmittedIds, revealedWords and hostSocketId', () => {
+            const state = {
+                currentTurn: 'p2',
+                currentGuess: null,
+                votes: {},
+                turnStatus: 'VOTING',
+                winner: null,
+                currentRound: 1,
+                maxRounds: 3,
+                eliminatedPlayers: [],
+                phase: 'COLLECTING_WORDS',
+                finalGuessUsed: [],
+                wordSubmittedIds: ['p1', 'p2'],
+                revealedWords: { p1: 'Wizard', p2: 'Pirate' },
+                hostSocketId: 'p1',
+            };
+            service.remapSocketId(state, 'p1', 'p1-new');
+            expect(state.wordSubmittedIds).toEqual(['p1-new', 'p2']);
+            expect(state.revealedWords).toEqual({ 'p1-new': 'Wizard', p2: 'Pirate' });
+            expect(state.hostSocketId).toBe('p1-new');
+        });
+    });
 });
 //# sourceMappingURL=who-am-i.service.spec.js.map

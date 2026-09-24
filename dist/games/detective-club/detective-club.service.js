@@ -313,6 +313,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
     calculateScore(room) {
         const state = room.detectiveClubState;
         state.currentPhase = types_1.DetectiveClubPhase.SCORING;
+        room.status = types_1.RoomStatus.RESULT;
         state.scoreDeltas = {};
         const conspiratorId = this.getConspiratorId(room);
         state.conspiratorId = conspiratorId;
@@ -467,6 +468,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
             this.privateState.delete(room.code, p.socketId, DC_WORD);
         }
         state.currentPhase = types_1.DetectiveClubPhase.SETUP;
+        room.status = types_1.RoomStatus.PLAYING;
         state.informerId = nextInformerId;
         state.conspiratorId = null;
         state.word = null;
@@ -488,6 +490,12 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
             p.score = 0;
         });
         return room;
+    }
+    remapRoomSecrets(code, oldSocketId, newSocketId) {
+        const conspiratorId = this.privateState.get(code, ROOM_KEY, DC_ROOM_CONSPIRATOR);
+        if (conspiratorId === oldSocketId) {
+            this.privateState.set(code, ROOM_KEY, DC_ROOM_CONSPIRATOR, newSocketId);
+        }
     }
     remapSocketId(state, oldSocketId, newSocketId) {
         if (state.players[oldSocketId]) {

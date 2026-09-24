@@ -90,6 +90,15 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.playerSessionService.takePendingToken(socketId);
     }
+    hasSeatedSession(code, reconnectToken) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return false;
+        const playerId = this.playerSessionService.verify(code, reconnectToken);
+        if (!playerId)
+            return false;
+        return room.players.some((player) => player.id === playerId);
+    }
     createRoom(hostId, gameType = types_1.GameType.WHO_KNOW, initialConfig) {
         let code;
         do {
@@ -220,8 +229,12 @@ let GamesService = GamesService_1 = class GamesService {
             if (room.roomHostId === oldSocketId) {
                 room.roomHostId = user.socketId;
             }
+            if (room.hostPlayerId === oldSocketId) {
+                room.hostPlayerId = user.socketId;
+            }
             if (room.votes)
                 this.whoKnowService.remapVotes(room.votes, oldSocketId, user.socketId);
+            this.whoKnowService.remapPrivateVotes(code, oldSocketId, user.socketId);
             if (room.ticTacToeState) {
                 this.ticTacToeService.remapSocketId(room.ticTacToeState, oldSocketId, user.socketId);
             }
@@ -233,9 +246,11 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.soundsFishyState) {
                 this.soundsFishyService.remapSocketId(room.soundsFishyState, oldSocketId, user.socketId);
+                this.soundsFishyService.remapRoomSecrets(code, oldSocketId, user.socketId);
             }
             if (room.detectiveClubState) {
                 this.detectiveClubService.remapSocketId(room.detectiveClubState, oldSocketId, user.socketId);
+                this.detectiveClubService.remapRoomSecrets(code, oldSocketId, user.socketId);
             }
             if (room.whoAmIState) {
                 this.whoAmIService.remapSocketId(room.whoAmIState, oldSocketId, user.socketId);

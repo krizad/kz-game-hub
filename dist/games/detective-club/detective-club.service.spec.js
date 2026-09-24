@@ -263,5 +263,34 @@ describe('DetectiveClubService', () => {
             expect(room.detectiveClubState.activePlayerId).not.toBe(activeId);
         });
     });
+    describe('remapRoomSecrets (reconnection)', () => {
+        it('never sends the word to a reconnected conspirator and still counts votes for them', () => {
+            const room = startGame(createRoom(threePlayers()));
+            const state = room.detectiveClubState;
+            const conspiratorOld = privateState.get(room.code, '__room__', 'dcRoomConspirator');
+            expect(conspiratorOld).toBeTruthy();
+            privateState.remapSocketId(room.code, conspiratorOld, 'con-new');
+            service.remapSocketId(state, conspiratorOld, 'con-new');
+            service.remapRoomSecrets(room.code, conspiratorOld, 'con-new');
+            room.players.find((p) => p.socketId === conspiratorOld).socketId = 'con-new';
+            const informerId = state.informerId;
+            expect(service.submitWord(room, informerId, 'Lighthouse')).not.toBeNull();
+            for (let i = 0; i < state.playOrder.length * 2; i++) {
+                expect(service.playCard(room, state.activePlayerId, 0)).not.toBeNull();
+            }
+            expect(state.currentPhase).toBe(types_1.DetectiveClubPhase.DISCUSSION);
+            expect(service.nextPhase(room, room.roomHostId)).not.toBeNull();
+            expect(state.currentPhase).toBe(types_1.DetectiveClubPhase.VOTING);
+            expect(privateState.get(room.code, 'con-new', 'dcWord')).toBeUndefined();
+            const detective = room.players
+                .map((p) => p.socketId)
+                .find((id) => id !== informerId && id !== 'con-new');
+            expect(service.submitVote(room, detective, 'con-new')).not.toBeNull();
+            expect(service.submitVote(room, 'con-new', detective)).not.toBeNull();
+            expect(state.currentPhase).toBe(types_1.DetectiveClubPhase.SCORING);
+            expect(state.conspiratorId).toBe('con-new');
+            expect(state.players['con-new'].score).toBeGreaterThanOrEqual(5);
+        });
+    });
 });
 //# sourceMappingURL=detective-club.service.spec.js.map

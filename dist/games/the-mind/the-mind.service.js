@@ -115,6 +115,8 @@ let TheMindService = class TheMindService {
         }
     }
     startGame(room, requesterId) {
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return null;
         if (room.roomHostId !== requesterId)
             return null;
         const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
@@ -156,6 +158,8 @@ let TheMindService = class TheMindService {
             const cards = deck.splice(0, cardsPerPlayer);
             this.setHand(room, id, cards.sort((a, b) => a - b));
         });
+        const dealtIds = new Set(playerIds);
+        room.players.filter((p) => !dealtIds.has(p.id)).forEach((p) => this.setHand(room, p.id, []));
         this.setDeck(room, deck);
         state.pileTop = 0;
         state.pileTopDOWN = room.config?.theMindMode === 'EXTREME' ? 101 : null;

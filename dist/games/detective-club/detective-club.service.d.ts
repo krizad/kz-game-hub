@@ -32,5 +32,6 @@ export declare class DetectiveClubService {
     handlePlayerDisconnect(room: RoomState, socketId: string): void;
     nextRound(room: RoomState, requesterId: string): RoomState | null;
     reset(room: RoomState, requesterId: string): RoomState | null;
+    remapRoomSecrets(code: string, oldSocketId: string, newSocketId: string): void;
     remapSocketId(state: DetectiveClubState, oldSocketId: string, newSocketId: string): void;
 }

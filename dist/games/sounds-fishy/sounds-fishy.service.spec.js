@@ -331,5 +331,66 @@ describe('SoundsFishyService', () => {
             expect(privateState.has(room.code, 'p2', 'sfTrueAnswer')).toBe(false);
         });
     });
+    describe('remapRoomSecrets (reconnection)', () => {
+        async function assignFour(room) {
+            room.status = types_1.RoomStatus.LOBBY;
+            database_1.prisma.soundsFishyQuestion.aggregate.mockResolvedValue({
+                _min: { query_count: 0 },
+            });
+            database_1.prisma.soundsFishyQuestion.findMany.mockResolvedValue([
+                { id: 1, question: 'Q?', answer: 'A!', lang: 'th' },
+            ]);
+            database_1.prisma.soundsFishyQuestion.update.mockResolvedValue({});
+            const result = await service.assignRoles(room, 'p1');
+            expect(result).not.toBeNull();
+            return result;
+        }
+        it('keeps a reconnected blue fish bound to the true-answer rule', async () => {
+            const room = createRoom([
+                { socketId: 'p1' },
+                { socketId: 'p2' },
+                { socketId: 'p3' },
+                { socketId: 'p4' },
+            ]);
+            const result = await assignFour(room);
+            const state = result.room.soundsFishyState;
+            const blueOld = privateState.get(room.code, '__room__', 'sfRoomBlueFish');
+            expect(blueOld).toBeTruthy();
+            privateState.remapSocketId(room.code, blueOld, 'blue-new');
+            service.remapSocketId(state, blueOld, 'blue-new');
+            service.remapRoomSecrets(room.code, blueOld, 'blue-new');
+            room.players.find((p) => p.socketId === blueOld).socketId = 'blue-new';
+            expect(service.submitAnswer(room, 'blue-new', 'not the truth')).toBeNull();
+            expect(service.submitAnswer(room, 'blue-new', 'A!')).not.toBeNull();
+        });
+        it('ends the round when the picker eliminates the reconnected blue fish', async () => {
+            const room = createRoom([
+                { socketId: 'p1' },
+                { socketId: 'p2' },
+                { socketId: 'p3' },
+                { socketId: 'p4' },
+            ]);
+            const result = await assignFour(room);
+            const state = result.room.soundsFishyState;
+            const blueOld = privateState.get(room.code, '__room__', 'sfRoomBlueFish');
+            privateState.remapSocketId(room.code, blueOld, 'blue-new');
+            service.remapSocketId(state, blueOld, 'blue-new');
+            service.remapRoomSecrets(room.code, blueOld, 'blue-new');
+            room.players.find((p) => p.socketId === blueOld).socketId = 'blue-new';
+            const pickerId = state.pickerId;
+            const answerers = room.players.map((p) => p.socketId).filter((id) => id !== pickerId);
+            for (const id of answerers) {
+                const isBlue = privateState.get(room.code, id, 'sfRole') === 'BLUE_FISH';
+                expect(service.submitAnswer(room, id, isBlue ? 'A!' : 'decoy')).not.toBeNull();
+            }
+            expect(room.soundsFishyState.currentPhase).toBe(types_1.SoundsFishyPhase.THE_PITCH);
+            for (const id of answerers) {
+                expect(service.revealPlayer(room, pickerId, id)).not.toBeNull();
+            }
+            expect(service.eliminatePlayer(room, pickerId, 'blue-new')).not.toBeNull();
+            expect(room.status).toBe(types_1.RoomStatus.RESULT);
+            expect(room.soundsFishyState.blueFishId).toBe('blue-new');
+        });
+    });
 });
 //# sourceMappingURL=sounds-fishy.service.spec.js.map

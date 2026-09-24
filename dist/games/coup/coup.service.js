@@ -83,7 +83,8 @@ let CoupService = class CoupService {
         for (const p of room.players) {
             this.privateStateService.delete(room.code, p.socketId, 'coupHand');
         }
-        this.roomTimerService.clearRoom(room.code);
+        this.roomTimerService.cancel(room.code, 'coup-challenge');
+        this.roomTimerService.cancel(room.code, 'coup-block');
         room.coupState = undefined;
         room.status = types_1.RoomStatus.LOBBY;
         return room;
@@ -398,8 +399,8 @@ let CoupService = class CoupService {
             this.loseInfluence(room, state, actorId);
             this.checkWinner(room, state);
             state.pendingAction = null;
-            state.phase = types_1.CoupPhase.PLAYING;
             if (state.phase !== types_1.CoupPhase.RESULT) {
+                state.phase = types_1.CoupPhase.PLAYING;
                 this.advanceTurn(room, state);
             }
             return room;
@@ -579,6 +580,9 @@ let CoupService = class CoupService {
             }
             this.roomTimerService.cancel(room.code, 'coup-challenge');
             this.roomTimerService.cancel(room.code, 'coup-block');
+            if (state.pendingAction.type === types_1.CoupActionType.ASSASSINATE) {
+                state.coins[socketId] = (state.coins[socketId] ?? 0) + 3;
+            }
             state.pendingAction = null;
             state.pendingBlock = null;
             state.challengeWindowDeadline = null;

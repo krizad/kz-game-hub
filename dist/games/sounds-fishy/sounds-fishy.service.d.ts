@@ -21,6 +21,7 @@ export declare class SoundsFishyService {
     bankPoints(room: RoomState, pickerId: string): RoomState | null;
     nextRound(room: RoomState, requesterId: string): RoomState | null;
     reset(room: RoomState, requesterId: string): RoomState | null;
+    remapRoomSecrets(code: string, oldSocketId: string, newSocketId: string): void;
     remapSocketId(state: SoundsFishyState, oldSocketId: string, newSocketId: string): void;
     handlePlayerDisconnect(room: RoomState, socketId: string): boolean;
     private applyTyping;

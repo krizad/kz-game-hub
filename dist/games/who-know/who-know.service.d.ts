@@ -19,4 +19,5 @@ export declare class WhoKnowService {
     submitVote(room: RoomState, voterId: string, targetId: string): RoomState | null;
     resetGame(room: RoomState, requesterId: string, secretWords: Map<string, string>): RoomState | null;
     remapVotes(votes: Record<string, string>, oldSocketId: string, newSocketId: string): void;
+    remapPrivateVotes(code: string, oldSocketId: string, newSocketId: string): void;
 }

@@ -324,6 +324,16 @@ let SoundsFishyService = class SoundsFishyService {
     reset(room, requesterId) {
         return this.backToLobby(room, requesterId);
     }
+    remapRoomSecrets(code, oldSocketId, newSocketId) {
+        const blueFish = this.privateState.get(code, ROOM_KEY, SF_ROOM_BLUE_FISH);
+        if (blueFish === oldSocketId) {
+            this.privateState.set(code, ROOM_KEY, SF_ROOM_BLUE_FISH, newSocketId);
+        }
+        const redHerrings = this.privateState.get(code, ROOM_KEY, SF_ROOM_RED_HERRINGS);
+        if (redHerrings?.includes(oldSocketId)) {
+            this.privateState.set(code, ROOM_KEY, SF_ROOM_RED_HERRINGS, redHerrings.map((id) => (id === oldSocketId ? newSocketId : id)));
+        }
+    }
     remapSocketId(state, oldSocketId, newSocketId) {
         if (state.pickerId === oldSocketId)
             state.pickerId = newSocketId;

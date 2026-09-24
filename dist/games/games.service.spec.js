@@ -53,6 +53,7 @@ describe('GamesService', () => {
             submitVote: jest.fn(),
             resetGame: jest.fn(),
             remapVotes: who_know_service_1.WhoKnowService.prototype.remapVotes,
+            remapPrivateVotes: jest.fn(),
         },
         ticTacToe: {
             joinSide: jest.fn(),
@@ -91,6 +92,7 @@ describe('GamesService', () => {
             nextRound: jest.fn(),
             reset: jest.fn(),
             remapSocketId: sounds_fishy_service_1.SoundsFishyService.prototype.remapSocketId,
+            remapRoomSecrets: jest.fn(),
         },
         detectiveClub: {
             startGame: jest.fn(),
@@ -101,6 +103,7 @@ describe('GamesService', () => {
             nextRound: jest.fn(),
             reset: jest.fn(),
             remapSocketId: detective_club_service_1.DetectiveClubService.prototype.remapSocketId,
+            remapRoomSecrets: jest.fn(),
         },
         saboteur: {
             startGame: jest.fn(),

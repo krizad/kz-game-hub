@@ -1,5 +1,6 @@
 import { OnModuleDestroy } from '@nestjs/common';
 export declare class RoomTimerService implements OnModuleDestroy {
+    private readonly logger;
     private readonly timers;
     schedule(roomCode: string, timerName: string, deadline: number, callback: () => void): void;
     cancel(roomCode: string, timerName: string): void;

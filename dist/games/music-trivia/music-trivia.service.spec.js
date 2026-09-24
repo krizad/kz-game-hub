@@ -171,7 +171,7 @@ describe('MusicTriviaService', () => {
                 id: 'room-1',
                 gameType: types_1.GameType.MUSIC_TRIVIA,
                 code: 'ABCDEF',
-                status: types_1.RoomStatus.PLAYING,
+                status: types_1.RoomStatus.LOBBY,
                 roomHostId: 'host-1',
                 players: [
                     { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' },
@@ -300,6 +300,37 @@ describe('MusicTriviaService', () => {
                 trackViewUrl: 'https://x/1',
             });
         });
+    });
+    it('finalizeCountdown returns null instead of crashing after a reset cleared the state', () => {
+        const room = {
+            id: 'room-1',
+            gameType: types_1.GameType.MUSIC_TRIVIA,
+            code: 'ABCDEF',
+            status: types_1.RoomStatus.LOBBY,
+            roomHostId: 'host-1',
+            players: [{ id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' }],
+            createdAt: new Date(),
+            config: { hostSelection: 'FIXED', timerMin: 5 },
+        };
+        expect(service.finalizeCountdown(room)).toBeNull();
+    });
+    it('startGame refuses to restart a running game', () => {
+        const room = {
+            id: 'room-1',
+            gameType: types_1.GameType.MUSIC_TRIVIA,
+            code: 'ABCDEF',
+            status: types_1.RoomStatus.LOBBY,
+            roomHostId: 'host-1',
+            players: [
+                { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' },
+                { id: '2', socketId: 'player-2', name: 'Player', score: 0, roomId: 'room-1' },
+            ],
+            createdAt: new Date(),
+            config: { hostSelection: 'FIXED', timerMin: 5 },
+        };
+        expect(service.startGame(room, 'host-1')).not.toBeNull();
+        expect(room.status).toBe(types_1.RoomStatus.PLAYING);
+        expect(service.startGame(room, 'host-1')).toBeNull();
     });
 });
 //# sourceMappingURL=music-trivia.service.spec.js.map

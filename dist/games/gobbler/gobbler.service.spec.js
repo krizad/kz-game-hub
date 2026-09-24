@@ -192,5 +192,15 @@ describe('GobblerService', () => {
             expect(result.gobblerState.scores).toEqual({ X: 1, O: 0 });
         });
     });
+    it('reset to lobby frees both seats so the room is startable again', () => {
+        const room = createRoom(types_1.RoomStatus.RESULT, { winner: 'X' });
+        const result = service.reset(room, 'p1', true);
+        expect(result).not.toBeNull();
+        expect(result.status).toBe(types_1.RoomStatus.LOBBY);
+        expect(result.gobblerState.playerXId).toBeUndefined();
+        expect(result.gobblerState.playerOId).toBeUndefined();
+        expect(service.joinSide(result, 'p1', 'X')).not.toBeNull();
+        expect(service.joinSide(result, 'p2', 'O')).not.toBeNull();
+    });
 });
 //# sourceMappingURL=gobbler.service.spec.js.map
