@@ -16,6 +16,7 @@ import {
   createDeck,
   dealRound,
   isSameRankGroup,
+  resolveStarter,
   shuffleDeck,
   toPublicState,
 } from './card-engine.service';
@@ -51,8 +52,14 @@ export class SlaveRuntime {
     const leaderCardDealt = playerIds.some((id) =>
       (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID),
     );
+    // The 3♣ holder opens whenever the deck dealt one (always true for the
+    // allowed decks); otherwise the preset's starter policy picks the opener.
     const leaderId =
       playerIds.find((id) => (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID)) ??
+      resolveStarter(config.deal.starterPolicy, {
+        playerOrder: playerIds,
+        previousStarterId: room.cardGameState?.dealerId,
+      }) ??
       playerIds[0];
     const decisions: Record<string, CardDecision> = {};
     for (const id of playerIds) {
@@ -139,6 +146,24 @@ export class SlaveRuntime {
     }
     state.activePlayerId = this.nextActiveAfterPass(state, socketId, trick);
     return room;
+  }
+
+  /**
+   * The server-side action for an expired turn deadline: pass while following,
+   * and lead the smallest legal single when holding an empty trick (passing an
+   * empty trick is illegal, so playing is the only non-stalling auto-action).
+   */
+  autoAction(room: RoomState, socketId: string, config: CardGameConfig): CardGameAction {
+    const state = room.cardGameState!;
+    const following = Boolean(state.trick && state.trick.playedById !== null);
+    if (following) return { type: 'PASS' };
+    const hand = this.getHand(room.code, socketId) ?? [];
+    const lead = !this.hasFirstPlayed(room.code)
+      ? hand.find((card) => card.id === LEADER_CARD_ID)
+      : [...hand].sort(
+          (a, b) => SLAVE_RANK_ORDER.indexOf(a.rank) - SLAVE_RANK_ORDER.indexOf(b.rank),
+        )[0];
+    return { type: 'PLAY', cards: lead ? [lead.id] : [] };
   }
 
   private resolvePlayedCards(hand: PlayingCard[], cardIds: string[]): PlayingCard[] | null {

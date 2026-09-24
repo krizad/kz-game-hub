@@ -17,6 +17,7 @@ import {
 import { PrivateStateService } from '../private-state.service';
 import {
   PileStacks,
+  autoActionFor,
   createDeck as buildDeck,
   dealRound,
   drawFromStacks,
@@ -43,6 +44,8 @@ interface CardRuntimeAdapter {
     action: CardGameAction,
     config: CardGameConfig,
   ): RoomState | null;
+  /** The action the server takes on the active player's behalf when their deadline expires. */
+  autoAction(room: RoomState, socketId: string, config: CardGameConfig): CardGameAction;
 }
 
 @Injectable()
@@ -71,7 +74,10 @@ export class CardGameService {
         this.configFor(room),
         players.map((player) => player.socketId),
       );
-      if (started) room.cardGameLog = [];
+      if (started) {
+        room.cardGameLog = [];
+        this.refreshTurnDeadline(room);
+      }
       return started;
     }
     const startedPokDeng = this.startPokDeng(room, requesterId);
@@ -163,6 +169,7 @@ export class CardGameService {
         const exhaustedDraw =
           action.type === 'DRAW' && room.cardGameState?.decisions[socketId] === 'PENDING';
         if (!exhaustedDraw) this.appendLog(room, socketId, action);
+        this.refreshTurnDeadline(room);
       }
       return handled;
     }
@@ -275,6 +282,33 @@ export class CardGameService {
     return validated.config ?? preset.defaultConfig;
   }
 
+  /**
+   * One place arms (or clears) the public turn deadline for both presets, so the
+   * gateway auto-action timer applies to every card game turn the same way.
+   */
+  private refreshTurnDeadline(room: RoomState): void {
+    const state = room.cardGameState;
+    if (!state) return;
+    if (state.phase !== 'PLAYER_TURNS' || !state.activePlayerId) {
+      state.turnDeadline = null;
+      return;
+    }
+    const { timeoutSeconds } = this.configFor(room).actions;
+    state.turnDeadline = timeoutSeconds > 0 ? Date.now() + timeoutSeconds * 1000 : null;
+  }
+
+  /** The action the server takes for the active player when their deadline expires. */
+  resolveAutoAction(room: RoomState): { playerId: string; action: CardGameAction } | null {
+    const state = room.cardGameState;
+    if (!state || state.phase !== 'PLAYER_TURNS' || !state.activePlayerId) return null;
+    const config = this.configFor(room);
+    const runtime = this.cardRuntimes[state.preset];
+    const action = runtime
+      ? runtime.autoAction(room, state.activePlayerId, config)
+      : autoActionFor(config.actions);
+    return action ? { playerId: state.activePlayerId, action } : null;
+  }
+
   private advance(room: RoomState): void {
     const state = room.cardGameState!;
     const config = this.configFor(room);
@@ -283,10 +317,7 @@ export class CardGameService {
     );
     if (next) {
       state.activePlayerId = next;
-      state.turnDeadline =
-        config.actions.timeoutSeconds > 0
-          ? Date.now() + config.actions.timeoutSeconds * 1000
-          : null;
+      this.refreshTurnDeadline(room);
       return;
     }
 

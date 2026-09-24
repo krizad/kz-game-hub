@@ -3,6 +3,7 @@ import {
   ActionPolicy,
   CardActionKind,
   CardDecision,
+  CardGameAction,
   CardGameConfig,
   CardGamePhase,
   CardGamePresetDefinition,
@@ -474,8 +475,20 @@ export function evaluateRoundEnd(
   return null;
 }
 
-export function autoActionFor(policy: ActionPolicy): CardActionKind {
-  return policy.autoAction;
+export function autoActionFor(policy: ActionPolicy): CardGameAction | null {
+  switch (policy.autoAction) {
+    case 'DRAW':
+      return { type: 'DRAW' };
+    case 'STAND':
+      return { type: 'STAND' };
+    case 'PASS':
+      return { type: 'PASS' };
+    case 'CLAIM':
+      return { type: 'CLAIM' };
+    // PLAY, DISCARD, and TAKE_CARD carry mandatory payloads no policy can supply.
+    default:
+      return null;
+  }
 }
 
 function cardValue(card: PlayingCard): number {

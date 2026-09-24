@@ -60,6 +60,11 @@ export class GamesService {
 
   private rooms: Map<string, RoomState> = new Map();
   private readonly secretWords: Map<string, string> = new Map();
+  /** Per-room Saboteur auto-pass deadline; kept stable across re-broadcasts of the same turn. */
+  private readonly saboteurTurnDeadlines = new Map<
+    string,
+    { playerId: string; deadline: number }
+  >();
   private roomLifecycleListener?: (event: RoomLifecycleEvent) => void;
 
   constructor(
@@ -521,6 +526,7 @@ export class GamesService {
   private deleteRoomData(code: string): void {
     this.rooms.delete(code);
     this.secretWords.delete(code);
+    this.saboteurTurnDeadlines.delete(code);
     this.roomTimerService.clearRoom(code);
     this.playerSessionService.clearRoom(code);
     this.musicTriviaService.deleteRoomData(code);
@@ -1017,6 +1023,24 @@ export class GamesService {
   cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
+  }
+
+  resolveCardGameAutoAction(code: string): { playerId: string; action: CardGameAction } | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    return this.cardGameService.resolveAutoAction(room);
+  }
+
+  saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number {
+    const current = this.saboteurTurnDeadlines.get(code);
+    if (current && current.playerId === activePlayerId) return current.deadline;
+    const deadline = Date.now() + seconds * 1000;
+    this.saboteurTurnDeadlines.set(code, { playerId: activePlayerId, deadline });
+    return deadline;
+  }
+
+  clearSaboteurTurnDeadline(code: string): void {
+    this.saboteurTurnDeadlines.delete(code);
   }
 
   getPlayerRole(code: string, socketId: string): Role | undefined {
