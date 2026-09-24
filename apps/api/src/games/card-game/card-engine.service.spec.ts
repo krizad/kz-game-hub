@@ -160,9 +160,19 @@ describe('CardEngineService', () => {
     });
 
     it('shuffles deterministically with an injected random source and leaves the input untouched', () => {
-      const input = [card('A', 'CLUBS'), card('2', 'CLUBS'), card('3', 'CLUBS'), card('4', 'CLUBS')];
+      const input = [
+        card('A', 'CLUBS'),
+        card('2', 'CLUBS'),
+        card('3', 'CLUBS'),
+        card('4', 'CLUBS'),
+      ];
       const shuffled = shuffleDeck(input, () => 0);
-      expect(shuffled.map((entry) => entry.id)).toEqual(['2-CLUBS', '3-CLUBS', '4-CLUBS', 'A-CLUBS']);
+      expect(shuffled.map((entry) => entry.id)).toEqual([
+        '2-CLUBS',
+        '3-CLUBS',
+        '4-CLUBS',
+        'A-CLUBS',
+      ]);
       expect(input.map((entry) => entry.id)).toEqual(['A-CLUBS', '2-CLUBS', '3-CLUBS', '4-CLUBS']);
     });
   });
@@ -212,7 +222,11 @@ describe('CardEngineService', () => {
     });
 
     it('rejects REJECT_IF_NOT_EVEN when cards would remain', () => {
-      const policy = { cardsPerPlayer: 2, countMode: 'REJECT_IF_NOT_EVEN', starterPolicy: 'ROTATE' } as const;
+      const policy = {
+        cardsPerPlayer: 2,
+        countMode: 'REJECT_IF_NOT_EVEN',
+        starterPolicy: 'ROTATE',
+      } as const;
       const result = previewDeal(52, 2, { ...policy });
       expect(result.ok).toBe(false);
       expect(result.error).toContain('fully consumed');
@@ -264,7 +278,10 @@ describe('CardEngineService', () => {
     });
 
     it('ends the round when the stock is empty and the policy says so', () => {
-      const result = drawFromStacks({ stock: [], discards: [card('4', 'CLUBS')], reserve: [] }, POK_DENG_CONFIG.piles);
+      const result = drawFromStacks(
+        { stock: [], discards: [card('4', 'CLUBS')], reserve: [] },
+        POK_DENG_CONFIG.piles,
+      );
       expect(result.ok).toBe(false);
       expect(result.reason).toBe('END_ROUND');
     });
@@ -288,7 +305,10 @@ describe('CardEngineService', () => {
 
     it('ends the round when only the top discard remains', () => {
       const policy = { stockExhaustion: 'RESHUFFLE_DISCARDS_EXCEPT_TOP', reserveSize: 0 } as const;
-      const result = drawFromStacks({ stock: [], discards: [card('4', 'CLUBS')], reserve: [] }, { ...policy });
+      const result = drawFromStacks(
+        { stock: [], discards: [card('4', 'CLUBS')], reserve: [] },
+        { ...policy },
+      );
       expect(result.ok).toBe(false);
       expect(result.reason).toBe('END_ROUND');
     });
@@ -330,9 +350,13 @@ describe('CardEngineService', () => {
     });
 
     it('resolves previous winner and loser with a first-seat fallback', () => {
-      expect(resolveStarter('PREVIOUS_WINNER', { playerOrder: order, previousWinnerId: 'b' })).toBe('b');
+      expect(resolveStarter('PREVIOUS_WINNER', { playerOrder: order, previousWinnerId: 'b' })).toBe(
+        'b',
+      );
       expect(resolveStarter('PREVIOUS_WINNER', { playerOrder: order })).toBe('a');
-      expect(resolveStarter('PREVIOUS_LOSER', { playerOrder: order, previousLoserId: 'c' })).toBe('c');
+      expect(resolveStarter('PREVIOUS_LOSER', { playerOrder: order, previousLoserId: 'c' })).toBe(
+        'c',
+      );
       expect(resolveStarter('PREVIOUS_LOSER', { playerOrder: order })).toBe('a');
     });
 
@@ -538,7 +562,10 @@ describe('CardEngineService', () => {
         a: 3,
         dealer: -3,
       });
-      expect(settleMod10Showdown({ ...tied(), tiePolicy: 'PUSH' }).deltas).toEqual({ a: 0, dealer: 0 });
+      expect(settleMod10Showdown({ ...tied(), tiePolicy: 'PUSH' }).deltas).toEqual({
+        a: 0,
+        dealer: 0,
+      });
     });
 
     it('lets balances go negative instead of clamping', () => {

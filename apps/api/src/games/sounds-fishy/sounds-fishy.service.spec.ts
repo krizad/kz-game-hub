@@ -107,11 +107,7 @@ describe('SoundsFishyService', () => {
       viewerRoom.status = RoomStatus.LOBBY;
       expect(await service.assignRoles(viewerRoom, 'p1')).toBeNull();
 
-      const startedRoom = createRoom([
-        { socketId: 'p1' },
-        { socketId: 'p2' },
-        { socketId: 'p3' },
-      ]);
+      const startedRoom = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
       expect(await service.assignRoles(startedRoom, 'p1')).toBeNull();
     });
 

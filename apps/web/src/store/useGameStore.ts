@@ -64,7 +64,10 @@ interface GameState {
   submitVote: (targetId: string) => void;
   resetRoom: () => void;
   leaveRoom: () => void;
-  updateConfig: (config: Partial<RoomState['config']>, cardGameConfig?: Partial<CardGameConfig>) => void;
+  updateConfig: (
+    config: Partial<RoomState['config']>,
+    cardGameConfig?: Partial<CardGameConfig>,
+  ) => void;
   tttJoinSide: (side: 'X' | 'O') => void;
   tttMakeMove: (index: number) => void;
   tttReset: (toLobby?: boolean) => void;
@@ -118,7 +121,7 @@ interface GameState {
   saboteurReset: () => void;
   coupDeclare: (type: CoupActionType, targetId?: string) => void;
   coupChallenge: () => void;
-    coupBlock: (role?: CoupRole) => void;
+  coupBlock: (role?: CoupRole) => void;
   coupExchangeSelect: (keepIndices: number[]) => void;
   cardGameAction: (action: CardGameAction) => void;
   spectateJoin: (code: string) => void;
@@ -384,7 +387,10 @@ export const useGameStore = create<GameState>((set, get) => {
       }
     },
 
-    updateConfig: (config: Partial<RoomState['config']>, cardGameConfig?: Partial<CardGameConfig>) => {
+    updateConfig: (
+      config: Partial<RoomState['config']>,
+      cardGameConfig?: Partial<CardGameConfig>,
+    ) => {
       emitGameAction(SOCKET_EVENTS.UPDATE_CONFIG, {
         payload: () => ({ config, ...(cardGameConfig ? { cardGameConfig } : {}) }),
       });

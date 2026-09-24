@@ -11,7 +11,13 @@ import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
 import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
-import { CardGameAllowedOptions, CardGameConfig, CardGameLogEntry, CardGamePreset, CardGamePublicState } from './card-game';
+import {
+  CardGameAllowedOptions,
+  CardGameConfig,
+  CardGameLogEntry,
+  CardGamePreset,
+  CardGamePublicState,
+} from './card-game';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';

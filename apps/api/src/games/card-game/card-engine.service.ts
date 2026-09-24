@@ -139,7 +139,10 @@ export function createDeck(policy: DeckPolicy): PlayingCard[] {
   return deck;
 }
 
-export function shuffleDeck(deck: PlayingCard[], randomIndex: RandomIndex = randomInt): PlayingCard[] {
+export function shuffleDeck(
+  deck: PlayingCard[],
+  randomIndex: RandomIndex = randomInt,
+): PlayingCard[] {
   const shuffled = [...deck];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const target = randomIndex(index + 1);
@@ -212,7 +215,11 @@ export function validateConfig(
   if (deck.jokers) {
     errors.push('deck: jokers are not supported');
   }
-  if (!Number.isInteger(deal.cardsPerPlayer) || deal.cardsPerPlayer < 1 || deal.cardsPerPlayer > 13) {
+  if (
+    !Number.isInteger(deal.cardsPerPlayer) ||
+    deal.cardsPerPlayer < 1 ||
+    deal.cardsPerPlayer > 13
+  ) {
     errors.push('deal: cardsPerPlayer must be an integer between 1 and 13');
   }
   if (actions.allowed.length === 0) {
@@ -310,7 +317,10 @@ export function previewDeal(
   if (dealt > usable) {
     return { ok: false, error: 'deal: not enough cards to deal' };
   }
-  return { ok: true, preview: { perPlayer: policy.cardsPerPlayer, stockSize: usable - dealt, reserveSize: reserved } };
+  return {
+    ok: true,
+    preview: { perPlayer: policy.cardsPerPlayer, stockSize: usable - dealt, reserveSize: reserved },
+  };
 }
 
 export function dealRound(
@@ -454,8 +464,10 @@ export function evaluateRoundEnd(
   context: RoundEndContext,
 ): RoundEndConditionKind | null {
   for (const condition of conditions) {
-    if (condition.kind === 'NATURAL_HAND' && context.naturalPlayerIds.length > 0) return condition.kind;
-    if (condition.kind === 'ALL_PLAYERS_RESOLVED' && context.pendingPlayerIds.length === 0) return condition.kind;
+    if (condition.kind === 'NATURAL_HAND' && context.naturalPlayerIds.length > 0)
+      return condition.kind;
+    if (condition.kind === 'ALL_PLAYERS_RESOLVED' && context.pendingPlayerIds.length === 0)
+      return condition.kind;
     if (condition.kind === 'DEALER_RESOLVED' && context.dealerResolved) return condition.kind;
     if (condition.kind === 'STOCK_EMPTY' && context.stockEmpty) return condition.kind;
   }
@@ -542,7 +554,8 @@ export function settleMod10Showdown(input: ShowdownInput): ShowdownOutcome {
     if (id === dealerId) continue;
     const playerScore = scores[id];
     const playerWins =
-      playerScore > dealerScore || (playerScore === dealerScore && input.tiePolicy === 'PLAYER_WINS');
+      playerScore > dealerScore ||
+      (playerScore === dealerScore && input.tiePolicy === 'PLAYER_WINS');
     const push = playerScore === dealerScore && input.tiePolicy === 'PUSH';
 
     if (playerWins) {

@@ -4,11 +4,11 @@ This repo uses a **single-context** domain-doc layout: one shared vocabulary and
 
 ## Files
 
-| File                       | Purpose                                                                 |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `CONTEXT.md` (repo root)   | Shared vocabulary, glossary, and product boundaries. Source of truth for terms used across code, docs, and issues. |
-| `docs/adr/NNNN-title.md`   | One Architecture Decision Record per settled decision.                  |
-| `docs/agents/domain.md`    | This file — where domain knowledge lives and how to maintain it.         |
+| File                     | Purpose                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `CONTEXT.md` (repo root) | Shared vocabulary, glossary, and product boundaries. Source of truth for terms used across code, docs, and issues. |
+| `docs/adr/NNNN-title.md` | One Architecture Decision Record per settled decision.                                                             |
+| `docs/agents/domain.md`  | This file — where domain knowledge lives and how to maintain it.                                                   |
 
 ## CONTEXT.md
 

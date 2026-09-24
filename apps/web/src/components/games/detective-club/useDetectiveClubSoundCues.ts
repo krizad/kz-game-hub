@@ -1,10 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import {
-  DetectiveClubPhase,
-  type DetectiveClubState,
-} from '@repo/types';
+import { DetectiveClubPhase, type DetectiveClubState } from '@repo/types';
 import type { DetectiveClubSound } from '@/hooks/useDetectiveClubSounds';
 
 /**
@@ -38,7 +35,10 @@ export function useDetectiveClubSoundCues(
 
     if (!first) {
       if (phase !== prev.phase) {
-        if (phase === DetectiveClubPhase.PLAYING_ROUND_1 || phase === DetectiveClubPhase.PLAYING_ROUND_2) {
+        if (
+          phase === DetectiveClubPhase.PLAYING_ROUND_1 ||
+          phase === DetectiveClubPhase.PLAYING_ROUND_2
+        ) {
           playSound('word');
         } else if (phase === DetectiveClubPhase.DISCUSSION) {
           playSound('discussion');

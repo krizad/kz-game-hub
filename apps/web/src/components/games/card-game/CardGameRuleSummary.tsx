@@ -23,8 +23,7 @@ export function CardGameRuleSummary({ config }: { config?: CardGameConfig }) {
   const multiplierList = Object.entries(config.scoring.multipliers)
     .map(([tag, value]) => `${t(`cardGameRules.outcomes.${tag}`)} ×${value}`)
     .join(' · ');
-  const presetLabel =
-    config.preset === 'POK_DENG' ? t('lobby.gameNames.pokDeng') : config.preset;
+  const presetLabel = config.preset === 'POK_DENG' ? t('lobby.gameNames.pokDeng') : config.preset;
 
   const sections: { title: string; rows: string[] }[] = [
     {

@@ -44,5 +44,4 @@ test.describe('card game preset switching', () => {
     await hostContext.close();
     await guestContext.close();
   });
-
 });

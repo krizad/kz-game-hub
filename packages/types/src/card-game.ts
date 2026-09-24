@@ -105,7 +105,11 @@ export interface RoundEndCondition {
   kind: RoundEndConditionKind;
 }
 
-export type EvaluationRule = 'MOD_10_SHOWDOWN' | 'TRICK_TAKING' | 'PAIR_REMOVAL' | 'LAST_HOLDER_LOSES';
+export type EvaluationRule =
+  | 'MOD_10_SHOWDOWN'
+  | 'TRICK_TAKING'
+  | 'PAIR_REMOVAL'
+  | 'LAST_HOLDER_LOSES';
 
 /** Allow-listed policy variants a preset offers, projected to the client for Advanced Rules controls. */
 export interface CardGameAllowedOptions {
@@ -196,4 +200,3 @@ export interface CardGameLogEntry {
   kind: CardGameLogKind;
   count?: number;
 }
-

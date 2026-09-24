@@ -1077,9 +1077,14 @@ describe('GamesService', () => {
 
     it('should accept an allow-listed card-game config from the host', () => {
       const room = service.createRoom('host1', GameType.CARD_GAME);
-      const updated = service.updateConfig(room.code, 'host1', {}, {
-        scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, tiePolicy: 'PUSH' },
-      });
+      const updated = service.updateConfig(
+        room.code,
+        'host1',
+        {},
+        {
+          scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, tiePolicy: 'PUSH' },
+        },
+      );
 
       expect(updated).not.toBeNull();
       expect(updated!.cardGameConfig!.scoring.tiePolicy).toBe('PUSH');
@@ -1087,9 +1092,14 @@ describe('GamesService', () => {
 
     it('should reject a card-game config outside the preset allow-list', () => {
       const room = service.createRoom('host1', GameType.CARD_GAME);
-      const invalid = service.updateConfig(room.code, 'host1', {}, {
-        scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, baseStake: 0 },
-      });
+      const invalid = service.updateConfig(
+        room.code,
+        'host1',
+        {},
+        {
+          scoring: { ...POK_DENG_PRESET.defaultConfig.scoring, baseStake: 0 },
+        },
+      );
 
       expect(invalid).toBeNull();
       expect(service.getRoom(room.code)!.cardGameConfig).toEqual(POK_DENG_PRESET.defaultConfig);

@@ -67,9 +67,7 @@ export class SoundsFishyService {
     requesterId: string,
   ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
     if (room.status !== RoomStatus.LOBBY) return null;
-    const connectedPlayers = room.players.filter(
-      (p) => !p.isViewer && p.connected !== false,
-    );
+    const connectedPlayers = room.players.filter((p) => !p.isViewer && p.connected !== false);
     if (connectedPlayers.length < 3) return null; // Need at least 3 players
     if (room.roomHostId !== requesterId) return null;
 

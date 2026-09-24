@@ -22,7 +22,9 @@ export function CardGameRules() {
             data-testid={`card-game-rules-tab-${preset.toLowerCase()}`}
             onClick={() => setMode(preset)}
             className={`px-3 py-1 border-4 border-black font-black uppercase text-sm transition-all ${
-              mode === preset ? 'bg-lime-300 shadow-[2px_2px_0_0_#000]' : 'bg-white hover:bg-amber-100'
+              mode === preset
+                ? 'bg-lime-300 shadow-[2px_2px_0_0_#000]'
+                : 'bg-white hover:bg-amber-100'
             }`}
           >
             {t(`cardGameSettings.presets.${preset}`)}

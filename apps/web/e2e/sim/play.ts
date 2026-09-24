@@ -1,9 +1,11 @@
-import { expect, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import {
-  createRoom,
-  joinRoom,
-  getOrigin,
-} from '../helpers';
+  expect,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from '@playwright/test';
+import { createRoom, joinRoom, getOrigin } from '../helpers';
 import type { MatrixEntry } from './matrix';
 
 const STEP = 700; // settle wait after a successful UI action
@@ -56,16 +58,8 @@ export async function setupSession(
 }
 
 async function selectNeobrutalism(page: Page, triggerLabel: RegExp, optionLabel: RegExp) {
-  await page
-    .locator('button')
-    .filter({ hasText: triggerLabel })
-    .first()
-    .click();
-  await page
-    .locator('button')
-    .filter({ hasText: optionLabel })
-    .last()
-    .click();
+  await page.locator('button').filter({ hasText: triggerLabel }).first().click();
+  await page.locator('button').filter({ hasText: optionLabel }).last().click();
 }
 
 /** Apply lobby configuration strings like 'rps-bestof:1' or 'the-mind-blind'. */
@@ -105,7 +99,11 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
           RANDOM: /Random \(DB\)/i,
           AI_GENERATED: /AI Generate/i,
         };
-        await selectNeobrutalism(page, /Host Picks|Random \(DB\)|Players Write|AI Generate/i, map[value]);
+        await selectNeobrutalism(
+          page,
+          /Host Picks|Random \(DB\)|Players Write|AI Generate/i,
+          map[value],
+        );
         break;
       }
       case 'whoami-category': {
@@ -129,7 +127,11 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         break;
       }
       case 'music-trivia-mode': {
-        await selectNeobrutalism(page, /Typing \(Auto Judge\)|Voice \(Host Judge\)/i, /Voice \(Host Judge\)/i);
+        await selectNeobrutalism(
+          page,
+          /Typing \(Auto Judge\)|Voice \(Host Judge\)/i,
+          /Voice \(Host Judge\)/i,
+        );
         break;
       }
       case 'music-trivia-rounds': {
@@ -143,9 +145,7 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
       }
       case 'the-mind-blind': {
         // The checkbox is sr-only (hidden): click its visible label toggle
-        const blindLabel = page
-          .locator('label:has(input[type="checkbox"])')
-          .first();
+        const blindLabel = page.locator('label:has(input[type="checkbox"])').first();
         await blindLabel.click({ timeout: 3000 }).catch(() => {});
         break;
       }
@@ -174,7 +174,10 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         // the group that follows the stone label.
         const stoneLabel = page.getByText(/Stone ends the round instantly/i).first();
         const group = stoneLabel.locator('xpath=..');
-        await group.getByRole('button', { name: 'On', exact: true }).click().catch(() => {});
+        await group
+          .getByRole('button', { name: 'On', exact: true })
+          .click()
+          .catch(() => {});
         break;
       }
       default:
@@ -212,7 +215,12 @@ async function startGame(host: Page) {
 
 async function anyVisible(pages: Page[], locate: (p: Page) => Locator): Promise<Page | null> {
   for (const p of pages) {
-    if (await locate(p).isVisible({ timeout: 300 }).catch(() => false)) return p;
+    if (
+      await locate(p)
+        .isVisible({ timeout: 300 })
+        .catch(() => false)
+    )
+      return p;
   }
   return null;
 }
@@ -220,7 +228,10 @@ async function anyVisible(pages: Page[], locate: (p: Page) => Locator): Promise<
 /** Click with a bounded actionability timeout so disabled buttons never hang. */
 async function clickIfVisible(loc: Locator, timeout = 1500): Promise<boolean> {
   if (await loc.isVisible({ timeout }).catch(() => false)) {
-    await loc.first().click({ timeout: 2000 }).catch(() => {});
+    await loc
+      .first()
+      .click({ timeout: 2000 })
+      .catch(() => {});
     return true;
   }
   return false;
@@ -262,7 +273,8 @@ async function playTicTacToeFamily(s: SimSession, entry: MatrixEntry): Promise<v
     await expect(players[1].getByText(/wins/i).first()).toBeVisible({ timeout: 10000 });
   } else if (entry.id === 'ttt-gobbler-2p') {
     const board = (p: Page) => p.locator('[data-testid^="gobbler-cell-"]');
-    const inv = (p: Page, side: 'X' | 'O') => p.locator(`[data-testid^="gobbler-inventory-${side}-"]`);
+    const inv = (p: Page, side: 'X' | 'O') =>
+      p.locator(`[data-testid^="gobbler-inventory-${side}-"]`);
     const moves: Array<[Page, 'X' | 'O', number, number]> = [
       [host, 'X', 0, 2],
       [players[1], 'O', 6, 2],
@@ -283,7 +295,8 @@ async function playTicTacToeFamily(s: SimSession, entry: MatrixEntry): Promise<v
     // Ultimate: a verified 17-move script where X wins macro boards 0,1,2
     // (row 3-4-5 in each) while O's routed moves keep sending X back on plan.
     // Simulated against the service routing rules before being recorded here.
-    const cell = (p: Page, m: number, u: number) => p.locator(`[data-testid="uttt-cell-${m}-${u}"]`);
+    const cell = (p: Page, m: number, u: number) =>
+      p.locator(`[data-testid="uttt-cell-${m}-${u}"]`);
     const script: Array<[number, number]> = [
       [0, 3],
       [3, 0],
@@ -320,16 +333,22 @@ async function playTicTacToeBot(s: SimSession): Promise<void> {
   const host = s.host;
   await host.locator('[data-testid="ttt-join-x"]').click();
   const cells = host.locator('div.grid.grid-cols-3 button');
-  const resultPanel = host
-    .locator('button:has-text("Play Again"), button:has-text("เล่นอีกครั้ง")');
+  const resultPanel = host.locator(
+    'button:has-text("Play Again"), button:has-text("เล่นอีกครั้ง")',
+  );
   for (let i = 0; i < 25; i++) {
     if (await resultPanel.isVisible().catch(() => false)) break;
     const texts = await cells.allInnerTexts();
-    const empty = texts.map((t, idx) => (t.trim() === '' ? idx : null)).filter((v): v is number => v !== null);
+    const empty = texts
+      .map((t, idx) => (t.trim() === '' ? idx : null))
+      .filter((v): v is number => v !== null);
     if (empty.length === 0) break;
     const oBefore = texts.filter((t) => t.trim() === 'O').length;
     let clicksForCell = 0;
-    await cells.nth(empty[0]).click().catch(() => {});
+    await cells
+      .nth(empty[0])
+      .click()
+      .catch(() => {});
     clicksForCell++;
     // wait until the bot's O lands (or the game ends) before the next move;
     // under parallel-suite load the bot response can lag, so be generous and
@@ -343,7 +362,10 @@ async function playTicTacToeBot(s: SimSession): Promise<void> {
       if (oNow > oBefore) break;
       if (xNow === texts.filter((t) => t.trim() === 'X').length && clicksForCell < 3) {
         // our X never registered; retry the same cell
-        await cells.nth(empty[0]).click({ force: true, timeout: 2000 }).catch(() => {});
+        await cells
+          .nth(empty[0])
+          .click({ force: true, timeout: 2000 })
+          .catch(() => {});
         clicksForCell++;
       }
     }
@@ -362,8 +384,12 @@ async function playRps(s: SimSession): Promise<void> {
     const paper = (p: Page) => p.locator('button', { hasText: '✋' }).first();
     await expect(rock(p1)).toBeVisible({ timeout: 15000 });
     await expect(rock(p2)).toBeVisible({ timeout: 15000 });
-    await rock(p1).click().catch(() => {});
-    await paper(p2).click().catch(() => {});
+    await rock(p1)
+      .click()
+      .catch(() => {});
+    await paper(p2)
+      .click()
+      .catch(() => {});
     // Round result → Next Round (host only) or match end (Play Again)
     await expect(
       p1
@@ -371,8 +397,17 @@ async function playRps(s: SimSession): Promise<void> {
         .or(p1.getByText(/Wins the Match/i))
         .first(),
     ).toBeVisible({ timeout: 15000 });
-    if (await p1.getByText(/Wins the Match/i).isVisible().catch(() => false)) return;
-    await p1.locator('button', { hasText: /Next Round/i }).first().click();
+    if (
+      await p1
+        .getByText(/Wins the Match/i)
+        .isVisible()
+        .catch(() => false)
+    )
+      return;
+    await p1
+      .locator('button', { hasText: /Next Round/i })
+      .first()
+      .click();
     await p1.waitForTimeout(STEP);
   }
   await expect(p1.getByText(/Wins the Match/i)).toBeVisible({ timeout: 15000 });
@@ -385,7 +420,10 @@ async function playWhoKnow(s: SimSession): Promise<void> {
   // Find whichever page shows the secret word popup
   let hostPage: Page = host;
   for (const p of players) {
-    const visible = await p.locator('#secretWordModalInput').isVisible({ timeout: 3000 }).catch(() => false);
+    const visible = await p
+      .locator('#secretWordModalInput')
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
     if (visible) {
       hostPage = p;
       break;
@@ -431,33 +469,63 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
   await startGame(host);
 
   for (let i = 0; i < 40; i++) {
-    if (await host.getByText(/Round Over/i).first().isVisible().catch(() => false)) break;
+    if (
+      await host
+        .getByText(/Round Over/i)
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      break;
     for (const p of players) {
       // 1. Submit an answer when the input is up
       const input = p.locator('input#answerInput');
       if (await input.isVisible().catch(() => false)) {
         let text = 'This is the truth';
-        if (await p.getByText(/You MUST enter the true answer exactly/i).isVisible().catch(() => false)) {
-          text = (await p.locator('span:has-text("The True Answer") + p').textContent().catch(() => null)) ?? '';
+        if (
+          await p
+            .getByText(/You MUST enter the true answer exactly/i)
+            .isVisible()
+            .catch(() => false)
+        ) {
+          text =
+            (await p
+              .locator('span:has-text("The True Answer") + p')
+              .textContent()
+              .catch(() => null)) ?? '';
           text = text.trim();
         }
         if (text) {
           await input.fill(text).catch(() => {});
-          await p.locator('button').filter({ hasText: /Submit Answer/i }).first().click({ timeout: 2000 }).catch(() => {});
+          await p
+            .locator('button')
+            .filter({ hasText: /Submit Answer/i })
+            .first()
+            .click({ timeout: 2000 })
+            .catch(() => {});
         }
       }
       // 2. Reveal an answer when the picker control is up
-      const reveal = p.locator('button').filter({ hasText: /Reveal Answer/i }).first();
+      const reveal = p
+        .locator('button')
+        .filter({ hasText: /Reveal Answer/i })
+        .first();
       if (await reveal.isVisible().catch(() => false)) {
         await reveal.click({ timeout: 2000 }).catch(() => {});
       }
       // 3. Eliminate during the hunt
-      const elim = p.locator('button').filter({ hasText: /Eliminate \(Looks Fishy\)/i }).first();
+      const elim = p
+        .locator('button')
+        .filter({ hasText: /Eliminate \(Looks Fishy\)/i })
+        .first();
       if (await elim.isVisible().catch(() => false)) {
         await elim.click({ timeout: 2000 }).catch(() => {});
       }
       // 4. Bank points to end the round
-      const bank = p.locator('button').filter({ hasText: /Bank Points & End Round/i }).first();
+      const bank = p
+        .locator('button')
+        .filter({ hasText: /Bank Points & End Round/i })
+        .first();
       if (await bank.isVisible().catch(() => false)) {
         await bank.click({ timeout: 2000 }).catch(() => {});
       }
@@ -479,7 +547,14 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
   let sawScoring = false;
   for (let i = 0; i < 60; i++) {
     // SCORING reached: the host sees the round controls
-    if (await host.locator('button').filter({ hasText: /Play Next Round|End Game/i }).first().isVisible().catch(() => false)) {
+    if (
+      await host
+        .locator('button')
+        .filter({ hasText: /Play Next Round|End Game/i })
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       sawScoring = true;
       break;
     }
@@ -488,7 +563,12 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
       const wordInput = p.locator('input#wordInput');
       if (await wordInput.isVisible().catch(() => false)) {
         await wordInput.fill('Mystery').catch(() => {});
-        await p.locator('button').filter({ hasText: /Confirm|Submit/i }).first().click({ timeout: 2000 }).catch(() => {});
+        await p
+          .locator('button')
+          .filter({ hasText: /Confirm|Submit/i })
+          .first()
+          .click({ timeout: 2000 })
+          .catch(() => {});
         continue;
       }
       // 2. Active player plays a card: a plain click opens the confirm modal
@@ -515,17 +595,26 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
         continue;
       }
       // 3. Discussion: host starts the vote
-      const startVoting = p.locator('button').filter({ hasText: /Start Voting/i }).first();
+      const startVoting = p
+        .locator('button')
+        .filter({ hasText: /Start Voting/i })
+        .first();
       if (await startVoting.isVisible().catch(() => false)) {
         await startVoting.click({ timeout: 2000 }).catch(() => {});
         continue;
       }
       // 4. Voting: pick a candidate then confirm
-      const candidate = p.locator('button').filter({ hasText: /Alice|Bob|Carol/ }).first();
+      const candidate = p
+        .locator('button')
+        .filter({ hasText: /Alice|Bob|Carol/ })
+        .first();
       if (await candidate.isVisible().catch(() => false)) {
         await candidate.click({ timeout: 2000 }).catch(() => {});
       }
-      const confirmVote = p.locator('button').filter({ hasText: /Confirm Vote/i }).first();
+      const confirmVote = p
+        .locator('button')
+        .filter({ hasText: /Confirm Vote/i })
+        .first();
       if (await confirmVote.isVisible().catch(() => false)) {
         await confirmVote.click({ timeout: 2000 }).catch(() => {});
       }
@@ -536,7 +625,10 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
     throw new Error('Detective Club did not reach the scoring phase in the step budget');
   }
   await expect(
-    host.locator('button').filter({ hasText: /Play Next Round|End Game/i }).first(),
+    host
+      .locator('button')
+      .filter({ hasText: /Play Next Round|End Game/i })
+      .first(),
   ).toBeVisible({ timeout: 10000 });
 }
 
@@ -559,7 +651,10 @@ async function playWhoAmI(s: SimSession, entry?: MatrixEntry): Promise<void> {
     const words = ['Pirate', 'Astronaut', 'Robot', 'Chef'];
     const n = await modalInputs.count();
     for (let i = 0; i < n; i++) {
-      await modalInputs.nth(i).fill(words[i % 4]).catch(() => {});
+      await modalInputs
+        .nth(i)
+        .fill(words[i % 4])
+        .catch(() => {});
     }
     const modalStart = host
       .locator('button')
@@ -592,7 +687,10 @@ async function playWhoAmI(s: SimSession, entry?: MatrixEntry): Promise<void> {
       const yes = p.locator('button').filter({ hasText: /YES/i }).first();
       await clickIfVisible(yes, 5000);
     }
-    const cont = host.locator('button').filter({ hasText: /Continue/i }).first();
+    const cont = host
+      .locator('button')
+      .filter({ hasText: /Continue/i })
+      .first();
     await expect(cont).toBeVisible({ timeout: 10000 });
     await cont.click();
     await expect(host.getByText(/Game Over/i).first()).toBeVisible({ timeout: 15000 });
@@ -615,7 +713,10 @@ async function playWhoAmI(s: SimSession, entry?: MatrixEntry): Promise<void> {
     const n = await modalInputs.count();
     for (let i = 0; i < n; i++) {
       const val = words[i % 4];
-      await modalInputs.nth(i).fill(val).catch(() => {});
+      await modalInputs
+        .nth(i)
+        .fill(val)
+        .catch(() => {});
     }
     // the modal's Start Game renders AFTER the lobby one in the DOM
     const modalStart = host
@@ -630,10 +731,18 @@ async function playWhoAmI(s: SimSession, entry?: MatrixEntry): Promise<void> {
   // Word collection in-game: player input (PLAYER_INPUT), the host's per-player
   // word inputs (HOST_INPUT second stage), or nothing (RANDOM auto)
   const inGameHostInputs = host.locator('input[placeholder="Type your word..."]');
-  if (await inGameHostInputs.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (
+    await inGameHostInputs
+      .first()
+      .isVisible({ timeout: 3000 })
+      .catch(() => false)
+  ) {
     const n = await inGameHostInputs.count();
     for (let i = 0; i < n; i++) {
-      await inGameHostInputs.nth(i).fill(['Pirate', 'Astronaut', 'Robot', 'Chef'][i % 4]).catch(() => {});
+      await inGameHostInputs
+        .nth(i)
+        .fill(['Pirate', 'Astronaut', 'Robot', 'Chef'][i % 4])
+        .catch(() => {});
     }
     await host
       .locator('button')
@@ -644,7 +753,12 @@ async function playWhoAmI(s: SimSession, entry?: MatrixEntry): Promise<void> {
   }
   const wordInputs = p1.locator('#playerWordInput');
   const assignedWord = new Map<Page, string>();
-  if (await wordInputs.first().isVisible({ timeout: 4000 }).catch(() => false)) {
+  if (
+    await wordInputs
+      .first()
+      .isVisible({ timeout: 4000 })
+      .catch(() => false)
+  ) {
     // Submit sequentially: wait until each input is gone so a broadcast
     // re-render can't swallow the second player's submission
     for (const [p, word] of [
@@ -711,7 +825,10 @@ async function playWhoAmI(s: SimSession, entry?: MatrixEntry): Promise<void> {
   const yes = other.locator('button').filter({ hasText: /YES/i }).first();
   await expect(yes).toBeVisible({ timeout: 10000 });
   await yes.click();
-  const cont = host.locator('button').filter({ hasText: /Continue/i }).first();
+  const cont = host
+    .locator('button')
+    .filter({ hasText: /Continue/i })
+    .first();
   await expect(cont).toBeVisible({ timeout: 10000 });
   await cont.click();
   await expect(host.getByText(/Game Over/i).first()).toBeVisible({ timeout: 15000 });
@@ -738,7 +855,10 @@ async function playWhoFirst(s: SimSession): Promise<void> {
   await expect(host.getByTestId('round-result-title')).toBeVisible({ timeout: 8000 });
   await expect(players[1].getByTestId('round-result-title')).toBeVisible({ timeout: 8000 });
   // End the game (host control)
-  const endGame = host.locator('button').filter({ hasText: /End Game/i }).first();
+  const endGame = host
+    .locator('button')
+    .filter({ hasText: /End Game/i })
+    .first();
   await expect(endGame).toBeVisible({ timeout: 8000 });
   await endGame.click();
   await expect(host.getByTestId('who-first-results')).toBeVisible({ timeout: 8000 });
@@ -763,7 +883,14 @@ async function playMusicTrivia(s: SimSession): Promise<void> {
   await startSong.click();
   // Rounds may auto-advance; loop until Game Over shows up
   for (let i = 0; i < 10; i++) {
-    if (await host.getByText(/Game Over/i).first().isVisible().catch(() => false)) break;
+    if (
+      await host
+        .getByText(/Game Over/i)
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      break;
     if (isGameMaster) {
       // GM mode: a non-host buzzes, the host judges Yes
       const buzz = p2.locator('button:has-text("BUZZ!")').last();
@@ -775,7 +902,10 @@ async function playMusicTrivia(s: SimSession): Promise<void> {
       await input.fill('Bob guess');
       await p2.keyboard.press('Enter');
       await clickIfVisible(
-        host.locator('button').filter({ hasText: /Yes \(Correct\)/i }).first(),
+        host
+          .locator('button')
+          .filter({ hasText: /Yes \(Correct\)/i })
+          .first(),
         10000,
       );
     } else {
@@ -788,7 +918,13 @@ async function playMusicTrivia(s: SimSession): Promise<void> {
       await input.fill('Alice guess');
       await p1.keyboard.press('Enter');
     }
-    await clickIfVisible(host.locator('button').filter({ hasText: /Next Round/i }).first(), 8000);
+    await clickIfVisible(
+      host
+        .locator('button')
+        .filter({ hasText: /Next Round/i })
+        .first(),
+      8000,
+    );
     await host.waitForTimeout(800);
   }
   await expect(host.getByText(/Game Over/i).first()).toBeVisible({ timeout: 45000 });
@@ -808,12 +944,25 @@ async function playTheMind(s: SimSession): Promise<void> {
     .catch(() => false);
   await startGame(host);
   for (let i = 0; i < 150; i++) {
-    if (await host.getByText(/You Win|Game Over/i).first().isVisible().catch(() => false)) break;
+    if (
+      await host
+        .getByText(/You Win|Game Over/i)
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      break;
     // Per-level Ready gate: everyone must confirm before cards are dealt
     for (const p of players) {
       await clickIfVisible(p.locator('button').filter({ hasText: /Ready/i }).first(), 300);
     }
-    await clickIfVisible(host.locator('button').filter({ hasText: /Next Level|Resume Level|Continue/i }).first(), 400);
+    await clickIfVisible(
+      host
+        .locator('button')
+        .filter({ hasText: /Next Level|Resume Level|Continue/i })
+        .first(),
+      400,
+    );
     // Play the globally-lowest visible card (The Mind requires strict ascending
     // order across ALL players). Blind mode shows '?' — accept mistakes there;
     // lost lives still end the game (a valid completion).
@@ -823,7 +972,12 @@ async function playTheMind(s: SimSession): Promise<void> {
       const handBtns = p.locator('button').filter({ hasText: /^[0-9]+$/ });
       const n = await handBtns.count();
       for (let b = 0; b < n; b++) {
-        const t = (await handBtns.nth(b).innerText().catch(() => '')).trim();
+        const t = (
+          await handBtns
+            .nth(b)
+            .innerText()
+            .catch(() => '')
+        ).trim();
         const v = parseInt(t, 10);
         if (!Number.isNaN(v)) all.push({ page: p, idx: b, val: v });
       }
@@ -831,11 +985,20 @@ async function playTheMind(s: SimSession): Promise<void> {
     if (all.length === 0) {
       // blind mode: click first hand card on each page in turn
       for (const p of players) {
-        const first = p.locator('button').filter({ hasText: /^[?0-9]+$/ }).first();
+        const first = p
+          .locator('button')
+          .filter({ hasText: /^[?0-9]+$/ })
+          .first();
         if (await first.isVisible({ timeout: 200 }).catch(() => false)) {
           await first.click({ timeout: 1200 }).catch(() => {});
           if (isExtreme) {
-            await clickIfVisible(p.locator('button').filter({ hasText: /White Pile/i }).first(), 600);
+            await clickIfVisible(
+              p
+                .locator('button')
+                .filter({ hasText: /White Pile/i })
+                .first(),
+              600,
+            );
           }
           break;
         }
@@ -850,7 +1013,10 @@ async function playTheMind(s: SimSession): Promise<void> {
       await btn.click({ timeout: 1500 }).catch(() => {});
       if (isExtreme) {
         await clickIfVisible(
-          target.page.locator('button').filter({ hasText: /White Pile/i }).first(),
+          target.page
+            .locator('button')
+            .filter({ hasText: /White Pile/i })
+            .first(),
           800,
         );
       }
@@ -878,13 +1044,27 @@ async function playSaboteur(s: SimSession): Promise<void> {
       // The active player's page shows the select-card hint; hand cards are
       // enabled only on that player's turn
       const onTurn =
-        (await p.getByText(/Pick a card from your hand/i).first().isVisible({ timeout: 250 }).catch(() => false)) ||
-        (await p.getByText(/Your Turn!/i).first().isVisible({ timeout: 150 }).catch(() => false));
+        (await p
+          .getByText(/Pick a card from your hand/i)
+          .first()
+          .isVisible({ timeout: 250 })
+          .catch(() => false)) ||
+        (await p
+          .getByText(/Your Turn!/i)
+          .first()
+          .isVisible({ timeout: 150 })
+          .catch(() => false));
       if (!onTurn) continue;
       const hand = p.locator('[data-testid^="saboteur-hand-"]');
       if ((await hand.count()) === 0) continue;
-      await hand.first().click({ timeout: 1500 }).catch(() => {});
-      const discard = p.locator('button').filter({ hasText: /Discard/i }).first();
+      await hand
+        .first()
+        .click({ timeout: 1500 })
+        .catch(() => {});
+      const discard = p
+        .locator('button')
+        .filter({ hasText: /Discard/i })
+        .first();
       if (await discard.isVisible({ timeout: 800 }).catch(() => false)) {
         await discard.click({ timeout: 1500 }).catch(() => {});
         acted = true;
@@ -912,13 +1092,27 @@ async function playSaboteur(s: SimSession): Promise<void> {
       for (const p of players) {
         if (acted) break;
         const onTurn =
-          (await p.getByText(/Pick a card from your hand/i).first().isVisible({ timeout: 250 }).catch(() => false)) ||
-          (await p.getByText(/Your Turn!/i).first().isVisible({ timeout: 150 }).catch(() => false));
+          (await p
+            .getByText(/Pick a card from your hand/i)
+            .first()
+            .isVisible({ timeout: 250 })
+            .catch(() => false)) ||
+          (await p
+            .getByText(/Your Turn!/i)
+            .first()
+            .isVisible({ timeout: 150 })
+            .catch(() => false));
         if (!onTurn) continue;
         const hand = p.locator('[data-testid^="saboteur-hand-"]');
         if ((await hand.count()) === 0) continue;
-        await hand.first().click({ timeout: 1500 }).catch(() => {});
-        const discard = p.locator('button').filter({ hasText: /Discard/i }).first();
+        await hand
+          .first()
+          .click({ timeout: 1500 })
+          .catch(() => {});
+        const discard = p
+          .locator('button')
+          .filter({ hasText: /Discard/i })
+          .first();
         if (await discard.isVisible({ timeout: 800 }).catch(() => false)) {
           await discard.click({ timeout: 1500 }).catch(() => {});
           acted = true;
@@ -966,10 +1160,22 @@ async function playCoup(s: SimSession): Promise<void> {
   await expect(host.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 15000 });
   const income = (p: Page) => p.getByRole('button', { name: /Income/i });
   for (let i = 0; i < 60; i++) {
-    if (await host.getByText(/Winner:/i).isVisible().catch(() => false)) break;
+    if (
+      await host
+        .getByText(/Winner:/i)
+        .isVisible()
+        .catch(() => false)
+    )
+      break;
     let turnPage: Page | null = null;
     for (const p of players) {
-      if (await p.getByText(/Your Turn/i).first().isVisible({ timeout: 300 }).catch(() => false)) {
+      if (
+        await p
+          .getByText(/Your Turn/i)
+          .first()
+          .isVisible({ timeout: 300 })
+          .catch(() => false)
+      ) {
         turnPage = p;
         break;
       }
@@ -984,11 +1190,18 @@ async function playCoup(s: SimSession): Promise<void> {
     // set the value via JS and dispatch a change event.
     const coupBtn = turnPage.getByRole('button', { name: /Coup Pay 7 to Kill/i });
     const coupVisible = await coupBtn.isVisible({ timeout: 300 }).catch(() => false);
-    const mustCoup = await turnPage.getByText(/Must Coup/i).first().isVisible({ timeout: 200 }).catch(() => false);
+    const mustCoup = await turnPage
+      .getByText(/Must Coup/i)
+      .first()
+      .isVisible({ timeout: 200 })
+      .catch(() => false);
     const coupSelect = turnPage.locator('select').last();
     if (coupVisible && mustCoup) {
       await coupSelect.selectOption({ index: 1 }).catch(() => {});
-      const applied = await coupSelect.inputValue().then((v) => v !== '').catch(() => false);
+      const applied = await coupSelect
+        .inputValue()
+        .then((v) => v !== '')
+        .catch(() => false);
       if (!applied) {
         await coupSelect.evaluate((el) => {
           const sel = el as HTMLSelectElement;
@@ -999,9 +1212,13 @@ async function playCoup(s: SimSession): Promise<void> {
       await expect(coupBtn).toBeEnabled({ timeout: 5000 });
       await coupBtn.click();
     } else {
-      const incEnabled = await income(turnPage).isEnabled().catch(() => false);
+      const incEnabled = await income(turnPage)
+        .isEnabled()
+        .catch(() => false);
       if (incEnabled) {
-        await income(turnPage).click().catch(() => {});
+        await income(turnPage)
+          .click()
+          .catch(() => {});
       }
     }
     await host.waitForTimeout(STEP);
@@ -1045,7 +1262,10 @@ async function playCardGame(s: SimSession, entry: MatrixEntry): Promise<void> {
           const cards = actor.locator('[data-testid^="card-"]');
           const n = await cards.count();
           for (let c = 0; c < n; c++) {
-            await cards.nth(c).click().catch(() => {});
+            await cards
+              .nth(c)
+              .click()
+              .catch(() => {});
             if (await playBtn.isEnabled().catch(() => false)) break;
           }
         }

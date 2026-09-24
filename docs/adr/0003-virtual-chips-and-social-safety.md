@@ -18,4 +18,3 @@ Pok Deng commonly uses betting and Old Maid may use social penalties. The reques
 
 - The game retains its social scoring loop while avoiding financial-accounting requirements.
 - Copy and validation rules must prevent hosts from presenting virtual chips as money or an enforceable obligation.
-

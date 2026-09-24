@@ -160,17 +160,17 @@ describe('MusicTriviaService', () => {
       code: 'ABCDEF',
       status: RoomStatus.LOBBY,
       roomHostId: 'host-1',
-        players: [
-          { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1', connected: true },
-          {
-            id: '2',
-            socketId: 'player-2',
-            name: 'Player',
-            score: 0,
-            roomId: 'room-1',
-            connected: true,
-          },
-        ],
+      players: [
+        { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1', connected: true },
+        {
+          id: '2',
+          socketId: 'player-2',
+          name: 'Player',
+          score: 0,
+          roomId: 'room-1',
+          connected: true,
+        },
+      ],
       createdAt: new Date(),
       config: { hostSelection: 'FIXED', timerMin: 5 },
     };

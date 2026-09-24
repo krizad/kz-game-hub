@@ -136,11 +136,21 @@ describe('SlaveRuntime', () => {
     const runtime = runtimeFor(popOrder);
     runtime.startRound(target, config, ['p1', 'p2']);
 
-    const lead = runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['3-CLUBS', '3-DIAMONDS'] }, config);
+    const lead = runtime.handleAction(
+      target,
+      'p1',
+      { type: 'PLAY', cards: ['3-CLUBS', '3-DIAMONDS'] },
+      config,
+    );
     expect(lead).not.toBeNull();
     expect(lead!.cardGameState!.trick!.cards).toHaveLength(2);
 
-    const follow = runtime.handleAction(target, 'p2', { type: 'PLAY', cards: ['5-HEARTS'] }, config);
+    const follow = runtime.handleAction(
+      target,
+      'p2',
+      { type: 'PLAY', cards: ['5-HEARTS'] },
+      config,
+    );
 
     expect(follow).toBeNull();
   });
@@ -156,7 +166,12 @@ describe('SlaveRuntime', () => {
     ];
     const equalRuntime = runtimeFor(equalOrder);
     equalRuntime.startRound(equalTarget, config, ['p1', 'p2']);
-    equalRuntime.handleAction(equalTarget, 'p1', { type: 'PLAY', cards: ['3-CLUBS', '3-DIAMONDS'] }, config);
+    equalRuntime.handleAction(
+      equalTarget,
+      'p1',
+      { type: 'PLAY', cards: ['3-CLUBS', '3-DIAMONDS'] },
+      config,
+    );
 
     const equalFollow = equalRuntime.handleAction(
       equalTarget,
@@ -212,7 +227,12 @@ describe('SlaveRuntime', () => {
     const runtime = runtimeFor(popOrder);
     runtime.startRound(target, singleCardConfig, ['p1', 'p2']);
 
-    const result = runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] }, singleCardConfig);
+    const result = runtime.handleAction(
+      target,
+      'p1',
+      { type: 'PLAY', cards: ['3-CLUBS'] },
+      singleCardConfig,
+    );
 
     expect(result).not.toBeNull();
     const state = result!.cardGameState!;

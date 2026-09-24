@@ -61,7 +61,6 @@ export function SaboteurView() {
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const playSound = useSaboteurSounds(soundsEnabled);
 
-
   const state = room?.saboteurState;
 
   // Sound effects: react to newly appended game-log entries (server-driven)

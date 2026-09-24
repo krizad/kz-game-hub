@@ -4,11 +4,11 @@ import { CardGameService } from './card-game.service';
 import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 import { PrivateStateService } from '../private-state.service';
 
-const card = (
-  id: string,
-  rank: PlayingCard['rank'],
-  suit: PlayingCard['suit'],
-): PlayingCard => ({ id, rank, suit });
+const card = (id: string, rank: PlayingCard['rank'], suit: PlayingCard['suit']): PlayingCard => ({
+  id,
+  rank,
+  suit,
+});
 
 // Cards are popped from the tail of the deck, so `popOrder` is reversed on top of the filler.
 const deckFor = (popOrder: PlayingCard[]): PlayingCard[] => [

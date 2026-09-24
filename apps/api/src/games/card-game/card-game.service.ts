@@ -218,13 +218,29 @@ export class CardGameService {
     if (state.trick) {
       if (state.trick.leaderId === oldSocketId) state.trick.leaderId = newSocketId;
       if (state.trick.playedById === oldSocketId) state.trick.playedById = newSocketId;
-      state.trick.passIds = state.trick.passIds.map((id) => (id === oldSocketId ? newSocketId : id));
+      state.trick.passIds = state.trick.passIds.map((id) =>
+        id === oldSocketId ? newSocketId : id,
+      );
     }
     if (state.result) {
-      state.result.playerScores = this.remapRecord(state.result.playerScores, oldSocketId, newSocketId);
-      state.result.outcomeTags = this.remapRecord(state.result.outcomeTags, oldSocketId, newSocketId);
-      state.result.winnerIds = state.result.winnerIds.map((id) => (id === oldSocketId ? newSocketId : id));
-      state.result.revealedHands = this.remapRecord(state.result.revealedHands, oldSocketId, newSocketId);
+      state.result.playerScores = this.remapRecord(
+        state.result.playerScores,
+        oldSocketId,
+        newSocketId,
+      );
+      state.result.outcomeTags = this.remapRecord(
+        state.result.outcomeTags,
+        oldSocketId,
+        newSocketId,
+      );
+      state.result.winnerIds = state.result.winnerIds.map((id) =>
+        id === oldSocketId ? newSocketId : id,
+      );
+      state.result.revealedHands = this.remapRecord(
+        state.result.revealedHands,
+        oldSocketId,
+        newSocketId,
+      );
       if (state.result.placements) {
         state.result.placements = state.result.placements.map((id) =>
           id === oldSocketId ? newSocketId : id,
@@ -346,7 +362,8 @@ export class CardGameService {
   }
 
   private getHand(roomCode: string, socketId: string): PlayingCard[] | undefined {
-    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)?.hand;
+    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)
+      ?.hand;
   }
 
   private setPiles(roomCode: string, piles: PileStacks): void {
@@ -363,7 +380,11 @@ export class CardGameService {
     );
   }
 
-  private remapRecord<T>(record: Record<string, T>, oldKey: string, newKey: string): Record<string, T> {
+  private remapRecord<T>(
+    record: Record<string, T>,
+    oldKey: string,
+    newKey: string,
+  ): Record<string, T> {
     if (!(oldKey in record)) return record;
     const { [oldKey]: value, ...remaining } = record;
     return { ...remaining, [newKey]: value };

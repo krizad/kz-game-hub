@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { CardGamePreset, DealCountMode, GameType, RoomStatus, StarterPolicy, TiePolicy } from '@repo/types';
+import {
+  CardGamePreset,
+  DealCountMode,
+  GameType,
+  RoomStatus,
+  StarterPolicy,
+  TiePolicy,
+} from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
@@ -41,7 +48,8 @@ export function CardGameSettings() {
   const { room, socketId, updateConfig } = useGameStore();
   const { t } = useTranslate();
 
-  if (!room || room.gameType !== GameType.CARD_GAME || room.status !== RoomStatus.LOBBY) return null;
+  if (!room || room.gameType !== GameType.CARD_GAME || room.status !== RoomStatus.LOBBY)
+    return null;
   const config = room.cardGameConfig;
   if (!config) return null;
 
@@ -72,7 +80,6 @@ export function CardGameSettings() {
     `px-3 py-1 border-4 border-black font-black uppercase text-xs transition-all ${
       active ? 'bg-lime-300 shadow-[2px_2px_0_0_#000]' : 'bg-white hover:bg-amber-100'
     } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`;
-
 
   return (
     <div className="w-full max-w-md flex flex-col gap-3" data-testid="card-game-settings">
@@ -178,7 +185,6 @@ export function CardGameSettings() {
             : t('cardGameSettings.previewInvalid')}
         </p>
       </div>
-
     </div>
   );
 }
