@@ -16,8 +16,9 @@ import {
 } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
-import { useSaboteurSounds } from '@/hooks/useGameSounds';
+import { useSaboteurSounds } from '@/hooks/useSaboteurSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { SoundToggle } from '@/components/core/SoundToggle';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import clsx from 'clsx';
@@ -439,17 +440,14 @@ export function SaboteurView() {
   );
 
   const renderSoundToggle = () => (
-    <button
-      onClick={toggleSound}
-      title={soundsEnabled ? t('gameSaboteur.soundOn') : t('gameSaboteur.soundOff')}
-      className={clsx(
-        'flex items-center justify-center w-9 h-9 rounded-xl border-4 border-black shadow-[3px_3px_0_0_#000] text-lg transition-all active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]',
-        soundsEnabled ? 'bg-lime-300' : 'bg-stone-300 grayscale',
-      )}
-      data-testid="saboteur-sound-toggle"
-    >
-      {soundsEnabled ? '🔊' : '🔇'}
-    </button>
+    <SoundToggle
+      enabled={soundsEnabled}
+      onToggle={toggleSound}
+      titleOn={t('gameSaboteur.soundOn')}
+      titleOff={t('gameSaboteur.soundOff')}
+      testId="saboteur-sound-toggle"
+      className="w-9 h-9 rounded-xl shadow-[3px_3px_0_0_#000] text-lg active:shadow-[1px_1px_0_0_#000]"
+    />
   );
 
   const renderRoleBadge = () => {

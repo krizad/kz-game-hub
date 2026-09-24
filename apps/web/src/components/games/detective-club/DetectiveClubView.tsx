@@ -11,6 +11,7 @@ import { VotingPhase } from './phases/VotingPhase';
 import { ScoringPhase } from './phases/ScoringPhase';
 import { useDetectiveClubSounds } from '@/hooks/useDetectiveClubSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { SoundToggle } from '@/components/core/SoundToggle';
 import { useDetectiveClubSoundCues } from './useDetectiveClubSoundCues';
 
 function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslate>['t']): string {
@@ -80,14 +81,14 @@ export function DetectiveClubView() {
         </div>
 
         <div className="text-center sm:text-right flex items-center gap-2">
-          <button
-            onClick={toggleSound}
-            title={soundsEnabled ? t('gameDetectiveClub.soundOn') : t('gameDetectiveClub.soundOff')}
-            className={`flex items-center justify-center w-8 h-8 border-4 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] text-sm transition-all active:translate-y-0.5 ${soundsEnabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'}`}
-            data-testid="dc-sound-toggle"
-          >
-            {soundsEnabled ? '🔊' : '🔇'}
-          </button>
+          <SoundToggle
+            enabled={soundsEnabled}
+            onToggle={toggleSound}
+            titleOn={t('gameDetectiveClub.soundOn')}
+            titleOff={t('gameDetectiveClub.soundOff')}
+            testId="dc-sound-toggle"
+            className="w-8 h-8 shadow-[2px_2px_0_0_#000]"
+          />
           <div>
             <p className="text-black uppercase tracking-widest text-xs font-black mb-1">
               {t('gameDetectiveClub.yourScore')}
