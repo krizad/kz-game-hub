@@ -27,3 +27,6 @@ Existing rooms are server-authoritative and live in `GamesService`. Broadcast `R
 - **Persist all game state:** rejected because it violates the existing in-memory game-state constraint and increases recovery/security scope.
 - **Account-owned presets:** deferred because current rooms use temporary session identity and the agreed model is share-code plus copy-on-edit.
 
+## Amendment (2026-09-24)
+
+The shared `CardRulePreset` persistence and publish/import share-code feature was **dropped** in the Thai Card Game two-mode cleanup (PR #3): the `CardRulePreset` model, repository, and `CARD_GAME_PUBLISH_RULES`/`IMPORT_RULES` events were removed, and card-game rule configurations are now host-configured per room only. The privacy decisions above (live state private and in memory, redacted public state, private-state path, in-memory redacted action log) remain in force; card-game play now touches PostgreSQL not at all.
