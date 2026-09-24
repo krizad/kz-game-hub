@@ -127,6 +127,19 @@ export class GamesService {
     return this.playerSessionService.takePendingToken(socketId);
   }
 
+  /**
+   * Whether a reconnect token belongs to a player still seated in the room.
+   * Used by the disabled-game gate so a refreshed browser (new socket id) can
+   * still reclaim its seat instead of being locked out of its own room.
+   */
+  hasSeatedSession(code: string, reconnectToken: string): boolean {
+    const room = this.rooms.get(code);
+    if (!room) return false;
+    const playerId = this.playerSessionService.verify(code, reconnectToken);
+    if (!playerId) return false;
+    return room.players.some((player) => player.id === playerId);
+  }
+
   createRoom(
     hostId: string,
     gameType: GameType = GameType.WHO_KNOW,
@@ -264,9 +277,14 @@ export class GamesService {
       if (room.roomHostId === oldSocketId) {
         room.roomHostId = user.socketId;
       }
+      // Who Know's round-host pointer drives the client-side card/vote UI.
+      if (room.hostPlayerId === oldSocketId) {
+        room.hostPlayerId = user.socketId;
+      }
 
       // Each game service owns the socket-id references inside its own state
       if (room.votes) this.whoKnowService.remapVotes(room.votes, oldSocketId, user.socketId);
+      this.whoKnowService.remapPrivateVotes(code, oldSocketId, user.socketId);
       if (room.ticTacToeState) {
         this.ticTacToeService.remapSocketId(room.ticTacToeState, oldSocketId, user.socketId);
       }
@@ -278,6 +296,7 @@ export class GamesService {
       }
       if (room.soundsFishyState) {
         this.soundsFishyService.remapSocketId(room.soundsFishyState, oldSocketId, user.socketId);
+        this.soundsFishyService.remapRoomSecrets(code, oldSocketId, user.socketId);
       }
       if (room.detectiveClubState) {
         this.detectiveClubService.remapSocketId(
@@ -285,6 +304,7 @@ export class GamesService {
           oldSocketId,
           user.socketId,
         );
+        this.detectiveClubService.remapRoomSecrets(code, oldSocketId, user.socketId);
       }
       if (room.whoAmIState) {
         this.whoAmIService.remapSocketId(room.whoAmIState, oldSocketId, user.socketId);

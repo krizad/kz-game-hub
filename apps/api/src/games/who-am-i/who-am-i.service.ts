@@ -113,7 +113,11 @@ export class WhoAmIService {
     requesterId: string,
     playerWords: Record<string, string>,
   ): RoomState | null {
-    if (room.status !== RoomStatus.LOBBY) return null;
+    // START_GAME first flips the room to PLAYING/AWAITING_HOST_INPUT; accept
+    // both the pre- and post-START_GAME states so the two-phase flow works.
+    const awaitingHostInput =
+      room.status === RoomStatus.PLAYING && room.whoAmIState?.phase === 'AWAITING_HOST_INPUT';
+    if (room.status !== RoomStatus.LOBBY && !awaitingHostInput) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.config.wordMode !== 'HOST_INPUT') return null;
 
@@ -139,6 +143,7 @@ export class WhoAmIService {
     this.syncVisibleWords(room);
 
     const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
+    gameState.hostSocketId = requesterId;
     room.whoAmIState = gameState;
     return room;
   }
@@ -218,7 +223,16 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
     if (words.length < room.players.length) {
       console.log('Falling back to database for words...');
-      const category = room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
+      let category = room.config.wordCategory;
+      if (!category) {
+        // The seeded database has no generic bucket; fall back to a random
+        // category that actually exists and can cover the whole table.
+        const categories = (await this.getCategories(lang)).filter(
+          (c) => c.count >= room.players.length,
+        );
+        if (categories.length === 0) return null;
+        category = categories[Math.floor(Math.random() * categories.length)].name;
+      }
       const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
       if (dbWords.length < room.players.length) return null;
       words = dbWords.map((w) => (w.emoji ? `${w.emoji} ${w.word}` : w.word));
@@ -308,6 +322,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     room.status = RoomStatus.PLAYING;
 
     const gameState = this.createGameState(room, '', 'AWAITING_HOST_INPUT');
+    gameState.hostSocketId = requesterId;
     room.whoAmIState = gameState;
     return room;
   }
@@ -409,11 +424,14 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     gameState.currentTurn = shuffledPlayers[0].socketId;
   }
 
-  /** Players who take turns: everyone except the host (HOST_INPUT mode) and viewers. */
+  /** Players who take turns: everyone except the game's starting host (HOST_INPUT mode) and viewers. */
   private eligiblePlayers(room: RoomState): UserState[] {
+    // Use the host captured at game start: if the live host left mid-game and
+    // ownership was transferred, the promoted player must keep taking turns.
+    const gameHostId = room.whoAmIState?.hostSocketId ?? room.roomHostId;
     const base =
       room.config?.wordMode === 'HOST_INPUT'
-        ? room.players.filter((p) => p.socketId !== room.roomHostId)
+        ? room.players.filter((p) => p.socketId !== gameHostId)
         : room.players;
     return base.filter((p) => !p.isViewer);
   }
@@ -471,6 +489,21 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
   handlePlayerDisconnect(room: RoomState, socketId: string): RoomState | null {
     const gameState = room.whoAmIState;
     if (!gameState) return null;
+
+    // Word collection only progresses via submissions — a holdout who walks
+    // away must not deadlock the room; start with whoever is still connected.
+    if (gameState.phase === 'COLLECTING_WORDS') {
+      const connectedPlayers = room.players.filter((p) => p.connected !== false && !p.isViewer);
+      const allSubmitted = connectedPlayers.every((p) =>
+        this.privateState.has(room.code, p.socketId, WAI_SUBMITTED),
+      );
+      if (allSubmitted && connectedPlayers.length > 0) {
+        this.assignShuffledWords(room, gameState);
+        return room;
+      }
+      return null;
+    }
+
     if (gameState.currentTurn !== socketId || gameState.turnStatus !== 'VOTING') return null;
 
     const nextPlayer = this.findNextPlayer(room, gameState, socketId);
@@ -657,6 +690,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
   remapSocketId(state: WhoAmIGameState, oldSocketId: string, newSocketId: string): void {
     if (state.currentTurn === oldSocketId) state.currentTurn = newSocketId;
     if (state.winner === oldSocketId) state.winner = newSocketId;
+    if (state.hostSocketId === oldSocketId) state.hostSocketId = newSocketId;
 
     if (state.votes[oldSocketId]) {
       state.votes[newSocketId] = state.votes[oldSocketId];
@@ -669,5 +703,13 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     state.finalGuessUsed = state.finalGuessUsed.map((id) =>
       id === oldSocketId ? newSocketId : id,
     );
+    state.wordSubmittedIds = state.wordSubmittedIds.map((id) =>
+      id === oldSocketId ? newSocketId : id,
+    );
+
+    if (state.revealedWords && state.revealedWords[oldSocketId] !== undefined) {
+      state.revealedWords[newSocketId] = state.revealedWords[oldSocketId]!;
+      delete state.revealedWords[oldSocketId];
+    }
   }
 }

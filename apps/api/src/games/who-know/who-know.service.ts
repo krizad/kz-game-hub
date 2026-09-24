@@ -256,4 +256,19 @@ export class WhoKnowService {
       }
     });
   }
+
+  /**
+   * Live votes during VOTING live as private-state entries whose VALUE is the
+   * target's socket id. remapVotes only covers the public reveal record and
+   * remapSocketId only covers keys, so re-point the values here — otherwise a
+   * reconnecting insider can never be "caught" by votes cast before the drop.
+   */
+  remapPrivateVotes(code: string, oldSocketId: string, newSocketId: string): void {
+    const votes = this.privateState.getRoomData<string>(code, WK_VOTE);
+    for (const [voterId, targetId] of votes.entries()) {
+      if (targetId === oldSocketId) {
+        this.privateState.set(code, voterId, WK_VOTE, newSocketId);
+      }
+    }
+  }
 }

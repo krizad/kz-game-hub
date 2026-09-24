@@ -364,6 +364,9 @@ export class DetectiveClubService {
   private calculateScore(room: RoomState) {
     const state = room.detectiveClubState!;
     state.currentPhase = DetectiveClubPhase.SCORING;
+    // A round is a completed game: mark RESULT so the room flow (and the
+    // leaderboard) treat it like every other game's end-of-round.
+    room.status = RoomStatus.RESULT;
     state.scoreDeltas = {};
 
     const conspiratorId = this.getConspiratorId(room);
@@ -550,6 +553,7 @@ export class DetectiveClubService {
     }
 
     state.currentPhase = DetectiveClubPhase.SETUP;
+    room.status = RoomStatus.PLAYING;
     state.informerId = nextInformerId;
     state.conspiratorId = null;
     state.word = null;
@@ -574,6 +578,19 @@ export class DetectiveClubService {
     });
 
     return room;
+  }
+
+  /**
+   * The conspirator's identity is stored as a socket-id VALUE in the
+   * room-level private record, which remapSocketId (keys only) never
+   * touches — re-point it here on reconnection, or the reconnected
+   * conspirator receives the secret word and votes for them never count.
+   */
+  remapRoomSecrets(code: string, oldSocketId: string, newSocketId: string): void {
+    const conspiratorId = this.privateState.get<string>(code, ROOM_KEY, DC_ROOM_CONSPIRATOR);
+    if (conspiratorId === oldSocketId) {
+      this.privateState.set(code, ROOM_KEY, DC_ROOM_CONSPIRATOR, newSocketId);
+    }
   }
 
   /** Re-point every socket-id reference to the new socket id on reconnection. */

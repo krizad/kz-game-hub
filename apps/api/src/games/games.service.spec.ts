@@ -55,6 +55,8 @@ describe('GamesService', () => {
       resetGame: jest.fn(),
       // Real implementation so reconnect tests exercise actual vote migration
       remapVotes: WhoKnowService.prototype.remapVotes,
+      // Private-state pass-through is covered by WhoKnowService's own spec
+      remapPrivateVotes: jest.fn(),
     },
     ticTacToe: {
       joinSide: jest.fn(),
@@ -94,6 +96,7 @@ describe('GamesService', () => {
       nextRound: jest.fn(),
       reset: jest.fn(),
       remapSocketId: SoundsFishyService.prototype.remapSocketId,
+      remapRoomSecrets: jest.fn(),
     },
     detectiveClub: {
       startGame: jest.fn(),
@@ -104,6 +107,7 @@ describe('GamesService', () => {
       nextRound: jest.fn(),
       reset: jest.fn(),
       remapSocketId: DetectiveClubService.prototype.remapSocketId,
+      remapRoomSecrets: jest.fn(),
     },
     saboteur: {
       startGame: jest.fn(),

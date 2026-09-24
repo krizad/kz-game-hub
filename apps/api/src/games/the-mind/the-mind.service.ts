@@ -118,6 +118,7 @@ export class TheMindService {
   }
 
   startGame(room: RoomState, requesterId: string): RoomState | null {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
 
     const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
@@ -168,6 +169,11 @@ export class TheMindService {
         cards.sort((a, b) => a - b),
       );
     });
+    // Players who were disconnected (or spectators) at deal time must not keep
+    // a stale hand from the previous shuffle — it can even duplicate cards
+    // that were just dealt to someone else after a deck rebuild.
+    const dealtIds = new Set(playerIds);
+    room.players.filter((p) => !dealtIds.has(p.id)).forEach((p) => this.setHand(room, p.id, []));
     this.setDeck(room, deck);
 
     state.pileTop = 0;

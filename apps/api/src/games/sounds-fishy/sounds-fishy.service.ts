@@ -398,6 +398,28 @@ export class SoundsFishyService {
     return this.backToLobby(room, requesterId);
   }
 
+  /**
+   * The authoritative Blue Fish / Red Herring identities live as socket-id
+   * VALUES inside the room-level private record, which remapSocketId (keys
+   * only) never touches — re-point them here on reconnection, or role checks
+   * (answer validation, elimination, reveal) silently miss the player.
+   */
+  remapRoomSecrets(code: string, oldSocketId: string, newSocketId: string): void {
+    const blueFish = this.privateState.get<string>(code, ROOM_KEY, SF_ROOM_BLUE_FISH);
+    if (blueFish === oldSocketId) {
+      this.privateState.set(code, ROOM_KEY, SF_ROOM_BLUE_FISH, newSocketId);
+    }
+    const redHerrings = this.privateState.get<string[]>(code, ROOM_KEY, SF_ROOM_RED_HERRINGS);
+    if (redHerrings?.includes(oldSocketId)) {
+      this.privateState.set(
+        code,
+        ROOM_KEY,
+        SF_ROOM_RED_HERRINGS,
+        redHerrings.map((id) => (id === oldSocketId ? newSocketId : id)),
+      );
+    }
+  }
+
   /** Re-point every socket-id reference to the new socket id on reconnection. */
   remapSocketId(state: SoundsFishyState, oldSocketId: string, newSocketId: string): void {
     if (state.pickerId === oldSocketId) state.pickerId = newSocketId;

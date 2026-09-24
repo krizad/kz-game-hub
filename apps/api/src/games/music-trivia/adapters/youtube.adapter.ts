@@ -98,8 +98,10 @@ export class YouTubeAdapter implements MusicSourceAdapter {
         };
       });
     } catch (error) {
+      // Re-throw like the other adapters so the host sees "source broken"
+      // instead of a misleading "no songs found".
       console.error('[YouTubeAdapter] Search error:', error);
-      return [];
+      throw error;
     }
   }
 }

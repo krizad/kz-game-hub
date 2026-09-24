@@ -268,4 +268,37 @@ describe('TheMindService', () => {
     expect(room.status).toBe(RoomStatus.RESULT);
     expect(room.players[0].score).toBe(2);
   });
+
+  it('startGame only starts from the lobby', () => {
+    const room = createRoom({}, defaultPlayers());
+    room.status = RoomStatus.LOBBY;
+    expect(service.startGame(room, 'socket-1')).not.toBeNull();
+
+    expect(service.startGame(room, 'socket-1')).toBeNull();
+  });
+
+  it('redeal clears a stale hand held by a player who was disconnected at deal time', () => {
+    const players = [
+      ...defaultPlayers(),
+      {
+        id: 'player-3',
+        socketId: 'socket-3',
+        name: 'Three',
+        score: 0,
+        roomId: 'room-id',
+        connected: true,
+      },
+    ];
+    const room = createRoom({}, players);
+    room.status = RoomStatus.LOBBY;
+    expect(service.startGame(room, 'socket-1')).not.toBeNull();
+
+    // socket-3 drops, leaving a stale hand from the previous deal behind.
+    privateState.set('ABC123', 'socket-3', 'theMindHand', [999, 998]);
+    room.players.find((p) => p.socketId === 'socket-3')!.connected = false;
+
+    expect(service.nextLevel(room, 'socket-1')).not.toBeNull();
+
+    expect(privateState.get('ABC123', 'socket-3', 'theMindHand')).toBeUndefined();
+  });
 });

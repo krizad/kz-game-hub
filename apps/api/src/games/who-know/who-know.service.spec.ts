@@ -188,4 +188,36 @@ describe('WhoKnowService', () => {
       expect(service.handleQuestioningTimeout(room)).toBeNull();
     });
   });
+
+  describe('remapPrivateVotes (reconnection)', () => {
+    it('re-points live vote targets to the reconnected socket id', () => {
+      const room = createRoom(fourPlayers(), RoomStatus.VOTING);
+      privateState.set(room.code, 'p2', 'wkVote', 'p3');
+      privateState.set(room.code, 'p3', 'wkVote', 'p2');
+
+      service.remapPrivateVotes(room.code, 'p3', 'p3-new');
+
+      expect(privateState.get(room.code, 'p2', 'wkVote')).toBe('p3-new');
+      expect(privateState.get(room.code, 'p3', 'wkVote')).toBe('p2');
+    });
+
+    it('lets votes cast before the drop catch the reconnected insider', () => {
+      const room = createRoom(fourPlayers(), RoomStatus.VOTING);
+      privateState.set(room.code, 'p1', 'wkRole', Role.Host);
+      privateState.set(room.code, 'p2', 'wkRole', Role.Know);
+      privateState.set(room.code, 'p3', 'wkRole', Role.Unknow);
+      privateState.set(room.code, 'p4', 'wkRole', Role.Unknow);
+
+      // Everyone non-host votes; p3 and p4 suspect p2, then p2 reconnects.
+      privateState.set(room.code, 'p2', 'wkVote', 'p3');
+      privateState.set(room.code, 'p3', 'wkVote', 'p2');
+      privateState.set(room.code, 'p4', 'wkVote', 'p2');
+      service.remapPrivateVotes(room.code, 'p2', 'p2-new');
+      privateState.remapSocketId(room.code, 'p2', 'p2-new');
+      room.players.find((p) => p.socketId === 'p2')!.socketId = 'p2-new';
+
+      expect(service.checkVoteResolution(room)).toBe(true);
+      expect(room.winner).toBe('COMMONERS');
+    });
+  });
 });

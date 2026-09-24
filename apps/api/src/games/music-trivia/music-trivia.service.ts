@@ -98,6 +98,7 @@ export class MusicTriviaService {
   // ------------------------------------------------------------------
 
   startGame(room: RoomState, requesterId: string): RoomState | null {
+    if (room.status !== RoomStatus.LOBBY) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.players.length < 2) return null;
 
@@ -247,8 +248,8 @@ export class MusicTriviaService {
   }
 
   public finalizeCountdown(room: RoomState): MusicTriviaActionResult | null {
-    const state = room.musicTriviaState!;
-    if (state.phase !== 'COUNTDOWN') return null;
+    const state = room.musicTriviaState;
+    if (!state || state.phase !== 'COUNTDOWN') return null;
 
     // Jump to playing
     state.phase = 'PLAYING';

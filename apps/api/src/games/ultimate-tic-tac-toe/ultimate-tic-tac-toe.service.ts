@@ -208,8 +208,8 @@ export class UltimateTicTacToeService {
         cells: Array(9).fill(null),
       })),
       macroBoard: Array(9).fill(null),
-      playerXId: uttt?.playerXId,
-      playerOId: uttt?.playerOId,
+      playerXId: toLobby ? undefined : uttt?.playerXId,
+      playerOId: toLobby ? undefined : uttt?.playerOId,
       currentTurn: previousWinner === 'X' ? 'O' : 'X',
       activeMacroIndex: null,
     };

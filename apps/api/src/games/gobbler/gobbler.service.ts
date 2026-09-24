@@ -242,8 +242,8 @@ export class GobblerService {
 
     room.gobblerState = {
       board: Array.from({ length: 9 }, () => []),
-      playerXId: room.gobblerState?.playerXId,
-      playerOId: room.gobblerState?.playerOId,
+      playerXId: toLobby ? undefined : room.gobblerState?.playerXId,
+      playerOId: toLobby ? undefined : room.gobblerState?.playerOId,
       currentTurn: previousWinner === 'X' ? 'O' : 'X',
       inventory: {
         X: this.createInitialInventory('X'),

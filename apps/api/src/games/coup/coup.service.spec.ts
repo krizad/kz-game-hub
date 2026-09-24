@@ -7,6 +7,7 @@ import { GameType, RoomState, RoomStatus, CoupRole, CoupActionType } from '@repo
 describe('CoupService (01 scaffold)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
+  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,6 +23,7 @@ describe('CoupService (01 scaffold)', () => {
 
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
+    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
@@ -109,6 +111,7 @@ describe('CoupService (01 scaffold)', () => {
 describe('CoupService (02 core economy)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
+  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -123,6 +126,7 @@ describe('CoupService (02 core economy)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
+    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
@@ -251,6 +255,7 @@ describe('CoupService (02 core economy)', () => {
 describe('CoupService (03 challenge)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
+  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -265,6 +270,7 @@ describe('CoupService (03 challenge)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
+    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
@@ -340,6 +346,7 @@ describe('CoupService (03 challenge)', () => {
 describe('CoupService (04 block)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
+  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -354,6 +361,7 @@ describe('CoupService (04 block)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
+    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
@@ -450,6 +458,7 @@ describe('CoupService (04 block)', () => {
 describe('CoupService (05 steal & exchange)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
+  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -464,6 +473,7 @@ describe('CoupService (05 steal & exchange)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
+    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
@@ -637,6 +647,7 @@ describe('CoupService (05 steal & exchange)', () => {
 describe('CoupService (06 disconnect)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
+  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -651,6 +662,7 @@ describe('CoupService (06 disconnect)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
+    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
@@ -742,5 +754,55 @@ describe('CoupService (06 disconnect)', () => {
     expect(room.coupState!.phase).toBe('AWAITING_CHALLENGE');
     expect(room.coupState!.pendingAction).not.toBeNull();
     expect(room.coupState!.currentTurn).toBe('s1');
+  });
+
+  describe('endgame and disconnect integrity', () => {
+    it('keeps RESULT when a successful challenge eliminates the last rival influence', () => {
+      const room = makeRoom();
+      service.startGame(room, 's1');
+      const state = room.coupState!;
+      state.influences['s1'].count = 1;
+      state.influences['s3'].count = 0;
+      state.currentTurn = 's1';
+      // s1 bluffs TAX without holding the Duke; s2 calls the bluff.
+      privateState.set(room.code, 's1', 'coupHand', [CoupRole.CAPTAIN, CoupRole.AMBASSADOR]);
+
+      expect(service.declareAction(room, 's1', CoupActionType.TAX)).not.toBeNull();
+      const result = service.challenge(room, 's2');
+
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.RESULT);
+      expect(result!.coupState!.phase).toBe('RESULT');
+      expect(result!.coupState!.winnerId).toBe('s2');
+      // A finished game must not keep passing the turn.
+      expect(result!.coupState!.currentTurn).toBe('s1');
+    });
+
+    it('refunds the assassinate cost when the actor disconnects mid-window', () => {
+      const room = makeRoom();
+      service.startGame(room, 's1');
+      const state = room.coupState!;
+      state.coins['s1'] = 5;
+      privateState.set(room.code, 's1', 'coupHand', [CoupRole.ASSASSIN, CoupRole.DUKE]);
+
+      expect(service.declareAction(room, 's1', CoupActionType.ASSASSINATE, 's2')).not.toBeNull();
+      expect(state.coins['s1']).toBe(2);
+
+      service.handlePlayerDisconnect(room, 's1');
+
+      expect(state.coins['s1']).toBe(5);
+      expect(state.pendingAction).toBeNull();
+    });
+
+    it('resetGame cancels only the coup timers, preserving reconnect-grace timers', () => {
+      const room = makeRoom();
+      service.startGame(room, 's1');
+
+      expect(service.resetGame(room, 's1')).not.toBeNull();
+
+      expect(roomTimer.clearRoom).not.toHaveBeenCalled();
+      expect(roomTimer.cancel).toHaveBeenCalledWith(room.code, 'coup-challenge');
+      expect(roomTimer.cancel).toHaveBeenCalledWith(room.code, 'coup-block');
+    });
   });
 });

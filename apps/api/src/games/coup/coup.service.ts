@@ -82,7 +82,10 @@ export class CoupService {
     for (const p of room.players) {
       this.privateStateService.delete(room.code, p.socketId, 'coupHand');
     }
-    this.roomTimerService.clearRoom(room.code);
+    // Cancel only the coup round timers — clearRoom would also kill the
+    // reconnect-grace timers other games rely on to reclaim seats.
+    this.roomTimerService.cancel(room.code, 'coup-challenge');
+    this.roomTimerService.cancel(room.code, 'coup-block');
     room.coupState = undefined;
     room.status = RoomStatus.LOBBY;
     return room;
@@ -415,8 +418,8 @@ export class CoupService {
       // If assassinate, refund? No, per rule keep cost? For Tax no cost. For Assassinate we already deducted at declare, keep deducted.
       this.checkWinner(room, state);
       state.pendingAction = null;
-      state.phase = CoupPhase.PLAYING;
       if ((state.phase as string) !== CoupPhase.RESULT) {
+        state.phase = CoupPhase.PLAYING;
         this.advanceTurn(room, state);
       }
       return room;
@@ -573,6 +576,11 @@ export class CoupService {
       }
       this.roomTimerService.cancel(room.code, 'coup-challenge');
       this.roomTimerService.cancel(room.code, 'coup-block');
+      // The action is voided, so its cost is refunded too — a network blip
+      // must not silently burn the assassin's coins.
+      if (state.pendingAction.type === CoupActionType.ASSASSINATE) {
+        state.coins[socketId] = (state.coins[socketId] ?? 0) + 3;
+      }
       state.pendingAction = null;
       state.pendingBlock = null;
       state.challengeWindowDeadline = null;

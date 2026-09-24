@@ -26,4 +26,8 @@ export interface WhoAmIGameState {
   wordSubmittedIds: string[]; // socketIds who submitted (values stay private)
   wordSubmissionCategory?: string; // category label for PLAYER_INPUT
   revealedWords?: Record<string, string>; // all words revealed at game end
+  // HOST_INPUT mode: the host at game start. Unlike room.roomHostId this is
+  // stable across mid-game host transfers, so turn rotation keeps a promoted
+  // player in the loop.
+  hostSocketId?: string;
 }

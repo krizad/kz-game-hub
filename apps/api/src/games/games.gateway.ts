@@ -216,7 +216,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (updatedRoom) {
       client.join(updatedRoom.code);
       this.emitSessionToken(client, updatedRoom.code);
-      client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
+      client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(updatedRoom));
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -233,9 +233,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   ) {
     this.leavePreviousRoom(client, data.code.toUpperCase());
     // Block new entries into a disabled game, but never strand a seated player:
-    // existing members (reconnecting) may always return to their room.
+    // existing members (reconnecting) may always return to their room. After a
+    // browser refresh the socket id is new, so also honor a valid session token.
     const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
-    const isSeatedMember = targetRoom?.players.some((p) => p.socketId === client.id) ?? false;
+    const isSeatedMember =
+      (targetRoom?.players.some((p) => p.socketId === client.id) ?? false) ||
+      (!!data.reconnectToken &&
+        this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
     if (targetRoom && !isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
       client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
       return;
@@ -415,8 +419,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const room = this.gamesService.resetGame(data.code, client.id);
 
     if (room) {
-      this.roomTimerService.cancel(room.code, 'who-know');
-      this.roomTimerService.cancel(room.code, 'the-mind');
+      // Cancel every game's round timers — leaving per-player reconnect-grace
+      // timers intact. Each callback re-validates state, but an armed deadline
+      // for a reset game is noise at best and a stale action at worst.
+      for (const timerName of [
+        'who-know',
+        'the-mind',
+        'who-first',
+        'saboteur',
+        'card-game',
+        'coup-challenge',
+        'coup-block',
+        'music-trivia-countdown',
+        'music-trivia-answer',
+      ]) {
+        this.roomTimerService.cancel(room.code, timerName);
+      }
       this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
@@ -1267,14 +1285,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
     client.join(room.code);
     client.data.spectatingRoomCode = room.code;
-    client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
   }
 
   // --- Private helpers ---
 
   private broadcastRoomState(room: RoomState): void {
-    this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, room);
+    this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
     this.emitPrivateStates(room);
+    this.maybeRecordGameResult(room);
+    if (room.gameType === GameType.WHO_KNOW) {
+      this.revealSecretWordIfResult(room);
+    }
     if (room.gameType === GameType.SABOTEUR) {
       this.syncSaboteurTimer(room);
     }
@@ -1284,6 +1306,33 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
     if (room.gameType === GameType.CARD_GAME) {
       this.syncCardGameTimer(room);
+    }
+  }
+
+  /**
+   * Server-side view of a room safe to broadcast. Coup's face-down deck is
+   * secret information — its exact order would let any client predict every
+   * draw after a challenge reshuffle — so only its size is public.
+   */
+  private publicRoomView(room: RoomState): RoomState {
+    if (room.gameType === GameType.COUP && room.coupState) {
+      return {
+        ...room,
+        coupState: {
+          ...room.coupState,
+          deck: room.coupState.deck.map(() => 'HIDDEN' as CoupRole),
+        },
+      };
+    }
+    return room;
+  }
+
+  /** The word is secret only until voting resolves — then everyone gets to see it. */
+  private revealSecretWordIfResult(room: RoomState): void {
+    if (room.status !== RoomStatus.RESULT) return;
+    const secretWord = this.gamesService.getSecretWord(room.code);
+    if (secretWord) {
+      this.server.to(room.code).emit(SOCKET_EVENTS.WORD_SETTING_COMPLETED, { word: secretWord });
     }
   }
 

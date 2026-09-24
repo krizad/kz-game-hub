@@ -319,4 +319,18 @@ describe('UltimateTicTacToeService', () => {
       expect(state.playerOId).toBe('old-p2');
     });
   });
+
+  it('reset to lobby frees both seats so the room is startable again', () => {
+    const room = createRoom(RoomStatus.RESULT, { winner: 'X' });
+
+    const result = service.reset(room, 'p1', true);
+
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe(RoomStatus.LOBBY);
+    expect(result!.ultimateTicTacToeState!.playerXId).toBeUndefined();
+    expect(result!.ultimateTicTacToeState!.playerOId).toBeUndefined();
+
+    expect(service.joinSide(result!, 'p1', 'X')).not.toBeNull();
+    expect(service.joinSide(result!, 'p2', 'O')).not.toBeNull();
+  });
 });

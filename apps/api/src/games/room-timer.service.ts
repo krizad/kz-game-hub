@@ -1,7 +1,8 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 
 @Injectable()
 export class RoomTimerService implements OnModuleDestroy {
+  private readonly logger = new Logger(RoomTimerService.name);
   private readonly timers = new Map<string, NodeJS.Timeout>();
 
   schedule(roomCode: string, timerName: string, deadline: number, callback: () => void): void {
@@ -11,7 +12,13 @@ export class RoomTimerService implements OnModuleDestroy {
     const delay = Math.max(0, deadline - Date.now());
     const timer = setTimeout(() => {
       this.timers.delete(key);
-      callback();
+      // A throw here would surface as an uncaughtException and kill the
+      // whole API process; timer callbacks must never take the server down.
+      try {
+        callback();
+      } catch (error) {
+        this.logger.error(`Timer ${timerName} for room ${roomCode} threw`, error as Error);
+      }
     }, delay);
     timer.unref();
     this.timers.set(key, timer);
