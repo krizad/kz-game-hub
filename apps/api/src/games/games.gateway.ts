@@ -14,7 +14,6 @@ import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
-import { autoActionFor } from './card-game/card-engine.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import {
   SOCKET_EVENTS,
@@ -50,7 +49,6 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   private readonly logger = new Logger(GamesGateway.name);
   private readonly recordedResults = new Set<string>();
-  private readonly saboteurDeadlines = new Map<string, { playerId: string; deadline: number }>();
 
   constructor(
     private readonly gamesService: GamesService,
@@ -64,7 +62,6 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       if (event.type === 'ROOM_DELETED') {
         this.server.to(event.code).emit(SOCKET_EVENTS.ROOM_DELETED);
         this.forgetRecordedResult(event.code);
-        this.saboteurDeadlines.delete(event.code);
       } else {
         this.broadcastRoomState(event.room);
       }
@@ -1277,18 +1274,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const seconds = room.config.saboteurTurnTimerSeconds ?? 60;
 
     if (!enabled || !state || state.currentPhase !== 'PLAYING' || !state.activePlayerId) {
-      this.saboteurDeadlines.delete(room.code);
+      this.gamesService.clearSaboteurTurnDeadline(room.code);
       this.roomTimerService.cancel(room.code, 'saboteur');
       return;
     }
 
     const activePlayerId = state.activePlayerId;
-    const current = this.saboteurDeadlines.get(room.code);
-    const deadline =
-      current && current.playerId === activePlayerId
-        ? current.deadline
-        : Date.now() + seconds * 1000;
-    this.saboteurDeadlines.set(room.code, { playerId: activePlayerId, deadline });
+    const deadline = this.gamesService.saboteurTurnDeadline(room.code, activePlayerId, seconds);
     this.roomTimerService.schedule(room.code, 'saboteur', deadline, () => {
       const currentRoom = this.gamesService.getRoom(room.code);
       const currentState = currentRoom?.saboteurState;
@@ -1300,8 +1292,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       ) {
         return; // turn already advanced elsewhere
       }
+      this.gamesService.clearSaboteurTurnDeadline(currentRoom.code);
       const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
-      this.saboteurDeadlines.delete(currentRoom.code);
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
       }
@@ -1331,11 +1323,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       ) {
         return; // turn already advanced elsewhere
       }
-      const config = currentRoom.cardGameConfig;
-      if (!config) return;
-      const updatedRoom = this.gamesService.cardGameAction(currentRoom.code, activePlayerId, {
-        type: autoActionFor(config.actions),
-      } as CardGameAction);
+      const auto = this.gamesService.resolveCardGameAutoAction(currentRoom.code);
+      if (!auto) return; // no legal auto-action for this position
+      const updatedRoom = this.gamesService.cardGameAction(
+        currentRoom.code,
+        auto.playerId,
+        auto.action,
+      );
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
       }

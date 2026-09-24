@@ -69,7 +69,10 @@ export const SLAVE_PRESET: CardGamePresetDefinition = {
   allowed: {
     deck: [DEFAULT_DECK],
     deal: [DEFAULT_DEAL],
-    actions: [DEFAULT_ACTIONS],
+    actions: [
+      DEFAULT_ACTIONS,
+      { allowed: ['PLAY', 'PASS'], timeoutSeconds: 20, autoAction: 'PASS' },
+    ],
     piles: [DEFAULT_PILES],
     visibility: [DEFAULT_VISIBILITY],
     scoring: [DEFAULT_SCORING],

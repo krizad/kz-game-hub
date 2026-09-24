@@ -130,8 +130,22 @@ describe('GamesGateway payload guard', () => {
     jest.useFakeTimers({ now: 0 });
     const schedule = jest.fn();
     const cancel = jest.fn();
+    // Mirrors GamesService's deadline ownership: stable while the turn is unchanged.
+    const deadlines = new Map<string, { playerId: string; deadline: number }>();
+    const gamesService = {
+      getRoom: jest.fn(),
+      saboteurTurnDeadline: jest.fn((code: string, playerId: string, seconds: number) => {
+        const current = deadlines.get(code);
+        if (current && current.playerId === playerId) return current.deadline;
+        const deadline = Date.now() + seconds * 1000;
+        deadlines.set(code, { playerId, deadline });
+        return deadline;
+      }),
+      clearSaboteurTurnDeadline: jest.fn((code: string) => deadlines.delete(code)),
+      saboteurAutoPass: jest.fn(() => null),
+    };
     const gatewayInstance = new GamesGateway(
-      {} as never,
+      gamesService as never,
       {} as never,
       { schedule, cancel } as never,
       { getSocketData: jest.fn(() => ({})) } as never,

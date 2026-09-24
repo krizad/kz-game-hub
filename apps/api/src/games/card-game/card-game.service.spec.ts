@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GameType, PlayingCard, RoomState, RoomStatus } from '@repo/types';
 import { CardGameService } from './card-game.service';
 import { POK_DENG_PRESET } from './presets/pok-deng.preset';
+import { SLAVE_PRESET } from './presets/slave.preset';
+import { SlaveRuntime } from './slave.runtime';
 import { PrivateStateService } from '../private-state.service';
 
 const card = (id: string, rank: PlayingCard['rank'], suit: PlayingCard['suit']): PlayingCard => ({
@@ -128,6 +130,42 @@ describe('CardGameService', () => {
 
     finishRound(target);
     expect(target.cardGameState?.turnDeadline ?? null).toBeNull();
+  });
+
+  it('arms the auto-action timer for Slave turns and resolves the preset auto-action', () => {
+    const popOrder = [
+      card('3-CLUBS', '3', 'CLUBS'),
+      card('5-HEARTS', '5', 'HEARTS'),
+      ...Array.from({ length: 24 }, (_, index) => card(`pad-${index}`, '5', 'CLUBS')),
+    ];
+    (service as any).cardRuntimes = {
+      SLAVE: new SlaveRuntime(privateState, () => [...popOrder].reverse()),
+    };
+    const target = room();
+    target.cardGameConfig = {
+      ...SLAVE_PRESET.defaultConfig,
+      actions: { ...SLAVE_PRESET.defaultConfig.actions, timeoutSeconds: 20 },
+    };
+
+    const started = service.startCardRound(target, target.roomHostId)!;
+    expect(started.cardGameState?.preset).toBe('SLAVE');
+    expect(started.cardGameState?.activePlayerId).toBe('p1');
+    expect(typeof started.cardGameState?.turnDeadline).toBe('number');
+
+    // An idle opener leads the 3C single; a follower's expiry resolves to a pass.
+    expect(service.resolveAutoAction(started)).toEqual({
+      playerId: 'p1',
+      action: { type: 'PLAY', cards: ['3-CLUBS'] },
+    });
+    expect(
+      service.handleAction(started, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] }),
+    ).not.toBeNull();
+    expect(started.cardGameState?.activePlayerId).toBe('p2');
+    expect(typeof started.cardGameState?.turnDeadline).toBe('number');
+    expect(service.resolveAutoAction(started)).toEqual({
+      playerId: 'p2',
+      action: { type: 'PASS' },
+    });
   });
 
   it('deals the first round to the first seated player and rotates the dealer', () => {

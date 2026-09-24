@@ -470,7 +470,9 @@ describe('CardEngineService', () => {
     });
 
     it('exposes the validated auto action', () => {
-      expect(autoActionFor(POK_DENG_CONFIG.actions)).toBe('STAND');
+      expect(autoActionFor(POK_DENG_CONFIG.actions)).toEqual({ type: 'STAND' });
+      // PLAY carries a mandatory card payload no policy can supply.
+      expect(autoActionFor({ ...POK_DENG_CONFIG.actions, autoAction: 'PLAY' })).toBeNull();
     });
   });
 
