@@ -1,4 +1,4 @@
-import { ActionPolicy, CardActionKind, CardDecision, CardGameConfig, CardGamePhase, CardGamePresetDefinition, CardGamePublicState, CardGameResult, DealPolicy, DeckPolicy, PilePolicy, PlayingCard, RoundEndCondition, RoundEndConditionKind, StarterPolicy, TiePolicy, VisibilityPolicy } from '@repo/types';
+import { ActionPolicy, CardDecision, CardGameAction, CardGameConfig, CardGamePhase, CardGamePresetDefinition, CardGamePublicState, CardGameResult, DealPolicy, DeckPolicy, PilePolicy, PlayingCard, RoundEndCondition, RoundEndConditionKind, StarterPolicy, TiePolicy, VisibilityPolicy } from '@repo/types';
 export declare const RANKS: PlayingCard['rank'][];
 export declare const SUITS: PlayingCard['suit'][];
 export declare const RANK_INDEX: Record<PlayingCard["rank"], number>;
@@ -88,7 +88,7 @@ export interface StarterContext {
 export declare function resolveStarter(policy: StarterPolicy, context: StarterContext): string | null;
 export declare function toPublicState(snapshot: RoundSnapshot, visibility: VisibilityPolicy, viewerId?: string): CardGamePublicState;
 export declare function evaluateRoundEnd(conditions: RoundEndCondition[], context: RoundEndContext): RoundEndConditionKind | null;
-export declare function autoActionFor(policy: ActionPolicy): CardActionKind;
+export declare function autoActionFor(policy: ActionPolicy): CardGameAction | null;
 export declare function mod10Score(hand: PlayingCard[]): number;
 export declare function outcomeTagForMod10(hand: PlayingCard[]): string;
 export declare function rankIndexIn(rankOrder: string[], rank: PlayingCard['rank']): number;

@@ -4,6 +4,8 @@ const testing_1 = require("@nestjs/testing");
 const types_1 = require("@repo/types");
 const card_game_service_1 = require("./card-game.service");
 const pok_deng_preset_1 = require("./presets/pok-deng.preset");
+const slave_preset_1 = require("./presets/slave.preset");
+const slave_runtime_1 = require("./slave.runtime");
 const private_state_service_1 = require("../private-state.service");
 const card = (id, rank, suit) => ({
     id,
@@ -106,6 +108,36 @@ describe('CardGameService', () => {
         expect(typeof target.cardGameState?.turnDeadline).toBe('number');
         finishRound(target);
         expect(target.cardGameState?.turnDeadline ?? null).toBeNull();
+    });
+    it('arms the auto-action timer for Slave turns and resolves the preset auto-action', () => {
+        const popOrder = [
+            card('3-CLUBS', '3', 'CLUBS'),
+            card('5-HEARTS', '5', 'HEARTS'),
+            ...Array.from({ length: 24 }, (_, index) => card(`pad-${index}`, '5', 'CLUBS')),
+        ];
+        service.cardRuntimes = {
+            SLAVE: new slave_runtime_1.SlaveRuntime(privateState, () => [...popOrder].reverse()),
+        };
+        const target = room();
+        target.cardGameConfig = {
+            ...slave_preset_1.SLAVE_PRESET.defaultConfig,
+            actions: { ...slave_preset_1.SLAVE_PRESET.defaultConfig.actions, timeoutSeconds: 20 },
+        };
+        const started = service.startCardRound(target, target.roomHostId);
+        expect(started.cardGameState?.preset).toBe('SLAVE');
+        expect(started.cardGameState?.activePlayerId).toBe('p1');
+        expect(typeof started.cardGameState?.turnDeadline).toBe('number');
+        expect(service.resolveAutoAction(started)).toEqual({
+            playerId: 'p1',
+            action: { type: 'PLAY', cards: ['3-CLUBS'] },
+        });
+        expect(service.handleAction(started, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] })).not.toBeNull();
+        expect(started.cardGameState?.activePlayerId).toBe('p2');
+        expect(typeof started.cardGameState?.turnDeadline).toBe('number');
+        expect(service.resolveAutoAction(started)).toEqual({
+            playerId: 'p2',
+            action: { type: 'PASS' },
+        });
     });
     it('deals the first round to the first seated player and rotates the dealer', () => {
         const result = startRound(room());

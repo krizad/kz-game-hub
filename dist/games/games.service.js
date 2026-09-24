@@ -55,6 +55,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.cardGameService = cardGameService;
         this.rooms = new Map();
         this.secretWords = new Map();
+        this.saboteurTurnDeadlines = new Map();
     }
     setRoomLifecycleListener(listener) {
         this.roomLifecycleListener = listener;
@@ -428,6 +429,7 @@ let GamesService = GamesService_1 = class GamesService {
     deleteRoomData(code) {
         this.rooms.delete(code);
         this.secretWords.delete(code);
+        this.saboteurTurnDeadlines.delete(code);
         this.roomTimerService.clearRoom(code);
         this.playerSessionService.clearRoom(code);
         this.musicTriviaService.deleteRoomData(code);
@@ -831,6 +833,23 @@ let GamesService = GamesService_1 = class GamesService {
         if (this.rejectViewer(code, clientId))
             return null;
         return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
+    }
+    resolveCardGameAutoAction(code) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        return this.cardGameService.resolveAutoAction(room);
+    }
+    saboteurTurnDeadline(code, activePlayerId, seconds) {
+        const current = this.saboteurTurnDeadlines.get(code);
+        if (current && current.playerId === activePlayerId)
+            return current.deadline;
+        const deadline = Date.now() + seconds * 1000;
+        this.saboteurTurnDeadlines.set(code, { playerId: activePlayerId, deadline });
+        return deadline;
+    }
+    clearSaboteurTurnDeadline(code) {
+        this.saboteurTurnDeadlines.delete(code);
     }
     getPlayerRole(code, socketId) {
         const data = this.privateStateService.getSocketData(code, socketId);

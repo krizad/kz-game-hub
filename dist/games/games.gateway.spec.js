@@ -75,7 +75,21 @@ describe('GamesGateway payload guard', () => {
         jest.useFakeTimers({ now: 0 });
         const schedule = jest.fn();
         const cancel = jest.fn();
-        const gatewayInstance = new games_gateway_1.GamesGateway({}, {}, { schedule, cancel }, { getSocketData: jest.fn(() => ({})) });
+        const deadlines = new Map();
+        const gamesService = {
+            getRoom: jest.fn(),
+            saboteurTurnDeadline: jest.fn((code, playerId, seconds) => {
+                const current = deadlines.get(code);
+                if (current && current.playerId === playerId)
+                    return current.deadline;
+                const deadline = Date.now() + seconds * 1000;
+                deadlines.set(code, { playerId, deadline });
+                return deadline;
+            }),
+            clearSaboteurTurnDeadline: jest.fn((code) => deadlines.delete(code)),
+            saboteurAutoPass: jest.fn(() => null),
+        };
+        const gatewayInstance = new games_gateway_1.GamesGateway(gamesService, {}, { schedule, cancel }, { getSocketData: jest.fn(() => ({})) });
         gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() };
         const room = {
             code: 'SAB123',

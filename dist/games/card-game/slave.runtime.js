@@ -25,6 +25,10 @@ class SlaveRuntime {
             chips[id] = chips[id] ?? config.scoring.startingChips;
         const leaderCardDealt = playerIds.some((id) => (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID));
         const leaderId = playerIds.find((id) => (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID)) ??
+            (0, card_engine_service_1.resolveStarter)(config.deal.starterPolicy, {
+                playerOrder: playerIds,
+                previousStarterId: room.cardGameState?.dealerId,
+            }) ??
             playerIds[0];
         const decisions = {};
         for (const id of playerIds) {
@@ -109,6 +113,17 @@ class SlaveRuntime {
         }
         state.activePlayerId = this.nextActiveAfterPass(state, socketId, trick);
         return room;
+    }
+    autoAction(room, socketId, config) {
+        const state = room.cardGameState;
+        const following = Boolean(state.trick && state.trick.playedById !== null);
+        if (following)
+            return { type: 'PASS' };
+        const hand = this.getHand(room.code, socketId) ?? [];
+        const lead = !this.hasFirstPlayed(room.code)
+            ? hand.find((card) => card.id === LEADER_CARD_ID)
+            : [...hand].sort((a, b) => slave_preset_1.SLAVE_RANK_ORDER.indexOf(a.rank) - slave_preset_1.SLAVE_RANK_ORDER.indexOf(b.rank))[0];
+        return { type: 'PLAY', cards: lead ? [lead.id] : [] };
     }
     resolvePlayedCards(hand, cardIds) {
         if (!cardIds || cardIds.length === 0 || cardIds.length > MAX_GROUP)

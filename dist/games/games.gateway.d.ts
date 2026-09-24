@@ -13,7 +13,6 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     server: Server;
     private readonly logger;
     private readonly recordedResults;
-    private readonly saboteurDeadlines;
     constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService);
     afterInit(): void;
     handleConnection(client: Socket): void;

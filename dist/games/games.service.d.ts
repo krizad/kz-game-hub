@@ -56,6 +56,7 @@ export declare class GamesService {
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
+    private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
     constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
@@ -103,6 +104,12 @@ export declare class GamesService {
     resetGame(code: string, requesterId: string): RoomState | null;
     getSecretWord(code: string): string | undefined;
     cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null;
+    resolveCardGameAutoAction(code: string): {
+        playerId: string;
+        action: CardGameAction;
+    } | null;
+    saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number;
+    clearSaboteurTurnDeadline(code: string): void;
     getPlayerRole(code: string, socketId: string): Role | undefined;
     whoKnowServerTimeout(code: string): RoomState | null;
     tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;

@@ -378,7 +378,8 @@ describe('CardEngineService', () => {
             expect(result).toBeNull();
         });
         it('exposes the validated auto action', () => {
-            expect((0, card_engine_service_1.autoActionFor)(POK_DENG_CONFIG.actions)).toBe('STAND');
+            expect((0, card_engine_service_1.autoActionFor)(POK_DENG_CONFIG.actions)).toEqual({ type: 'STAND' });
+            expect((0, card_engine_service_1.autoActionFor)({ ...POK_DENG_CONFIG.actions, autoAction: 'PLAY' })).toBeNull();
         });
     });
     describe('mod10Score and outcomeTagForMod10', () => {

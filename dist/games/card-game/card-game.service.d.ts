@@ -11,6 +11,11 @@ export declare class CardGameService {
     remapSocketId(state: CardGamePublicState, oldSocketId: string, newSocketId: string): void;
     private appendLog;
     private configFor;
+    private refreshTurnDeadline;
+    resolveAutoAction(room: RoomState): {
+        playerId: string;
+        action: CardGameAction;
+    } | null;
     private advance;
     private resolve;
     private createDeck;

@@ -21,7 +21,6 @@ const games_service_1 = require("./games.service");
 const leaderboard_service_1 = require("./leaderboard/leaderboard.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
-const card_engine_service_1 = require("./card-game/card-engine.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
 let GamesGateway = GamesGateway_1 = class GamesGateway {
@@ -32,14 +31,12 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.privateStateService = privateStateService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
-        this.saboteurDeadlines = new Map();
     }
     afterInit() {
         this.gamesService.setRoomLifecycleListener((event) => {
             if (event.type === 'ROOM_DELETED') {
                 this.server.to(event.code).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
                 this.forgetRecordedResult(event.code);
-                this.saboteurDeadlines.delete(event.code);
             }
             else {
                 this.broadcastRoomState(event.room);
@@ -866,16 +863,12 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const enabled = room.config.saboteurTurnTimerEnabled;
         const seconds = room.config.saboteurTurnTimerSeconds ?? 60;
         if (!enabled || !state || state.currentPhase !== 'PLAYING' || !state.activePlayerId) {
-            this.saboteurDeadlines.delete(room.code);
+            this.gamesService.clearSaboteurTurnDeadline(room.code);
             this.roomTimerService.cancel(room.code, 'saboteur');
             return;
         }
         const activePlayerId = state.activePlayerId;
-        const current = this.saboteurDeadlines.get(room.code);
-        const deadline = current && current.playerId === activePlayerId
-            ? current.deadline
-            : Date.now() + seconds * 1000;
-        this.saboteurDeadlines.set(room.code, { playerId: activePlayerId, deadline });
+        const deadline = this.gamesService.saboteurTurnDeadline(room.code, activePlayerId, seconds);
         this.roomTimerService.schedule(room.code, 'saboteur', deadline, () => {
             const currentRoom = this.gamesService.getRoom(room.code);
             const currentState = currentRoom?.saboteurState;
@@ -885,8 +878,8 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 currentState.activePlayerId !== activePlayerId) {
                 return;
             }
+            this.gamesService.clearSaboteurTurnDeadline(currentRoom.code);
             const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
-            this.saboteurDeadlines.delete(currentRoom.code);
             if (updatedRoom) {
                 this.broadcastRoomState(updatedRoom);
             }
@@ -910,12 +903,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 (currentState.turnDeadline ?? null) !== deadline) {
                 return;
             }
-            const config = currentRoom.cardGameConfig;
-            if (!config)
+            const auto = this.gamesService.resolveCardGameAutoAction(currentRoom.code);
+            if (!auto)
                 return;
-            const updatedRoom = this.gamesService.cardGameAction(currentRoom.code, activePlayerId, {
-                type: (0, card_engine_service_1.autoActionFor)(config.actions),
-            });
+            const updatedRoom = this.gamesService.cardGameAction(currentRoom.code, auto.playerId, auto.action);
             if (updatedRoom) {
                 this.broadcastRoomState(updatedRoom);
             }

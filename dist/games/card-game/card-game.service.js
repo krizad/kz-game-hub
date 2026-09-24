@@ -40,8 +40,10 @@ let CardGameService = class CardGameService {
             if (players.length < preset.minPlayers || players.length > preset.maxPlayers)
                 return null;
             const started = runtime.startRound(room, this.configFor(room), players.map((player) => player.socketId));
-            if (started)
+            if (started) {
                 room.cardGameLog = [];
+                this.refreshTurnDeadline(room);
+            }
             return started;
         }
         const startedPokDeng = this.startPokDeng(room, requesterId);
@@ -119,6 +121,7 @@ let CardGameService = class CardGameService {
                 const exhaustedDraw = action.type === 'DRAW' && room.cardGameState?.decisions[socketId] === 'PENDING';
                 if (!exhaustedDraw)
                     this.appendLog(room, socketId, action);
+                this.refreshTurnDeadline(room);
             }
             return handled;
         }
@@ -220,16 +223,35 @@ let CardGameService = class CardGameService {
         const validated = (0, card_engine_service_1.validateConfig)(room.cardGameConfig, preset);
         return validated.config ?? preset.defaultConfig;
     }
+    refreshTurnDeadline(room) {
+        const state = room.cardGameState;
+        if (!state)
+            return;
+        if (state.phase !== 'PLAYER_TURNS' || !state.activePlayerId) {
+            state.turnDeadline = null;
+            return;
+        }
+        const { timeoutSeconds } = this.configFor(room).actions;
+        state.turnDeadline = timeoutSeconds > 0 ? Date.now() + timeoutSeconds * 1000 : null;
+    }
+    resolveAutoAction(room) {
+        const state = room.cardGameState;
+        if (!state || state.phase !== 'PLAYER_TURNS' || !state.activePlayerId)
+            return null;
+        const config = this.configFor(room);
+        const runtime = this.cardRuntimes[state.preset];
+        const action = runtime
+            ? runtime.autoAction(room, state.activePlayerId, config)
+            : (0, card_engine_service_1.autoActionFor)(config.actions);
+        return action ? { playerId: state.activePlayerId, action } : null;
+    }
     advance(room) {
         const state = room.cardGameState;
         const config = this.configFor(room);
         const next = state.playerOrder.find((id) => id !== state.dealerId && state.decisions[id] === 'PENDING');
         if (next) {
             state.activePlayerId = next;
-            state.turnDeadline =
-                config.actions.timeoutSeconds > 0
-                    ? Date.now() + config.actions.timeoutSeconds * 1000
-                    : null;
+            this.refreshTurnDeadline(room);
             return;
         }
         const dealerHand = this.getHand(room.code, state.dealerId) ?? [];

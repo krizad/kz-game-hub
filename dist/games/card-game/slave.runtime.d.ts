@@ -7,6 +7,7 @@ export declare class SlaveRuntime {
     constructor(privateStateService: PrivateStateService, buildShuffledDeck?: DeckBuilder);
     startRound(room: RoomState, config: CardGameConfig, playerIds: string[]): RoomState;
     handleAction(room: RoomState, socketId: string, action: CardGameAction, config: CardGameConfig): RoomState | null;
+    autoAction(room: RoomState, socketId: string, config: CardGameConfig): CardGameAction;
     private resolvePlayedCards;
     private nextCardHolder;
     private nextActiveAfterPass;

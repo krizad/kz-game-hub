@@ -1384,6 +1384,33 @@ describe('GamesService', () => {
             await expect(pending).resolves.toBeNull();
             expect(service.rooms.has(room.code)).toBe(false);
         });
+        it('keeps the saboteur auto-pass deadline stable per turn and resets on turn change', () => {
+            jest.useFakeTimers({ now: 0 });
+            try {
+                const first = service.saboteurTurnDeadline('SABXYZ', 'p1', 60);
+                expect(first).toBe(60_000);
+                jest.advanceTimersByTime(5_000);
+                expect(service.saboteurTurnDeadline('SABXYZ', 'p1', 60)).toBe(first);
+                expect(service.saboteurTurnDeadline('SABXYZ', 'p2', 60)).toBe(65_000);
+                service.clearSaboteurTurnDeadline('SABXYZ');
+                expect(service.saboteurTurnDeadline('SABXYZ', 'p1', 60)).toBe(65_000);
+            }
+            finally {
+                jest.useRealTimers();
+            }
+        });
+        it('drops the saboteur auto-pass deadline when the room is deleted', () => {
+            const room = service.createRoom('host1', types_1.GameType.SABOTEUR);
+            service.saboteurTurnDeadline(room.code, 'p1', 60);
+            service.deleteRoom(room.code);
+            jest.useFakeTimers({ now: 5_000 });
+            try {
+                expect(service.saboteurTurnDeadline(room.code, 'p1', 60)).toBe(65_000);
+            }
+            finally {
+                jest.useRealTimers();
+            }
+        });
     });
 });
 //# sourceMappingURL=games.service.spec.js.map

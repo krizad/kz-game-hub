@@ -326,7 +326,18 @@ function evaluateRoundEnd(conditions, context) {
     return null;
 }
 function autoActionFor(policy) {
-    return policy.autoAction;
+    switch (policy.autoAction) {
+        case 'DRAW':
+            return { type: 'DRAW' };
+        case 'STAND':
+            return { type: 'STAND' };
+        case 'PASS':
+            return { type: 'PASS' };
+        case 'CLAIM':
+            return { type: 'CLAIM' };
+        default:
+            return null;
+    }
 }
 function cardValue(card) {
     if (card.rank === 'A')

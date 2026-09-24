@@ -66,6 +66,47 @@ describe('SlaveRuntime', () => {
         expect(result).not.toBeNull();
         expect(result.cardGameState.trick.playedById).toBe('p1');
     });
+    it('follows the preset starter policy when the deck holds no 3C', () => {
+        const target = room();
+        const popOrder = [card('5-HEARTS', '5', 'HEARTS'), card('6-HEARTS', '6', 'HEARTS'), ...pad(24)];
+        const runtime = runtimeFor(popOrder);
+        const first = runtime.startRound(target, config, ['p1', 'p2']);
+        expect(first.cardGameState.activePlayerId).toBe('p1');
+        target.cardGameState = { ...first.cardGameState, dealerId: 'p1' };
+        const second = runtime.startRound(target, config, ['p1', 'p2']);
+        expect(second.cardGameState.activePlayerId).toBe('p2');
+    });
+    it('auto-plays the 3C single for an idle opener', () => {
+        const target = room();
+        const popOrder = [card('3-CLUBS', '3', 'CLUBS'), card('5-HEARTS', '5', 'HEARTS'), ...pad(24)];
+        const runtime = runtimeFor(popOrder);
+        runtime.startRound(target, config, ['p1', 'p2']);
+        expect(runtime.autoAction(target, 'p1', config)).toEqual({
+            type: 'PLAY',
+            cards: ['3-CLUBS'],
+        });
+    });
+    it('auto-passes for a follower when the turn deadline expires', () => {
+        const target = room();
+        const popOrder = [card('3-CLUBS', '3', 'CLUBS'), card('5-HEARTS', '5', 'HEARTS'), ...pad(24)];
+        const runtime = runtimeFor(popOrder);
+        runtime.startRound(target, config, ['p1', 'p2']);
+        runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] }, config);
+        expect(runtime.autoAction(target, 'p2', config)).toEqual({ type: 'PASS' });
+    });
+    it('auto-plays the lowest single when the trick is cleared and the leader idles', () => {
+        const target = room();
+        const popOrder = [card('3-CLUBS', '3', 'CLUBS'), card('5-HEARTS', '5', 'HEARTS'), ...pad(24)];
+        const runtime = runtimeFor(popOrder);
+        runtime.startRound(target, config, ['p1', 'p2']);
+        runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] }, config);
+        runtime.handleAction(target, 'p2', { type: 'PASS' }, config);
+        expect(target.cardGameState.activePlayerId).toBe('p1');
+        expect(runtime.autoAction(target, 'p1', config)).toEqual({
+            type: 'PLAY',
+            cards: ['pad-0'],
+        });
+    });
     it('rejects an opening lead without the 3C', () => {
         const target = room();
         const popOrder = [card('3-CLUBS', '3', 'CLUBS'), card('5-HEARTS', '5', 'HEARTS'), ...pad(24)];
