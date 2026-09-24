@@ -4,6 +4,7 @@ export declare class PlayerSessionService {
     private readonly pendingTokens;
     issue(roomCode: string, playerId: string, socketId: string): void;
     consume(roomCode: string, token: string): string | null;
+    verify(roomCode: string, token: string): string | null;
     takePendingToken(socketId: string): string | null;
     revokePlayer(roomCode: string, playerId: string): void;
     clearRoom(roomCode: string): void;

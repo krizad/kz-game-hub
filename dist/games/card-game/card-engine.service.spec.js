@@ -59,7 +59,7 @@ describe('CardEngineService', () => {
             expect(result.config?.scoring.multipliers).toEqual({ POK_8: 2, POK_9: 2 });
         });
         it('rejects a config for another preset', () => {
-            const result = (0, card_engine_service_1.validateConfig)({ preset: 'OLD_MAID' }, PRESET);
+            const result = (0, card_engine_service_1.validateConfig)({ preset: 'SLAVE' }, PRESET);
             expect(result.ok).toBe(false);
             expect(result.errors).toContain('preset: expected POK_DENG');
         });
@@ -120,9 +120,19 @@ describe('CardEngineService', () => {
             expect(deck.some((entry) => entry.id === 'A-CLUBS#1')).toBe(true);
         });
         it('shuffles deterministically with an injected random source and leaves the input untouched', () => {
-            const input = [card('A', 'CLUBS'), card('2', 'CLUBS'), card('3', 'CLUBS'), card('4', 'CLUBS')];
+            const input = [
+                card('A', 'CLUBS'),
+                card('2', 'CLUBS'),
+                card('3', 'CLUBS'),
+                card('4', 'CLUBS'),
+            ];
             const shuffled = (0, card_engine_service_1.shuffleDeck)(input, () => 0);
-            expect(shuffled.map((entry) => entry.id)).toEqual(['2-CLUBS', '3-CLUBS', '4-CLUBS', 'A-CLUBS']);
+            expect(shuffled.map((entry) => entry.id)).toEqual([
+                '2-CLUBS',
+                '3-CLUBS',
+                '4-CLUBS',
+                'A-CLUBS',
+            ]);
             expect(input.map((entry) => entry.id)).toEqual(['A-CLUBS', '2-CLUBS', '3-CLUBS', '4-CLUBS']);
         });
     });
@@ -138,8 +148,41 @@ describe('CardEngineService', () => {
             expect(result.ok).toBe(false);
             expect(result.error).toContain('evenly');
         });
+        it('deals every card and gives the remainder to the earliest seats', () => {
+            const policy = {
+                cardsPerPlayer: 13,
+                countMode: 'DEAL_ALL_UNEVEN',
+                starterPolicy: 'ROTATE',
+            };
+            expect((0, card_engine_service_1.previewDeal)(52, 2, { ...policy }).preview).toEqual({
+                perPlayer: 26,
+                stockSize: 0,
+                reserveSize: 0,
+            });
+            expect((0, card_engine_service_1.previewDeal)(52, 3, { ...policy }).preview).toEqual({
+                perPlayer: 17,
+                stockSize: 0,
+                reserveSize: 0,
+            });
+            expect((0, card_engine_service_1.previewDeal)(52, 4, { ...policy }).preview).toEqual({
+                perPlayer: 13,
+                stockSize: 0,
+                reserveSize: 0,
+            });
+            const deck = (0, card_engine_service_1.createDeck)({ kind: 'STANDARD_52', jokers: false, copies: 1 });
+            const dealt = (0, card_engine_service_1.dealRound)(deck, ['a', 'b', 'c'], { ...policy });
+            expect(dealt.ok).toBe(true);
+            expect(dealt.hands?.a).toHaveLength(18);
+            expect(dealt.hands?.b).toHaveLength(17);
+            expect(dealt.hands?.c).toHaveLength(17);
+            expect(dealt.stock).toHaveLength(0);
+        });
         it('rejects REJECT_IF_NOT_EVEN when cards would remain', () => {
-            const policy = { cardsPerPlayer: 2, countMode: 'REJECT_IF_NOT_EVEN', starterPolicy: 'ROTATE' };
+            const policy = {
+                cardsPerPlayer: 2,
+                countMode: 'REJECT_IF_NOT_EVEN',
+                starterPolicy: 'ROTATE',
+            };
             const result = (0, card_engine_service_1.previewDeal)(52, 2, { ...policy });
             expect(result.ok).toBe(false);
             expect(result.error).toContain('fully consumed');
@@ -410,7 +453,10 @@ describe('CardEngineService', () => {
                 a: 3,
                 dealer: -3,
             });
-            expect((0, card_engine_service_1.settleMod10Showdown)({ ...tied(), tiePolicy: 'PUSH' }).deltas).toEqual({ a: 0, dealer: 0 });
+            expect((0, card_engine_service_1.settleMod10Showdown)({ ...tied(), tiePolicy: 'PUSH' }).deltas).toEqual({
+                a: 0,
+                dealer: 0,
+            });
         });
         it('lets balances go negative instead of clamping', () => {
             const result = (0, card_engine_service_1.settleMod10Showdown)({

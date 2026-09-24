@@ -1,4 +1,4 @@
-import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CardGameAction, CardGameConfig, CardGameImportRulesResult, CardGamePublishRulesResult } from '@repo/types';
+import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -16,7 +16,6 @@ import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
-import { CardRulePresetRepository } from './card-game/card-rule-preset.repository';
 export type LeaveRoomResult = {
     outcome: 'ROOM_CLOSED';
     code: string;
@@ -28,6 +27,13 @@ export type LeaveRoomResult = {
     room: RoomState;
 } | {
     outcome: 'NOT_IN_ROOM';
+};
+export type RoomLifecycleEvent = {
+    type: 'ROOM_STATE_UPDATED';
+    room: RoomState;
+} | {
+    type: 'ROOM_DELETED';
+    code: string;
 };
 export declare class GamesService {
     private readonly whoKnowService;
@@ -47,11 +53,12 @@ export declare class GamesService {
     private readonly privateStateService;
     private readonly roomTimerService;
     private readonly cardGameService;
-    private readonly cardRulePresetRepository;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, cardRulePresetRepository: CardRulePresetRepository);
+    private roomLifecycleListener?;
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService);
+    setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
@@ -65,6 +72,7 @@ export declare class GamesService {
     private removePlayerFromRoom;
     private runDisconnectHooks;
     private transferHost;
+    deleteRoom(code: string): void;
     private deleteRoomData;
     getAvailableRooms(): {
         code: string;
@@ -95,8 +103,6 @@ export declare class GamesService {
     resetGame(code: string, requesterId: string): RoomState | null;
     getSecretWord(code: string): string | undefined;
     cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null;
-    cardGamePublishRules(code: string, requesterId: string, config: CardGameConfig): Promise<CardGamePublishRulesResult>;
-    cardGameImportRules(code: string, requesterId: string, shareCode: string): Promise<CardGameImportRulesResult>;
     getPlayerRole(code: string, socketId: string): Role | undefined;
     whoKnowServerTimeout(code: string): RoomState | null;
     tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
@@ -142,7 +148,7 @@ export declare class GamesService {
     coupDeclare(code: string, clientId: string, type: CoupActionType, targetId?: string): RoomState | null;
     coupChallenge(code: string, clientId: string): RoomState | null;
     coupChallengeTimeout(code: string): RoomState | null;
-    coupBlock(code: string, clientId: string): RoomState | null;
+    coupBlock(code: string, clientId: string, role?: CoupRole): RoomState | null;
     coupBlockTimeout(code: string): RoomState | null;
     coupBlockChallengeTimeout(code: string): RoomState | null;
     coupExchangeSelect(code: string, clientId: string, keepIndices: number[]): RoomState | null;

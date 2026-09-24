@@ -17,8 +17,6 @@ const card_engine_service_1 = require("./card-engine.service");
 const pok_deng_preset_1 = require("./presets/pok-deng.preset");
 const presets_1 = require("./presets");
 const slave_runtime_1 = require("./slave.runtime");
-const sam_sip_runtime_1 = require("./sam-sip.runtime");
-const old_maid_runtime_1 = require("./old-maid.runtime");
 const PRIVATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
 const PILES_KEY = 'piles';
@@ -27,12 +25,12 @@ let CardGameService = class CardGameService {
         this.privateStateService = privateStateService;
         this.cardRuntimes = {
             SLAVE: new slave_runtime_1.SlaveRuntime(privateStateService),
-            SAM_SIP: new sam_sip_runtime_1.SamSipRuntime(privateStateService),
-            OLD_MAID: new old_maid_runtime_1.OldMaidRuntime(privateStateService),
         };
     }
     startCardRound(room, requesterId) {
         if (room.gameType !== types_1.GameType.CARD_GAME || room.roomHostId !== requesterId)
+            return null;
+        if (room.status !== types_1.RoomStatus.LOBBY && room.status !== types_1.RoomStatus.RESULT)
             return null;
         const presetId = room.cardGameConfig?.preset ?? 'POK_DENG';
         const runtime = this.cardRuntimes[presetId];
@@ -95,12 +93,18 @@ let CardGameService = class CardGameService {
             decisions,
         }, config.visibility);
         room.status = types_1.RoomStatus.PLAYING;
+        if ((0, card_engine_service_1.mod10Score)(hands[dealerId]) >= 8) {
+            this.resolve(room, config);
+            return room;
+        }
         this.advance(room);
         return room;
     }
     handleAction(room, socketId, action) {
         const state = room.cardGameState;
         if (!state || room.gameType !== types_1.GameType.CARD_GAME)
+            return null;
+        if (!action || typeof action !== 'object' || typeof action.type !== 'string')
             return null;
         const presetId = room.cardGameConfig?.preset ?? 'POK_DENG';
         const runtime = this.cardRuntimes[presetId];
@@ -111,8 +115,11 @@ let CardGameService = class CardGameService {
                 return this.startCardRound(room, room.roomHostId);
             }
             const handled = runtime.handleAction(room, socketId, action, this.configFor(room));
-            if (handled)
-                this.appendLog(room, socketId, action);
+            if (handled) {
+                const exhaustedDraw = action.type === 'DRAW' && room.cardGameState?.decisions[socketId] === 'PENDING';
+                if (!exhaustedDraw)
+                    this.appendLog(room, socketId, action);
+            }
             return handled;
         }
         if (action.type === 'NEXT_ROUND') {
@@ -174,12 +181,12 @@ let CardGameService = class CardGameService {
                 state.trick.leaderId = newSocketId;
             if (state.trick.playedById === oldSocketId)
                 state.trick.playedById = newSocketId;
-            state.trick.passIds = state.trick.passIds.map((id) => (id === oldSocketId ? newSocketId : id));
+            state.trick.passIds = state.trick.passIds.map((id) => id === oldSocketId ? newSocketId : id);
         }
         if (state.result) {
             state.result.playerScores = this.remapRecord(state.result.playerScores, oldSocketId, newSocketId);
             state.result.outcomeTags = this.remapRecord(state.result.outcomeTags, oldSocketId, newSocketId);
-            state.result.winnerIds = state.result.winnerIds.map((id) => (id === oldSocketId ? newSocketId : id));
+            state.result.winnerIds = state.result.winnerIds.map((id) => id === oldSocketId ? newSocketId : id);
             state.result.revealedHands = this.remapRecord(state.result.revealedHands, oldSocketId, newSocketId);
             if (state.result.placements) {
                 state.result.placements = state.result.placements.map((id) => id === oldSocketId ? newSocketId : id);
@@ -219,6 +226,10 @@ let CardGameService = class CardGameService {
         const next = state.playerOrder.find((id) => id !== state.dealerId && state.decisions[id] === 'PENDING');
         if (next) {
             state.activePlayerId = next;
+            state.turnDeadline =
+                config.actions.timeoutSeconds > 0
+                    ? Date.now() + config.actions.timeoutSeconds * 1000
+                    : null;
             return;
         }
         const dealerHand = this.getHand(room.code, state.dealerId) ?? [];
@@ -250,7 +261,7 @@ let CardGameService = class CardGameService {
         for (const id of state.playerOrder) {
             chips[id] = (chips[id] ?? 0) + (outcome.deltas[id] ?? 0);
         }
-        room.cardGameChips = chips;
+        room.cardGameChips = { ...room.cardGameChips, ...chips };
         room.cardGameState = (0, card_engine_service_1.toPublicState)({
             preset: pok_deng_preset_1.POK_DENG_PRESET.id,
             phase: 'RESULT',
@@ -283,7 +294,8 @@ let CardGameService = class CardGameService {
         });
     }
     getHand(roomCode, socketId) {
-        return this.privateStateService.get(roomCode, socketId, PRIVATE_KEY)?.hand;
+        return this.privateStateService.get(roomCode, socketId, PRIVATE_KEY)
+            ?.hand;
     }
     setPiles(roomCode, piles) {
         this.privateStateService.set(roomCode, ENGINE_SOCKET_ID, PILES_KEY, piles);

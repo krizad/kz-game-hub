@@ -405,7 +405,7 @@ let CoupService = class CoupService {
             return room;
         }
     }
-    block(room, blockerId) {
+    block(room, blockerId, role) {
         if (room.gameType !== types_1.GameType.COUP || !room.coupState)
             return null;
         const state = room.coupState;
@@ -425,7 +425,9 @@ let CoupService = class CoupService {
             return null;
         if (pending.type === types_1.CoupActionType.STEAL && blockerId !== pending.targetId)
             return null;
-        const claimedRole = allowed[0];
+        if (role && !allowed.includes(role))
+            return null;
+        const claimedRole = role ?? allowed[0];
         this.roomTimerService.cancel(room.code, 'coup-block');
         state.blockWindowDeadline = null;
         state.pendingBlock = { blockerId, claimedRole };
@@ -443,17 +445,20 @@ let CoupService = class CoupService {
             return null;
         if (state.pendingAction.type !== types_1.CoupActionType.EXCHANGE)
             return null;
-        if (!Array.isArray(keepIndices) || keepIndices.length !== 2)
+        if (!Array.isArray(keepIndices))
             return null;
-        if (new Set(keepIndices).size !== 2)
+        const hand = this.privateStateService.get(room.code, actorId, 'coupHand') ?? [];
+        const keepCount = state.influences[actorId]?.count ?? 0;
+        if (keepCount < 1 || hand.length !== keepCount + 2)
+            return null;
+        if (keepIndices.length !== keepCount)
+            return null;
+        if (new Set(keepIndices).size !== keepCount)
             return null;
         for (const idx of keepIndices) {
-            if (!Number.isInteger(idx) || idx < 0 || idx > 3)
+            if (!Number.isInteger(idx) || idx < 0 || idx >= hand.length)
                 return null;
         }
-        const hand = this.privateStateService.get(room.code, actorId, 'coupHand') ?? [];
-        if (hand.length !== 4)
-            return null;
         const kept = keepIndices.map((i) => hand[i]);
         const returned = hand.filter((_, i) => !keepIndices.includes(i));
         state.deck.push(...returned);
@@ -561,10 +566,11 @@ let CoupService = class CoupService {
             return;
         if (state.pendingAction?.actorId === socketId) {
             if (state.phase === types_1.CoupPhase.AWAITING_EXCHANGE) {
+                const keepCount = Math.max(1, state.influences[socketId]?.count ?? 1);
                 const hand = this.privateStateService.get(room.code, socketId, 'coupHand') ?? [];
                 state.deck.push(...hand);
                 const restored = [];
-                for (let i = 0; i < 2; i++) {
+                for (let i = 0; i < keepCount; i++) {
                     if (state.deck.length === 0)
                         break;
                     restored.push(state.deck.pop());

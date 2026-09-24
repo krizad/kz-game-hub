@@ -3,8 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
 const types_1 = require("@repo/types");
 const card_game_service_1 = require("./card-game.service");
+const pok_deng_preset_1 = require("./presets/pok-deng.preset");
 const private_state_service_1 = require("../private-state.service");
-const card = (id, rank, suit) => ({ id, rank, suit });
+const card = (id, rank, suit) => ({
+    id,
+    rank,
+    suit,
+});
 const deckFor = (popOrder) => [
     ...Array.from({ length: 52 - popOrder.length }, (_, index) => card(`filler-${index}`, '2', 'CLUBS')),
     ...[...popOrder].reverse(),
@@ -76,6 +81,31 @@ describe('CardGameService', () => {
         const active = result.cardGameState.activePlayerId;
         const other = active === 'p1' ? 'p2' : 'p1';
         expect(service.handleAction(result, other, { type: 'STAND' })).toBeNull();
+    });
+    it('refuses to start a round while a card round is already in progress', () => {
+        const target = startRound(room());
+        expect(target.status).toBe(types_1.RoomStatus.PLAYING);
+        expect(service.startCardRound(target, target.roomHostId)).toBeNull();
+        finishRound(target);
+        expect(target.status).toBe(types_1.RoomStatus.RESULT);
+        expect(service.startCardRound(target, target.roomHostId)).not.toBeNull();
+    });
+    it('rejects malformed actions without throwing', () => {
+        const target = startRound(room());
+        expect(service.handleAction(target, 'p1', null)).toBeNull();
+        expect(service.handleAction(target, 'p1', {})).toBeNull();
+    });
+    it('stamps a turn deadline when the action policy has a timeout', () => {
+        const target = room();
+        target.cardGameConfig = {
+            ...pok_deng_preset_1.POK_DENG_PRESET.defaultConfig,
+            actions: { allowed: ['DRAW', 'STAND'], timeoutSeconds: 20, autoAction: 'STAND' },
+        };
+        startRound(target);
+        expect(target.cardGameState?.activePlayerId).toBe('p2');
+        expect(typeof target.cardGameState?.turnDeadline).toBe('number');
+        finishRound(target);
+        expect(target.cardGameState?.turnDeadline ?? null).toBeNull();
     });
     it('deals the first round to the first seated player and rotates the dealer', () => {
         const result = startRound(room());

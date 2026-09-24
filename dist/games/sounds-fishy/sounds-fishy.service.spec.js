@@ -51,6 +51,7 @@ describe('SoundsFishyService', () => {
     describe('assignRoles', () => {
         it('should assign roles, fetch a question, and keep secrets out of public state', async () => {
             const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            room.status = types_1.RoomStatus.LOBBY;
             database_1.prisma.soundsFishyQuestion.aggregate.mockResolvedValue({
                 _min: { query_count: 0 },
             });
@@ -79,8 +80,95 @@ describe('SoundsFishyService', () => {
                 { socketId: 'p2' },
                 { socketId: 'p3', connected: false },
             ]);
+            room.status = types_1.RoomStatus.LOBBY;
             const result = await service.assignRoles(room, 'p1');
             expect(result).toBeNull();
+        });
+        it('should ignore viewers and refuse to start outside the lobby', async () => {
+            const viewerRoom = createRoom([
+                { socketId: 'p1' },
+                { socketId: 'p2' },
+                { socketId: 'p3', isViewer: true },
+            ]);
+            viewerRoom.status = types_1.RoomStatus.LOBBY;
+            expect(await service.assignRoles(viewerRoom, 'p1')).toBeNull();
+            const startedRoom = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            expect(await service.assignRoles(startedRoom, 'p1')).toBeNull();
+        });
+        it('should clear stale answers before a new round', async () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            room.status = types_1.RoomStatus.LOBBY;
+            privateState.set(room.code, 'p2', 'sfMyAnswer', { playerId: 'p2', answer: 'stale' });
+            database_1.prisma.soundsFishyQuestion.aggregate.mockResolvedValue({
+                _min: { query_count: 0 },
+            });
+            database_1.prisma.soundsFishyQuestion.findMany.mockResolvedValue([
+                { id: 1, question: 'Q?', answer: 'A!', lang: 'th' },
+            ]);
+            database_1.prisma.soundsFishyQuestion.update.mockResolvedValue({});
+            const result = await service.assignRoles(room, 'p1');
+            expect(result).not.toBeNull();
+            expect(privateState.getRoomData(room.code, 'sfMyAnswer').size).toBe(0);
+        });
+    });
+    describe('typeAnswer', () => {
+        it('shares live typing with every seat except the picker and keeps text out of public state', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.SETUP,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {},
+                answeredPlayerIds: [],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingPlayerIds: [],
+            };
+            const result = service.typeAnswer(room, 'p2', 'draft answer');
+            expect(result).not.toBeNull();
+            expect(result.soundsFishyState.typingPlayerIds).toEqual(['p2']);
+            expect(JSON.stringify(result)).not.toContain('draft answer');
+            expect(privateState.get(room.code, 'p1', 'sfTypingTexts')).toBeUndefined();
+            expect(privateState.get(room.code, 'p2', 'sfTypingTexts')).toEqual({ p2: 'draft answer' });
+            expect(privateState.get(room.code, 'p3', 'sfTypingTexts')).toEqual({ p2: 'draft answer' });
+            const submitted = service.submitAnswer(room, 'p2', 'draft answer');
+            expect(submitted).not.toBeNull();
+            expect(submitted.soundsFishyState.typingPlayerIds).toEqual([]);
+            expect(privateState.get(room.code, 'p2', 'sfTypingTexts')).toBeUndefined();
+            expect(privateState.get(room.code, 'p3', 'sfTypingTexts')).toBeUndefined();
+        });
+    });
+    describe('typeAnswer', () => {
+        it('shares live typing with every seat except the picker and keeps text out of public state', () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.SETUP,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {},
+                answeredPlayerIds: [],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingPlayerIds: [],
+            };
+            const result = service.typeAnswer(room, 'p2', 'draft answer');
+            expect(result).not.toBeNull();
+            expect(result.soundsFishyState.typingPlayerIds).toEqual(['p2']);
+            expect(JSON.stringify(result)).not.toContain('draft answer');
+            expect(privateState.get(room.code, 'p1', 'sfTypingTexts')).toBeUndefined();
+            expect(privateState.get(room.code, 'p2', 'sfTypingTexts')).toEqual({ p2: 'draft answer' });
+            expect(privateState.get(room.code, 'p3', 'sfTypingTexts')).toEqual({ p2: 'draft answer' });
+            const submitted = service.submitAnswer(room, 'p2', 'draft answer');
+            expect(submitted).not.toBeNull();
+            expect(submitted.soundsFishyState.typingPlayerIds).toEqual([]);
+            expect(privateState.get(room.code, 'p2', 'sfTypingTexts')).toBeUndefined();
+            expect(privateState.get(room.code, 'p3', 'sfTypingTexts')).toBeUndefined();
         });
     });
     describe('submitAnswer', () => {
@@ -109,7 +197,7 @@ describe('SoundsFishyService', () => {
                 eliminatedPlayers: [],
                 roundScorePool: 0,
                 roundPoints: {},
-                typingAnswers: {},
+                typingPlayerIds: [],
             };
             expect(service.submitAnswer(room, 'p3', 'truth ')).toBeNull();
             const result = service.submitAnswer(room, 'p3', 'Fake');
@@ -132,7 +220,7 @@ describe('SoundsFishyService', () => {
                 eliminatedPlayers: [],
                 roundScorePool: 0,
                 roundPoints: {},
-                typingAnswers: {},
+                typingPlayerIds: [],
             };
             expect(service.submitAnswer(room, 'p2', 'Wrong')).toBeNull();
             expect(service.submitAnswer(room, 'p2', 'Truth')).not.toBeNull();
@@ -152,7 +240,7 @@ describe('SoundsFishyService', () => {
                 eliminatedPlayers: [],
                 roundScorePool: 0,
                 roundPoints: {},
-                typingAnswers: {},
+                typingPlayerIds: [],
             };
             service.submitAnswer(room, 'p2', 'Truth');
             const result = service.submitAnswer(room, 'p3', 'Fake');
@@ -178,7 +266,7 @@ describe('SoundsFishyService', () => {
                 eliminatedPlayers: [],
                 roundScorePool: 0,
                 roundPoints: {},
-                typingAnswers: {},
+                typingPlayerIds: [],
             };
         }
         it('should correctly handle eliminating a Red Herring', () => {
@@ -207,6 +295,40 @@ describe('SoundsFishyService', () => {
                 p2: { playerId: 'p2', answer: 'Truth', isRevealed: true },
             };
             expect(service.eliminatePlayer(room, 'p1', 'p3')).toBeNull();
+        });
+    });
+    describe('handlePlayerDisconnect and answer resolution', () => {
+        const setupRoom = () => {
+            const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+            room.soundsFishyState = {
+                currentPhase: types_1.SoundsFishyPhase.SETUP,
+                pickerId: 'p1',
+                blueFishId: null,
+                redHerringIds: [],
+                question: { id: '1', question: 'Q?', lang: 'th' },
+                playerAnswers: {},
+                answeredPlayerIds: [],
+                eliminatedPlayers: [],
+                roundScorePool: 0,
+                roundPoints: {},
+                typingPlayerIds: [],
+            };
+            return room;
+        };
+        it('ignores answers from dropped players when resolving', () => {
+            const room = setupRoom();
+            privateState.set(room.code, 'p2', 'sfMyAnswer', { playerId: 'p2', answer: 'x' });
+            room.players.find((p) => p.socketId === 'p2').connected = false;
+            expect(service.checkAnswerResolution(room)).toBe(false);
+            privateState.set(room.code, 'p3', 'sfMyAnswer', { playerId: 'p3', answer: 'y' });
+            expect(service.checkAnswerResolution(room)).toBe(true);
+        });
+        it('reassigns the picker when the picker drops', () => {
+            const room = setupRoom();
+            privateState.set(room.code, 'p2', 'sfTrueAnswer', 'Truth');
+            expect(service.handlePlayerDisconnect(room, 'p1')).toBe(true);
+            expect(room.soundsFishyState.pickerId).toBe('p2');
+            expect(privateState.has(room.code, 'p2', 'sfTrueAnswer')).toBe(false);
         });
     });
 });

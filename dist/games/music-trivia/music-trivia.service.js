@@ -239,7 +239,21 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             state.currentRound = this.createRound(1, firstTrack);
             state.phase = 'GET_READY';
             state.readyPlayerIds = [];
-            return { room };
+            const result = { room };
+            if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
+                const trackAnswer = this.getTrackAnswer(room, 1);
+                const hostPlayer = room.players.find((p) => p.socketId === room.roomHostId);
+                if (hostPlayer && trackAnswer) {
+                    result.hostAnswerTo = {
+                        socketId: hostPlayer.socketId,
+                        title: trackAnswer.title,
+                        artist: trackAnswer.artist,
+                        artworkUrl: firstTrack.artworkUrl,
+                        trackViewUrl: trackAnswer.trackViewUrl,
+                    };
+                }
+            }
+            return result;
         }
         catch (error) {
             this.logger.error('configureSource failed', error);

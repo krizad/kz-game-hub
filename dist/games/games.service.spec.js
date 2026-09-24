@@ -16,10 +16,8 @@ const saboteur_service_1 = require("./saboteur/saboteur.service");
 const coup_service_1 = require("./coup/coup.service");
 const ultimate_tic_tac_toe_service_1 = require("./ultimate-tic-tac-toe/ultimate-tic-tac-toe.service");
 const card_game_service_1 = require("./card-game/card-game.service");
-const card_rule_preset_repository_1 = require("./card-game/card-rule-preset.repository");
 const pok_deng_preset_1 = require("./card-game/presets/pok-deng.preset");
 const slave_preset_1 = require("./card-game/presets/slave.preset");
-const sam_sip_preset_1 = require("./card-game/presets/sam-sip.preset");
 const types_1 = require("@repo/types");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
@@ -40,7 +38,6 @@ describe('GamesService', () => {
     let coupService;
     let ultimateTicTacToeService;
     let cardGameService;
-    let cardRulePresetRepository;
     let playerSessionService;
     let privateStateService;
     let roomTimerService;
@@ -85,6 +82,7 @@ describe('GamesService', () => {
             assignRoles: jest.fn(),
             typeAnswer: jest.fn(),
             checkAnswerResolution: jest.fn(),
+            handlePlayerDisconnect: jest.fn(),
             submitAnswer: jest.fn(),
             revealPlayer: jest.fn(),
             eliminatePlayer: jest.fn(),
@@ -181,10 +179,6 @@ describe('GamesService', () => {
             cancelRound: jest.fn(),
             remapSocketId: card_game_service_1.CardGameService.prototype.remapSocketId,
         },
-        cardRulePreset: {
-            publish: jest.fn(),
-            importByCode: jest.fn(),
-        },
     };
     beforeEach(async () => {
         jest.clearAllMocks();
@@ -205,7 +199,6 @@ describe('GamesService', () => {
                 { provide: coup_service_1.CoupService, useValue: mockGameServices.coup },
                 { provide: ultimate_tic_tac_toe_service_1.UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
                 { provide: card_game_service_1.CardGameService, useValue: mockGameServices.cardGame },
-                { provide: card_rule_preset_repository_1.CardRulePresetRepository, useValue: mockGameServices.cardRulePreset },
                 player_session_service_1.PlayerSessionService,
                 private_state_service_1.PrivateStateService,
                 room_timer_service_1.RoomTimerService,
@@ -226,7 +219,6 @@ describe('GamesService', () => {
         coupService = module.get(coup_service_1.CoupService);
         ultimateTicTacToeService = module.get(ultimate_tic_tac_toe_service_1.UltimateTicTacToeService);
         cardGameService = module.get(card_game_service_1.CardGameService);
-        cardRulePresetRepository = module.get(card_rule_preset_repository_1.CardRulePresetRepository);
         playerSessionService = module.get(player_session_service_1.PlayerSessionService);
         privateStateService = module.get(private_state_service_1.PrivateStateService);
         roomTimerService = module.get(room_timer_service_1.RoomTimerService);
@@ -288,6 +280,7 @@ describe('GamesService', () => {
             const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
             expect(room.gameType).toBe(types_1.GameType.CARD_GAME);
             expect(room.cardGameConfig).toEqual(pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
+            expect(room.cardGameAllowedOptions).toEqual(pok_deng_preset_1.POK_DENG_PRESET.allowed);
             expect(room.status).toBe(types_1.RoomStatus.LOBBY);
         });
         it('should create a card-game room with the Slave default config when selected', () => {
@@ -295,14 +288,14 @@ describe('GamesService', () => {
             expect(room.gameType).toBe(types_1.GameType.CARD_GAME);
             expect(room.config.cardGamePreset).toBe('SLAVE');
             expect(room.cardGameConfig).toEqual(slave_preset_1.SLAVE_PRESET.defaultConfig);
+            expect(room.cardGameAllowedOptions).toEqual(slave_preset_1.SLAVE_PRESET.allowed);
         });
-        it('should create a card-game room with the Sam Sip default config when selected', () => {
+        it('should fall back to Pok Deng when an unknown card preset is requested', () => {
             const room = service.createRoom('host1', types_1.GameType.CARD_GAME, {
-                cardGamePreset: 'SAM_SIP',
+                cardGamePreset: 'EVIL',
             });
-            expect(room.gameType).toBe(types_1.GameType.CARD_GAME);
-            expect(room.config.cardGamePreset).toBe('SAM_SIP');
-            expect(room.cardGameConfig).toEqual(sam_sip_preset_1.SAM_SIP_PRESET.defaultConfig);
+            expect(room.cardGameConfig).toEqual(pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
+            expect(room.cardGameAllowedOptions).toEqual(pok_deng_preset_1.POK_DENG_PRESET.allowed);
         });
         it('should create an RPS room with initial state', () => {
             const room = service.createRoom('host1', types_1.GameType.RPS);
@@ -422,6 +415,28 @@ describe('GamesService', () => {
             expect(updatedRoom.votes['p1']).toBeUndefined();
             expect(updatedRoom.votes['p2']).toBe('p1New');
         });
+        it('should keep the reconnect token usable when an attempt is rejected', () => {
+            const room = service.createRoom('host1');
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            const reconnectToken = service.getReconnectToken(room.code, 'p1');
+            service.leaveRoom('p1', false);
+            const rejected = service.joinRoom(room.code, { id: 'p1b', name: 'Host', socketId: 'p1b' }, reconnectToken);
+            expect(rejected).toBeNull();
+            const retried = service.joinRoom(room.code, { id: 'p1b', name: 'Player1', socketId: 'p1b' }, reconnectToken);
+            expect(retried).not.toBeNull();
+            expect(retried.players.find((player) => player.name === 'Player1').socketId).toBe('p1b');
+        });
+        it('remaps the card-game action log on reconnection', () => {
+            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            const reconnectToken = service.getReconnectToken(room.code, 'p1');
+            room.cardGameLog = [{ actorId: 'p1', kind: 'DREW' }];
+            service.leaveRoom('p1', false);
+            service.joinRoom(room.code, { id: 'p1b', name: 'Player1', socketId: 'p1b' }, reconnectToken);
+            expect(room.cardGameLog).toEqual([{ actorId: 'p1b', kind: 'DREW' }]);
+        });
         it('should reject reconnect attempts that only reuse an existing player name', () => {
             const room = service.createRoom('host1');
             service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
@@ -511,6 +526,57 @@ describe('GamesService', () => {
             expect(room.cardGameState).toBeUndefined();
             expect(room.status).toBe(types_1.RoomStatus.LOBBY);
             expect(room.cardGameChips).toEqual({ host1: 101 });
+        });
+        it('should announce a state update when grace expiry removes a player', () => {
+            jest.useFakeTimers();
+            const room = service.createRoom('host1', types_1.GameType.WHO_KNOW);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            const events = [];
+            service.setRoomLifecycleListener((event) => events.push(event));
+            service.leaveRoom('p1', false);
+            jest.advanceTimersByTime(60_000);
+            expect(events).toEqual([{ type: 'ROOM_STATE_UPDATED', room }]);
+            expect(service.rooms.has(room.code)).toBe(true);
+        });
+        it('should announce room deletion when grace expiry removes the last player', () => {
+            jest.useFakeTimers();
+            const room = service.createRoom('host1', types_1.GameType.WHO_KNOW);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            const events = [];
+            service.setRoomLifecycleListener((event) => events.push(event));
+            service.leaveRoom('host1', false);
+            jest.advanceTimersByTime(60_000);
+            expect(events).toEqual([{ type: 'ROOM_DELETED', code: room.code }]);
+            expect(service.rooms.has(room.code)).toBe(false);
+        });
+        it('should not cancel a live card round when a spectator leaves', () => {
+            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            startCardRound(room);
+            service.joinRoom(room.code, { id: 'viewer1', name: 'Viewer', socketId: 'viewer1' });
+            const result = service.leaveRoom('viewer1', true);
+            expect(result.outcome).toBe('PLAYER_LEFT');
+            expect(room.cardGameState).toBeDefined();
+            expect(room.status).toBe(types_1.RoomStatus.PLAYING);
+            expect(mockGameServices.cardGame.cancelRound).not.toHaveBeenCalled();
+        });
+        it('should end a live Tic-Tac-Toe match when a seated player leaves', () => {
+            const room = service.createRoom('host1', types_1.GameType.TIC_TAC_TOE);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+            room.ticTacToeState = {
+                board: Array(9).fill(null),
+                playerXId: 'host1',
+                playerOId: 'p1',
+                currentTurn: 'X',
+            };
+            room.status = types_1.RoomStatus.PLAYING;
+            service.leaveRoom('p1', true);
+            expect(room.status).toBe(types_1.RoomStatus.RESULT);
+            expect(room.ticTacToeState?.playerOId).toBeUndefined();
+            expect(room.ticTacToeState?.playerXId).toBe('host1');
         });
         it('should keep room and transfer host to a remaining player on host disconnect from LOBBY', () => {
             const room = service.createRoom('host1');
@@ -667,7 +733,7 @@ describe('GamesService', () => {
             service.rooms.set(room.code, room);
             service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
             service.leaveRoom('p1', false);
-            expect(soundsFishyService.checkAnswerResolution).toHaveBeenCalled();
+            expect(soundsFishyService.handlePlayerDisconnect).toHaveBeenCalledWith(room, 'p1');
         });
     });
     describe('viewer mode', () => {
@@ -834,64 +900,14 @@ describe('GamesService', () => {
             expect(updated).not.toBeNull();
             expect(updated.config.cardGamePreset).toBe('SLAVE');
             expect(updated.cardGameConfig).toEqual(slave_preset_1.SLAVE_PRESET.defaultConfig);
+            expect(updated.cardGameAllowedOptions).toEqual(slave_preset_1.SLAVE_PRESET.allowed);
         });
         it('should reject a card-game config for a non card-game room', () => {
             const room = service.createRoom('host1');
             expect(service.updateConfig(room.code, 'host1', {}, {})).toBeNull();
         });
     });
-    describe('card game rule presets', () => {
-        it('should reject publishing from a non card-game room', async () => {
-            const room = service.createRoom('host1');
-            const result = await service.cardGamePublishRules(room.code, 'host1', pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
-            expect(result).toEqual({ ok: false, error: 'INVALID_ROOM' });
-            expect(cardRulePresetRepository.publish).not.toHaveBeenCalled();
-        });
-        it('should reject publishing when the requester is not the host', async () => {
-            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
-            const result = await service.cardGamePublishRules(room.code, 'p2', pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
-            expect(result).toEqual({ ok: false, error: 'NOT_HOST' });
-            expect(cardRulePresetRepository.publish).not.toHaveBeenCalled();
-        });
-        it('should reject publishing outside the lobby', async () => {
-            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
-            room.status = types_1.RoomStatus.PLAYING;
-            service.rooms.set(room.code, room);
-            const result = await service.cardGamePublishRules(room.code, 'host1', pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
-            expect(result).toEqual({ ok: false, error: 'NOT_LOBBY' });
-            expect(cardRulePresetRepository.publish).not.toHaveBeenCalled();
-        });
-        it('should delegate host publishing to the repository', async () => {
-            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
-            cardRulePresetRepository.publish.mockResolvedValue({ ok: true, shareCode: 'ABCD2345EFGH' });
-            const result = await service.cardGamePublishRules(room.code, 'host1', pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
-            expect(cardRulePresetRepository.publish).toHaveBeenCalledWith(pok_deng_preset_1.POK_DENG_PRESET.defaultConfig, pok_deng_preset_1.POK_DENG_PRESET);
-            expect(result).toEqual({ ok: true, shareCode: 'ABCD2345EFGH' });
-        });
-        it('should apply imported rules to the room config', async () => {
-            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
-            const importedConfig = {
-                ...pok_deng_preset_1.POK_DENG_PRESET.defaultConfig,
-                scoring: { ...pok_deng_preset_1.POK_DENG_PRESET.defaultConfig.scoring, tiePolicy: 'PUSH' },
-            };
-            cardRulePresetRepository.importByCode.mockResolvedValue({ ok: true, config: importedConfig });
-            const result = await service.cardGameImportRules(room.code, 'host1', 'abcd2345efgh');
-            expect(cardRulePresetRepository.importByCode).toHaveBeenCalledWith('abcd2345efgh', pok_deng_preset_1.POK_DENG_PRESET);
-            expect(result).toEqual({ ok: true, config: importedConfig });
-            expect(service.getRoom(room.code).cardGameConfig).toEqual(importedConfig);
-        });
-        it('should pass import failures through without touching the room', async () => {
-            const room = service.createRoom('host1', types_1.GameType.CARD_GAME);
-            cardRulePresetRepository.importByCode.mockResolvedValue({ ok: false, error: 'NOT_FOUND' });
-            const result = await service.cardGameImportRules(room.code, 'host1', 'UNKNOWN12345');
-            expect(result).toEqual({ ok: false, error: 'NOT_FOUND' });
-            expect(service.getRoom(room.code).cardGameConfig).toEqual(pok_deng_preset_1.POK_DENG_PRESET.defaultConfig);
-        });
-    });
     describe('assignRoles', () => {
-        it('should return null for non-existent room', async () => {
-            expect(await service.assignRoles('XXXXXX', 'host1')).toBeNull();
-        });
         it('should delegate to SoundsFishyService for SOUNDS_FISHY game', async () => {
             const room = service.createRoom('host1', types_1.GameType.SOUNDS_FISHY);
             const resultRoom = { ...room, status: types_1.RoomStatus.QUESTIONING };
@@ -926,6 +942,30 @@ describe('GamesService', () => {
             const result = await service.assignRoles(room.code, 'host1');
             expect(mockGameServices.cardGame.startCardRound).toHaveBeenCalledWith(room, 'host1');
             expect(result).toEqual({ room: updatedRoom, roles: {} });
+        });
+        it('should not resurrect a room deleted while an async start is in flight', async () => {
+            const room = service.createRoom('host1', types_1.GameType.SOUNDS_FISHY);
+            let resolveStart;
+            mockGameServices.soundsFishy.assignRoles.mockImplementation(() => new Promise((resolve) => {
+                resolveStart = resolve;
+            }));
+            const pending = service.assignRoles(room.code, 'host1');
+            service.rooms.delete(room.code);
+            resolveStart({ room, roles: {} });
+            await expect(pending).resolves.toBeNull();
+            expect(service.rooms.has(room.code)).toBe(false);
+        });
+        it('should not resurrect a room deleted while an async who-am-i start is in flight', async () => {
+            const room = service.createRoom('host1', types_1.GameType.WHO_AM_I);
+            let resolveStart;
+            mockGameServices.whoAmI.startGameRandom.mockImplementation(() => new Promise((resolve) => {
+                resolveStart = resolve;
+            }));
+            const pending = service.assignRoles(room.code, 'host1');
+            service.rooms.delete(room.code);
+            resolveStart(room);
+            await expect(pending).resolves.toBeNull();
+            expect(service.rooms.has(room.code)).toBe(false);
         });
         it('should route WHO_AM_I RANDOM mode to startGameRandom', async () => {
             const room = service.createRoom('host1', types_1.GameType.WHO_AM_I);
@@ -1330,6 +1370,19 @@ describe('GamesService', () => {
             expect(result?.config.timerMin).toBe(5);
             expect(result?.config.language).toBe('en');
             expect(result?.config).not.toHaveProperty('unknown');
+        });
+        it('should not resurrect a room deleted while a music trivia action is in flight', async () => {
+            const room = service.createRoom('host1', types_1.GameType.MUSIC_TRIVIA);
+            service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+            let resolveStart;
+            mockGameServices.musicTrivia.handleGameAction.mockImplementation(() => new Promise((resolve) => {
+                resolveStart = resolve;
+            }));
+            const pending = service.musicTriviaGameAction(room.code, 'host1', { type: 'X' });
+            service.rooms.delete(room.code);
+            resolveStart({ room });
+            await expect(pending).resolves.toBeNull();
+            expect(service.rooms.has(room.code)).toBe(false);
         });
     });
 });

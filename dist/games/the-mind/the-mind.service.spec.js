@@ -140,14 +140,29 @@ describe('TheMindService', () => {
         expect(service.playCard(room, 'player-1', 99, 'UP')).toBeNull();
         expect(service.playCard(room, 'stranger', 10, 'UP')).toBeNull();
     });
-    it('does not treat a backwards-by-10 card as dead when another player advances the pile', () => {
+    it('discards cards that fall ten behind the pile in Normal Mode', () => {
         const room = createRoom();
-        seedHands(room, { 'player-1': [40], 'player-2': [30] });
+        seedHands(room, { 'player-1': [40, 50], 'player-2': [30, 55] });
         const result = service.playCard(room, 'player-1', 40, 'UP');
         expect(result).not.toBeNull();
-        expect(result.theMindState.phase).toBe(types_1.TheMindPhase.PLAYING);
+        expect(result.theMindState.phase).toBe(types_1.TheMindPhase.LEVEL_RESULT);
+        expect(result.theMindState.lives).toBe(1);
+        expect(privateState.get(room.code, 'socket-2', 'theMindHand')).toEqual([55]);
+        expect(privateState.get(room.code, 'socket-1', 'theMindHand')).toEqual([50]);
+    });
+    it('treats a backwards-by-10 play as a mistake in Normal Mode', () => {
+        const room = createRoom({}, defaultPlayers(), { pileTop: 30 });
+        seedHands(room, { 'player-1': [20], 'player-2': [35] });
+        const result = service.playCard(room, 'player-1', 20, 'UP');
+        expect(result).not.toBeNull();
+        expect(result.theMindState.lives).toBe(1);
+    });
+    it('still allows a backwards-by-10 play in Extreme Mode', () => {
+        const room = createRoom({ theMindMode: 'EXTREME' }, defaultPlayers(), { pileTop: 30 });
+        seedHands(room, { 'player-1': [20], 'player-2': [35] });
+        const result = service.playCard(room, 'player-1', 20, 'UP');
+        expect(result).not.toBeNull();
         expect(result.theMindState.lives).toBe(2);
-        expect(privateState.get(room.code, 'socket-2', 'theMindHand')).toEqual([30]);
     });
     it('does not allow ready() outside SETUP', () => {
         const room = createRoom({}, defaultPlayers(), {

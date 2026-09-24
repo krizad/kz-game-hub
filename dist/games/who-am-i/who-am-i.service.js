@@ -124,6 +124,7 @@ let WhoAmIService = class WhoAmIService {
         for (const p of gamePlayers) {
             this.setMyWord(room, p.socketId, trimmedWords[p.socketId]);
         }
+        this.syncVisibleWords(room);
         const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
         room.whoAmIState = gameState;
         return room;
@@ -238,6 +239,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         shuffledPlayers.forEach((p, idx) => {
             this.setMyWord(room, p.socketId, words[idx]);
         });
+        this.syncVisibleWords(room);
         const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
         room.whoAmIState = gameState;
         return room;
@@ -264,6 +266,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             const w = words[idx];
             this.setMyWord(room, p.socketId, w.emoji ? `${w.emoji} ${w.word}` : w.word);
         });
+        this.syncVisibleWords(room);
         const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
         room.whoAmIState = gameState;
         return room;
@@ -354,6 +357,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         playerIds.forEach((id, i) => {
             this.setMyWord(room, id, shuffled[i]);
         });
+        this.syncVisibleWords(room);
         gameState.phase = 'ASKING';
         gameState.wordSubmittedIds = [];
         const shuffledPlayers = this.shuffleArray(this.eligiblePlayers(room).filter((p) => p.connected !== false));
@@ -404,6 +408,25 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             gameState.guessResult = undefined;
             gameState.guessedWord = undefined;
         }
+    }
+    handlePlayerDisconnect(room, socketId) {
+        const gameState = room.whoAmIState;
+        if (!gameState)
+            return null;
+        if (gameState.currentTurn !== socketId || gameState.turnStatus !== 'VOTING')
+            return null;
+        const nextPlayer = this.findNextPlayer(room, gameState, socketId);
+        if (!nextPlayer) {
+            this.finishGame(room, gameState, null);
+            return room;
+        }
+        gameState.currentTurn = nextPlayer;
+        gameState.currentGuess = null;
+        gameState.turnStatus = 'VOTING';
+        gameState.votes = {};
+        gameState.guessResult = undefined;
+        gameState.guessedWord = undefined;
+        return room;
     }
     handleGameAction(room, requesterId, action) {
         if (action.type === 'END_MATCH') {

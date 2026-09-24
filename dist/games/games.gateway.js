@@ -21,6 +21,7 @@ const games_service_1 = require("./games.service");
 const leaderboard_service_1 = require("./leaderboard/leaderboard.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
+const card_engine_service_1 = require("./card-game/card-engine.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
 let GamesGateway = GamesGateway_1 = class GamesGateway {
@@ -31,6 +32,20 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.privateStateService = privateStateService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
+        this.saboteurDeadlines = new Map();
+    }
+    afterInit() {
+        this.gamesService.setRoomLifecycleListener((event) => {
+            if (event.type === 'ROOM_DELETED') {
+                this.server.to(event.code).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
+                this.forgetRecordedResult(event.code);
+                this.saboteurDeadlines.delete(event.code);
+            }
+            else {
+                this.broadcastRoomState(event.room);
+            }
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        });
     }
     handleConnection(client) {
         this.logger.log(`Client connected: ${client.id}`);
@@ -50,8 +65,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const result = this.gamesService.leaveRoom(client.id, true);
         this.handleLeaveResult(client, result);
         const roomCode = 'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
-        if (roomCode) {
-            client.leave(roomCode);
+        const spectatingRoomCode = client.data.spectatingRoomCode;
+        const leftCode = roomCode ?? spectatingRoomCode;
+        if (leftCode) {
+            client.leave(leftCode);
         }
         client.data.spectatingRoomCode = undefined;
     }
@@ -78,7 +95,17 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     handleGetAvailableRooms(client) {
         client.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
     }
+    leavePreviousRoom(client, nextRoomCode) {
+        const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
+        if (!previousRoomCode || previousRoomCode === nextRoomCode)
+            return;
+        const leaveResult = this.gamesService.leaveRoom(client.id, true);
+        if (leaveResult.outcome !== 'NOT_IN_ROOM') {
+            this.handleLeaveResult(client, leaveResult);
+        }
+    }
     handleCreateRoom(data, client) {
+        this.leavePreviousRoom(client);
         const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
         const updatedRoom = this.gamesService.joinRoom(room.code, {
             id: client.id,
@@ -91,8 +118,12 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, updatedRoom);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
+        else {
+            this.gamesService.deleteRoom(room.code);
+        }
     }
     handleJoinRoom(data, client) {
+        this.leavePreviousRoom(client, data.code.toUpperCase());
         const room = this.gamesService.joinRoom(data.code.toUpperCase(), {
             id: client.id,
             name: data.name.trim(),
@@ -255,19 +286,6 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid card game action.' });
         }
-    }
-    async handleCardGamePublishRules(data, client) {
-        const result = await this.gamesService.cardGamePublishRules(data.code, client.id, data.config);
-        client.emit(types_1.SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES, result);
-    }
-    async handleCardGameImportRules(data, client) {
-        const result = await this.gamesService.cardGameImportRules(data.code, client.id, data.shareCode);
-        if (result.ok) {
-            const room = this.gamesService.getRoom(data.code);
-            if (room)
-                this.broadcastRoomState(room);
-        }
-        client.emit(types_1.SOCKET_EVENTS.CARD_GAME_IMPORT_RULES, result);
     }
     handleTTTJoinSide(data, client) {
         const room = this.gamesService.tttJoinSide(data.code, client.id, data.side);
@@ -600,7 +618,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleCoupBlock(data, client) {
-        const room = this.gamesService.coupBlock(data.code, client.id);
+        const room = this.gamesService.coupBlock(data.code, client.id, data.role);
         if (room) {
             this.broadcastRoomState(room);
         }
@@ -805,6 +823,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             this.syncCoupChallengeTimer(room);
             this.syncCoupBlockTimer(room);
         }
+        if (room.gameType === types_1.GameType.CARD_GAME) {
+            this.syncCardGameTimer(room);
+        }
     }
     syncCoupChallengeTimer(room) {
         const deadline = room.coupState?.challengeWindowDeadline ?? null;
@@ -845,11 +866,16 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const enabled = room.config.saboteurTurnTimerEnabled;
         const seconds = room.config.saboteurTurnTimerSeconds ?? 60;
         if (!enabled || !state || state.currentPhase !== 'PLAYING' || !state.activePlayerId) {
+            this.saboteurDeadlines.delete(room.code);
             this.roomTimerService.cancel(room.code, 'saboteur');
             return;
         }
         const activePlayerId = state.activePlayerId;
-        const deadline = Date.now() + seconds * 1000;
+        const current = this.saboteurDeadlines.get(room.code);
+        const deadline = current && current.playerId === activePlayerId
+            ? current.deadline
+            : Date.now() + seconds * 1000;
+        this.saboteurDeadlines.set(room.code, { playerId: activePlayerId, deadline });
         this.roomTimerService.schedule(room.code, 'saboteur', deadline, () => {
             const currentRoom = this.gamesService.getRoom(room.code);
             const currentState = currentRoom?.saboteurState;
@@ -860,6 +886,36 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 return;
             }
             const updatedRoom = this.gamesService.saboteurAutoPass(currentRoom.code, activePlayerId);
+            this.saboteurDeadlines.delete(currentRoom.code);
+            if (updatedRoom) {
+                this.broadcastRoomState(updatedRoom);
+            }
+        });
+    }
+    syncCardGameTimer(room) {
+        const state = room.cardGameState;
+        const activePlayerId = state?.phase === 'PLAYER_TURNS' ? state.activePlayerId : null;
+        const deadline = state?.turnDeadline ?? null;
+        if (!state || state.phase !== 'PLAYER_TURNS' || !activePlayerId || !deadline) {
+            this.roomTimerService.cancel(room.code, 'card-game');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'card-game', deadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            const currentState = currentRoom?.cardGameState;
+            if (!currentRoom ||
+                !currentState ||
+                currentState.phase !== 'PLAYER_TURNS' ||
+                currentState.activePlayerId !== activePlayerId ||
+                (currentState.turnDeadline ?? null) !== deadline) {
+                return;
+            }
+            const config = currentRoom.cardGameConfig;
+            if (!config)
+                return;
+            const updatedRoom = this.gamesService.cardGameAction(currentRoom.code, activePlayerId, {
+                type: (0, card_engine_service_1.autoActionFor)(config.actions),
+            });
             if (updatedRoom) {
                 this.broadcastRoomState(updatedRoom);
             }
@@ -972,6 +1028,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (event === types_1.SOCKET_EVENTS.LEADERBOARD_GET) {
             return data.gameType === undefined || typeof data.gameType === 'string';
         }
+        if (event === types_1.SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
+            return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
+        }
         if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code))
             return false;
         if (event === types_1.SOCKET_EVENTS.JOIN_ROOM || event === types_1.SOCKET_EVENTS.SPECTATE_JOIN) {
@@ -984,6 +1043,12 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (event === types_1.SOCKET_EVENTS.GAME_ACTION) {
             return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
+        }
+        if (event === types_1.SOCKET_EVENTS.CARD_GAME_ACTION) {
+            return (!!data.action &&
+                typeof data.action === 'object' &&
+                !Array.isArray(data.action) &&
+                typeof data.action.type === 'string');
         }
         const isSmallInt = (v) => typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
         if (event === types_1.SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
@@ -1011,13 +1076,17 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(data.type) &&
                 (data.targetId === undefined || typeof data.targetId === 'string'));
         }
-        if (event === types_1.SOCKET_EVENTS.COUP_CHALLENGE || event === types_1.SOCKET_EVENTS.COUP_BLOCK) {
+        if (event === types_1.SOCKET_EVENTS.COUP_CHALLENGE) {
             return true;
+        }
+        if (event === types_1.SOCKET_EVENTS.COUP_BLOCK) {
+            return data.role === undefined || typeof data.role === 'string';
         }
         if (event === types_1.SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
             return (Array.isArray(data.keepIndices) &&
-                data.keepIndices.length === 2 &&
-                data.keepIndices.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3));
+                data.keepIndices.length >= 1 &&
+                data.keepIndices.length <= 4 &&
+                data.keepIndices.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 4));
         }
         return true;
     }
@@ -1161,22 +1230,6 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleCardGameAction", null);
-__decorate([
-    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CARD_GAME_PUBLISH_RULES),
-    __param(0, (0, websockets_1.MessageBody)()),
-    __param(1, (0, websockets_1.ConnectedSocket)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
-    __metadata("design:returntype", Promise)
-], GamesGateway.prototype, "handleCardGamePublishRules", null);
-__decorate([
-    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CARD_GAME_IMPORT_RULES),
-    __param(0, (0, websockets_1.MessageBody)()),
-    __param(1, (0, websockets_1.ConnectedSocket)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
-    __metadata("design:returntype", Promise)
-], GamesGateway.prototype, "handleCardGameImportRules", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.TTT_JOIN_SIDE),
     __param(0, (0, websockets_1.MessageBody)()),

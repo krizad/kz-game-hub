@@ -22,5 +22,8 @@ export declare class SoundsFishyService {
     nextRound(room: RoomState, requesterId: string): RoomState | null;
     reset(room: RoomState, requesterId: string): RoomState | null;
     remapSocketId(state: SoundsFishyState, oldSocketId: string, newSocketId: string): void;
+    handlePlayerDisconnect(room: RoomState, socketId: string): boolean;
+    private applyTyping;
+    private clearTyping;
     private backToLobby;
 }

@@ -252,7 +252,8 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
         if (state.currentPhase !== types_1.SaboteurPhase.PLAYING)
             return false;
         const deckEmpty = this.getDeck(room).length === 0 && state.stockCount === 0;
-        const handsEmpty = Object.values(state.players).every((p) => p.handSize === 0);
+        const connectedIds = new Set(room.players.filter((player) => player.connected !== false).map((player) => player.socketId));
+        const handsEmpty = Object.entries(state.players).every(([id, p]) => !connectedIds.has(id) || p.handSize === 0);
         if (!deckEmpty || !handsEmpty)
             return false;
         this.endRoundSaboteursWin(room);
@@ -530,7 +531,7 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
     endRoundSaboteursWin(room) {
         const state = room.saboteurState;
         const saboteurs = state.turnOrder.filter((id) => this.getRole(room, id) === types_1.SaboteurRole.SABOTEUR);
-        const bonus = saboteurs.length === 1 ? 4 : 3;
+        const bonus = saboteurs.length === 1 ? 4 : saboteurs.length === 2 ? 3 : 2;
         state.currentPhase = types_1.SaboteurPhase.ROUND_END;
         state.roundResult = {
             winnerRole: types_1.SaboteurRole.SABOTEUR,
@@ -576,6 +577,7 @@ let SaboteurService = SaboteurService_1 = class SaboteurService {
                 scores,
                 winnerIds: Object.keys(scores).filter((id) => scores[id] === best),
             };
+            room.status = types_1.RoomStatus.RESULT;
             return room;
         }
         const nextRoundNumber = state.round + 1;

@@ -6,7 +6,11 @@ const card_game_service_1 = require("./card-game.service");
 const card_engine_service_1 = require("./card-engine.service");
 const pok_deng_preset_1 = require("./presets/pok-deng.preset");
 const private_state_service_1 = require("../private-state.service");
-const card = (id, rank, suit) => ({ id, rank, suit });
+const card = (id, rank, suit) => ({
+    id,
+    rank,
+    suit,
+});
 const deckFor = (popOrder) => [
     ...Array.from({ length: 52 - popOrder.length }, (_, index) => card(`filler-${index}`, '2', 'CLUBS')),
     ...[...popOrder].reverse(),
@@ -69,6 +73,19 @@ describe('Pok Deng preset flow', () => {
         expect(result.cardGameState?.handCounts.p1).toBe(2);
         expect(result.cardGameState?.result?.dealerScore).toBe(5);
         expect(result.cardGameChips).toEqual({ p1: 101, p2: 99 });
+    });
+    it('resolves immediately when the dealer has a natural', () => {
+        const result = startRound(room(), [
+            card('p1-a', 'A', 'CLUBS'),
+            card('p2-a', 'K', 'HEARTS'),
+            card('p1-b', '7', 'DIAMONDS'),
+            card('p2-b', '5', 'SPADES'),
+        ]);
+        expect(result.cardGameState?.phase).toBe('RESULT');
+        expect(result.cardGameState?.activePlayerId).toBeNull();
+        expect(result.cardGameState?.result?.dealerScore).toBe(8);
+        expect(result.cardGameState?.handCounts).toEqual({ p1: 2, p2: 2 });
+        expect(result.cardGameChips).toEqual({ p1: 102, p2: 98 });
     });
     it('keeps the dealer on two cards once the dealer has five or more', () => {
         const result = startRound(room(), [

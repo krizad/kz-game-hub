@@ -1,4 +1,4 @@
-import { CoupState, CoupActionType, RoomState } from '@repo/types';
+import { CoupRole, CoupState, CoupActionType, RoomState } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 import { RoomTimerService } from '../room-timer.service';
 export declare class CoupService {
@@ -23,7 +23,7 @@ export declare class CoupService {
     handleBlockTimeoutForRoom(room: RoomState): RoomState | null;
     handleBlockChallengeTimeoutForRoom(room: RoomState): RoomState | null;
     challenge(room: RoomState, challengerId: string): RoomState | null;
-    block(room: RoomState, blockerId: string): RoomState | null;
+    block(room: RoomState, blockerId: string, role?: CoupRole): RoomState | null;
     exchangeSelect(room: RoomState, actorId: string, keepIndices: number[]): RoomState | null;
     declareAction(room: RoomState, actorId: string, type: CoupActionType, targetId?: string): RoomState | null;
     handlePlayerDisconnect(room: RoomState, socketId: string): void;

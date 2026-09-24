@@ -33,10 +33,9 @@ const room_timer_service_1 = require("./room-timer.service");
 const card_game_service_1 = require("./card-game/card-game.service");
 const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
-const card_rule_preset_repository_1 = require("./card-game/card-rule-preset.repository");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, cardRulePresetRepository) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -54,9 +53,11 @@ let GamesService = GamesService_1 = class GamesService {
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
         this.cardGameService = cardGameService;
-        this.cardRulePresetRepository = cardRulePresetRepository;
         this.rooms = new Map();
         this.secretWords = new Map();
+    }
+    setRoomLifecycleListener(listener) {
+        this.roomLifecycleListener = listener;
     }
     isRoomMember(code, socketId) {
         const room = this.rooms.get(code);
@@ -184,8 +185,9 @@ let GamesService = GamesService_1 = class GamesService {
             room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
         }
         else if (gameType === types_1.GameType.CARD_GAME) {
-            const presetId = initialConfig?.cardGamePreset ?? 'POK_DENG';
+            const presetId = room.config.cardGamePreset ?? 'POK_DENG';
             room.cardGameConfig = presets_1.CARD_GAME_PRESETS[presetId].defaultConfig;
+            room.cardGameAllowedOptions = presets_1.CARD_GAME_PRESETS[presetId].allowed;
         }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
@@ -196,7 +198,7 @@ let GamesService = GamesService_1 = class GamesService {
         if (!room)
             return null;
         const playerId = reconnectToken
-            ? this.playerSessionService.consume(code, reconnectToken)
+            ? this.playerSessionService.verify(code, reconnectToken)
             : undefined;
         const existingPlayer = playerId
             ? room.players.find((player) => player.id === playerId && player.name === user.name)
@@ -253,6 +255,12 @@ let GamesService = GamesService_1 = class GamesService {
             if (room.cardGameChips && oldSocketId in room.cardGameChips) {
                 room.cardGameChips[user.socketId] = room.cardGameChips[oldSocketId];
                 delete room.cardGameChips[oldSocketId];
+            }
+            if (room.cardGameLog) {
+                for (const entry of room.cardGameLog) {
+                    if (entry.actorId === oldSocketId)
+                        entry.actorId = user.socketId;
+                }
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -333,9 +341,11 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (!room.players.some((p) => p.connected !== false && p.socketId !== types_1.BOT_SOCKET_ID)) {
             this.deleteRoomData(code);
+            this.roomLifecycleListener?.({ type: 'ROOM_DELETED', code });
             return;
         }
         this.rooms.set(code, room);
+        this.roomLifecycleListener?.({ type: 'ROOM_STATE_UPDATED', room });
     }
     scheduleReconnectGrace(code, playerId) {
         this.roomTimerService.schedule(code, `${RECONNECT_GRACE_TIMER}:${playerId}`, Date.now() + GamesService_1.RECONNECT_GRACE_MS, () => this.removeExpiredPlayer(code, playerId));
@@ -345,24 +355,39 @@ let GamesService = GamesService_1 = class GamesService {
         this.playerSessionService.revokePlayer(code, player.id);
         this.privateStateService.clearSocket(code, player.socketId);
         if (room.ticTacToeState) {
+            const seatCleared = room.ticTacToeState.playerXId === player.socketId ||
+                room.ticTacToeState.playerOId === player.socketId;
             if (room.ticTacToeState.playerXId === player.socketId)
                 room.ticTacToeState.playerXId = undefined;
             if (room.ticTacToeState.playerOId === player.socketId)
                 room.ticTacToeState.playerOId = undefined;
+            if (seatCleared && room.status === types_1.RoomStatus.PLAYING) {
+                room.status = types_1.RoomStatus.RESULT;
+            }
         }
         if (room.gobblerState) {
+            const seatCleared = room.gobblerState.playerXId === player.socketId ||
+                room.gobblerState.playerOId === player.socketId;
             if (room.gobblerState.playerXId === player.socketId)
                 room.gobblerState.playerXId = undefined;
             if (room.gobblerState.playerOId === player.socketId)
                 room.gobblerState.playerOId = undefined;
+            if (seatCleared && room.status === types_1.RoomStatus.PLAYING) {
+                room.status = types_1.RoomStatus.RESULT;
+            }
         }
         if (room.ultimateTicTacToeState) {
+            const seatCleared = room.ultimateTicTacToeState.playerXId === player.socketId ||
+                room.ultimateTicTacToeState.playerOId === player.socketId;
             if (room.ultimateTicTacToeState.playerXId === player.socketId)
                 room.ultimateTicTacToeState.playerXId = undefined;
             if (room.ultimateTicTacToeState.playerOId === player.socketId)
                 room.ultimateTicTacToeState.playerOId = undefined;
+            if (seatCleared && room.status === types_1.RoomStatus.PLAYING) {
+                room.status = types_1.RoomStatus.RESULT;
+            }
         }
-        if (room.cardGameState) {
+        if (room.cardGameState && room.cardGameState.playerOrder.includes(player.socketId)) {
             this.cardGameService.cancelRound(room);
         }
         if (room.cardGameChips) {
@@ -375,7 +400,7 @@ let GamesService = GamesService_1 = class GamesService {
             this.whoKnowService.checkVoteResolution(room);
         }
         if (room.gameType === types_1.GameType.SOUNDS_FISHY && room.status === types_1.RoomStatus.QUESTIONING) {
-            this.soundsFishyService.checkAnswerResolution(room);
+            this.soundsFishyService.handlePlayerDisconnect(room, socketId);
         }
         if (room.gameType === types_1.GameType.DETECTIVE_CLUB && room.detectiveClubState) {
             this.detectiveClubService.handlePlayerDisconnect(room, socketId);
@@ -386,6 +411,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (room.gameType === types_1.GameType.COUP && room.coupState) {
             this.coupService.handlePlayerDisconnect(room, socketId);
         }
+        if (room.gameType === types_1.GameType.WHO_AM_I && room.whoAmIState) {
+            this.whoAmIService.handlePlayerDisconnect(room, socketId);
+        }
     }
     transferHost(room, formerHostSocketId) {
         const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId && p.socketId !== types_1.BOT_SOCKET_ID);
@@ -393,6 +421,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (!nextHost)
             return;
         room.roomHostId = nextHost.socketId;
+    }
+    deleteRoom(code) {
+        this.deleteRoomData(code);
     }
     deleteRoomData(code) {
         this.rooms.delete(code);
@@ -427,6 +458,7 @@ let GamesService = GamesService_1 = class GamesService {
             safeConfig.cardGamePreset &&
             safeConfig.cardGamePreset !== room.config.cardGamePreset) {
             room.cardGameConfig = presets_1.CARD_GAME_PRESETS[safeConfig.cardGamePreset].defaultConfig;
+            room.cardGameAllowedOptions = presets_1.CARD_GAME_PRESETS[safeConfig.cardGamePreset].allowed;
         }
         if (cardGameConfig) {
             if (room.gameType !== types_1.GameType.CARD_GAME)
@@ -558,7 +590,7 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('rpsBestOf', 1, 9);
         copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
         copyEnum('language', ['en', 'th']);
-        copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE', 'SAM_SIP', 'OLD_MAID']);
+        copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE']);
         copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
         copyBoolean('ticTacToeVsBot');
         copyEnum('ticTacToeBotDifficulty', ['EASY', 'GOD']);
@@ -639,10 +671,10 @@ let GamesService = GamesService_1 = class GamesService {
         if (!room)
             return null;
         const result = await action(room);
-        if (result) {
-            this.clearViewerFlagsOnLobby(result.room);
-            this.rooms.set(code, result.room);
-        }
+        if (!result || this.rooms.get(code) !== room)
+            return null;
+        this.clearViewerFlagsOnLobby(result.room);
+        this.rooms.set(code, result.room);
         return result;
     }
     clearViewerFlagsOnLobby(room) {
@@ -717,10 +749,10 @@ let GamesService = GamesService_1 = class GamesService {
         if (!room)
             return null;
         const updatedRoom = await action(room);
-        if (updatedRoom) {
-            this.clearViewerFlagsOnLobby(updatedRoom);
-            this.rooms.set(code, updatedRoom);
-        }
+        if (!updatedRoom || this.rooms.get(code) !== room)
+            return null;
+        this.clearViewerFlagsOnLobby(updatedRoom);
+        this.rooms.set(code, updatedRoom);
         return updatedRoom;
     }
     setWord(code, word, requesterId) {
@@ -747,6 +779,7 @@ let GamesService = GamesService_1 = class GamesService {
             room.status = types_1.RoomStatus.LOBBY;
             room.cardGameState = undefined;
             room.cardGameChips = undefined;
+            room.cardGameAllowedOptions = (0, presets_1.presetForConfig)(room.cardGameConfig).allowed;
             this.privateStateService.clearRoom(code);
             this.rooms.set(code, room);
             return room;
@@ -798,31 +831,6 @@ let GamesService = GamesService_1 = class GamesService {
         if (this.rejectViewer(code, clientId))
             return null;
         return this.withRoom(code, (room) => this.cardGameService.handleAction(room, clientId, action));
-    }
-    async cardGamePublishRules(code, requesterId, config) {
-        const room = this.rooms.get(code);
-        if (!room || room.gameType !== types_1.GameType.CARD_GAME)
-            return { ok: false, error: 'INVALID_ROOM' };
-        if (room.roomHostId !== requesterId)
-            return { ok: false, error: 'NOT_HOST' };
-        if (room.status !== types_1.RoomStatus.LOBBY)
-            return { ok: false, error: 'NOT_LOBBY' };
-        return this.cardRulePresetRepository.publish(config, (0, presets_1.presetForConfig)(room.cardGameConfig));
-    }
-    async cardGameImportRules(code, requesterId, shareCode) {
-        const room = this.rooms.get(code);
-        if (!room || room.gameType !== types_1.GameType.CARD_GAME)
-            return { ok: false, error: 'INVALID_ROOM' };
-        if (room.roomHostId !== requesterId)
-            return { ok: false, error: 'NOT_HOST' };
-        if (room.status !== types_1.RoomStatus.LOBBY)
-            return { ok: false, error: 'NOT_LOBBY' };
-        const imported = await this.cardRulePresetRepository.importByCode(shareCode, (0, presets_1.presetForConfig)(room.cardGameConfig));
-        if (!imported.ok || !imported.config)
-            return imported;
-        room.cardGameConfig = imported.config;
-        this.rooms.set(code, room);
-        return imported;
     }
     getPlayerRole(code, socketId) {
         const data = this.privateStateService.getSocketData(code, socketId);
@@ -1015,10 +1023,10 @@ let GamesService = GamesService_1 = class GamesService {
     coupChallengeTimeout(code) {
         return this.withRoom(code, (room) => this.coupService.handleChallengeTimeoutForRoom(room));
     }
-    coupBlock(code, clientId) {
+    coupBlock(code, clientId, role) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.coupService.block(room, clientId));
+        return this.withRoom(code, (room) => this.coupService.block(room, clientId, role));
     }
     coupBlockTimeout(code) {
         return this.withRoom(code, (room) => this.coupService.handleBlockTimeoutForRoom(room));
@@ -1068,8 +1076,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (!room)
             return null;
         const result = await this.musicTriviaService.handleGameAction(room, clientId, action);
-        if (result)
-            this.rooms.set(code, result.room);
+        if (!result || this.rooms.get(code) !== room)
+            return null;
+        this.rooms.set(code, result.room);
         return result;
     }
     musicTriviaFinalizeAnswerTimeout(code) {
@@ -1168,7 +1177,6 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
         room_timer_service_1.RoomTimerService,
-        card_game_service_1.CardGameService,
-        card_rule_preset_repository_1.CardRulePresetRepository])
+        card_game_service_1.CardGameService])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map

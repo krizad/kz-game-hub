@@ -215,7 +215,7 @@ let TheMindService = class TheMindService {
                 isDirectMistake = true;
         }
         else {
-            if (card <= currentUP && card !== currentUP - 10)
+            if (card <= currentUP && !(isExtreme && card === currentUP - 10))
                 isDirectMistake = true;
         }
         const nextUP = pile === 'UP' ? card : currentUP;
@@ -230,7 +230,7 @@ let TheMindService = class TheMindService {
                     isDead = c <= nextUP && c >= nextDOWN && c !== nextUP - 10 && c !== nextDOWN + 10;
                 }
                 else {
-                    isDead = c <= nextUP && c !== nextUP - 10;
+                    isDead = c <= nextUP;
                 }
                 if (isDead) {
                     deadCards.push({ playerId: pid, card: c });

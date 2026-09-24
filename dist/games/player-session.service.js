@@ -32,9 +32,25 @@ let PlayerSessionService = PlayerSessionService_1 = class PlayerSessionService {
             return null;
         const tokenHash = this.hash(token);
         const session = roomSessions.get(tokenHash);
-        roomSessions.delete(tokenHash);
-        if (!session || session.expiresAt <= Date.now())
+        if (!session)
             return null;
+        roomSessions.delete(tokenHash);
+        if (session.expiresAt <= Date.now())
+            return null;
+        return session.playerId;
+    }
+    verify(roomCode, token) {
+        const roomSessions = this.sessions.get(roomCode);
+        if (!roomSessions)
+            return null;
+        const tokenHash = this.hash(token);
+        const session = roomSessions.get(tokenHash);
+        if (!session)
+            return null;
+        if (session.expiresAt <= Date.now()) {
+            roomSessions.delete(tokenHash);
+            return null;
+        }
         return session.playerId;
     }
     takePendingToken(socketId) {

@@ -111,7 +111,9 @@ function validateConfig(input, preset) {
     if (deck.jokers) {
         errors.push('deck: jokers are not supported');
     }
-    if (!Number.isInteger(deal.cardsPerPlayer) || deal.cardsPerPlayer < 1 || deal.cardsPerPlayer > 13) {
+    if (!Number.isInteger(deal.cardsPerPlayer) ||
+        deal.cardsPerPlayer < 1 ||
+        deal.cardsPerPlayer > 13) {
         errors.push('deal: cardsPerPlayer must be an integer between 1 and 13');
     }
     if (actions.allowed.length === 0) {
@@ -183,6 +185,12 @@ function previewDeal(deckSize, playerCount, policy, reserveSize = 0) {
             return { ok: false, error: 'deal: not enough cards to deal' };
         return { ok: true, preview: { perPlayer, stockSize: 0, reserveSize: reserved } };
     }
+    if (policy.countMode === 'DEAL_ALL_UNEVEN') {
+        const perPlayer = Math.floor(usable / playerCount);
+        if (perPlayer < 1)
+            return { ok: false, error: 'deal: not enough cards to deal' };
+        return { ok: true, preview: { perPlayer, stockSize: 0, reserveSize: reserved } };
+    }
     const dealt = policy.cardsPerPlayer * playerCount;
     if (policy.countMode === 'REJECT_IF_NOT_EVEN' && dealt !== usable) {
         return { ok: false, error: 'deal: the deck would not be fully consumed' };
@@ -190,7 +198,10 @@ function previewDeal(deckSize, playerCount, policy, reserveSize = 0) {
     if (dealt > usable) {
         return { ok: false, error: 'deal: not enough cards to deal' };
     }
-    return { ok: true, preview: { perPlayer: policy.cardsPerPlayer, stockSize: usable - dealt, reserveSize: reserved } };
+    return {
+        ok: true,
+        preview: { perPlayer: policy.cardsPerPlayer, stockSize: usable - dealt, reserveSize: reserved },
+    };
 }
 function dealRound(deck, playerIds, policy, reserveSize = 0) {
     if (new Set(playerIds).size !== playerIds.length) {
@@ -212,6 +223,13 @@ function dealRound(deck, playerIds, policy, reserveSize = 0) {
     for (let round = 0; round < preview.perPlayer; round += 1) {
         for (const id of playerIds)
             hands[id].push(stock.pop());
+    }
+    if (policy.countMode === 'DEAL_ALL_UNEVEN') {
+        let seat = 0;
+        while (stock.length > 0) {
+            hands[playerIds[seat]].push(stock.pop());
+            seat = (seat + 1) % playerIds.length;
+        }
     }
     return { ok: true, hands, stock, reserve };
 }
@@ -382,7 +400,8 @@ function settleMod10Showdown(input) {
         if (id === dealerId)
             continue;
         const playerScore = scores[id];
-        const playerWins = playerScore > dealerScore || (playerScore === dealerScore && input.tiePolicy === 'PLAYER_WINS');
+        const playerWins = playerScore > dealerScore ||
+            (playerScore === dealerScore && input.tiePolicy === 'PLAYER_WINS');
         const push = playerScore === dealerScore && input.tiePolicy === 'PUSH';
         if (playerWins) {
             const stake = input.baseStake * (input.multipliers[outcomeTags[id]] ?? 1);

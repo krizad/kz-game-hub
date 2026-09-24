@@ -21,6 +21,7 @@ const SF_MY_ANSWER = 'sfMyAnswer';
 const SF_ROOM_TRUE_ANSWER = 'sfRoomTrueAnswer';
 const SF_ROOM_BLUE_FISH = 'sfRoomBlueFish';
 const SF_ROOM_RED_HERRINGS = 'sfRoomRedHerrings';
+const SF_TYPING_TEXTS = 'sfTypingTexts';
 const MAX_ANSWER_LENGTH = 200;
 let SoundsFishyService = class SoundsFishyService {
     constructor(privateState) {
@@ -59,7 +60,9 @@ let SoundsFishyService = class SoundsFishyService {
         }
     }
     async assignRoles(room, requesterId) {
-        const connectedPlayers = room.players.filter((p) => p.connected !== false);
+        if (room.status !== types_1.RoomStatus.LOBBY)
+            return null;
+        const connectedPlayers = room.players.filter((p) => !p.isViewer && p.connected !== false);
         if (connectedPlayers.length < 3)
             return null;
         if (room.roomHostId !== requesterId)
@@ -94,6 +97,9 @@ let SoundsFishyService = class SoundsFishyService {
         }
         if (!questionRecord)
             return null;
+        this.privateState.takeRoomData(room.code, SF_MY_ANSWER);
+        for (const p of room.players)
+            this.privateState.delete(room.code, p.socketId, SF_TYPING_TEXTS);
         const shuffledPlayers = this.shuffleArray(connectedPlayers);
         const picker = shuffledPlayers[0];
         const blueFish = shuffledPlayers[1];
@@ -128,7 +134,7 @@ let SoundsFishyService = class SoundsFishyService {
             eliminatedPlayers: [],
             roundScorePool: 0,
             roundPoints: {},
-            typingAnswers: {},
+            typingPlayerIds: [],
         };
         room.status = types_1.RoomStatus.QUESTIONING;
         room.soundsFishyState = state;
@@ -147,16 +153,17 @@ let SoundsFishyService = class SoundsFishyService {
             return null;
         if (playerId === state.pickerId)
             return null;
-        state.typingAnswers[playerId] = answer.slice(0, MAX_ANSWER_LENGTH);
+        this.applyTyping(room, playerId, answer.slice(0, MAX_ANSWER_LENGTH));
         return room;
     }
     checkAnswerResolution(room) {
         if (!room.soundsFishyState || room.soundsFishyState.currentPhase !== types_1.SoundsFishyPhase.SETUP)
             return false;
         const state = room.soundsFishyState;
-        const requiredAnswersCount = room.players.filter((p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false).length;
-        const answeredCount = this.privateState.getRoomData(room.code, SF_MY_ANSWER).size;
-        if (answeredCount >= requiredAnswersCount && requiredAnswersCount > 0) {
+        const requiredAnswerers = room.players.filter((p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false);
+        const answers = this.privateState.getRoomData(room.code, SF_MY_ANSWER);
+        const answeredCount = requiredAnswerers.filter((p) => answers.has(p.socketId)).length;
+        if (answeredCount >= requiredAnswerers.length && requiredAnswerers.length > 0) {
             state.currentPhase = types_1.SoundsFishyPhase.THE_PITCH;
             return true;
         }
@@ -185,8 +192,7 @@ let SoundsFishyService = class SoundsFishyService {
             if (normalized === trueAnswer)
                 return null;
         }
-        if (state.typingAnswers)
-            delete state.typingAnswers[playerId];
+        this.clearTyping(room, playerId);
         this.privateState.set(room.code, playerId, SF_MY_ANSWER, { playerId, answer: trimmed });
         if (!state.answeredPlayerIds.includes(playerId)) {
             state.answeredPlayerIds.push(playerId);
@@ -337,9 +343,53 @@ let SoundsFishyService = class SoundsFishyService {
             state.roundPoints[newSocketId] = state.roundPoints[oldSocketId];
             delete state.roundPoints[oldSocketId];
         }
-        if (state.typingAnswers[oldSocketId] !== undefined) {
-            state.typingAnswers[newSocketId] = state.typingAnswers[oldSocketId];
-            delete state.typingAnswers[oldSocketId];
+        state.typingPlayerIds = state.typingPlayerIds.map((id) => id === oldSocketId ? newSocketId : id);
+    }
+    handlePlayerDisconnect(room, socketId) {
+        const state = room.soundsFishyState;
+        if (!state)
+            return false;
+        if (state.pickerId !== socketId)
+            return this.checkAnswerResolution(room);
+        const replacement = room.players.find((p) => !p.isViewer && p.connected !== false && p.socketId !== socketId);
+        if (!replacement)
+            return false;
+        state.pickerId = replacement.socketId;
+        this.privateState.delete(room.code, replacement.socketId, SF_TRUE_ANSWER);
+        return true;
+    }
+    applyTyping(room, playerId, text) {
+        const state = room.soundsFishyState;
+        if (!state)
+            return;
+        if (!state.typingPlayerIds.includes(playerId))
+            state.typingPlayerIds.push(playerId);
+        for (const player of room.players) {
+            if (player.socketId === state.pickerId)
+                continue;
+            const view = this.privateState.get(room.code, player.socketId, SF_TYPING_TEXTS) ?? {};
+            view[playerId] = text;
+            this.privateState.set(room.code, player.socketId, SF_TYPING_TEXTS, view);
+        }
+    }
+    clearTyping(room, playerId) {
+        const state = room.soundsFishyState;
+        if (!state)
+            return;
+        state.typingPlayerIds = state.typingPlayerIds.filter((id) => id !== playerId);
+        for (const player of room.players) {
+            if (player.socketId === state.pickerId)
+                continue;
+            const view = this.privateState.get(room.code, player.socketId, SF_TYPING_TEXTS);
+            if (!view || view[playerId] === undefined)
+                continue;
+            delete view[playerId];
+            if (Object.keys(view).length === 0) {
+                this.privateState.delete(room.code, player.socketId, SF_TYPING_TEXTS);
+            }
+            else {
+                this.privateState.set(room.code, player.socketId, SF_TYPING_TEXTS, view);
+            }
         }
     }
     backToLobby(room, requesterId) {

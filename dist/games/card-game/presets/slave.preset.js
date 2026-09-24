@@ -5,7 +5,7 @@ exports.SLAVE_RANK_ORDER = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', '
 const DEFAULT_DECK = { kind: 'STANDARD_52', jokers: false, copies: 1 };
 const DEFAULT_DEAL = {
     cardsPerPlayer: 13,
-    countMode: 'EQUAL_WITH_LEFTOVERS',
+    countMode: 'DEAL_ALL_UNEVEN',
     starterPolicy: 'ROTATE',
 };
 const DEFAULT_ACTIONS = {

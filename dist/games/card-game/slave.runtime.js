@@ -23,6 +23,7 @@ class SlaveRuntime {
         room.cardGameChips = chips;
         for (const id of playerIds)
             chips[id] = chips[id] ?? config.scoring.startingChips;
+        const leaderCardDealt = playerIds.some((id) => (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID));
         const leaderId = playerIds.find((id) => (hands[id] ?? []).some((card) => card.id === LEADER_CARD_ID)) ??
             playerIds[0];
         const decisions = {};
@@ -30,7 +31,7 @@ class SlaveRuntime {
             decisions[id] = 'PENDING';
             this.setHand(room.code, id, hands[id] ?? []);
         }
-        this.setFirstPlayed(room.code, false);
+        this.setFirstPlayed(room.code, !leaderCardDealt);
         room.cardGameState = (0, card_engine_service_1.toPublicState)({
             preset: 'SLAVE',
             phase: 'PLAYER_TURNS',
@@ -166,7 +167,7 @@ class SlaveRuntime {
             chips[id] = (chips[id] ?? config.scoring.startingChips) - stake;
             chips[winnerId] = (chips[winnerId] ?? config.scoring.startingChips) + stake;
         }
-        room.cardGameChips = chips;
+        room.cardGameChips = { ...room.cardGameChips, ...chips };
         const revealedHands = {};
         for (const id of state.playerOrder)
             revealedHands[id] = this.getHand(room.code, id) ?? [];

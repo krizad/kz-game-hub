@@ -24,6 +24,7 @@ export declare class WhoAmIService {
     private eligiblePlayers;
     private findNextPlayer;
     private enterFinalGuessPhase;
+    handlePlayerDisconnect(room: RoomState, socketId: string): RoomState | null;
     handleGameAction(room: RoomState, requesterId: string, action: Record<string, unknown>): RoomState | null;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
     remapSocketId(state: WhoAmIGameState, oldSocketId: string, newSocketId: string): void;

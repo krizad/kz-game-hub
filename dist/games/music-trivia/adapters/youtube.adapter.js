@@ -17,9 +17,14 @@ class YouTubeAdapter {
             return this.innertube;
         if (!this.creating) {
             const { Innertube } = await Promise.resolve().then(() => require('youtubei.js'));
-            this.creating = Innertube.create().then((yt) => {
+            this.creating = Innertube.create()
+                .then((yt) => {
                 this.innertube = yt;
                 return yt;
+            })
+                .catch((error) => {
+                this.creating = null;
+                throw error;
             });
         }
         return this.creating;

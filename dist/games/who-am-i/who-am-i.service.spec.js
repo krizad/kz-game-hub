@@ -73,6 +73,23 @@ describe('WhoAmIService', () => {
             expect(result.whoAmIState.winner).toBeNull();
             expect(['p1', 'p2']).toContain(result.whoAmIState.currentTurn);
         });
+        it("should publish each player's view of the other players' words", () => {
+            const room = {
+                code: 'test-room',
+                status: types_1.RoomStatus.LOBBY,
+                roomHostId: 'host1',
+                players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+                config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+            };
+            const result = service.startGameHostInput(room, 'host1', { p1: 'Apple', p2: 'Banana' });
+            expect(result).not.toBeNull();
+            expect(privateState.get('test-room', 'p1', 'waiVisibleWords')).toEqual({ p2: 'Banana' });
+            expect(privateState.get('test-room', 'p2', 'waiVisibleWords')).toEqual({ p1: 'Apple' });
+            expect(privateState.get('test-room', 'host1', 'waiVisibleWords')).toEqual({
+                p1: 'Apple',
+                p2: 'Banana',
+            });
+        });
         it('should return null if requester is not host', () => {
             const room = {
                 code: 'test-room',
@@ -134,6 +151,27 @@ describe('WhoAmIService', () => {
             expect(database_1.prisma.word.findMany).toHaveBeenCalledWith({
                 where: { category: 'Food', lang: 'th' },
                 select: { word: true, emoji: true },
+            });
+        });
+        it('should give each player a visible-word map that excludes their own word', async () => {
+            const room = {
+                code: 'test-room',
+                status: types_1.RoomStatus.LOBBY,
+                roomHostId: 'host1',
+                players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+                config: { wordMode: 'RANDOM', wordCategory: 'Food', maxRounds: 3 },
+            };
+            database_1.prisma.word.findMany.mockResolvedValue([
+                { word: 'Pizza', emoji: '🍕' },
+                { word: 'Sushi', emoji: '🍣' },
+            ]);
+            const result = await service.startGameRandom(room, 'host1');
+            expect(result).not.toBeNull();
+            expect(privateState.get('test-room', 'host1', 'waiVisibleWords')).toEqual({
+                p1: expect.any(String),
+            });
+            expect(privateState.get('test-room', 'p1', 'waiVisibleWords')).toEqual({
+                host1: expect.any(String),
             });
         });
         it('should return null if requester is not host', async () => {
@@ -820,6 +858,44 @@ describe('WhoAmIService', () => {
                 roomHostId: 'host1',
             };
             expect(service.resetGame(room, 'p1')).toBeNull();
+        });
+    });
+    describe('handlePlayerDisconnect', () => {
+        const disconnectRoom = (turnStatus) => ({
+            code: 'test-room',
+            gameType: types_1.GameType.WHO_AM_I,
+            status: types_1.RoomStatus.PLAYING,
+            roomHostId: 'host1',
+            players: [
+                { id: 'p1', socketId: 'p1', name: 'P1', score: 0, roomId: 'r1', connected: true },
+                { id: 'p2', socketId: 'p2', name: 'P2', score: 0, roomId: 'r1', connected: true },
+            ],
+            config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+            whoAmIState: {
+                phase: 'ASKING',
+                currentTurn: 'p1',
+                currentGuess: 'An elephant',
+                turnStatus,
+                votes: { p2: 'YES' },
+                eliminatedPlayers: [],
+                finalGuessUsed: [],
+            },
+        });
+        it('should advance the turn when the active player is removed', () => {
+            const room = disconnectRoom('VOTING');
+            const result = service.handlePlayerDisconnect(room, 'p1');
+            expect(result).toBe(room);
+            expect(room.whoAmIState.currentTurn).toBe('p2');
+            expect(room.whoAmIState.turnStatus).toBe('VOTING');
+            expect(room.whoAmIState.currentGuess).toBeNull();
+            expect(room.whoAmIState.votes).toEqual({});
+        });
+        it('should ignore disconnects from non-active players or a resolved turn', () => {
+            const other = disconnectRoom('VOTING');
+            expect(service.handlePlayerDisconnect(other, 'p2')).toBeNull();
+            const resolved = disconnectRoom('RESULT');
+            expect(service.handlePlayerDisconnect(resolved, 'p1')).toBeNull();
+            expect(resolved.whoAmIState.currentTurn).toBe('p1');
         });
     });
 });

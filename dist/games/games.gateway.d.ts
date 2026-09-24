@@ -1,11 +1,11 @@
-import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CardGameAction, CardGameConfig, CardGameImportRulesRequest, CardGamePublishRulesRequest } from '@repo/types';
-export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig } from '@repo/types';
+export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
     private readonly roomTimerService;
@@ -13,13 +13,16 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     server: Server;
     private readonly logger;
     private readonly recordedResults;
+    private readonly saboteurDeadlines;
     constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService);
+    afterInit(): void;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
     handleLeaveRoom(client: Socket): void;
     private handleLeaveResult;
     private forgetRecordedResult;
     handleGetAvailableRooms(client: Socket): void;
+    private leavePreviousRoom;
     handleCreateRoom(data: {
         name: string;
         gameType?: GameType;
@@ -60,8 +63,6 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         code: string;
         action: CardGameAction;
     }, client: Socket): void;
-    handleCardGamePublishRules(data: CardGamePublishRulesRequest, client: Socket): Promise<void>;
-    handleCardGameImportRules(data: CardGameImportRulesRequest, client: Socket): Promise<void>;
     handleTTTJoinSide(data: {
         code: string;
         side: 'X' | 'O';
@@ -201,6 +202,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     }, client: Socket): void;
     handleCoupBlock(data: {
         code: string;
+        role?: CoupRole;
     }, client: Socket): void;
     handleCoupExchangeSelect(data: {
         code: string;
@@ -256,6 +258,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncCoupChallengeTimer;
     private syncCoupBlockTimer;
     private syncSaboteurTimer;
+    private syncCardGameTimer;
     private emitPrivateStates;
     private emitSessionToken;
     private applyMusicTriviaTimers;

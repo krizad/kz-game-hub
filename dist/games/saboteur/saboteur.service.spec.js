@@ -361,6 +361,43 @@ describe('SaboteurService', () => {
             expect(state.players['p2'].score).toBe(4);
             expect(state.players['p2'].role).toBe(types_1.SaboteurRole.SABOTEUR);
         });
+        it('ignores disconnected hands when the deck runs out', () => {
+            const room = startGame(createRoom(3));
+            setRoles(room, { p1: types_1.SaboteurRole.MINER, p2: types_1.SaboteurRole.SABOTEUR, p3: types_1.SaboteurRole.MINER });
+            const state = room.saboteurState;
+            state.activePlayerId = 'p1';
+            room.players.find((player) => player.socketId === 'p3').connected = false;
+            privateState.set(room.code, ROOM_KEY, SB_ROOM_DECK, []);
+            state.stockCount = 0;
+            for (const id of ['p1', 'p2']) {
+                privateState.delete(room.code, id, SB_HAND);
+                state.players[id].handSize = 0;
+            }
+            setHand(room, 'p1', ['path-24c']);
+            expect(service.discard(room, 'p1', 0)).not.toBeNull();
+            expect(state.currentPhase).toBe(types_1.SaboteurPhase.ROUND_END);
+            expect(state.roundResult.winnerRole).toBe(types_1.SaboteurRole.SABOTEUR);
+        });
+        it('pays two nuggets per saboteur when four saboteurs win', () => {
+            const room = startGame(createRoom(10));
+            const state = room.saboteurState;
+            const roles = {};
+            for (const id of state.turnOrder)
+                roles[id] = types_1.SaboteurRole.SABOTEUR;
+            setRoles(room, roles);
+            state.activePlayerId = state.turnOrder[0];
+            privateState.set(room.code, ROOM_KEY, SB_ROOM_DECK, []);
+            state.stockCount = 0;
+            for (const id of state.turnOrder) {
+                privateState.delete(room.code, id, SB_HAND);
+                state.players[id].handSize = 0;
+            }
+            setHand(room, state.turnOrder[0], ['path-24c']);
+            expect(service.discard(room, state.turnOrder[0], 0)).not.toBeNull();
+            expect(state.currentPhase).toBe(types_1.SaboteurPhase.ROUND_END);
+            expect(state.roundResult.saboteurBonus).toBe(2);
+            expect(state.players[state.turnOrder[1]].score).toBe(2);
+        });
     });
     describe('round flow', () => {
         it('nextRound preserves scores, resets the board and rotates the starter', () => {
@@ -391,6 +428,7 @@ describe('SaboteurService', () => {
             expect(state.currentPhase).toBe(types_1.SaboteurPhase.GAME_OVER);
             expect(state.finalResults.scores['p2']).toBe(9);
             expect(state.finalResults.winnerIds.sort()).toEqual(['p2', 'p3']);
+            expect(room.status).toBe(types_1.RoomStatus.RESULT);
         });
     });
     describe('reconnection', () => {
