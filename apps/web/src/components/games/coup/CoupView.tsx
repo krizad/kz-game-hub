@@ -43,9 +43,11 @@ export function CoupView() {
   // 1) a declared action (pendingAction appears) → sound per action type
   // 2) any influence count drops → coup boom
   // 3) winnerId set → victory fanfare
-  const lastSeq = useRef<{ pending: string | null; influences: string | null; winner: string | null }>(
-    { pending: null, influences: null, winner: null },
-  );
+  const lastSeq = useRef<{
+    pending: string | null;
+    influences: string | null;
+    winner: string | null;
+  }>({ pending: null, influences: null, winner: null });
   useEffect(() => {
     const pendingKey = state.pendingAction
       ? `${state.pendingAction.actorId}:${state.pendingAction.type}:${state.pendingAction.targetId ?? ''}`
@@ -109,7 +111,7 @@ export function CoupView() {
   const renderSoundToggle = () => (
     <button
       onClick={toggleSound}
-      title={soundsEnabled ? 'Sound effects on' : 'Sound effects off'}
+      title={soundsEnabled ? t('gameCoup.soundOn') : t('gameCoup.soundOff')}
       className={`flex items-center justify-center w-8 h-8 border-4 border-black shadow-[2px_2px_0_0_#000] text-sm transition-all active:translate-y-0.5 ${soundsEnabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'}`}
       data-testid="coup-sound-toggle"
     >

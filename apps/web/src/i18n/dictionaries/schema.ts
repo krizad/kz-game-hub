@@ -399,6 +399,8 @@ export interface Dictionary {
     submitGuess: string;
   };
   gameDetectiveClub: {
+    soundOn: string;
+    soundOff: string;
     loading: string;
     yourRole: string;
     yourScore: string;
@@ -963,6 +965,8 @@ export interface Dictionary {
     };
   };
   gameCoup: {
+    soundOn: string;
+    soundOff: string;
     yourCoins: string;
     yourInfluence: string;
     coins: string;
