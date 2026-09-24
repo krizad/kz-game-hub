@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CoupHelpModal } from './CoupHelpModal';
 import { CoupRole, CoupActionType } from '@repo/types';
 import { toast } from 'react-hot-toast';
+import { useCoupSounds, type CoupSound } from '@/hooks/useCoupSounds';
+import { useSoundSettings } from '@/hooks/useSoundSettings';
 
 const roleEmoji: Record<string, string> = {
   DUKE: '👑',
@@ -27,6 +29,8 @@ export function CoupView() {
     coupExchangeSelect,
   } = useGameStore();
   const { t } = useTranslate();
+  const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
+  const playSound = useCoupSounds(soundsEnabled);
   const [coupTarget, setCoupTarget] = useState<string>('');
   const [assassinateTarget, setAssassinateTarget] = useState<string>('');
   const [stealTarget, setStealTarget] = useState<string>('');
@@ -34,6 +38,62 @@ export function CoupView() {
 
   if (!room || !room.coupState) return <div className="p-6 font-black">Loading Coup...</div>;
   const state = room.coupState;
+
+  // ── Sound effects: derive cues from server-state deltas ─────────────
+  // 1) a declared action (pendingAction appears) → sound per action type
+  // 2) any influence count drops → coup boom
+  // 3) winnerId set → victory fanfare
+  const lastSeq = useRef<{ pending: string | null; influences: string | null; winner: string | null }>(
+    { pending: null, influences: null, winner: null },
+  );
+  useEffect(() => {
+    const pendingKey = state.pendingAction
+      ? `${state.pendingAction.actorId}:${state.pendingAction.type}:${state.pendingAction.targetId ?? ''}`
+      : null;
+    const influencesKey = Object.entries(state.influences)
+      .map(([id, inf]) => `${id}:${inf.count}`)
+      .sort()
+      .join(',');
+    const winnerKey = state.winnerId ?? null;
+
+    const prev = lastSeq.current;
+    const first = prev.pending === null && prev.influences === null && prev.winner === null;
+
+    if (!first) {
+      // Declared action (only on appear, not on resolution)
+      if (pendingKey && pendingKey !== prev.pending && state.pendingAction) {
+        const type = state.pendingAction.type;
+        const map: Record<string, CoupSound> = {
+          INCOME: 'income',
+          FOREIGN_AID: 'foreign-aid',
+          TAX: 'tax',
+          ASSASSINATE: 'assassinate',
+          STEAL: 'steal',
+          EXCHANGE: 'exchange',
+          COUP: 'coup',
+        };
+        playSound(map[type] ?? 'income');
+      }
+      // Influence lost anywhere at the table
+      if (influencesKey !== prev.influences && prev.influences !== null) {
+        const before: Record<string, number> = {};
+        prev.influences.split(',').forEach((pair) => {
+          const [id, c] = pair.split(':');
+          before[id] = Number(c);
+        });
+        const dropped = Object.entries(state.influences).some(
+          ([id, inf]) => (before[id] ?? inf.count) > inf.count,
+        );
+        if (dropped) playSound('coup');
+      }
+      // Winner decided
+      if (winnerKey && winnerKey !== prev.winner) {
+        playSound('win');
+      }
+    }
+
+    lastSeq.current = { pending: pendingKey, influences: influencesKey, winner: winnerKey };
+  }, [state, playSound]);
   const hand = (privateState as any)?.coupHand as CoupRole[] | undefined;
   const exchangeKeepCount = hand ? Math.max(1, hand.length - 2) : 2;
   const isMyTurn = state.currentTurn === socketId;
@@ -46,12 +106,24 @@ export function CoupView() {
   const isSpectator =
     room.players.find((p) => p.socketId === socketId)?.isViewer ||
     state.influences[socketId]?.count === 0;
+  const renderSoundToggle = () => (
+    <button
+      onClick={toggleSound}
+      title={soundsEnabled ? 'Sound effects on' : 'Sound effects off'}
+      className={`flex items-center justify-center w-8 h-8 border-4 border-black shadow-[2px_2px_0_0_#000] text-sm transition-all active:translate-y-0.5 ${soundsEnabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'}`}
+      data-testid="coup-sound-toggle"
+    >
+      {soundsEnabled ? '🔊' : '🔇'}
+    </button>
+  );
+
   return (
     <div className="flex flex-col gap-4 bg-white border-4 border-black p-4 shadow-[4px_4px_0_0_#000]">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-black uppercase tracking-widest">Coup — {state.phase}</h2>
         <div className="flex gap-2">
           <CoupHelpModal />
+          {renderSoundToggle()}
           {room.roomHostId === socketId && (
             <button
               onClick={() => resetRoom()}
