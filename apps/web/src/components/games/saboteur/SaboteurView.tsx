@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RoomStatus,
@@ -16,6 +16,8 @@ import {
 } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useSaboteurSounds } from '@/hooks/useGameSounds';
+import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import clsx from 'clsx';
@@ -56,8 +58,60 @@ export function SaboteurView() {
   const [rotation, setRotation] = useState<0 | 180>(0);
   const [targeting, setTargeting] = useState<Targeting>(null);
   const [roleHidden, setRoleHidden] = useState(false);
+  const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
+  const playSound = useSaboteurSounds(soundsEnabled);
+
 
   const state = room?.saboteurState;
+
+  // Sound effects: react to newly appended game-log entries (server-driven)
+  const seenLogSeq = useRef<number>(0);
+  const firstLogPass = useRef(true);
+  useEffect(() => {
+    const log = state?.log ?? [];
+    const last = log.length > 0 ? log[log.length - 1].seq : 0;
+    if (firstLogPass.current) {
+      seenLogSeq.current = last;
+      firstLogPass.current = false;
+      return;
+    }
+    const fresh = log.filter((e) => e.seq > seenLogSeq.current);
+    seenLogSeq.current = last;
+    for (const e of fresh) {
+      switch (e.kind) {
+        case 'PLACE':
+          playSound('place');
+          break;
+        case 'BREAK':
+          playSound('break');
+          break;
+        case 'REPAIR':
+          playSound('repair');
+          break;
+        case 'MAP':
+          playSound('map');
+          break;
+        case 'ROCKFALL':
+          playSound('rockfall');
+          break;
+        case 'DISCARD':
+          playSound('discard');
+          break;
+        case 'PASS':
+          playSound('pass');
+          break;
+        case 'PICK_GOLD':
+          playSound('gold');
+          break;
+        case 'MINERS_WIN':
+          playSound('win');
+          break;
+        case 'SABOTEURS_WIN':
+          playSound('lose');
+          break;
+      }
+    }
+  }, [state?.log, playSound]);
   if (!room || !state) return null;
 
   const myHand = (privateState.sbHand as Array<{ cardId: string }> | undefined) ?? [];
@@ -383,6 +437,20 @@ export function SaboteurView() {
         <div className="text-sm font-bold text-stone-600 py-8">{t('gameSaboteur.emptyHand')}</div>
       )}
     </div>
+  );
+
+  const renderSoundToggle = () => (
+    <button
+      onClick={toggleSound}
+      title={soundsEnabled ? t('gameSaboteur.soundOn') : t('gameSaboteur.soundOff')}
+      className={clsx(
+        'flex items-center justify-center w-9 h-9 rounded-xl border-4 border-black shadow-[3px_3px_0_0_#000] text-lg transition-all active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]',
+        soundsEnabled ? 'bg-lime-300' : 'bg-stone-300 grayscale',
+      )}
+      data-testid="saboteur-sound-toggle"
+    >
+      {soundsEnabled ? '🔊' : '🔇'}
+    </button>
   );
 
   const renderRoleBadge = () => {
@@ -751,6 +819,7 @@ export function SaboteurView() {
       <div className="flex-1 flex flex-col gap-2 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           {renderRoleBadge()}
+          {renderSoundToggle()}
           <span className="bg-white border-2 border-black rounded-lg px-2 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]">
             ⛏️ {t('gameSaboteur.round')} {state.round}/3
           </span>

@@ -954,6 +954,8 @@ export const th: Dictionary = {
     chooseGoalToPeek: 'คลิกการ์ดเป้าหมายที่อยากแอบดู',
     chooseRockfallCell: 'คลิกช่องอุโมงค์ที่จะรื้อ (ห้ามรื้อจุดเริ่ม/เป้าหมาย)',
     choosePlacement: 'คลิกช่องที่มีเงาอุโมงค์เพื่อวาง (⟳ หมุนได้)',
+    soundOn: 'เปิดเสียงเอฟเฟกต์',
+    soundOff: 'ปิดเสียงเอฟเฟกต์',
     selectCardHint: 'เลือกการ์ดจากมือของคุณ',
     handSize: 'จำนวนการ์ดในมือ',
     players: 'ผู้เล่น',

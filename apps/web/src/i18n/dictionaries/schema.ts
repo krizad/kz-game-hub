@@ -901,6 +901,8 @@ export interface Dictionary {
     chooseGoalToPeek: string;
     chooseRockfallCell: string;
     choosePlacement: string;
+    soundOn: string;
+    soundOff: string;
     selectCardHint: string;
     handSize: string;
     players: string;
