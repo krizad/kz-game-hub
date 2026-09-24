@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { GameType, DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -8,6 +9,9 @@ import { PlayingPhase } from './phases/PlayingPhase';
 import { DiscussionPhase } from './phases/DiscussionPhase';
 import { VotingPhase } from './phases/VotingPhase';
 import { ScoringPhase } from './phases/ScoringPhase';
+import { useDetectiveClubSounds } from '@/hooks/useDetectiveClubSounds';
+import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { useDetectiveClubSoundCues } from './useDetectiveClubSoundCues';
 
 function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslate>['t']): string {
   switch (role) {
@@ -25,6 +29,22 @@ function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslat
 export function DetectiveClubView() {
   const { room, socketId, privateState } = useGameStore();
   const { t } = useTranslate();
+  const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
+  const playSound = useDetectiveClubSounds(soundsEnabled);
+  const dcState = room?.detectiveClubState ?? null;
+  useDetectiveClubSoundCues(dcState, playSound);
+
+  // Role-reveal cue: fire once when scoring deltas land (detective vs conspirator win)
+  const lastScoredRef = useRef(false);
+  useEffect(() => {
+    if (!dcState?.scoreDeltas || Object.keys(dcState.scoreDeltas).length === 0) return;
+    if (lastScoredRef.current) return;
+    lastScoredRef.current = true;
+    const myRole = (room?.detectiveClubState?.players[socketId]?.role ?? privateState?.dcRole) as
+      | string
+      | undefined;
+    playSound(myRole === 'CONSPIRATOR' ? 'conspirator-win' : 'detective-win');
+  }, [dcState?.scoreDeltas, playSound, room, socketId, privateState]);
 
   if (!room || room.gameType !== GameType.DETECTIVE_CLUB) return null;
 
@@ -59,7 +79,16 @@ export function DetectiveClubView() {
           </div>
         </div>
 
-        <div className="text-center sm:text-right">
+        <div className="text-center sm:text-right flex items-center gap-2">
+          <button
+            onClick={toggleSound}
+            title={soundsEnabled ? 'Sound effects on' : 'Sound effects off'}
+            className={`flex items-center justify-center w-8 h-8 border-4 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] text-sm transition-all active:translate-y-0.5 ${soundsEnabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'}`}
+            data-testid="dc-sound-toggle"
+          >
+            {soundsEnabled ? '🔊' : '🔇'}
+          </button>
+          <div>
           <p className="text-black uppercase tracking-widest text-xs font-black mb-1">
             {t('gameDetectiveClub.yourScore')}
           </p>
@@ -69,6 +98,7 @@ export function DetectiveClubView() {
               {t('gameDetectiveClub.pts')}
             </span>
           </span>
+          </div>
         </div>
       </div>
 
