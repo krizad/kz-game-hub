@@ -37,7 +37,7 @@ Copy `.env.example` to `.env` at the repo root.
 ## Architecture constraints
 
 - **WebSocket-only backend**: All communication is via Socket.io events through `GamesGateway`. The only REST endpoint is `GET /health` (with Swagger UI at `/api` in dev). Do not add new `@Controller` classes.
-- **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Do not persist game state to DB during play. PostgreSQL is only used for reference/persistent data: Sounds Fishy trivia questions, Who Am I words, and the leaderboard's recorded game results.
+- **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Do not persist game state to DB during play. PostgreSQL is only used for reference/persistent data: Sounds Fishy trivia questions, Who Am I words, the leaderboard's recorded game results, and per-game enable/disable flags (`GameSetting`, mirrored into `GameSettingsService`'s in-memory map at boot).
 - **Server-authoritative**: Client never mutates state directly. Client emits actions → server processes → broadcasts `room_state_updated`. Zustand store (`useGameStore`) is a read-only mirror of server state.
 - **Private data**: Roles and secret words are sent via `server.to(socketId).emit('role_assigned')`, NOT in broadcasted `RoomState`. Do not add sensitive fields to broadcast payloads.
 - **Single-page frontend**: `apps/web/src/app/page.tsx` is a `"use client"` component that conditionally renders the correct game view based on `room.gameType`. There are no separate routes per game.

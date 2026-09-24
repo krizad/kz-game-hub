@@ -17,6 +17,7 @@ import { CoupRules } from './games/coup/CoupRules';
 import { UltimateTicTacToeRules } from './games/ultimate-tic-tac-toe/UltimateTicTacToeRules';
 import { CardGameRules } from './games/card-game/CardGameRules';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useGameStore } from '@/store/useGameStore';
 
 interface RulesModalProps {
   defaultGameType?: GameType;
@@ -29,6 +30,7 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
   const [activeTab, setActiveTab] = useState<GameType | 'LOBBY'>(defaultGameType || 'LOBBY');
   const contentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslate();
+  const { isGameEnabled } = useGameStore();
 
   // When defaultGameType changes, ensure tab updates if open
   useEffect(() => {
@@ -168,84 +170,110 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                   >
                     {t('rules.modal.tabs.whoKnow')}
                   </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.GOBBLER_TIC_TAC_TOE)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.GOBBLER_TIC_TAC_TOE ? 'bg-blue-300 text-black border-2 border-black border border-blue-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.gobbler')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.TIC_TAC_TOE)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.TIC_TAC_TOE ? 'bg-zinc-300 text-black border-2 border-black border border-zinc-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.ticTacToe')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.ULTIMATE_TIC_TAC_TOE)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.ULTIMATE_TIC_TAC_TOE ? 'bg-yellow-300 text-black border-2 border-black' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.ultimateTTT')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.RPS)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.RPS ? 'bg-amber-300 text-black border-2 border-black border border-amber-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.handDuel')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.SOUNDS_FISHY)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SOUNDS_FISHY ? 'bg-purple-300 text-black border-2 border-black border border-purple-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.soundsFishy')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.WHO_AM_I)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_AM_I ? 'bg-pink-300 text-black border-2 border-black border border-pink-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.whoAmI')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.DETECTIVE_CLUB)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.DETECTIVE_CLUB ? 'bg-slate-300 text-black border-2 border-black border border-slate-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.detectiveClub')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.WHO_FIRST)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_FIRST ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.whoFirst')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.MUSIC_TRIVIA)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.MUSIC_TRIVIA ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.musicTrivia')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.THE_MIND)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.theMind')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.SABOTEUR)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SABOTEUR ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.saboteur')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.COUP)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.COUP ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.coup')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab(GameType.CARD_GAME)}
-                    className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CARD_GAME ? 'bg-lime-300 text-black border-2 border-black border border-lime-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                  >
-                    {t('rules.modal.tabs.pokDeng')}
-                  </button>
+                  {isGameEnabled(GameType.GOBBLER_TIC_TAC_TOE) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.GOBBLER_TIC_TAC_TOE)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.GOBBLER_TIC_TAC_TOE ? 'bg-blue-300 text-black border-2 border-black border border-blue-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.gobbler')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.TIC_TAC_TOE) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.TIC_TAC_TOE)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.TIC_TAC_TOE ? 'bg-zinc-300 text-black border-2 border-black border border-zinc-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.ticTacToe')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.ULTIMATE_TIC_TAC_TOE) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.ULTIMATE_TIC_TAC_TOE)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.ULTIMATE_TIC_TAC_TOE ? 'bg-yellow-300 text-black border-2 border-black' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.ultimateTTT')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.RPS) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.RPS)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.RPS ? 'bg-amber-300 text-black border-2 border-black border border-amber-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.handDuel')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.SOUNDS_FISHY) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.SOUNDS_FISHY)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SOUNDS_FISHY ? 'bg-purple-300 text-black border-2 border-black border border-purple-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.soundsFishy')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.WHO_AM_I) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.WHO_AM_I)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_AM_I ? 'bg-pink-300 text-black border-2 border-black border border-pink-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.whoAmI')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.DETECTIVE_CLUB) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.DETECTIVE_CLUB)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.DETECTIVE_CLUB ? 'bg-slate-300 text-black border-2 border-black border border-slate-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.detectiveClub')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.WHO_FIRST) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.WHO_FIRST)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WHO_FIRST ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.whoFirst')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.MUSIC_TRIVIA) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.MUSIC_TRIVIA)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.MUSIC_TRIVIA ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.musicTrivia')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.THE_MIND) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.THE_MIND)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THE_MIND ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.theMind')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.SABOTEUR) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.SABOTEUR)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.SABOTEUR ? 'bg-orange-300 text-black border-2 border-black border border-orange-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.saboteur')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.COUP) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.COUP)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.COUP ? 'bg-red-300 text-black border-2 border-black border border-red-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.coup')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.CARD_GAME) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.CARD_GAME)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CARD_GAME ? 'bg-lime-300 text-black border-2 border-black border border-lime-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.pokDeng')}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

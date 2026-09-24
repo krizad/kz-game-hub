@@ -19,6 +19,7 @@ import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { CardGameService } from './card-game/card-game.service';
+import { GameSettingsService } from './game-settings.service';
 
 @Module({
   providers: [
@@ -42,6 +43,7 @@ import { CardGameService } from './card-game/card-game.service';
     RoomTimerService,
     PrivateStateService,
     CardGameService,
+    GameSettingsService,
   ],
 })
 export class GamesModule {}

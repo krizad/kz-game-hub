@@ -36,6 +36,7 @@ import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
+import { GameSettingsService } from './game-settings.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 
@@ -85,6 +86,7 @@ export class GamesService {
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
     private readonly cardGameService: CardGameService,
+    private readonly gameSettings: GameSettingsService,
   ) {}
 
   setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void {
@@ -111,6 +113,10 @@ export class GamesService {
 
   getRoom(code: string): RoomState | undefined {
     return this.rooms.get(code);
+  }
+
+  isGameEnabled(gameType: GameType): boolean {
+    return this.gameSettings.isEnabled(gameType);
   }
 
   getReconnectToken(code: string, socketId: string): string | null {
@@ -541,7 +547,7 @@ export class GamesService {
   }[] {
     const availableRooms = [];
     for (const room of this.rooms.values()) {
-      if (room.status === RoomStatus.LOBBY) {
+      if (room.status === RoomStatus.LOBBY && this.gameSettings.isEnabled(room.gameType)) {
         availableRooms.push({
           code: room.code,
           gameType: room.gameType,

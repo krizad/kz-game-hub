@@ -69,6 +69,9 @@ export const SOCKET_EVENTS = {
   UPDATE_CONFIG: 'update_config',
   GET_AVAILABLE_ROOMS: 'get_available_rooms',
   AVAILABLE_ROOMS_UPDATED: 'available_rooms_updated',
+  GET_GAME_SETTINGS: 'get_game_settings',
+  GAME_SETTINGS_UPDATED: 'game_settings_updated',
+  SET_GAME_ENABLED: 'set_game_enabled',
   ERROR: 'error',
   // Tic-Tac-Toe specific events
   TTT_JOIN_SIDE: 'ttt_join_side',
@@ -249,6 +252,18 @@ export interface AvailableRoom {
   gameType: GameType;
   hostName: string;
   playerCount: number;
+}
+
+/**
+ * Per-game enable/disable flags mirrored from the DB `GameSetting` table.
+ * A missing entry means the game is enabled (fail-open default).
+ */
+export type GameSettingsMap = Partial<Record<GameType, boolean>>;
+
+export interface SetGameEnabledPayload {
+  gameType: GameType;
+  enabled: boolean;
+  adminKey: string;
 }
 
 export interface LeaderboardEntry {

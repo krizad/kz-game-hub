@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 import { RulesModal } from '@/components/RulesModal';
+import { AdminGameSettings } from './AdminGameSettings';
 
 const getGameName = (gameType: GameType, t: any) => {
   switch (gameType) {
@@ -40,7 +41,8 @@ const getGameName = (gameType: GameType, t: any) => {
 };
 
 export function HomeView() {
-  const { connected, myName, setName, createRoom, joinRoom, availableRooms } = useGameStore();
+  const { connected, myName, setName, createRoom, joinRoom, availableRooms, isGameEnabled } =
+    useGameStore();
   const { t } = useTranslate();
 
   const [joinCode, setJoinCode] = useState('');
@@ -53,6 +55,7 @@ export function HomeView() {
         </div>
         <div className="flex">
           <RulesModal triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center gap-2 px-4 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] text-nowrap" />
+          <AdminGameSettings triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center px-3 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]" />
         </div>
       </div>
       <div className="w-full max-w-md lg:max-w-5xl p-6 sm:p-8 bg-white border-4 border-black shadow-[8px_8px_0_0_#000] lg:p-10 lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
@@ -128,168 +131,200 @@ export function HomeView() {
         {/* Right Column (PC) / Bottom Section (Mobile) */}
         <div className="flex flex-col mt-8 lg:mt-0">
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <button
-              onClick={() => createRoom(GameType.WHO_KNOW)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🕵️</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">
-                {t('lobby.gameNames.whoKnow')}
-              </span>
-            </button>
-            <button
-              onClick={() => createRoom(GameType.SOUNDS_FISHY)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#C084FC] hover:bg-[#A855F7] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🐟</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">
-                Sounds Fishy
-              </span>
-            </button>
+            {isGameEnabled(GameType.WHO_KNOW) && (
+              <button
+                onClick={() => createRoom(GameType.WHO_KNOW)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">🕵️</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  {t('lobby.gameNames.whoKnow')}
+                </span>
+              </button>
+            )}
+            {isGameEnabled(GameType.SOUNDS_FISHY) && (
+              <button
+                onClick={() => createRoom(GameType.SOUNDS_FISHY)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#C084FC] hover:bg-[#A855F7] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">🐟</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  Sounds Fishy
+                </span>
+              </button>
+            )}
           </div>
 
-          {/* Unified Tic-Tac-Toe Card with 3 Modes */}
-          <div className="bg-[#FEF08A] border-4 border-black p-3 shadow-[4px_4px_0_0_#000] mb-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">❌⭕️</span>
-                <span className="text-xs sm:text-sm font-black text-black tracking-wider uppercase">
-                  Tic-Tac-Toe
+          {/* Unified Tic-Tac-Toe Card with 3 Modes (hidden when all modes are off) */}
+          {(isGameEnabled(GameType.TIC_TAC_TOE) ||
+            isGameEnabled(GameType.GOBBLER_TIC_TAC_TOE) ||
+            isGameEnabled(GameType.ULTIMATE_TIC_TAC_TOE)) && (
+            <div className="bg-[#FEF08A] border-4 border-black p-3 shadow-[4px_4px_0_0_#000] mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">❌⭕️</span>
+                  <span className="text-xs sm:text-sm font-black text-black tracking-wider uppercase">
+                    Tic-Tac-Toe
+                  </span>
+                </div>
+                <span className="text-[10px] font-black bg-white text-black px-2 py-0.5 border-2 border-black uppercase shadow-[1px_1px_0_0_#000]">
+                  3 Modes
                 </span>
               </div>
-              <span className="text-[10px] font-black bg-white text-black px-2 py-0.5 border-2 border-black uppercase shadow-[1px_1px_0_0_#000]">
-                3 Modes
-              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {isGameEnabled(GameType.TIC_TAC_TOE) && (
+                  <button
+                    type="button"
+                    onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'CLASSIC' })}
+                    disabled={!connected || !myName}
+                    className="w-full bg-[#A1A1AA] hover:bg-[#71717A] disabled:bg-gray-400 text-white font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
+                  >
+                    <span className="text-lg">❌⭕️</span>
+                    <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
+                      {t('lobby.gameNames.ticTacToe')}
+                    </span>
+                  </button>
+                )}
+                {isGameEnabled(GameType.GOBBLER_TIC_TAC_TOE) && (
+                  <button
+                    type="button"
+                    onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'GOBBLER' })}
+                    disabled={!connected || !myName}
+                    className="w-full bg-[#60A5FA] hover:bg-[#3B82F6] disabled:bg-gray-400 text-white font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
+                  >
+                    <span className="text-lg">🦃</span>
+                    <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
+                      {t('lobby.gameNames.gobbler')}
+                    </span>
+                  </button>
+                )}
+                {isGameEnabled(GameType.ULTIMATE_TIC_TAC_TOE) && (
+                  <button
+                    type="button"
+                    onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'ULTIMATE' })}
+                    disabled={!connected || !myName}
+                    className="w-full bg-[#FACC15] hover:bg-[#EAB308] disabled:bg-gray-400 text-black font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
+                  >
+                    <span className="text-lg">⚡</span>
+                    <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
+                      {t('lobby.gameNames.ultimateTTT')}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+          )}
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {isGameEnabled(GameType.RPS) && (
               <button
-                type="button"
-                onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'CLASSIC' })}
+                onClick={() => createRoom(GameType.RPS)}
                 disabled={!connected || !myName}
-                className="w-full bg-[#A1A1AA] hover:bg-[#71717A] disabled:bg-gray-400 text-white font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
+                className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
               >
-                <span className="text-lg">❌⭕️</span>
-                <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
-                  {t('lobby.gameNames.ticTacToe')}
+                <span className="text-xl">✌️✊✋</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  {t('lobby.gameNames.handDuel')}
                 </span>
               </button>
+            )}
+            {isGameEnabled(GameType.DETECTIVE_CLUB) && (
               <button
-                type="button"
-                onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'GOBBLER' })}
+                onClick={() => createRoom(GameType.DETECTIVE_CLUB)}
                 disabled={!connected || !myName}
-                className="w-full bg-[#60A5FA] hover:bg-[#3B82F6] disabled:bg-gray-400 text-white font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
+                className="w-full bg-[#FDE047] hover:bg-[#FACC15] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
               >
-                <span className="text-lg">🦃</span>
-                <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
-                  {t('lobby.gameNames.gobbler')}
+                <span className="text-xl">🔍</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  Detective Club
                 </span>
               </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {isGameEnabled(GameType.WHO_AM_I) && (
               <button
-                type="button"
-                onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'ULTIMATE' })}
+                onClick={() => createRoom(GameType.WHO_AM_I)}
                 disabled={!connected || !myName}
-                className="w-full bg-[#FACC15] hover:bg-[#EAB308] disabled:bg-gray-400 text-black font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
+                className="w-full bg-[#F472B6] hover:bg-[#EC4899] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
               >
-                <span className="text-lg">⚡</span>
-                <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
-                  {t('lobby.gameNames.ultimateTTT')}
+                <span className="text-xl">🤔❓</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">Who Am I</span>
+              </button>
+            )}
+            {isGameEnabled(GameType.WHO_FIRST) && (
+              <button
+                onClick={() => createRoom(GameType.WHO_FIRST)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#34D399] hover:bg-[#10B981] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">🛎️</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">Who First</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {isGameEnabled(GameType.MUSIC_TRIVIA) && (
+              <button
+                onClick={() => createRoom(GameType.MUSIC_TRIVIA)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">🎵</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  Music Trivia
                 </span>
               </button>
-            </div>
+            )}
+            {isGameEnabled(GameType.THE_MIND) && (
+              <button
+                onClick={() => createRoom(GameType.THE_MIND)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#22D3EE] hover:bg-[#06B6D4] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">🧠</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">The Mind</span>
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <button
-              onClick={() => createRoom(GameType.RPS)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">✌️✊✋</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">
-                {t('lobby.gameNames.handDuel')}
-              </span>
-            </button>
-            <button
-              onClick={() => createRoom(GameType.DETECTIVE_CLUB)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#FDE047] hover:bg-[#FACC15] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🔍</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">
-                Detective Club
-              </span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <button
-              onClick={() => createRoom(GameType.WHO_AM_I)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#F472B6] hover:bg-[#EC4899] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🤔❓</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">Who Am I</span>
-            </button>
-            <button
-              onClick={() => createRoom(GameType.WHO_FIRST)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#34D399] hover:bg-[#10B981] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🛎️</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">Who First</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <button
-              onClick={() => createRoom(GameType.MUSIC_TRIVIA)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🎵</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">
-                Music Trivia
-              </span>
-            </button>
-            <button
-              onClick={() => createRoom(GameType.THE_MIND)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#22D3EE] hover:bg-[#06B6D4] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🧠</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">The Mind</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <button
-              onClick={() => createRoom(GameType.SABOTEUR)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">⛏️💣</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">Saboteur</span>
-            </button>
-            <button
-              onClick={() => createRoom(GameType.COUP)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#EF4444] hover:bg-[#DC2626] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">👑💰</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">Coup</span>
-            </button>
-            <button
-              onClick={() => createRoom(GameType.CARD_GAME)}
-              disabled={!connected || !myName}
-              className="w-full bg-[#F59E0B] hover:bg-[#D97706] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-            >
-              <span className="text-xl">🃏</span>
-              <span className="text-xs tracking-wider text-center px-1 uppercase">
-                {t('lobby.gameNames.cardGame')}
-              </span>
-            </button>
+            {isGameEnabled(GameType.SABOTEUR) && (
+              <button
+                onClick={() => createRoom(GameType.SABOTEUR)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">⛏️💣</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">Saboteur</span>
+              </button>
+            )}
+            {isGameEnabled(GameType.COUP) && (
+              <button
+                onClick={() => createRoom(GameType.COUP)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#EF4444] hover:bg-[#DC2626] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">👑💰</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">Coup</span>
+              </button>
+            )}
+            {isGameEnabled(GameType.CARD_GAME) && (
+              <button
+                onClick={() => createRoom(GameType.CARD_GAME)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#F59E0B] hover:bg-[#D97706] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">🃏</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  {t('lobby.gameNames.cardGame')}
+                </span>
+              </button>
+            )}
           </div>
 
           {availableRooms.length > 0 && (
