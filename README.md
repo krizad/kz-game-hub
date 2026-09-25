@@ -9,17 +9,18 @@ Built as a modern web application within a Turborepo.
 
 - **Who Know!:** A social deduction game based on the board game "Insider". Who knows the secret? Who's acting sus?
 - **Gobbler Tic-Tac-Toe:** A strategic twist on the classic game where larger pieces can "gobble" smaller ones.
-- **Classic Tic-Tac-Toe:** The traditional game of X's and O's.
+- **Classic Tic-Tac-Toe:** The traditional game of X's and O's (also playable against a bot).
 - **Ultimate Tic-Tac-Toe:** A deep strategic variation where each square of a 3x3 grid contains an entire sub-board of Tic-Tac-Toe.
 - **Hand Duel:** A competitive Rock-Paper-Scissors game with multiple modes (1v1 Round Robin, All At Once) and Best-Of mechanics.
 - **Sounds Fishy:** A trivia bluffing game — one player knows the real answer, others make up convincing fakes. Can you spot the truth?
 - **Detective Club:** A social deduction card game — play cards to match a secret clue word, but one player is the spy who doesn't know it!
 - **Who Am I:** A classic guessing game — players write words about a category, then try to deduce each other's identity. Can you be the last one standing?
 - **Who First:** A fast-paced reaction and reflex buzzer game — test who reacts fastest when the signal changes!
-- **Music Trivia:** A collaborative music guessing game — listen to YouTube music videos and guess the song and artist. See who's the ultimate music master!
+- **Music Trivia:** A music guessing game — listen to synchronized song previews from iTunes, Spotify, YouTube, Deezer, or SoundCloud and guess the title and artist (typing or game-master mode).
 - **The Mind:** A cooperative game where players must play numbered cards in ascending order without communicating!
 - **Saboteur:** A social deduction game where gold miners dig tunnels towards hidden treasures while saboteurs try to secretly derail them.
 - **Coup:** A high-stakes game of deception, bluffing, and manipulation — eliminate all rival influences to take control.
+- **Thai Card Game (เกมไพ่ไทย):** Classic Thai card games with virtual chips — **Pok Deng** (ป๊อกเด้ง) and **Slave** (ไพ่ตกน้ำ), with host-editable advanced rules.
 
 ## ✨ Core Features
 
@@ -28,14 +29,17 @@ Built as a modern web application within a Turborepo.
 - **Responsive Design:** Playable on both desktop and mobile devices.
 - **Multilingual:** Full Thai (default) and English support.
 - **AI-Powered:** Who Am I can generate words using Google Gemini AI.
+- **Reconnection-safe:** Drop your connection and quietly reclaim your seat — server remaps every game's state to your new socket.
+- **Admin Controls:** Per-game enable/disable panel in the lobby, gated by `ADMIN_SECRET`.
+- **Leaderboard:** Finished matches are recorded server-side and aggregated per player.
 
 ## 🛠 Tech Stack
 
 - **Frontend:** Next.js (App Router), React, Tailwind CSS, Zustand, Framer Motion, Lucide React
 - **Backend:** NestJS, Socket.io
-- **Database:** Prisma ORM, PostgreSQL
+- **Database:** Prisma ORM, MySQL (remote production DB; provider auto-detected from `DATABASE_URL`)
 - **AI:** Google Gemini (Who Am I word generation)
-- **Media:** YouTube Data API (Music Trivia video integration)
+- **Media:** Music preview adapters for iTunes (default), Spotify, YouTube (via `youtubei.js`), Deezer, and SoundCloud
 - **Monorepo:** Turborepo, pnpm
 
 ## 📦 Project Structure
@@ -49,8 +53,7 @@ kz-game-hub/
 │   ├── database/  # Prisma schema and generated client
 │   ├── config/    # Shared configuration (ESLint, TS, etc.)
 │   └── types/     # Shared TypeScript types & Game Constants
-├── .agents/       # Antigravity Agent skills, rules, and documentation
-└── docker-compose.yml # For setting up local dependencies (like DB)
+└── .agents/       # AI Agent skills, rules, and documentation
 ```
 
 ## 🤖 Developing with AI Agents
@@ -71,7 +74,7 @@ The agent will automatically load the `create-new-game` skill, scaffolding the t
 
 - Node.js (>=20.19.0)
 - pnpm (9.1.0)
-- Docker (for the database)
+- A MySQL database (remote or local — the Prisma datasource provider is auto-detected from `DATABASE_URL`)
 
 ### Installation
 
@@ -88,23 +91,21 @@ The agent will automatically load the `create-new-game` skill, scaffolding the t
    pnpm install
    ```
 
-3. Start the local database using Docker:
-
-   ```bash
-   docker compose up -d
-   ```
-
-4. Set up environment variables:
+3. Set up environment variables:
    - Copy `.env.example` to `.env` at the repo root. A single root `.env` feeds ALL apps — do NOT create per-app `.env` files.
+   - Point `DATABASE_URL` at your MySQL instance, e.g. `mysql://user:password@localhost:3306/kz_game_hub`.
+   - To run Prisma against PostgreSQL instead, switch the provider with `pnpm db:use:pg` (or `pnpm db:use:mysql` to switch back).
 
-5. Push the database schema and seed trivia questions:
+4. Push the database schema and seed trivia questions:
 
    ```bash
    pnpm db:push
    pnpm db:seed
    ```
 
-6. Start the development server:
+   > ⚠️ `db:push` writes to **whatever `DATABASE_URL` points at** — double-check it before running against a shared/production database.
+
+5. Start the development server:
 
    ```bash
    pnpm dev
@@ -113,25 +114,21 @@ The agent will automatically load the `create-new-game` skill, scaffolding the t
    - Web App will run on `http://localhost:3000`
    - API Server will run on `http://localhost:3001` (or whichever port configured)
 
-## 🚢 Deployment (Recommended Free Stack)
+## 🚢 Deployment
 
-### 1. Database (Supabase)
+### 1. Database (MySQL)
 
-We recommend using [Supabase](https://supabase.com/) for the production database. It offers a generous free tier with a 500MB PostgreSQL database.
-_Alternative: [Neon](https://neon.tech/) also offers a great "Serverless Postgres" free tier._
+Production runs against a MySQL database. Any managed or self-hosted MySQL works (e.g. your own server, PlanetScale, Railway, Aiven):
 
-1. Create a new Supabase project.
-2. Navigate to **Project Settings -> Database**.
-3. Scroll down to **Connection String -> URI**.
-4. Important: Ensure you are using the **Session** connection pooling (Port `5432`).
-   - _Why?_ The backend application utilizes standard `pg.Pool` alongside Prisma's `pg-adapter` which effectively manages connection pooling on the server side. You do not need transaction pooling (pgbouncer) for this setup.
-5. In your production environment variables, set `DATABASE_URL` to this Session connection string.
+1. Create the database and a user.
+2. Set `DATABASE_URL` to `mysql://user:password@host:3306/dbname` in the API's production environment.
+3. Apply the schema once (`pnpm db:push`) and seed reference data (`pnpm db:seed`).
 
-### 2. API Backend (Render)
+### 2. API Backend (Node host with WebSocket support)
 
-Deploy the NestJS backend to a Node.js hosting provider such as [Render](https://render.com/), [Koyeb](https://www.koyeb.com/), or [Fly.io](https://fly.io/). Render offers a solid free tier with WebSocket support.
+Deploy the NestJS backend to any provider that keeps WebSocket connections open (Render, Koyeb, Fly.io, or your own server — this repo ships `pnpm deploy:ftp` for FTP-based deployments):
 
-- Set `DATABASE_URL` to your Supabase Session string.
+- Set `DATABASE_URL`, `CORS_ORIGIN` (allowed browser origins), and optionally `ADMIN_SECRET`, `GEMINI_API_KEY`, `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`.
 - **Turborepo specific:** Set the Build Command to `pnpm build --filter=api` and Root Directory appropriately.
 
 ### 3. Web Frontend (Vercel)

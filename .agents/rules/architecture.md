@@ -2,20 +2,20 @@
 
 ## Tech Stack
 
-| Layer            | Technology                   | Version              |
-| ---------------- | ---------------------------- | -------------------- |
-| Monorepo         | Turborepo + pnpm             | turbo ^2.0, pnpm 9.1 |
-| Backend          | NestJS + Socket.io           | -                    |
-| Frontend         | Next.js (App Router)         | 14+                  |
-| State Management | Zustand                      | -                    |
-| ORM              | Prisma + PostgreSQL          | -                    |
-| UI Components    | Tailwind CSS + Framer Motion | -                    |
-| Icons            | Lucide React                 | -                    |
-| Language         | TypeScript                   | ^5.4                 |
-| Node.js          | -                            | ≥20.19               |
-| AI               | Google Gemini (GenAI SDK)    | -                    |
-| Media APIs       | YouTube Data API v3          | -                    |
-| i18n             | Custom dictionaries (th/en)  | -                    |
+| Layer            | Technology                                                                                       | Version              |
+| ---------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| Monorepo         | Turborepo + pnpm                                                                                 | turbo ^2.0, pnpm 9.1 |
+| Backend          | NestJS + Socket.io                                                                               | -                    |
+| Frontend         | Next.js (App Router)                                                                             | 14+                  |
+| State Management | Zustand                                                                                          | -                    |
+| ORM              | Prisma + MySQL (remote prod DB; provider auto-detected from `DATABASE_URL`)                      | -                    |
+| UI Components    | Tailwind CSS + Framer Motion                                                                     | -                    |
+| Icons            | Lucide React                                                                                     | -                    |
+| Language         | TypeScript                                                                                       | ^5.4                 |
+| Node.js          | -                                                                                                | ≥20.19               |
+| AI               | Google Gemini (GenAI SDK)                                                                        | -                    |
+| Music Sources    | iTunes Search (default), Spotify, YouTube (`youtubei.js`/Innertube), Deezer, SoundCloud adapters | -                    |
+| i18n             | Custom dictionaries (th/en)                                                                      | -                    |
 
 ---
 
@@ -32,6 +32,10 @@ kz-game-hub/
 │   │           ├── games.module.ts
 │   │           ├── games.gateway.ts   # Socket.io WebSocket Gateway
 │   │           ├── games.service.ts   # Room & Game state logic
+│   │           ├── player-session.service.ts  # Reconnect tokens per seat
+│   │           ├── private-state.service.ts   # Per-socket + room-level secrets
+│   │           ├── room-timer.service.ts      # Named, auto-cancelled room timers
+│   │           ├── game-settings.service.ts   # Per-game enable/disable mirror
 │   │           ├── who-know/          # Who Know game logic
 │   │           ├── tic-tac-toe/       # Classic TTT logic
 │   │           ├── ultimate-tic-tac-toe/ # Ultimate TTT logic
@@ -41,10 +45,12 @@ kz-game-hub/
 │   │           ├── detective-club/    # Detective Club logic
 │   │           ├── who-am-i/          # Who Am I logic
 │   │           ├── who-first/         # Who First game logic
-│   │           ├── music-trivia/      # Music Trivia logic
+│   │           ├── music-trivia/      # Music Trivia logic (+ adapters/)
 │   │           ├── the-mind/          # The Mind game logic
 │   │           ├── saboteur/          # Saboteur game logic
-│   │           └── coup/              # Coup game logic
+│   │           ├── coup/              # Coup game logic
+│   │           ├── card-game/         # Thai card game (Pok Deng + Slave, engine + presets)
+│   │           ├── leaderboard/       # LeaderboardService (GameResult persistence)
 │   │       └── health/               # GET /health REST endpoint
 │   │
 │   └── web/                    # Next.js Frontend (Player's Screen)
@@ -54,7 +60,9 @@ kz-game-hub/
 │           │   ├── page.tsx    # Main game page (lobby + game rendering)
 │           │   └── globals.css
 │           ├── components/
-│           │   ├── core/       # Shared UI (CountdownTimer, utils)
+│           │   ├── core/       # Shared UI (CountdownTimer, SoundToggle, utils)
+│           │   ├── lobby/      # HomeView, GameViewManager, LobbyStartButton,
+│           │   │               # RoomHeader, InviteView, AdminGameSettings, ...
 │           │   ├── games/      # Game-specific components
 │           │   │   ├── who-know/
 │           │   │   ├── tic-tac-toe/
@@ -68,8 +76,8 @@ kz-game-hub/
 │           │   │   ├── music-trivia/
 │           │   │   ├── the-mind/
 │           │   │   ├── saboteur/
-│           │   │   └── coup/
-│           │   ├── RoleCard.tsx
+│           │   │   ├── coup/
+│           │   │   └── card-game/
 │           │   └── RulesModal.tsx
 │           ├── store/
 │           │   ├── useGameStore.ts    # Zustand + Socket.io state
@@ -94,15 +102,16 @@ kz-game-hub/
 │   │       ├── music-trivia.ts
 │   │       ├── the-mind.ts
 │   │       ├── saboteur.ts
-│   │       └── coup.ts
-│   ├── database/               # Prisma Client & Schema
+│   │       ├── coup.ts
+│   │       ├── card-game.ts
+│   │       └── utils.ts
+│   ├── database/               # Prisma Client & Schema (provider: mysql)
 │   │   └── prisma/schema.prisma
 │   └── config/                 # Shared ESLint, TSConfig, Prettier
 │
 ├── .agents/                    # AI Agent instructions, rules, and skills
 ├── turbo.json
-├── pnpm-workspace.yaml
-└── docker-compose.yml
+└── pnpm-workspace.yaml
 ```
 
 ---
@@ -134,8 +143,10 @@ kz-game-hub/
 │  └────────┬─────────┘    └──────────────────────┘            │
 │           │                                                   │
 │  ┌────────▼─────────┐                                        │
-│  │ Prisma (DB)      │  ← ใช้เฉพาะ Sounds Fishy (seed data)  │
-│  └──────────────────┘                                        │
+│  │ Prisma (MySQL)   │  ← เฉพาะ reference data: Sounds Fishy  │
+│  └──────────────────┘    questions, Who Am I words,         │
+│                          leaderboard results (GameResult),  │
+│                          game enable flags (GameSetting)    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -153,7 +164,7 @@ kz-game-hub/
 ### 2. Multi-Game Hub Pattern
 
 - `RoomState.gameType` (enum `GameType`) กำหนดว่าห้องนี้เล่นเกมอะไร
-- Game-specific state เก็บใน optional fields: `ticTacToeState?`, `rpsState?`, `gobblerState?`, `soundsFishyState?`, `detectiveClubState?`, `whoAmIState?`, `musicTriviaState?`
+- Game-specific state เก็บใน optional fields: `ticTacToeState?`, `rpsState?`, `gobblerState?`, `soundsFishyState?`, `detectiveClubState?`, `whoAmIState?`, `whoFirstState?`, `musicTriviaState?`, `theMindState?`, `saboteurState?`, `coupState?`, `ultimateTicTacToeState?`, `cardGameState?`
 - สร้างห้องเดียว สลับเกมได้ — Frontend render component ตาม `gameType`
 
 ### 3. Socket Event Lifecycle
@@ -208,14 +219,22 @@ Who Am I ใช้ pattern ที่แตกต่างจากเกมอ�
 
 ### 7. Reconnection & Socket Migration
 
-เมื่อ player disconnect แล้ว reconnect ด้วย socket ใหม่ `GamesService.joinRoom()` จะ remap socket ID ทั้งหมด:
+เมื่อ player disconnect แล้ว reconnect ด้วย socket ใหม่ (ภายใน grace window 60 วิ) `GamesService.joinRoom()` จะ remap socket ID ทั้งหมด:
 
 ```text
-votes, ticTacToeState, rpsState, gobblerState,
-soundsFishyState, detectiveClubState, whoAmIState,
-musicTriviaState
+room.roomHostId, room.hostPlayerId (Who Know round host),
+room.votes + cardGameChips + cardGameLog,
+ทุก game service ผ่าน remapSocketId():
+  ticTacToeState, rpsState, gobblerState, soundsFishyState,
+  detectiveClubState, whoAmIState, whoFirstState, musicTriviaState,
+  saboteurState, coupState, ultimateTicTacToeState, cardGameState
+PrivateStateService.remapSocketId()  (keys ของ per-socket data)
++ remapRoomSecrets() / remapPrivateVotes()  (role VALUES ใน room-level
+  `__room__` record เช่น sfRoomBlueFish, dcRoomConspirator, wkVote targets)
 ```
 
+- `PlayerSessionService` ออก reconnect token ต่อ seat (`SESSION_ASSIGNED`) ใช้ยืนยัน seat ตอน reconnect (และผ่าน gate เกมที่ถูก disable)
+- Disconnect ปกติจะ schedule reconnect-grace timer (`reconnect-grace:<playerId>`); หมดเวลาจึงลบ player ออก — ห้าม `clearRoom` timers ทิ้งรวดเดียวเพราะจะฆ่า grace timers ด้วย
 - `UserState.connected?: boolean` — tracking สถานะการเชื่อมต่อ
 - `UserState.hasBeenHost?: boolean` — ใช้สำหรับ host rotation เมื่อ host disconnect
 
@@ -254,7 +273,14 @@ const imagesDir = path.join(process.cwd(), '..', 'web', 'public', 'images', 'det
 
 Server โหลด filenames ตอน startup และใช้เป็น image paths ในการแจกการ์ดให้ผู้เล่น
 
-### 12. Music Trivia — YouTube Integration
+### 12. Music Trivia — Multi-Source Music Adapters
 
-- `youtube.adapter.ts` ใช้สำหรับดึงข้อมูลวิดีโอจาก YouTube Data API
-- ผู้เล่นฟังเพลงพร้อมกัน และทายชื่อเพลงหรือศิลปิน
+- `MusicSourceFactory` ใน `apps/api/src/games/music-trivia/` รวม adapters: `itunes.adapter.ts` (default), `spotify.adapter.ts`, `youtube.adapter.ts`, `deezer.adapter.ts`, `soundcloud.adapter.ts`
+- `youtube.adapter.ts` ใช้ `youtubei.js` (Innertube internal API) — ไม่ต้องใช้ API key; Spotify ต้องมี `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`
+- เลือก source ต่อห้องผ่าน `RoomConfig.musicTriviaSource`; โหลด preview แบบรวมศูนย์ แล้ว sync เวลาด้วย server timestamp (`MUSIC_TRIVIA_SYNC_PLAY` + `playStartTime`)
+- Timers: service คืน `timerCommands` (SCHEDULE/CANCEL) — gateway เป็นผู้รันผ่าน `applyMusicTriviaTimers` ตามที่อธิบายใน AGENTS.md
+
+### 13. Leaderboard & Game Settings
+
+- `LeaderboardService` (`games/leaderboard/`) บันทึกผลจบเกมลง `GameResult` — gateway เรียกผ่าน `maybeRecordGameResult` ใน `broadcastRoomState` (มี dedupe ต่อห้อง, เคลียร์ตอน reset/ปิดห้อง)
+- `GameSettingsService` โหลด flag ติด/ปิดเกมจาก `GameSetting` ตอน boot; admin flip ผ่าน `SET_GAME_ENABLED` (ต้องมี `ADMIN_SECRET`) — ปิดเกมแล้วสร้าง/เข้าห้องใหม่จะถูกปฏิเสธ แต่ seat เดิม reconnect กลับได้เสมอ

@@ -11,25 +11,26 @@
 - **Live Demo:** [kz-game-hub.vercel.app](https://kz-game-hub.vercel.app/)
 - **Repository:** Turborepo Monorepo
 - **AI Features:** Google Gemini สำหรับสร้างคำใน Who Am I (`GEMINI_API_KEY`)
-- **Media Integration:** YouTube Data API สำหรับดึงวิดีโอเพลงใน Music Trivia
+- **Media Integration:** Music Trivia ดึงเพลงจากหลายแหล่งผ่าน adapter — iTunes (default), Spotify, YouTube (`youtubei.js`), Deezer, SoundCloud
 
 ## Available Games
 
-| Game                     | Type              | Min Players | Description                       |
-| ------------------------ | ----------------- | ----------- | --------------------------------- |
-| **Who Know!**            | Social Deduction  | 4           | ทายคำลับ ตามหา Insider            |
-| **Classic Tic-Tac-Toe**  | Strategy          | 2           | เกม XO คลาสสิก                    |
-| **Ultimate Tic-Tac-Toe** | Strategy          | 2           | XO 9 กระดานย่อย ซ้อนในกระดานใหญ่  |
-| **Gobbler Tic-Tac-Toe**  | Strategy          | 2           | XO ที่ตัวใหญ่ทับตัวเล็กได้        |
-| **Hand Duel (RPS)**      | Competitive       | 2+          | เป่ายิ้งฉุบ Best-Of               |
-| **Sounds Fishy**         | Trivia / Bluffing | 3+          | ตอบคำถาม แยกคำตอบจริง/ปลอม        |
-| **Detective Club**       | Social Deduction  | 3+          | วางการ์ดตามคำใบ้ ล่าสายลับ        |
-| **Who Am I**             | Word Guessing     | 2+          | ทายเอกลักษณ์ผู้เล่นจากคำ          |
-| **Who First**            | Reflex / Action   | 2+          | กดปุ่มวัดความไวเมื่อมีสัญญาณ      |
-| **Music Trivia**         | Music Guessing    | 2+          | ฟังเพลงทายชื่อเพลง/ศิลปิน         |
-| **The Mind**             | Cooperative       | 2+          | สื่อสารจิต วางการ์ดเรียงห้ามพูด   |
-| **Saboteur**             | Social Deduction  | 3+          | ขุดทองหาสมบัติ vs คนบ่อนทำลาย     |
-| **Coup**                 | Bluffing / Action | 3+          | หลอกล่อ ชิงอำนาจ โค่นล้มคู่ต่อสู้ |
+| Game                     | Type                  | Min Players | Description                                      |
+| ------------------------ | --------------------- | ----------- | ------------------------------------------------ |
+| **Who Know!**            | Social Deduction      | 4           | ทายคำลับ ตามหา Insider                           |
+| **Classic Tic-Tac-Toe**  | Strategy              | 2           | เกม XO คลาสสิก                                   |
+| **Ultimate Tic-Tac-Toe** | Strategy              | 2           | XO 9 กระดานย่อย ซ้อนในกระดานใหญ่                 |
+| **Gobbler Tic-Tac-Toe**  | Strategy              | 2           | XO ที่ตัวใหญ่ทับตัวเล็กได้                       |
+| **Hand Duel (RPS)**      | Competitive           | 2+          | เป่ายิ้งฉุบ Best-Of                              |
+| **Sounds Fishy**         | Trivia / Bluffing     | 3+          | ตอบคำถาม แยกคำตอบจริง/ปลอม                       |
+| **Detective Club**       | Social Deduction      | 3+          | วางการ์ดตามคำใบ้ ล่าสายลับ                       |
+| **Who Am I**             | Word Guessing         | 2+          | ทายเอกลักษณ์ผู้เล่นจากคำ                         |
+| **Who First**            | Reflex / Action       | 2+          | กดปุ่มวัดความไวเมื่อมีสัญญาณ                     |
+| **Music Trivia**         | Music Guessing        | 2+          | ฟังเพลงทายชื่อเพลง/ศิลปิน                        |
+| **The Mind**             | Cooperative           | 2+          | สื่อสารจิต วางการ์ดเรียงห้ามพูด                  |
+| **Saboteur**             | Social Deduction      | 3+          | ขุดทองหาสมบัติ vs คนบ่อนทำลาย                    |
+| **Coup**                 | Bluffing / Action     | 3+          | หลอกล่อ ชิงอำนาจ โค่นล้มคู่ต่อสู้                |
+| **Thai Card Game**       | Card / Gambling-style | 2+          | ป๊อกเด้ง + ไพ่ตกน้ำ (Slave) เล่นด้วย chip เสมือน |
 
 ## Behavior Guidelines
 

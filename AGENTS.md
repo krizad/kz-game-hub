@@ -4,9 +4,9 @@
 
 ```bash
 pnpm install            # pnpm@9.1.0 required, Node >=20.19.0
-docker compose up -d    # PostgreSQL 15 (postgres:password@localhost:5432/kz_game_hub)
-pnpm db:push            # push schema (no migration file needed in dev)
+pnpm db:push            # push schema to the DB in DATABASE_URL (⚠️ currently a REMOTE production MySQL — check .env first)
 pnpm db:seed            # seed SoundsFishyQuestion (150+ Thai trivia) + WhoAmI words
+pnpm db:use:mysql       # switch prisma datasource provider to mysql (or db:use:pg for postgresql)
 pnpm dev                # turbo dev (web:3000 + api:3001)
 pnpm -F api test        # run all API tests (Jest)
 pnpm -F api test -- --testPathPatterns=sounds-fishy   # single test file
@@ -37,11 +37,11 @@ Copy `.env.example` to `.env` at the repo root.
 ## Architecture constraints
 
 - **WebSocket-only backend**: All communication is via Socket.io events through `GamesGateway`. The only REST endpoint is `GET /health` (with Swagger UI at `/api` in dev). Do not add new `@Controller` classes.
-- **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Do not persist game state to DB during play. PostgreSQL is only used for reference/persistent data: Sounds Fishy trivia questions, Who Am I words, the leaderboard's recorded game results, and per-game enable/disable flags (`GameSetting`, mirrored into `GameSettingsService`'s in-memory map at boot).
+- **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Do not persist game state to DB during play. The DB (currently a **remote production MySQL** via `DATABASE_URL`; the datasource provider is auto-detected from that URL by `packages/database/scripts/sync-schema.ts`) is only used for reference/persistent data: Sounds Fishy trivia questions, Who Am I words, the leaderboard's recorded game results (`GameResult`), and per-game enable/disable flags (`GameSetting`, mirrored into `GameSettingsService`'s in-memory map at boot).
 - **Server-authoritative**: Client never mutates state directly. Client emits actions → server processes → broadcasts `room_state_updated`. Zustand store (`useGameStore`) is a read-only mirror of server state.
 - **Private data**: Roles and secret words are sent via `server.to(socketId).emit('role_assigned')`, NOT in broadcasted `RoomState`. Do not add sensitive fields to broadcast payloads.
 - **Single-page frontend**: `apps/web/src/app/page.tsx` is a `"use client"` component that conditionally renders the correct game view based on `room.gameType`. There are no separate routes per game.
-- **Reconnection**: `GamesService.joinRoom` remaps socket IDs across ALL game state fields when a player reconnects. `UserState.connected` and `UserState.hasBeenHost` support reconnection and host rotation.
+- **Reconnection**: `GamesService.joinRoom` remaps socket IDs across ALL game state fields when a player reconnects — every game's `remapSocketId`, `room.votes`/`cardGameChips`/`cardGameLog`, `room.hostPlayerId`, and the private state store (`PrivateStateService.remapSocketId` keys; plus `remapRoomSecrets`/`remapPrivateVotes` for role values stored inside the room-level `__room__` record). Any new socket-ID field must be added to this pass. `UserState.connected` and `UserState.hasBeenHost` support reconnection and host rotation.
 
 ## Adding or changing Socket events — update all 4 locations
 
@@ -76,7 +76,7 @@ Supports `th` (Thai, default) and `en` (English). Key files:
 
 ## Game module pattern
 
-Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`, `who-first`, `the-mind`, `saboteur`, `coup`, `ultimate-tic-tac-toe`) follows:
+Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`, `who-first`, `the-mind`, `saboteur`, `coup`, `ultimate-tic-tac-toe`, `card-game`) follows:
 
 - `apps/api/src/games/<game>/` — service class with init/handle/reset logic, plus `*.spec.ts`
 - `apps/web/src/components/games/<game>/` — view components + rules modal
@@ -92,7 +92,9 @@ Who Am I uses a **generic `game_action` event** with a `GameActionType` discrimi
 
 ### Music Trivia — special patterns
 
-Music Trivia integrates with the YouTube Data API to fetch music videos. It includes an adapter (`youtube.adapter.ts`) inside its module for external API communication.
+Music Trivia fetches tracks through a **multi-source adapter factory** (`MusicSourceFactory`): `itunes.adapter.ts` (default), `spotify.adapter.ts` (needs `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`), `youtube.adapter.ts` (via the `youtubei.js`/Innertube internal API — no API key), `deezer.adapter.ts`, and `soundcloud.adapter.ts`. The source is chosen per room via `RoomConfig.musicTriviaSource`. Two modes via `RoomConfig.musicTriviaMode`: `TYPING` (everyone guesses in chat) and `GAME_MASTER` (host judges). Audio sync uses `MUSIC_TRIVIA_SYNC_PLAY` broadcasts plus `countdownEndsAt`/`playStartTime` server timestamps.
+
+**Timer convention:** the service never touches `setTimeout` directly — actions return `timerCommands` (`{ kind: 'SCHEDULE'|'CANCEL', name, deadline }`) and the gateway executes them via `applyMusicTriviaTimers`. Every timer callback must re-validate room state before acting (a stale callback must never throw — `RoomTimerService` wraps callbacks, but state guards are the real fix).
 
 ## Tests
 
