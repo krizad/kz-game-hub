@@ -16,7 +16,7 @@ export const th: Dictionary = {
     gameNames: {
       whoKnow: 'Who Know!',
       gobbler: 'Gobbler Tic Tac Toe',
-      ticTacToe: 'Classic Tic Tac Toe',
+      ticTacToe: 'Tic-Tac-Toe',
       ultimateTTT: 'Ultimate Tic-Tac-Toe',
       handDuel: 'Hand Duel',
       soundsFishy: 'จับโกหกปลาเน่า (Sounds Fishy)',
@@ -94,6 +94,8 @@ export const th: Dictionary = {
     keyPlaceholder: 'กรอกรหัสแอดมิน',
     unlock: 'ปลดล็อก',
     hint: 'รหัสแอดมินคือค่า ADMIN_SECRET บนเกมเซิร์ฟเวอร์ เกมที่ปิดจะหายจากหน้าล็อบบี้และเข้าร่วมไม่ได้จนกว่าจะเปิดใหม่',
+    gobblerMode: 'โหมดก็อบเบลอร์ (Tic-Tac-Toe)',
+    ultimateMode: 'โหมดอัลติเมท (Tic-Tac-Toe)',
   },
   appInfo: {
     button: 'ข้อมูล',
@@ -217,6 +219,7 @@ export const th: Dictionary = {
         'ใครเรียงหมากที่มองเห็นได้ครบ 3 ตัวติดกันก่อน ไม่ว่าจะเป็นแนวนอน แนวตั้ง หรือแนวทแยง จะเป็นผู้ชนะ!',
     },
     ticTacToe: {
+      modeNote: 'Tic-Tac-Toe เดียว มีให้เลือก 3 โหมด — host เลือกโหมดได้ในห้องรอก่อนกดเริ่มเกม',
       title: 'ทิคแทคโทคลาสสิก',
       desc: 'เกมคลาสสิก X และ O ผู้เล่นสองคนผลัดกันวางหมากบนตาราง 3x3',
       winTitle: 'วิธีชนะ',

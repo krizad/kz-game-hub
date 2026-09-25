@@ -16,7 +16,7 @@ export const en: Dictionary = {
     gameNames: {
       whoKnow: 'Who Know!',
       gobbler: 'Gobbler Tic Tac Toe',
-      ticTacToe: 'Classic Tic Tac Toe',
+      ticTacToe: 'Tic-Tac-Toe',
       ultimateTTT: 'Ultimate Tic-Tac-Toe',
       handDuel: 'Hand Duel',
       soundsFishy: 'Sounds Fishy',
@@ -95,6 +95,8 @@ export const en: Dictionary = {
     keyPlaceholder: 'Enter the admin key',
     unlock: 'Unlock',
     hint: 'The admin key comes from ADMIN_SECRET on the game server. Disabled games disappear from the lobby and cannot be joined until re-enabled.',
+    gobblerMode: 'Gobbler Mode (Tic-Tac-Toe)',
+    ultimateMode: 'Ultimate Mode (Tic-Tac-Toe)',
   },
   appInfo: {
     button: 'Info',
@@ -220,6 +222,8 @@ export const en: Dictionary = {
         'First to line up 3 of their visible pieces in a row horizontally, vertically, or diagonally wins!',
     },
     ticTacToe: {
+      modeNote:
+        'Tic-Tac-Toe has three modes in one game. The host picks the mode in the waiting room, before starting the game.',
       title: 'Classic Tic Tac Toe',
       desc: "The classic game of X's and O's. Two players take turns placing their mark on a 3x3 grid.",
       winTitle: 'How to Win',

@@ -20,7 +20,7 @@ test.describe('Room Creation & Join Flow', () => {
   });
 
   test('can create Gobbler room', async ({ page }) => {
-    await createRoom(page, 'GobblerHost', 'Gobbler Tic Tac Toe');
+    await createRoom(page, 'GobblerHost', 'Tic-Tac-Toe', 'GOBBLER');
     await expect(page.locator('button:has-text("Join X")')).toBeVisible({ timeout: 5000 });
   });
 

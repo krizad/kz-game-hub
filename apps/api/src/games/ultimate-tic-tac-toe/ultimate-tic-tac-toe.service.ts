@@ -54,10 +54,7 @@ export class UltimateTicTacToeService {
   }
 
   private isUltimateTTTRoom(room: RoomState): boolean {
-    return (
-      room.gameType === GameType.ULTIMATE_TIC_TAC_TOE ||
-      (room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE')
-    );
+    return room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE';
   }
 
   joinSide(room: RoomState, clientId: string, side: 'X' | 'O'): RoomState | null {

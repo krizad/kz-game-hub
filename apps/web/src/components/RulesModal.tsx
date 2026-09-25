@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { GameType } from '@repo/types';
 import { WhoKnowRules } from './games/who-know/WhoKnowRules';
 import { TicTacToeRules } from './games/tic-tac-toe/TicTacToeRules';
-import { GobblerRules } from './games/gobbler/GobblerRules';
 import { RPSRules } from './games/rps/RPSRules';
 import { LobbyRules } from './games/LobbyRules';
 import { SoundsFishyRules } from './games/sounds-fishy/SoundsFishyRules';
@@ -14,7 +13,6 @@ import { MusicTriviaRules } from './games/music-trivia/MusicTriviaRules';
 import { TheMindRules } from './games/the-mind/TheMindRules';
 import { SaboteurRules } from './games/saboteur/SaboteurRules';
 import { CoupRules } from './games/coup/CoupRules';
-import { UltimateTicTacToeRules } from './games/ultimate-tic-tac-toe/UltimateTicTacToeRules';
 import { CardGameRules } from './games/card-game/CardGameRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
@@ -54,10 +52,6 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <WhoKnowRules />;
       case GameType.TIC_TAC_TOE:
         return <TicTacToeRules />;
-      case GameType.ULTIMATE_TIC_TAC_TOE:
-        return <UltimateTicTacToeRules />;
-      case GameType.GOBBLER_TIC_TAC_TOE:
-        return <GobblerRules />;
       case GameType.RPS:
         return <RPSRules />;
       case GameType.SOUNDS_FISHY:
@@ -170,28 +164,12 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                   >
                     {t('rules.modal.tabs.whoKnow')}
                   </button>
-                  {isGameEnabled(GameType.GOBBLER_TIC_TAC_TOE) && (
-                    <button
-                      onClick={() => setActiveTab(GameType.GOBBLER_TIC_TAC_TOE)}
-                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.GOBBLER_TIC_TAC_TOE ? 'bg-blue-300 text-black border-2 border-black border border-blue-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                    >
-                      {t('rules.modal.tabs.gobbler')}
-                    </button>
-                  )}
                   {isGameEnabled(GameType.TIC_TAC_TOE) && (
                     <button
                       onClick={() => setActiveTab(GameType.TIC_TAC_TOE)}
                       className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.TIC_TAC_TOE ? 'bg-zinc-300 text-black border-2 border-black border border-zinc-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.ticTacToe')}
-                    </button>
-                  )}
-                  {isGameEnabled(GameType.ULTIMATE_TIC_TAC_TOE) && (
-                    <button
-                      onClick={() => setActiveTab(GameType.ULTIMATE_TIC_TAC_TOE)}
-                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.ULTIMATE_TIC_TAC_TOE ? 'bg-yellow-300 text-black border-2 border-black' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
-                    >
-                      {t('rules.modal.tabs.ultimateTTT')}
                     </button>
                   )}
                   {isGameEnabled(GameType.RPS) && (

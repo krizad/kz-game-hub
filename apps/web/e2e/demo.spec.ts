@@ -60,7 +60,7 @@ test.describe('Full Game Demos', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'Alice', 'Classic Tic Tac Toe');
+    const roomCode = await createRoom(p1, 'Alice', 'Tic-Tac-Toe');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'Bob');
 
@@ -101,7 +101,7 @@ test.describe('Full Game Demos', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'Alice', 'Ultimate Tic-Tac-Toe');
+    const roomCode = await createRoom(p1, 'Alice', 'Tic-Tac-Toe', 'ULTIMATE');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'Bob');
 
@@ -208,7 +208,7 @@ test.describe('Full Game Demos', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'P1', 'Gobbler Tic Tac Toe');
+    const roomCode = await createRoom(p1, 'P1', 'Tic-Tac-Toe', 'GOBBLER');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'P2');
 

@@ -32,10 +32,7 @@ export class GobblerService {
   }
 
   private isGobblerRoom(room: RoomState): boolean {
-    return (
-      room.gameType === GameType.GOBBLER_TIC_TAC_TOE ||
-      (room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER')
-    );
+    return room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER';
   }
 
   joinSide(room: RoomState, clientId: string, side: PlayerSide): RoomState | null {

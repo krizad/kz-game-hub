@@ -17,7 +17,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        'pnpm -F @repo/database build && pnpm -F @repo/types build && PORT=3101 pnpm -F api dev',
+        'pnpm -F @repo/database build && pnpm -F @repo/types build && DISABLE_GAME_SETTINGS_DB=1 PORT=3101 pnpm -F api dev',
       url: 'http://127.0.0.1:3101/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,

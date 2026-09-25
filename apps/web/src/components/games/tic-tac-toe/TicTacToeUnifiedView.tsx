@@ -13,16 +13,8 @@ export function TicTacToeUnifiedView() {
 
   if (!room) return null;
 
-  let mode = room.config?.ticTacToeMode;
-  if (!mode) {
-    if (room.gobblerState) {
-      mode = 'GOBBLER';
-    } else if (room.ultimateTicTacToeState) {
-      mode = 'ULTIMATE';
-    } else {
-      mode = 'CLASSIC';
-    }
-  }
+  // Tic-Tac-Toe is one game with three modes; the host picks one in the lobby.
+  const mode = room.config?.ticTacToeMode || 'CLASSIC';
 
   return (
     <div className="flex-1 flex flex-col items-center w-full h-full overflow-y-auto overflow-x-hidden">

@@ -19,6 +19,8 @@ export interface MatrixEntry {
   game: string;
   /** Lobby button text used by createRoom(). */
   lobbyButton: string;
+  /** Tic-Tac-Toe mode picked by the host in the room lobby after creating. */
+  tttMode?: 'CLASSIC' | 'GOBBLER' | 'ULTIMATE';
   players: number;
   description: string;
   external?: boolean;
@@ -47,18 +49,18 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: 'Answer, eliminate, round over scores',
   },
 
-  // --- Tic-Tac-Toe family (mode chosen in the lobby) ---
+  // --- Tic-Tac-Toe family (mode chosen in the room lobby by the host) ---
   {
     id: 'ttt-classic-2p',
     game: 'TIC_TAC_TOE',
-    lobbyButton: 'Classic Tic Tac Toe',
+    lobbyButton: 'Tic-Tac-Toe',
     players: 2,
     description: 'Classic PVP, X wins',
   },
   {
     id: 'ttt-classic-bot-easy',
     game: 'TIC_TAC_TOE',
-    lobbyButton: 'Classic Tic Tac Toe',
+    lobbyButton: 'Tic-Tac-Toe',
     players: 1,
     description: 'Classic vs easy bot',
     configure: ['ttt-opponent-bot', 'ttt-diff-easy'],
@@ -66,7 +68,7 @@ export const GAME_MATRIX: MatrixEntry[] = [
   {
     id: 'ttt-classic-bot-god',
     game: 'TIC_TAC_TOE',
-    lobbyButton: 'Classic Tic Tac Toe',
+    lobbyButton: 'Tic-Tac-Toe',
     players: 1,
     description: 'Classic vs god bot',
     configure: ['ttt-opponent-bot', 'ttt-diff-god'],
@@ -74,14 +76,16 @@ export const GAME_MATRIX: MatrixEntry[] = [
   {
     id: 'ttt-gobbler-2p',
     game: 'TIC_TAC_TOE',
-    lobbyButton: 'Gobbler Tic Tac Toe',
+    lobbyButton: 'Tic-Tac-Toe',
+    tttMode: 'GOBBLER',
     players: 2,
     description: 'Gobbler PVP, X wins row',
   },
   {
     id: 'ttt-ultimate-2p',
     game: 'TIC_TAC_TOE',
-    lobbyButton: 'Ultimate Tic-Tac-Toe',
+    lobbyButton: 'Tic-Tac-Toe',
+    tttMode: 'ULTIMATE',
     players: 2,
     description: 'Ultimate PVP, X wins',
   },

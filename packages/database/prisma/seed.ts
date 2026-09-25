@@ -56,7 +56,6 @@ async function main() {
     'WHO_KNOW',
     'TIC_TAC_TOE',
     'RPS',
-    'GOBBLER_TIC_TAC_TOE',
     'SOUNDS_FISHY',
     'DETECTIVE_CLUB',
     'WHO_AM_I',
@@ -65,8 +64,10 @@ async function main() {
     'THE_MIND',
     'SABOTEUR',
     'COUP',
-    'ULTIMATE_TIC_TAC_TOE',
     'CARD_GAME',
+    // Tic-Tac-Toe mode flags (gate individual modes, not whole games)
+    'GOBBLER_MODE',
+    'ULTIMATE_MODE',
   ];
   for (const gameType of gameTypes) {
     // Upsert: never re-enable a game an admin deliberately turned off.

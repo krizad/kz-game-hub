@@ -12,12 +12,8 @@ import { AdminGameSettings } from './AdminGameSettings';
 
 const getGameName = (gameType: GameType, t: any) => {
   switch (gameType) {
-    case GameType.GOBBLER_TIC_TAC_TOE:
-      return t('lobby.gameNames.gobbler').toUpperCase();
     case GameType.TIC_TAC_TOE:
       return t('lobby.gameNames.ticTacToe').toUpperCase();
-    case GameType.ULTIMATE_TIC_TAC_TOE:
-      return t('lobby.gameNames.ultimateTTT').toUpperCase();
     case GameType.RPS:
       return t('lobby.gameNames.handDuel').toUpperCase();
     case GameType.DETECTIVE_CLUB:
@@ -161,67 +157,19 @@ export function HomeView() {
             )}
           </div>
 
-          {/* Unified Tic-Tac-Toe Card with 3 Modes (hidden when all modes are off) */}
-          {(isGameEnabled(GameType.TIC_TAC_TOE) ||
-            isGameEnabled(GameType.GOBBLER_TIC_TAC_TOE) ||
-            isGameEnabled(GameType.ULTIMATE_TIC_TAC_TOE)) && (
-            <div className="bg-[#FEF08A] border-4 border-black p-3 shadow-[4px_4px_0_0_#000] mb-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">❌⭕️</span>
-                  <span className="text-xs sm:text-sm font-black text-black tracking-wider uppercase">
-                    Tic-Tac-Toe
-                  </span>
-                </div>
-                <span className="text-[10px] font-black bg-white text-black px-2 py-0.5 border-2 border-black uppercase shadow-[1px_1px_0_0_#000]">
-                  3 Modes
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {isGameEnabled(GameType.TIC_TAC_TOE) && (
-                  <button
-                    type="button"
-                    onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'CLASSIC' })}
-                    disabled={!connected || !myName}
-                    className="w-full bg-[#A1A1AA] hover:bg-[#71717A] disabled:bg-gray-400 text-white font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
-                  >
-                    <span className="text-lg">❌⭕️</span>
-                    <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
-                      {t('lobby.gameNames.ticTacToe')}
-                    </span>
-                  </button>
-                )}
-                {isGameEnabled(GameType.GOBBLER_TIC_TAC_TOE) && (
-                  <button
-                    type="button"
-                    onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'GOBBLER' })}
-                    disabled={!connected || !myName}
-                    className="w-full bg-[#60A5FA] hover:bg-[#3B82F6] disabled:bg-gray-400 text-white font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
-                  >
-                    <span className="text-lg">🦃</span>
-                    <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
-                      {t('lobby.gameNames.gobbler')}
-                    </span>
-                  </button>
-                )}
-                {isGameEnabled(GameType.ULTIMATE_TIC_TAC_TOE) && (
-                  <button
-                    type="button"
-                    onClick={() => createRoom(GameType.TIC_TAC_TOE, { ticTacToeMode: 'ULTIMATE' })}
-                    disabled={!connected || !myName}
-                    className="w-full bg-[#FACC15] hover:bg-[#EAB308] disabled:bg-gray-400 text-black font-black py-2.5 px-1 transition-all shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] border-2 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_0_#000]"
-                  >
-                    <span className="text-lg">⚡</span>
-                    <span className="text-[10px] sm:text-xs tracking-wider text-center uppercase leading-tight font-black">
-                      {t('lobby.gameNames.ultimateTTT')}
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
           <div className="grid grid-cols-2 gap-3 mb-3">
+            {isGameEnabled(GameType.TIC_TAC_TOE) && (
+              <button
+                onClick={() => createRoom(GameType.TIC_TAC_TOE)}
+                disabled={!connected || !myName}
+                className="w-full bg-[#A1A1AA] hover:bg-[#71717A] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+              >
+                <span className="text-xl">❌⭕️</span>
+                <span className="text-xs tracking-wider text-center px-1 uppercase">
+                  {t('lobby.gameNames.ticTacToe')}
+                </span>
+              </button>
+            )}
             {isGameEnabled(GameType.RPS) && (
               <button
                 onClick={() => createRoom(GameType.RPS)}

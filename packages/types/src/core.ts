@@ -36,7 +36,6 @@ export enum GameType {
   WHO_KNOW = 'WHO_KNOW',
   TIC_TAC_TOE = 'TIC_TAC_TOE',
   RPS = 'RPS',
-  GOBBLER_TIC_TAC_TOE = 'GOBBLER_TIC_TAC_TOE',
   SOUNDS_FISHY = 'SOUNDS_FISHY',
   DETECTIVE_CLUB = 'DETECTIVE_CLUB',
   WHO_AM_I = 'WHO_AM_I',
@@ -45,9 +44,16 @@ export enum GameType {
   THE_MIND = 'THE_MIND',
   SABOTEUR = 'SABOTEUR',
   COUP = 'COUP',
-  ULTIMATE_TIC_TAC_TOE = 'ULTIMATE_TIC_TAC_TOE',
   CARD_GAME = 'CARD_GAME',
 }
+
+/**
+ * Admin feature flags that gate individual Tic-Tac-Toe MODES (Gobbler /
+ * Ultimate) rather than whole games. Not game types — rooms are always
+ * `TIC_TAC_TOE` with `config.ticTacToeMode` choosing the variant.
+ */
+export const TTT_MODE_FLAGS = ['GOBBLER_MODE', 'ULTIMATE_MODE'] as const;
+export type TttModeFlag = (typeof TTT_MODE_FLAGS)[number];
 
 // Socket Constants
 export const SOCKET_EVENTS = {
@@ -257,11 +263,12 @@ export interface AvailableRoom {
 /**
  * Per-game enable/disable flags mirrored from the DB `GameSetting` table.
  * A missing entry means the game is enabled (fail-open default).
+ * Includes the Tic-Tac-Toe mode flags, which gate individual modes.
  */
-export type GameSettingsMap = Partial<Record<GameType, boolean>>;
+export type GameSettingsMap = Partial<Record<GameType | TttModeFlag, boolean>>;
 
 export interface SetGameEnabledPayload {
-  gameType: GameType;
+  gameType: GameType | TttModeFlag;
   enabled: boolean;
   adminKey: string;
 }

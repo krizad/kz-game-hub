@@ -90,7 +90,7 @@ export function UltimateTicTacToeView() {
               {t('gameTicTacToe.waitingJoin')}
             </p>
             <RulesModal
-              defaultGameType={GameType.ULTIMATE_TIC_TAC_TOE}
+              defaultGameType={GameType.TIC_TAC_TOE}
               isGameRoom={true}
               triggerClassName="text-sm font-black text-black hover:bg-yellow-200 bg-yellow-300 transition-colors flex items-center gap-2 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-nowrap"
             />
@@ -142,7 +142,7 @@ export function UltimateTicTacToeView() {
               )}
 
               <RulesModal
-                defaultGameType={GameType.ULTIMATE_TIC_TAC_TOE}
+                defaultGameType={GameType.TIC_TAC_TOE}
                 isGameRoom={true}
                 triggerClassName="text-[10px] sm:text-xs font-black text-black hover:bg-yellow-200 bg-white transition-colors flex items-center gap-1 px-2 py-0.5 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 text-nowrap"
               />

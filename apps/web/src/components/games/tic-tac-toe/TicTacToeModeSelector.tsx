@@ -36,13 +36,26 @@ const MODES: {
 ];
 
 export function TicTacToeModeSelector() {
-  const { room, socketId, updateConfig, actionLoading } = useGameStore();
+  const { room, socketId, updateConfig, actionLoading, isGameEnabled } = useGameStore();
   const { t } = useTranslate();
 
   if (!room) return null;
 
   const isHost = room.roomHostId === socketId;
   const currentMode: TicTacToeMode = room.config?.ticTacToeMode || 'CLASSIC';
+
+  // Admin mode flags hide individual modes; the active mode always shows so
+  // players can see what they are playing even if it was just disabled.
+  const modeFlag: Record<TicTacToeMode, 'GOBBLER_MODE' | 'ULTIMATE_MODE' | null> = {
+    CLASSIC: null,
+    GOBBLER: 'GOBBLER_MODE',
+    ULTIMATE: 'ULTIMATE_MODE',
+  };
+
+  const availableModes = MODES.filter((mode) => {
+    const flag = modeFlag[mode.id];
+    return !flag || isGameEnabled(flag) || mode.id === currentMode;
+  }).map((mode) => mode.id);
 
   const handleSelectMode = (mode: TicTacToeMode) => {
     if (!isHost || actionLoading || mode === currentMode) return;
@@ -66,8 +79,16 @@ export function TicTacToeModeSelector() {
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {MODES.map((mode) => {
+        <div
+          className={`grid gap-2 ${
+            availableModes.length === 1
+              ? 'grid-cols-1'
+              : availableModes.length === 2
+                ? 'grid-cols-2'
+                : 'grid-cols-3'
+          }`}
+        >
+          {MODES.filter((mode) => availableModes.includes(mode.id)).map((mode) => {
             const isSelected = currentMode === mode.id;
 
             return (

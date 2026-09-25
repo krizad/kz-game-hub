@@ -5,7 +5,7 @@ test.describe('Tic-Tac-Toe Play vs Bot', () => {
   test('host can toggle vs Bot, choose God mode, and play as X (Bot plays optimal defense/offense)', async ({
     page,
   }) => {
-    await createRoom(page, 'Alice', 'Classic Tic Tac Toe');
+    await createRoom(page, 'Alice', 'Tic-Tac-Toe');
     await page.waitForTimeout(2000);
 
     // Verify opponent selector is visible
@@ -92,7 +92,7 @@ test.describe('Tic-Tac-Toe Play vs Bot', () => {
   });
 
   test('host can join as O and Bot plays first move as X immediately', async ({ page }) => {
-    await createRoom(page, 'Bob', 'Classic Tic Tac Toe');
+    await createRoom(page, 'Bob', 'Tic-Tac-Toe');
     await page.waitForTimeout(2000);
 
     // Toggle vs Bot
@@ -115,7 +115,7 @@ test.describe('Tic-Tac-Toe Play vs Bot', () => {
   });
 
   test('host can choose Easy Mode and play against random bot', async ({ page }) => {
-    await createRoom(page, 'Charlie', 'Classic Tic Tac Toe');
+    await createRoom(page, 'Charlie', 'Tic-Tac-Toe');
     await page.waitForTimeout(2000);
 
     // Toggle vs Bot

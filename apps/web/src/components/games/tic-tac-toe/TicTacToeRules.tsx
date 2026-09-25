@@ -21,6 +21,11 @@ export function TicTacToeRules() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300 font-mono">
+      {/* How mode selection works */}
+      <p className="text-xs font-bold text-black bg-amber-100 border-2 border-black px-3 py-2">
+        💡 {t('rules.ticTacToe.modeNote')}
+      </p>
+
       {/* Mode Sub-tabs */}
       <div className="grid grid-cols-3 gap-2">
         <button

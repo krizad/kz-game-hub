@@ -76,7 +76,7 @@ Supports `th` (Thai, default) and `en` (English). Key files:
 
 ## Game module pattern
 
-Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`, `who-first`, `the-mind`, `saboteur`, `coup`, `ultimate-tic-tac-toe`, `card-game`) follows:
+Each game (`who-know`, `tic-tac-toe`, `rps`, `gobbler`, `sounds-fishy`, `detective-club`, `who-am-i`, `music-trivia`, `who-first`, `the-mind`, `saboteur`, `coup`, `ultimate-tic-tac-toe`, `card-game`) follows — note `gobbler/` and `ultimate-tic-tac-toe/` are **mode services** of the single `TIC_TAC_TOE` game (chosen via `config.ticTacToeMode` in the room lobby), not separate `GameType`s (see ADR 0006):
 
 - `apps/api/src/games/<game>/` — service class with init/handle/reset logic, plus `*.spec.ts`
 - `apps/web/src/components/games/<game>/` — view components + rules modal

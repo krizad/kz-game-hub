@@ -79,6 +79,7 @@ export async function createRoom(
   page: Page,
   playerName: string,
   gameButtonText: string,
+  tttMode?: 'CLASSIC' | 'GOBBLER' | 'ULTIMATE',
 ): Promise<string> {
   await goToLobbyInEnglish(page);
   await page.locator('#lobbyNameInput').fill(playerName);
@@ -89,6 +90,11 @@ export async function createRoom(
   await page.waitForTimeout(3000);
   const code = await extractRoomCode(page);
   if (!code) throw new Error('Could not extract room code');
+  // Tic-Tac-Toe modes are picked in the room lobby by the host.
+  if (tttMode && tttMode !== 'CLASSIC') {
+    await page.locator(`[data-testid="ttt-mode-${tttMode.toLowerCase()}"]`).click();
+    await page.waitForTimeout(1000);
+  }
   return code;
 }
 

@@ -3,7 +3,7 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
 
 test.describe('Ultimate Tic-Tac-Toe Game Flow', () => {
   test('player can create room and see lobby setup', async ({ page }) => {
-    const roomCode = await createRoom(page, 'HostPlayer', 'Ultimate Tic-Tac-Toe');
+    const roomCode = await createRoom(page, 'HostPlayer', 'Tic-Tac-Toe', 'ULTIMATE');
     expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
     await expect(page.locator('[data-testid="uttt-join-x"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('[data-testid="uttt-join-o"]')).toBeVisible({ timeout: 5000 });
@@ -15,7 +15,7 @@ test.describe('Ultimate Tic-Tac-Toe Game Flow', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'Alice', 'Ultimate Tic-Tac-Toe');
+    const roomCode = await createRoom(p1, 'Alice', 'Tic-Tac-Toe', 'ULTIMATE');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'Bob');
 

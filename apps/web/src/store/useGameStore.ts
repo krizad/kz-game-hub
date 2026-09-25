@@ -22,6 +22,7 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
+  TttModeFlag,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -58,8 +59,8 @@ interface GameState {
   actionLoading: boolean;
   connect: () => void;
   setName: (name: string) => void;
-  isGameEnabled: (gameType: GameType) => boolean;
-  setGameEnabled: (gameType: GameType, enabled: boolean, adminKey: string) => void;
+  isGameEnabled: (gameType: GameType | TttModeFlag) => boolean;
+  setGameEnabled: (gameType: GameType | TttModeFlag, enabled: boolean, adminKey: string) => void;
   createRoom: (gameType?: GameType, config?: Partial<RoomConfig>) => void;
   joinRoom: (code: string) => void;
   startGame: () => void;

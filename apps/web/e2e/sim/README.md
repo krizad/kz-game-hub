@@ -10,11 +10,11 @@ naturally; no state injection).
 | ----------------------- | -------------- | ------- | ------------------------------------ | ------------------------------ |
 | who-know-4p             | Who Know       | 4       | defaults                             | Voting Results / winner banner |
 | sounds-fishy-3p         | Sounds Fishy   | 3       | defaults                             | Round Over scores              |
-| ttt-classic-2p          | Tic-Tac-Toe    | 2       | CLASSIC PVP                          | "wins" banner                  |
-| ttt-classic-bot-easy    | Tic-Tac-Toe    | 1       | vs bot EASY                          | Play Again button              |
-| ttt-classic-bot-god     | Tic-Tac-Toe    | 1       | vs bot GOD                           | Play Again button              |
-| ttt-gobbler-2p          | Tic-Tac-Toe    | 2       | GOBBLER PVP                          | winner banner                  |
-| ttt-ultimate-2p         | Tic-Tac-Toe    | 2       | ULTIMATE PVP                         | "wins" banner                  |
+| ttt-classic-2p          | Tic-Tac-Toe    | 2       | mode CLASSIC PVP                     | "wins" banner                  |
+| ttt-classic-bot-easy    | Tic-Tac-Toe    | 1       | mode CLASSIC, vs bot EASY            | Play Again button              |
+| ttt-classic-bot-god     | Tic-Tac-Toe    | 1       | mode CLASSIC, vs bot GOD             | Play Again button              |
+| ttt-gobbler-2p          | Tic-Tac-Toe    | 2       | mode GOBBLER PVP                     | winner banner                  |
+| ttt-ultimate-2p         | Tic-Tac-Toe    | 2       | mode ULTIMATE PVP                    | "wins" banner                  |
 | rps-bestof1-rr          | Hand Duel      | 2       | BO1 round robin                      | "Wins the Match!"              |
 | rps-bestof3-rr          | Hand Duel      | 2       | BO3 round robin                      | "Wins the Match!"              |
 | rps-bestof3-chaos       | Hand Duel      | 2       | BO3 all at once                      | "Wins the Match!"              |

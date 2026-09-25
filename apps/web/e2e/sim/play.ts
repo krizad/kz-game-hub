@@ -33,7 +33,7 @@ export async function setupSession(
     pages.push(await ctx.newPage());
   }
   const host = pages[0];
-  const roomCode = await createRoom(host, 'Alice', entry.lobbyButton);
+  const roomCode = await createRoom(host, 'Alice', entry.lobbyButton, entry.tttMode);
   const origin = await getOrigin(host);
   for (let i = 1; i < entry.players; i++) {
     await joinRoom(pages[i], origin, roomCode, ['Bob', 'Carol', 'Dave'][i - 1]);
@@ -151,6 +151,13 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
       }
       case 'the-mind-extreme': {
         await selectNeobrutalism(page, /Normal \(Classic\)|Extreme \(2 Piles\)/i, /Extreme/i);
+        break;
+      }
+      case 'ttt-mode-classic':
+      case 'ttt-mode-gobbler':
+      case 'ttt-mode-ultimate': {
+        // Tic-Tac-Toe mode is picked in the room lobby, not the main lobby.
+        await page.locator(`[data-testid="${key}"]`).click();
         break;
       }
       case 'ttt-opponent-bot': {

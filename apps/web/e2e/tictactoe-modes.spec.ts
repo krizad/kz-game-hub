@@ -11,7 +11,7 @@ test.describe('Tic-Tac-Toe Unified Modes', () => {
     const p2 = await p2Ctx.newPage();
 
     // Create room with Classic mode
-    const roomCode = await createRoom(p1, 'HostAlice', 'Classic Tic Tac Toe');
+    const roomCode = await createRoom(p1, 'HostAlice', 'Tic-Tac-Toe');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'GuestBob');
 

@@ -29,6 +29,8 @@ import {
   CardGameAction,
   CardGameConfig,
   SetGameEnabledPayload,
+  TttModeFlag,
+  TTT_MODE_FLAGS,
 } from '@repo/types';
 
 /** Server string the client localizes via i18n/serverErrors. */
@@ -165,11 +167,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
       return;
     }
-    if (
-      !data ||
-      !Object.values(GameType).includes(data.gameType) ||
-      typeof data.enabled !== 'boolean'
-    ) {
+    if (!data || !this.isSettingsKey(data.gameType) || typeof data.enabled !== 'boolean') {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
       return;
     }
@@ -1568,7 +1566,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (!this.hasSafeValues(data)) return false;
     if (event === SOCKET_EVENTS.SET_GAME_ENABLED) {
       return (
-        Object.values(GameType).includes(data.gameType as GameType) &&
+        this.isSettingsKey(data.gameType as string) &&
         typeof data.enabled === 'boolean' &&
         typeof data.adminKey === 'string' &&
         data.adminKey.length <= 200
@@ -1664,6 +1662,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   private isValidName(value: unknown): value is string {
     return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 40;
+  }
+
+  /** Games plus the Tic-Tac-Toe mode flags are togglable via set_game_enabled. */
+  private isSettingsKey(value: unknown): value is GameType | TttModeFlag {
+    return (
+      typeof value === 'string' &&
+      (Object.values(GameType).includes(value as GameType) ||
+        (TTT_MODE_FLAGS as readonly string[]).includes(value))
+    );
   }
 
   private hasSafeValues(value: unknown, depth = 0): boolean {

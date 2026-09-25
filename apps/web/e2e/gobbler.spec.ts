@@ -8,7 +8,7 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'GX', 'Gobbler Tic Tac Toe');
+    const roomCode = await createRoom(p1, 'GX', 'Tic-Tac-Toe', 'GOBBLER');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'GO');
 
@@ -45,7 +45,7 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'GX', 'Gobbler Tic Tac Toe');
+    const roomCode = await createRoom(p1, 'GX', 'Tic-Tac-Toe', 'GOBBLER');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'GO');
 
@@ -70,7 +70,7 @@ test.describe('Gobbler Tic-Tac-Toe Gameplay', () => {
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'GobX', 'Gobbler Tic Tac Toe');
+    const roomCode = await createRoom(p1, 'GobX', 'Tic-Tac-Toe', 'GOBBLER');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'GobO');
 

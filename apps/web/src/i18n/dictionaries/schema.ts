@@ -92,6 +92,8 @@ export interface Dictionary {
     keyPlaceholder: string;
     unlock: string;
     hint: string;
+    gobblerMode: string;
+    ultimateMode: string;
   };
   appInfo: {
     button: string;
@@ -199,6 +201,7 @@ export interface Dictionary {
       winningDesc: string;
     };
     ticTacToe: {
+      modeNote: string;
       title: string;
       desc: string;
       winTitle: string;

@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { GameType } from '@repo/types';
+import { GameType, TttModeFlag } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
-/** Lobby order matches HomeView so the admin list reads the same way. */
-const ALL_GAMES: { type: GameType; labelKey: string }[] = [
+/** Flags, in lobby order. TTT mode flags gate individual modes, not whole games. */
+const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.WHO_KNOW, labelKey: 'rules.modal.tabs.whoKnow' },
   { type: GameType.SOUNDS_FISHY, labelKey: 'rules.modal.tabs.soundsFishy' },
   { type: GameType.TIC_TAC_TOE, labelKey: 'rules.modal.tabs.ticTacToe' },
-  { type: GameType.GOBBLER_TIC_TAC_TOE, labelKey: 'rules.modal.tabs.gobbler' },
-  { type: GameType.ULTIMATE_TIC_TAC_TOE, labelKey: 'rules.modal.tabs.ultimateTTT' },
+  { type: 'GOBBLER_MODE', labelKey: 'adminSettings.gobblerMode' },
+  { type: 'ULTIMATE_MODE', labelKey: 'adminSettings.ultimateMode' },
   { type: GameType.RPS, labelKey: 'rules.modal.tabs.handDuel' },
   { type: GameType.DETECTIVE_CLUB, labelKey: 'rules.modal.tabs.detectiveClub' },
   { type: GameType.WHO_AM_I, labelKey: 'rules.modal.tabs.whoAmI' },
@@ -39,7 +39,7 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
   const { t } = useTranslate();
   const { gameSettings, setGameEnabled } = useGameStore();
 
-  const isEnabled = (gameType: GameType) => gameSettings[gameType] ?? true;
+  const isEnabled = (flag: GameType | TttModeFlag) => gameSettings[flag] ?? true;
 
   return (
     <>
@@ -111,7 +111,7 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
                 </form>
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {ALL_GAMES.map(({ type, labelKey }) => (
+                  {ALL_FLAGS.map(({ type, labelKey }) => (
                     <li key={type}>
                       <label className="flex items-center justify-between gap-3 bg-white border-2 border-black px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors">
                         <span className="text-sm font-black text-black uppercase">

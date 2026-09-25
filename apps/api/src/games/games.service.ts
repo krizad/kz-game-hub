@@ -199,16 +199,6 @@ export class GamesService {
         choicesMade: [],
         scores: {},
       };
-    } else if (gameType === GameType.GOBBLER_TIC_TAC_TOE) {
-      room.gobblerState = {
-        board: Array.from({ length: 9 }, () => []),
-        currentTurn: 'X',
-        inventory: {
-          X: this.gobblerService.createInitialInventory('X'),
-          O: this.gobblerService.createInitialInventory('O'),
-        },
-        scores: { X: 0, O: 0 },
-      };
     } else if (gameType === GameType.WHO_AM_I) {
       room.config.maxRounds = 3;
       room.config.wordMode = 'RANDOM';
@@ -235,8 +225,6 @@ export class GamesService {
       room.config.saboteurTurnTimerSeconds = 60;
       room.config.saboteurStoneEndsRound = false;
       // SaboteurState is initialized when the game starts via assignRoles
-    } else if (gameType === GameType.ULTIMATE_TIC_TAC_TOE) {
-      room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
     } else if (gameType === GameType.CARD_GAME) {
       const presetId = room.config.cardGamePreset ?? 'POK_DENG';
       room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
@@ -1019,8 +1007,6 @@ export class GamesService {
         });
       case GameType.RPS:
         return this.withRoom(code, (r) => this.rpsService.reset(r, requesterId));
-      case GameType.GOBBLER_TIC_TAC_TOE:
-        return this.withRoom(code, (r) => this.gobblerService.reset(r, requesterId));
       case GameType.SOUNDS_FISHY:
         return this.withRoom(code, (r) => this.soundsFishyService.reset(r, requesterId));
       case GameType.DETECTIVE_CLUB:
@@ -1035,8 +1021,6 @@ export class GamesService {
         return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
       case GameType.SABOTEUR:
         return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
-      case GameType.ULTIMATE_TIC_TAC_TOE:
-        return this.withRoom(code, (r) => this.ultimateTicTacToeService.reset(r, requesterId));
       default:
         return null;
     }
