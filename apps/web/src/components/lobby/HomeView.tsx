@@ -56,7 +56,7 @@ export function HomeView() {
         <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000]">
           <LanguageSwitcher />
         </div>
-        <div className="flex">
+        <div className="flex gap-2 sm:gap-3">
           <AppInfoModal triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center gap-2 px-4 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] text-nowrap" />
           <RulesModal triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center gap-2 px-4 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] text-nowrap" />
           <AdminGameSettings triggerClassName="text-sm font-black text-black hover:bg-gray-100 transition-colors flex items-center px-3 py-2 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]" />
