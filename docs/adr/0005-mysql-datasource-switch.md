@@ -17,5 +17,5 @@ The project started on PostgreSQL (local Docker in dev, Supabase-style managed P
 ## Consequences
 
 - `db:push` writes to whatever `DATABASE_URL` points at — against the production URL it mutates the live database, so it must be run deliberately.
-- Docs (`AGENTS.md`, `.agents/rules/`, `.env.example`) describe MySQL; the root `docker-compose.yml` still defines an old Postgres container that is no longer the datasource and can be ignored or repurposed for a local MySQL.
+- Docs (`AGENTS.md`, `.agents/rules/`, `.env.example`) describe MySQL; the root `docker-compose.yml` now provides a local MySQL 8 container (host port 3307) matching `.env.example` for local development.
 - Anyone provisioning a new environment picks the engine by choosing the `DATABASE_URL` scheme, no code changes needed.
