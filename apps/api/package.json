@@ -17,7 +17,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "db:scrape-artist": "ts-node scripts/scrape-artist.ts"
   },
   "dependencies": {
     "@google/genai": "^2.8.0",

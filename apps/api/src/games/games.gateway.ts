@@ -15,6 +15,7 @@ import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
+import { ArtistPresetService } from './artist-preset.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import {
   SOCKET_EVENTS,
@@ -28,6 +29,9 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
+  DeleteArtistPayload,
+  GetArtistPresetsPayload,
+  SetArtistEnabledPayload,
   SetGameEnabledPayload,
   TttModeFlag,
   TTT_MODE_FLAGS,
@@ -63,6 +67,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     private readonly roomTimerService: RoomTimerService,
     private readonly privateStateService: PrivateStateService,
     private readonly gameSettingsService: GameSettingsService,
+    private readonly artistPresetService: ArtistPresetService,
   ) {}
 
   afterInit(): void {
@@ -181,6 +186,93 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     this.logger.log(`Game ${data.gameType} ${data.enabled ? 'enabled' : 'disabled'}`);
     this.server.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
     this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+  }
+
+  /** Shared admin auth for artist-preset mutations (same secret as game flags). */
+  private isAdminKey(adminKey: unknown): boolean {
+    return (
+      typeof adminKey === 'string' &&
+      !!process.env.ADMIN_SECRET &&
+      adminKey === process.env.ADMIN_SECRET
+    );
+  }
+
+  private async broadcastArtistPresets(): Promise<void> {
+    this.server.emit(SOCKET_EVENTS.ARTIST_PRESETS_UPDATED, await this.listArtistPresets(false));
+  }
+
+  private async listArtistPresets(includeDisabled: boolean) {
+    try {
+      return await this.artistPresetService.listPresets(includeDisabled);
+    } catch (error) {
+      this.logger.error('Failed to list artist presets', error as Error);
+      return [];
+    }
+  }
+
+  /** Lobby list (enabled only); a valid adminKey unlocks the full list. */
+  @SubscribeMessage(SOCKET_EVENTS.GET_ARTIST_PRESETS)
+  async handleGetArtistPresets(
+    @MessageBody() data: GetArtistPresetsPayload | undefined,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const includeDisabled = this.isAdminKey(data?.adminKey);
+    client.emit(SOCKET_EVENTS.ARTIST_PRESETS_LIST, await this.listArtistPresets(includeDisabled));
+  }
+
+  /** Admin-only: enable/disable an artist preset (removed from new room setup while disabled). */
+  @SubscribeMessage(SOCKET_EVENTS.SET_ARTIST_ENABLED)
+  async handleSetArtistEnabled(
+    @MessageBody() data: SetArtistEnabledPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!this.isAdminKey(data?.adminKey)) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+      return;
+    }
+    if (
+      !data ||
+      typeof data.artistId !== 'string' ||
+      data.artistId.length > 64 ||
+      typeof data.enabled !== 'boolean'
+    ) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+      return;
+    }
+    try {
+      await this.artistPresetService.setEnabled(data.artistId, data.enabled);
+    } catch (error) {
+      this.logger.error(`Failed to set artist preset ${data.artistId}`, error as Error);
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to update the artist preset.' });
+      return;
+    }
+    this.logger.log(`Artist preset ${data.artistId} ${data.enabled ? 'enabled' : 'disabled'}`);
+    await this.broadcastArtistPresets();
+  }
+
+  /** Admin-only: delete an artist preset together with its catalog. */
+  @SubscribeMessage(SOCKET_EVENTS.DELETE_ARTIST)
+  async handleDeleteArtist(
+    @MessageBody() data: DeleteArtistPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!this.isAdminKey(data?.adminKey)) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+      return;
+    }
+    if (!data || typeof data.artistId !== 'string' || data.artistId.length > 64) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+      return;
+    }
+    try {
+      await this.artistPresetService.deleteArtist(data.artistId);
+    } catch (error) {
+      this.logger.error(`Failed to delete artist preset ${data.artistId}`, error as Error);
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to delete the artist preset.' });
+      return;
+    }
+    this.logger.log(`Artist preset ${data.artistId} deleted`);
+    await this.broadcastArtistPresets();
   }
 
   private leavePreviousRoom(client: Socket, nextRoomCode?: string): void {
@@ -1560,10 +1652,36 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       event === SOCKET_EVENTS.GET_GAME_SETTINGS
     )
       return true;
+    // Optional-payload read: no adminKey (lobby) or one string (admin panel).
+    if (event === SOCKET_EVENTS.GET_ARTIST_PRESETS) {
+      if (payload === undefined || payload === null) return true;
+      if (typeof payload !== 'object' || Array.isArray(payload)) return false;
+      const d = payload as Record<string, unknown>;
+      return (
+        d.adminKey === undefined || (typeof d.adminKey === 'string' && d.adminKey.length <= 200)
+      );
+    }
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
 
     const data = payload as Record<string, unknown>;
     if (!this.hasSafeValues(data)) return false;
+    const isValidArtistId = (value: unknown): value is string =>
+      typeof value === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(value);
+    if (event === SOCKET_EVENTS.SET_ARTIST_ENABLED) {
+      return (
+        isValidArtistId(data.artistId) &&
+        typeof data.enabled === 'boolean' &&
+        typeof data.adminKey === 'string' &&
+        data.adminKey.length <= 200
+      );
+    }
+    if (event === SOCKET_EVENTS.DELETE_ARTIST) {
+      return (
+        isValidArtistId(data.artistId) &&
+        typeof data.adminKey === 'string' &&
+        data.adminKey.length <= 200
+      );
+    }
     if (event === SOCKET_EVENTS.SET_GAME_ENABLED) {
       return (
         this.isSettingsKey(data.gameType as string) &&

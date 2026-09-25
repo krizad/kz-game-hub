@@ -96,6 +96,13 @@ export const th: Dictionary = {
     hint: 'รหัสแอดมินคือค่า ADMIN_SECRET บนเกมเซิร์ฟเวอร์ เกมที่ปิดจะหายจากหน้าล็อบบี้และเข้าร่วมไม่ได้จนกว่าจะเปิดใหม่',
     gobblerMode: 'โหมดก็อบเบลอร์ (Tic-Tac-Toe)',
     ultimateMode: 'โหมดอัลติเมท (Tic-Tac-Toe)',
+    artistsTitle: 'ศิลปิน (ทายเพลง)',
+    artistsHint:
+      'เปิด/ปิด หรือลบศิลปินที่ให้เลือกเล่นในเกมทายเพลง — เพิ่มศิลปินใหม่ด้วยคำสั่ง pnpm db:scrape-artist',
+    artistsEmpty: 'ยังไม่มีรายชื่อศิลปินในระบบ',
+    artistTrackCount: '{total} เพลง',
+    artistDeleteConfirm:
+      'ลบศิลปิน "{name}" พร้อมรายชื่อเพลงทั้งหมด? ห้องที่เลือกไว้แล้วจะเล่นต่อได้จนจบเกม',
   },
   appInfo: {
     button: 'ข้อมูล',
@@ -816,6 +823,17 @@ export const th: Dictionary = {
       sourceProvidesPreview: 'เล่นตัวอย่างเพลง 30 วินาที',
       sourceLabel: 'แหล่งเพลง',
       regionLabel: 'ภูมิภาค',
+      pickMode: 'เลือกเพลงโดย',
+      pickModeArtist: 'เลือกศิลปิน',
+      pickModeFree: 'ค้นหาเอง',
+      artistLabel: 'ศิลปิน',
+      levelLabel: 'ระดับความยาก',
+      levelEasy: 'ง่าย (เพลงฮิต)',
+      levelMedium: 'กลาง',
+      levelHard: 'ยาก (เพลงลับ)',
+      levelHint:
+        'ง่าย = 50 ล้านวิวขึ้นไป · กลาง = 5–50 ล้าน · ยาก = ต่ำกว่า 5 ล้าน (ถ้าเพลงไม่พอ จะยืมจากระดับใกล้เคียง)',
+      artistEmpty: 'ยังไม่มีรายชื่อศิลปิน — ให้แอดมินเพิ่มด้วยคำสั่ง pnpm db:scrape-artist',
     },
     game: {
       viewOnAppleMusic: 'ดูบน Apple Music',

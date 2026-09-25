@@ -6,7 +6,12 @@ import { SoundsFishyState } from './sounds-fishy';
 import { DetectiveClubState } from './detective-club';
 import { WhoAmIGameState } from './who-am-i';
 import { WhoFirstState } from './who-first';
-import { MusicTriviaState, MusicTriviaMode, MusicSourceType } from './music-trivia';
+import {
+  MusicTriviaState,
+  MusicTriviaMode,
+  MusicSourceType,
+  MusicTriviaLevel,
+} from './music-trivia';
 import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
@@ -78,6 +83,12 @@ export const SOCKET_EVENTS = {
   GET_GAME_SETTINGS: 'get_game_settings',
   GAME_SETTINGS_UPDATED: 'game_settings_updated',
   SET_GAME_ENABLED: 'set_game_enabled',
+  // Artist presets (Music Trivia)
+  GET_ARTIST_PRESETS: 'get_artist_presets',
+  ARTIST_PRESETS_LIST: 'artist_presets_list',
+  ARTIST_PRESETS_UPDATED: 'artist_presets_updated',
+  SET_ARTIST_ENABLED: 'set_artist_enabled',
+  DELETE_ARTIST: 'delete_artist',
   ERROR: 'error',
   // Tic-Tac-Toe specific events
   TTT_JOIN_SIDE: 'ttt_join_side',
@@ -202,6 +213,10 @@ export interface RoomConfig {
   musicTriviaAnswerTimeoutMs?: number;
   musicTriviaAudioPlayback?: 'HOST_ONLY' | 'EVERYONE';
   musicTriviaAnswerCriteria?: 'ANY' | 'TITLE' | 'ARTIST';
+  // Music Trivia artist preset — when set, the room plays the preset's DB
+  // catalog instead of the free-text search (source is forced to YOUTUBE).
+  musicTriviaArtistPresetId?: string;
+  musicTriviaLevel?: MusicTriviaLevel;
   // The Mind config
   theMindStartingLives?: number;
   theMindStartingShurikens?: number;
@@ -271,6 +286,26 @@ export interface SetGameEnabledPayload {
   gameType: GameType | TttModeFlag;
   enabled: boolean;
   adminKey: string;
+}
+
+/** Admin payload: enable/disable (or delete) a Music Trivia artist preset. */
+export interface SetArtistEnabledPayload {
+  artistId: string;
+  enabled: boolean;
+  adminKey: string;
+}
+
+export interface DeleteArtistPayload {
+  artistId: string;
+  adminKey: string;
+}
+
+/**
+ * Payload for GET_ARTIST_PRESETS. Without a valid adminKey the reply lists
+ * enabled artists only; the admin key unlocks the full list (incl. disabled).
+ */
+export interface GetArtistPresetsPayload {
+  adminKey?: string;
 }
 
 export interface LeaderboardEntry {

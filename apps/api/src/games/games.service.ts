@@ -579,6 +579,13 @@ export class GamesService {
     if (room.roomHostId !== requesterId) return null;
 
     const safeConfig = this.sanitizeRoomConfig(config);
+    // Strip the explicit-null sentinel so the spread below doesn't write null
+    // into the typed config; the key is deleted outright instead.
+    const clearArtistPreset =
+      (safeConfig as { musicTriviaArtistPresetId?: unknown }).musicTriviaArtistPresetId === null;
+    if (clearArtistPreset) {
+      delete (safeConfig as { musicTriviaArtistPresetId?: unknown }).musicTriviaArtistPresetId;
+    }
     if (
       room.gameType === GameType.CARD_GAME &&
       safeConfig.cardGamePreset &&
@@ -605,6 +612,10 @@ export class GamesService {
       this.switchTicTacToeMode(room, safeConfig.ticTacToeMode);
     }
     room.config = { ...room.config, ...safeConfig };
+    if (clearArtistPreset) {
+      delete room.config.musicTriviaArtistPresetId;
+      delete room.config.musicTriviaLevel;
+    }
     this.syncBotPlayer(room);
     this.rooms.set(code, room);
     return room;
@@ -769,6 +780,16 @@ export class GamesService {
     copyInteger('musicTriviaAnswerTimeoutMs', 1_000, 120_000);
     copyEnum('musicTriviaAudioPlayback', ['HOST_ONLY', 'EVERYONE']);
     copyEnum('musicTriviaAnswerCriteria', ['ANY', 'TITLE', 'ARTIST']);
+    copyEnum('musicTriviaLevel', ['EASY', 'MEDIUM', 'HARD']);
+    if (
+      typeof config.musicTriviaArtistPresetId === 'string' &&
+      /^[a-zA-Z0-9_-]{1,64}$/.test(config.musicTriviaArtistPresetId)
+    ) {
+      result.musicTriviaArtistPresetId = config.musicTriviaArtistPresetId;
+    } else if (config.musicTriviaArtistPresetId === null) {
+      // Explicit null = leave preset mode (client can't send undefined over JSON).
+      (result as { musicTriviaArtistPresetId?: string | null }).musicTriviaArtistPresetId = null;
+    }
     copyInteger('theMindStartingLives', 1, 10);
     copyInteger('theMindStartingShurikens', 0, 10);
     copyBoolean('theMindBlindMode');

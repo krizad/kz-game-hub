@@ -23,10 +23,22 @@ import {
   CardGameAction,
   CardGameConfig,
   TttModeFlag,
+  ArtistPresetSummary,
+  GetArtistPresetsPayload,
+  SetArtistEnabledPayload,
+  DeleteArtistPayload,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
 import { translateServerError } from '@/i18n/serverErrors';
+
+/**
+ * Room config patch. `musicTriviaArtistPresetId: null` explicitly leaves
+ * artist-preset mode (JSON can't carry undefined across the socket).
+ */
+type UpdateConfigPayload = Omit<Partial<RoomState['config']>, 'musicTriviaArtistPresetId'> & {
+  musicTriviaArtistPresetId?: string | null;
+};
 
 const STORAGE_KEYS = {
   roomCode: 'kz-roomCode',
@@ -52,6 +64,7 @@ interface GameState {
   secretWord: string | null;
   availableRooms: AvailableRoom[];
   gameSettings: GameSettingsMap;
+  artistPresets: ArtistPresetSummary[];
   categories: WordCategory[];
   isLoading: boolean;
   privateState: Record<string, unknown>;
@@ -61,6 +74,9 @@ interface GameState {
   setName: (name: string) => void;
   isGameEnabled: (gameType: GameType | TttModeFlag) => boolean;
   setGameEnabled: (gameType: GameType | TttModeFlag, enabled: boolean, adminKey: string) => void;
+  getArtistPresets: (adminKey?: string) => void;
+  setArtistEnabled: (artistId: string, enabled: boolean, adminKey: string) => void;
+  deleteArtist: (artistId: string, adminKey: string) => void;
   createRoom: (gameType?: GameType, config?: Partial<RoomConfig>) => void;
   joinRoom: (code: string) => void;
   startGame: () => void;
@@ -70,10 +86,7 @@ interface GameState {
   submitVote: (targetId: string) => void;
   resetRoom: () => void;
   leaveRoom: () => void;
-  updateConfig: (
-    config: Partial<RoomState['config']>,
-    cardGameConfig?: Partial<CardGameConfig>,
-  ) => void;
+  updateConfig: (config: UpdateConfigPayload, cardGameConfig?: Partial<CardGameConfig>) => void;
   tttJoinSide: (side: 'X' | 'O') => void;
   tttMakeMove: (index: number) => void;
   tttReset: (toLobby?: boolean) => void;
@@ -180,6 +193,7 @@ export const useGameStore = create<GameState>((set, get) => {
     secretWord: null,
     availableRooms: [],
     gameSettings: {},
+    artistPresets: [],
     categories: [],
 
     isLoading: false,
@@ -200,6 +214,31 @@ export const useGameStore = create<GameState>((set, get) => {
         enabled,
         adminKey,
       } satisfies SetGameEnabledPayload);
+    },
+
+    getArtistPresets: (adminKey) => {
+      const { socket } = get();
+      socket?.emit(
+        SOCKET_EVENTS.GET_ARTIST_PRESETS,
+        adminKey ? ({ adminKey } satisfies GetArtistPresetsPayload) : undefined,
+      );
+    },
+
+    setArtistEnabled: (artistId, enabled, adminKey) => {
+      const { socket } = get();
+      socket?.emit(SOCKET_EVENTS.SET_ARTIST_ENABLED, {
+        artistId,
+        enabled,
+        adminKey,
+      } satisfies SetArtistEnabledPayload);
+    },
+
+    deleteArtist: (artistId, adminKey) => {
+      const { socket } = get();
+      socket?.emit(SOCKET_EVENTS.DELETE_ARTIST, {
+        artistId,
+        adminKey,
+      } satisfies DeleteArtistPayload);
     },
 
     connect: () => {
@@ -234,10 +273,19 @@ export const useGameStore = create<GameState>((set, get) => {
         // Request active rooms lobby
         socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
         socket.emit(SOCKET_EVENTS.GET_GAME_SETTINGS);
+        socket.emit(SOCKET_EVENTS.GET_ARTIST_PRESETS);
       });
 
       socket.on(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, (settings: GameSettingsMap) => {
         set({ gameSettings: settings });
+      });
+
+      socket.on(SOCKET_EVENTS.ARTIST_PRESETS_LIST, (presets: ArtistPresetSummary[]) => {
+        set({ artistPresets: presets });
+      });
+
+      socket.on(SOCKET_EVENTS.ARTIST_PRESETS_UPDATED, (presets: ArtistPresetSummary[]) => {
+        set({ artistPresets: presets });
       });
 
       socket.on('disconnect', () => {
@@ -410,10 +458,7 @@ export const useGameStore = create<GameState>((set, get) => {
       }
     },
 
-    updateConfig: (
-      config: Partial<RoomState['config']>,
-      cardGameConfig?: Partial<CardGameConfig>,
-    ) => {
+    updateConfig: (config: UpdateConfigPayload, cardGameConfig?: Partial<CardGameConfig>) => {
       emitGameAction(SOCKET_EVENTS.UPDATE_CONFIG, {
         payload: () => ({ config, ...(cardGameConfig ? { cardGameConfig } : {}) }),
       });

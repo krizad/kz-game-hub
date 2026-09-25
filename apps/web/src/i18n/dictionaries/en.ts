@@ -97,6 +97,13 @@ export const en: Dictionary = {
     hint: 'The admin key comes from ADMIN_SECRET on the game server. Disabled games disappear from the lobby and cannot be joined until re-enabled.',
     gobblerMode: 'Gobbler Mode (Tic-Tac-Toe)',
     ultimateMode: 'Ultimate Mode (Tic-Tac-Toe)',
+    artistsTitle: 'Artists (Music Trivia)',
+    artistsHint:
+      'Enable, disable, or remove artists offered in Music Trivia — add new ones with pnpm db:scrape-artist',
+    artistsEmpty: 'No artist presets yet',
+    artistTrackCount: '{total} songs',
+    artistDeleteConfirm:
+      'Delete "{name}" with their entire song catalog? Rooms that already picked them can finish their game.',
   },
   appInfo: {
     button: 'Info',
@@ -831,6 +838,17 @@ export const en: Dictionary = {
       sourceProvidesPreview: 'Provides 30s Preview',
       sourceLabel: 'Music Source',
       regionLabel: 'Region',
+      pickMode: 'Song Selection',
+      pickModeArtist: 'Pick an Artist',
+      pickModeFree: 'Free Search',
+      artistLabel: 'Artist',
+      levelLabel: 'Difficulty Level',
+      levelEasy: 'Easy (Big Hits)',
+      levelMedium: 'Medium',
+      levelHard: 'Hard (Deep Cuts)',
+      levelHint:
+        'Easy = 50M+ views · Medium = 5–50M · Hard = under 5M (tops up from the nearest level if short)',
+      artistEmpty: 'No artist presets yet — an admin can add them with pnpm db:scrape-artist',
     },
     game: {
       viewOnAppleMusic: '🔗 View on Apple Music',

@@ -8,6 +8,13 @@ const gameSettingsStub = () => ({
   isEnabled: jest.fn(() => true),
 });
 
+const artistPresetsStub = () => ({
+  listPresets: jest.fn(async () => []),
+  setEnabled: jest.fn(),
+  deleteArtist: jest.fn(),
+  getCatalog: jest.fn(async () => null),
+});
+
 describe('GamesGateway payload guard', () => {
   let gateway: GamesGateway;
 
@@ -18,6 +25,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
   });
 
@@ -69,6 +77,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     const toMock = jest.fn(() => ({ emit: jest.fn() }));
     lifecycleGateway.server = { to: toMock, emit: jest.fn() } as never;
@@ -96,6 +105,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
 
@@ -116,6 +126,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
 
@@ -141,6 +152,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
 
@@ -173,6 +185,7 @@ describe('GamesGateway payload guard', () => {
       { schedule, cancel } as never,
       { getSocketData: jest.fn(() => ({})) } as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() } as never;
     const room = {
@@ -204,6 +217,7 @@ describe('GamesGateway payload guard', () => {
       { schedule, cancel } as never,
       { getSocketData: jest.fn(() => ({})) } as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     gatewayInstance.server = { to: jest.fn(() => ({ emit: jest.fn() })), emit: jest.fn() } as never;
     const broadcast = (
@@ -269,6 +283,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() };
 
@@ -299,6 +314,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       gameSettingsStub() as never,
+      artistPresetsStub() as never,
     );
     const newcomer = { id: 'newcomer', join: jest.fn(), emit: jest.fn() };
     const member = { id: 'member1', join: jest.fn(), emit: jest.fn() };
@@ -321,6 +337,7 @@ describe('GamesGateway payload guard', () => {
       {} as never,
       {} as never,
       { load: jest.fn(), snapshot: jest.fn(() => ({})), setEnabled, isEnabled: jest.fn() } as never,
+      artistPresetsStub() as never,
     );
     const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() };
     const previousSecret = process.env.ADMIN_SECRET;

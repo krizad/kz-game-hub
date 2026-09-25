@@ -94,6 +94,11 @@ export interface Dictionary {
     hint: string;
     gobblerMode: string;
     ultimateMode: string;
+    artistsTitle: string;
+    artistsHint: string;
+    artistsEmpty: string;
+    artistTrackCount: string;
+    artistDeleteConfirm: string;
   };
   appInfo: {
     button: string;
@@ -770,6 +775,16 @@ export interface Dictionary {
       sourceProvidesPreview: string;
       sourceLabel: string;
       regionLabel: string;
+      pickMode: string;
+      pickModeArtist: string;
+      pickModeFree: string;
+      artistLabel: string;
+      levelLabel: string;
+      levelEasy: string;
+      levelMedium: string;
+      levelHard: string;
+      levelHint: string;
+      artistEmpty: string;
     };
     game: {
       viewOnAppleMusic: string;

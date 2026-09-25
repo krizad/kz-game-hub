@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MusicTriviaService } from './music-trivia.service';
 import { PrivateStateService } from '../private-state.service';
+import { ArtistPresetService } from '../artist-preset.service';
 import { RoomState, RoomStatus, GameType } from '@repo/types';
 
 describe('MusicTriviaService', () => {
@@ -8,7 +9,11 @@ describe('MusicTriviaService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MusicTriviaService, PrivateStateService],
+      providers: [
+        MusicTriviaService,
+        PrivateStateService,
+        { provide: ArtistPresetService, useValue: { getCatalog: jest.fn(async () => null) } },
+      ],
     }).compile();
 
     service = module.get<MusicTriviaService>(MusicTriviaService);

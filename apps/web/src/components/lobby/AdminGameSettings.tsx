@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GameType, TttModeFlag } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -37,9 +37,21 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
   const [adminKey, setAdminKey] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const { t } = useTranslate();
-  const { gameSettings, setGameEnabled } = useGameStore();
+  const {
+    gameSettings,
+    setGameEnabled,
+    artistPresets,
+    getArtistPresets,
+    setArtistEnabled,
+    deleteArtist,
+  } = useGameStore();
 
   const isEnabled = (flag: GameType | TttModeFlag) => gameSettings[flag] ?? true;
+
+  // Once unlocked, fetch the full artist list (incl. disabled) with the key.
+  useEffect(() => {
+    if (unlocked) getArtistPresets(adminKey);
+  }, [unlocked]);
 
   return (
     <>
@@ -110,24 +122,83 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
                   </p>
                 </form>
               ) : (
-                <ul className="flex flex-col gap-2">
-                  {ALL_FLAGS.map(({ type, labelKey }) => (
-                    <li key={type}>
-                      <label className="flex items-center justify-between gap-3 bg-white border-2 border-black px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors">
-                        <span className="text-sm font-black text-black uppercase">
-                          {t(labelKey)}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={isEnabled(type)}
-                          onChange={(e) => setGameEnabled(type, e.target.checked, adminKey)}
-                          className="w-5 h-5 accent-[#A855F7]"
-                          data-testid={`admin-game-toggle-${type}`}
-                        />
-                      </label>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-col gap-4">
+                  <ul className="flex flex-col gap-2">
+                    {ALL_FLAGS.map(({ type, labelKey }) => (
+                      <li key={type}>
+                        <label className="flex items-center justify-between gap-3 bg-white border-2 border-black px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors">
+                          <span className="text-sm font-black text-black uppercase">
+                            {t(labelKey)}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={isEnabled(type)}
+                            onChange={(e) => setGameEnabled(type, e.target.checked, adminKey)}
+                            className="w-5 h-5 accent-[#A855F7]"
+                            data-testid={`admin-game-toggle-${type}`}
+                          />
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div>
+                    <h3 className="text-sm font-black text-black uppercase tracking-widest mb-2">
+                      🎤 {t('adminSettings.artistsTitle')}
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-500 mb-2">
+                      {t('adminSettings.artistsHint')}
+                    </p>
+                    {artistPresets.length === 0 ? (
+                      <p className="text-xs font-bold text-black bg-yellow-300 border-2 border-black px-2 py-1 inline-block">
+                        {t('adminSettings.artistsEmpty')}
+                      </p>
+                    ) : (
+                      <ul className="flex flex-col gap-2">
+                        {artistPresets.map((artist) => (
+                          <li key={artist.id}>
+                            <div className="flex items-center justify-between gap-2 bg-white border-2 border-black px-3 py-2">
+                              <label className="flex items-center gap-2 cursor-pointer grow">
+                                <input
+                                  type="checkbox"
+                                  checked={artist.enabled}
+                                  onChange={(e) =>
+                                    setArtistEnabled(artist.id, e.target.checked, adminKey)
+                                  }
+                                  className="w-5 h-5 accent-[#A855F7]"
+                                  data-testid={`admin-artist-toggle-${artist.name}`}
+                                />
+                                <span className="text-sm font-black text-black truncate">
+                                  {artist.name}
+                                </span>
+                              </label>
+                              <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap">
+                                {t('adminSettings.artistTrackCount', {
+                                  total: artist.trackCounts.total,
+                                })}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      t('adminSettings.artistDeleteConfirm', { name: artist.name }),
+                                    )
+                                  ) {
+                                    deleteArtist(artist.id, adminKey);
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-100 border-2 border-black px-2 py-1 text-xs font-black uppercase transition-colors shrink-0"
+                                data-testid={`admin-artist-delete-${artist.name}`}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>

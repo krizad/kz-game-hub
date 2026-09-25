@@ -76,3 +76,31 @@ model GameSetting {
   enabled   Boolean @default(true)
   updatedAt DateTime @updatedAt
 }
+
+// Music Trivia artist presets (ADR 0007): reference data scraped once from
+// YouTube. Tracks and view counts are snapshots — never live game state.
+model ArtistPreset {
+  id        String        @id @default(uuid())
+  name      String        @unique
+  enabled   Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  tracks    ArtistTrack[]
+}
+
+model ArtistTrack {
+  id              String       @id @default(uuid())
+  artist          ArtistPreset @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  artistId        String
+  videoId         String       @unique
+  title           String
+  normalizedTitle String
+  viewCount       Int          @default(0)
+  releaseYear     Int?
+  durationMs      Int          @default(30000)
+  thumbnailUrl    String?
+  scrapedAt       DateTime     @default(now())
+
+  @@index([artistId, viewCount])
+  @@index([artistId, normalizedTitle])
+}

@@ -39,6 +39,17 @@ This document defines the shared vocabulary and boundaries for the configurable 
 | Allowed options           | The allow-listed policy variants of the active preset, projected to clients so Advanced Rules controls offer only selectable values.                                                                                                                                      |
 | Forfeit prompt            | Informational, host-configured end-of-round text. It has no effect outside the application and never requires proof of an offline action.                                                                                                                                 |
 
+## Music Trivia (ทายเพลง) vocabulary
+
+| Term          | Definition                                                                                                                                                                                      |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Artist preset | A system-curated artist offered for selection in Music Trivia. Playing one uses the artist's stored catalog instead of the host's free-text search. An admin may enable, disable, or remove it. |
+| Catalog       | The stored collection of an artist preset's tracks. Catalog entries are reference data fetched once from YouTube; they are not live game state and never belong to a match.                     |
+| View snapshot | The view count and release year captured for a track at scrape time. Difficulty is judged against the snapshot, not the live value, so it can age until refreshed.                              |
+| Level         | A fixed difficulty band of a track, judged by its view snapshot: Easy ≥ 50M views, Medium 5–50M, Hard < 5M. Release year is recorded and shown at reveal but does not change a track's band.    |
+| Free search   | The original Music Trivia setup where the host types a query and may filter by year range; coexists with, and is unaffected by, artist presets.                                                 |
+| Scrape        | The one-time per-artist fetch that builds a catalog: search YouTube, deduplicate by normalized song title (highest-view video wins, official channel as tiebreak), then store the snapshot.     |
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |

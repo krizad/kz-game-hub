@@ -17,6 +17,25 @@ export type MusicSourceType = 'ITUNES' | 'SPOTIFY' | 'YOUTUBE' | 'DEEZER' | 'SOU
 
 export type MusicTriviaMode = 'TYPING' | 'GAME_MASTER';
 
+/** Difficulty bands for artist-preset games, judged by the stored view snapshot. */
+export type MusicTriviaLevel = 'EASY' | 'MEDIUM' | 'HARD';
+
+/**
+ * Public artist-preset entry for the lobby / admin panel. Track counts are
+ * per difficulty level, derived from each track's view snapshot.
+ */
+export interface ArtistPresetSummary {
+  id: string;
+  name: string;
+  enabled: boolean;
+  trackCounts: {
+    easy: number;
+    medium: number;
+    hard: number;
+    total: number;
+  };
+}
+
 // Public track info — no answer spoilers (title + artist kept server-side).
 export interface MusicTriviaTrack {
   id: string;
@@ -62,6 +81,10 @@ export interface MusicTriviaState {
   mode: MusicTriviaMode;
   sourceType: MusicSourceType;
   totalRounds: number;
+  /** Set when the room plays an artist preset: the preset's display name. */
+  artistPresetName?: string;
+  /** Set when the room plays an artist preset: the difficulty level the host chose. */
+  level?: MusicTriviaLevel;
   currentRound: MusicTriviaRound | null;
   roundHistory: MusicTriviaRoundHistory[];
   readyPlayerIds: string[]; // List of players who clicked "Ready"
