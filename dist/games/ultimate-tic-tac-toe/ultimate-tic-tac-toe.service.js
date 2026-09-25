@@ -48,8 +48,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         return { winner: null };
     }
     isUltimateTTTRoom(room) {
-        return (room.gameType === types_1.GameType.ULTIMATE_TIC_TAC_TOE ||
-            (room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE'));
+        return room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE';
     }
     joinSide(room, clientId, side) {
         if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.LOBBY) {

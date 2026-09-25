@@ -1,9 +1,10 @@
-import { GameSettingsMap, GameType } from '@repo/types';
+import { GameSettingsMap, GameType, TttModeFlag } from '@repo/types';
+export type SettingsKey = GameType | TttModeFlag;
 export declare class GameSettingsService {
     private readonly logger;
     private readonly enabled;
     load(): Promise<void>;
-    isEnabled(gameType: GameType): boolean;
+    isEnabled(key: SettingsKey): boolean;
     snapshot(): GameSettingsMap;
-    setEnabled(gameType: GameType, enabled: boolean): Promise<void>;
+    setEnabled(key: SettingsKey, enabled: boolean): Promise<void>;
 }

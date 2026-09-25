@@ -106,9 +106,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
             return;
         }
-        if (!data ||
-            !Object.values(types_1.GameType).includes(data.gameType) ||
-            typeof data.enabled !== 'boolean') {
+        if (!data || !this.isSettingsKey(data.gameType) || typeof data.enabled !== 'boolean') {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
             return;
         }
@@ -1095,7 +1093,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (!this.hasSafeValues(data))
             return false;
         if (event === types_1.SOCKET_EVENTS.SET_GAME_ENABLED) {
-            return (Object.values(types_1.GameType).includes(data.gameType) &&
+            return (this.isSettingsKey(data.gameType) &&
                 typeof data.enabled === 'boolean' &&
                 typeof data.adminKey === 'string' &&
                 data.adminKey.length <= 200);
@@ -1171,6 +1169,11 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     isValidName(value) {
         return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 40;
+    }
+    isSettingsKey(value) {
+        return (typeof value === 'string' &&
+            (Object.values(types_1.GameType).includes(value) ||
+                types_1.TTT_MODE_FLAGS.includes(value)));
     }
     hasSafeValues(value, depth = 0) {
         if (depth > 4)

@@ -18,11 +18,11 @@ describe('UltimateTicTacToeService', () => {
         return {
             id: 'room-id',
             code: 'UTTT01',
-            gameType: types_1.GameType.ULTIMATE_TIC_TAC_TOE,
+            gameType: types_1.GameType.TIC_TAC_TOE,
             status,
             roomHostId: 'p1',
             createdAt: new Date(),
-            config: { hostSelection: 'FIXED', timerMin: 1 },
+            config: { hostSelection: 'FIXED', timerMin: 1, ticTacToeMode: 'ULTIMATE' },
             players: players.map((p) => ({
                 id: p.socketId,
                 socketId: p.socketId,

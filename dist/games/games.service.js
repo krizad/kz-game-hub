@@ -156,17 +156,6 @@ let GamesService = GamesService_1 = class GamesService {
                 scores: {},
             };
         }
-        else if (gameType === types_1.GameType.GOBBLER_TIC_TAC_TOE) {
-            room.gobblerState = {
-                board: Array.from({ length: 9 }, () => []),
-                currentTurn: 'X',
-                inventory: {
-                    X: this.gobblerService.createInitialInventory('X'),
-                    O: this.gobblerService.createInitialInventory('O'),
-                },
-                scores: { X: 0, O: 0 },
-            };
-        }
         else if (gameType === types_1.GameType.WHO_AM_I) {
             room.config.maxRounds = 3;
             room.config.wordMode = 'RANDOM';
@@ -195,9 +184,6 @@ let GamesService = GamesService_1 = class GamesService {
             room.config.saboteurTurnTimerEnabled = false;
             room.config.saboteurTurnTimerSeconds = 60;
             room.config.saboteurStoneEndsRound = false;
-        }
-        else if (gameType === types_1.GameType.ULTIMATE_TIC_TAC_TOE) {
-            room.ultimateTicTacToeState = this.ultimateTicTacToeService.createInitialState();
         }
         else if (gameType === types_1.GameType.CARD_GAME) {
             const presetId = room.config.cardGamePreset ?? 'POK_DENG';
@@ -824,8 +810,6 @@ let GamesService = GamesService_1 = class GamesService {
                 });
             case types_1.GameType.RPS:
                 return this.withRoom(code, (r) => this.rpsService.reset(r, requesterId));
-            case types_1.GameType.GOBBLER_TIC_TAC_TOE:
-                return this.withRoom(code, (r) => this.gobblerService.reset(r, requesterId));
             case types_1.GameType.SOUNDS_FISHY:
                 return this.withRoom(code, (r) => this.soundsFishyService.reset(r, requesterId));
             case types_1.GameType.DETECTIVE_CLUB:
@@ -840,8 +824,6 @@ let GamesService = GamesService_1 = class GamesService {
                 return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
             case types_1.GameType.SABOTEUR:
                 return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
-            case types_1.GameType.ULTIMATE_TIC_TAC_TOE:
-                return this.withRoom(code, (r) => this.ultimateTicTacToeService.reset(r, requesterId));
             default:
                 return null;
         }

@@ -15,11 +15,11 @@ describe('GobblerService', () => {
         return {
             id: 'room-id',
             code: 'ABC123',
-            gameType: types_1.GameType.GOBBLER_TIC_TAC_TOE,
+            gameType: types_1.GameType.TIC_TAC_TOE,
             status,
             roomHostId: 'p1',
             createdAt: new Date(),
-            config: { hostSelection: 'FIXED', timerMin: 1 },
+            config: { hostSelection: 'FIXED', timerMin: 1, ticTacToeMode: 'GOBBLER' },
             players: players.map((p) => ({
                 id: p.socketId,
                 socketId: p.socketId,

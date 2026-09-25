@@ -28,8 +28,7 @@ let GobblerService = class GobblerService {
         return Number.isInteger(index) && index >= 0 && index < 9;
     }
     isGobblerRoom(room) {
-        return (room.gameType === types_1.GameType.GOBBLER_TIC_TAC_TOE ||
-            (room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER'));
+        return room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER';
     }
     joinSide(room, clientId, side) {
         if (!this.isGobblerRoom(room) || room.status !== types_1.RoomStatus.LOBBY)

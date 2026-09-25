@@ -311,9 +311,11 @@ describe('GamesService', () => {
             expect(room.rpsState.choices).toEqual({});
             expect(room.rpsState.scores).toEqual({});
         });
-        it('should create a Gobbler room with full inventory', () => {
-            const room = service.createRoom('host1', types_1.GameType.GOBBLER_TIC_TAC_TOE);
-            expect(room.gameType).toBe(types_1.GameType.GOBBLER_TIC_TAC_TOE);
+        it('should create a Gobbler-mode room with full inventory', () => {
+            const room = service.createRoom('host1', types_1.GameType.TIC_TAC_TOE, {
+                ticTacToeMode: 'GOBBLER',
+            });
+            expect(room.gameType).toBe(types_1.GameType.TIC_TAC_TOE);
             expect(room.gobblerState).toBeDefined();
             expect(room.gobblerState.board).toHaveLength(9);
             expect(room.gobblerState.board.every((c) => Array.isArray(c))).toBe(true);
@@ -1054,8 +1056,8 @@ describe('GamesService', () => {
         });
     });
     describe('resetGame', () => {
-        function resettableRoom(gameType) {
-            const room = service.createRoom('host1', gameType);
+        function resettableRoom(gameType, config = {}) {
+            const room = service.createRoom('host1', gameType, config);
             room.status = types_1.RoomStatus.RESULT;
             service.rooms.set(room.code, room);
             return room;
@@ -1090,8 +1092,8 @@ describe('GamesService', () => {
             expect(rpsService.reset).toHaveBeenCalledWith(room, 'host1');
             expect(result).not.toBeNull();
         });
-        it('should delegate to GobblerService for GOBBLER_TIC_TAC_TOE game', () => {
-            const room = resettableRoom(types_1.GameType.GOBBLER_TIC_TAC_TOE);
+        it('should delegate to GobblerService for a GOBBLER-mode TIC_TAC_TOE room', () => {
+            const room = resettableRoom(types_1.GameType.TIC_TAC_TOE, { ticTacToeMode: 'GOBBLER' });
             gobblerService.reset.mockReturnValue(room);
             const result = service.resetGame(room.code, 'host1');
             expect(gobblerService.reset).toHaveBeenCalledWith(room, 'host1');
@@ -1214,19 +1216,25 @@ describe('GamesService', () => {
     });
     describe('Gobbler delegation', () => {
         it('should delegate joinSide', () => {
-            const room = service.createRoom('host1', types_1.GameType.GOBBLER_TIC_TAC_TOE);
+            const room = service.createRoom('host1', types_1.GameType.TIC_TAC_TOE, {
+                ticTacToeMode: 'GOBBLER',
+            });
             gobblerService.joinSide.mockReturnValue(room);
             service.gobblerJoinSide(room.code, 'p1', 'X');
             expect(gobblerService.joinSide).toHaveBeenCalledWith(room, 'p1', 'X');
         });
         it('should delegate placePiece', () => {
-            const room = service.createRoom('host1', types_1.GameType.GOBBLER_TIC_TAC_TOE);
+            const room = service.createRoom('host1', types_1.GameType.TIC_TAC_TOE, {
+                ticTacToeMode: 'GOBBLER',
+            });
             gobblerService.placePiece.mockReturnValue(room);
             service.gobblerPlacePiece(room.code, 'p1', 'piece1', 0);
             expect(gobblerService.placePiece).toHaveBeenCalledWith(room, 'p1', 'piece1', 0);
         });
         it('should delegate movePiece', () => {
-            const room = service.createRoom('host1', types_1.GameType.GOBBLER_TIC_TAC_TOE);
+            const room = service.createRoom('host1', types_1.GameType.TIC_TAC_TOE, {
+                ticTacToeMode: 'GOBBLER',
+            });
             gobblerService.movePiece.mockReturnValue(room);
             service.gobblerMovePiece(room.code, 'p1', 0, 4);
             expect(gobblerService.movePiece).toHaveBeenCalledWith(room, 'p1', 0, 4);

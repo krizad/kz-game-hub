@@ -272,6 +272,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncTheMindTimer;
     private isValidPayload;
     private isValidName;
+    private isSettingsKey;
     private hasSafeValues;
     private maybeRecordGameResult;
 }
