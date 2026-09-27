@@ -13,6 +13,7 @@ import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { CheeseThiefService } from './cheese-thief/cheese-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { CardGameService } from './card-game/card-game.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
@@ -187,6 +188,18 @@ describe('GamesService', () => {
       cancelRound: jest.fn(),
       remapSocketId: CardGameService.prototype.remapSocketId,
     },
+    cheeseThief: {
+      startRound: jest.fn(),
+      tick: jest.fn(),
+      peek: jest.fn(),
+      startVote: jest.fn(),
+      vote: jest.fn(),
+      handleVotePhaseEnd: jest.fn(),
+      reset: jest.fn(),
+      handlePlayerDisconnect: jest.fn(),
+      remapSocketId: CheeseThiefService.prototype.remapSocketId,
+      remapRoomSecrets: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -207,6 +220,7 @@ describe('GamesService', () => {
         { provide: TheMindService, useValue: mockGameServices.theMind },
         { provide: SaboteurService, useValue: mockGameServices.saboteur },
         { provide: CoupService, useValue: mockGameServices.coup },
+        { provide: CheeseThiefService, useValue: mockGameServices.cheeseThief },
         { provide: UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
         { provide: CardGameService, useValue: mockGameServices.cardGame },
         PlayerSessionService,

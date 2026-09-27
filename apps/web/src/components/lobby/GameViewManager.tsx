@@ -12,6 +12,7 @@ import { WhoFirstView } from '@/components/games/who-first/WhoFirstView';
 import { TheMindGameView } from '@/components/games/the-mind/TheMindGameView';
 import { SaboteurView } from '@/components/games/saboteur/SaboteurView';
 import { CoupView } from '@/components/games/coup/CoupView';
+import { CheeseThiefView } from '@/components/games/cheese-thief/CheeseThiefView';
 import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PokDengView } from '@/components/games/card-game/PokDengView';
 import { SlaveView } from '@/components/games/card-game/SlaveView';
@@ -43,6 +44,8 @@ export function GameViewManager() {
     if (room.gameType === GameType.SABOTEUR && room.status !== RoomStatus.LOBBY)
       return <SaboteurView />;
     if (room.gameType === GameType.COUP && room.status !== RoomStatus.LOBBY) return <CoupView />;
+    if (room.gameType === GameType.CHEESE_THIEF && room.status !== RoomStatus.LOBBY)
+      return <CheeseThiefView />;
     if (room.gameType === GameType.CARD_GAME && room.status !== RoomStatus.LOBBY) {
       const preset = room.cardGameConfig?.preset ?? 'POK_DENG';
       if (preset === 'SLAVE') return <SlaveView />;

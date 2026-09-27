@@ -142,11 +142,22 @@ interface GameState {
   coupChallenge: () => void;
   coupBlock: (role?: CoupRole) => void;
   coupExchangeSelect: (keepIndices: number[]) => void;
+  cheeseThiefPeek: (targetId: string) => void;
+  cheeseThiefReady: (force?: boolean) => void;
+  cheeseThiefChooseFollower: (targetId: string) => void;
+  cheeseThiefNextHour: () => void;
+  cheeseThiefVote: (targetId: string) => void;
+  cheeseThiefStartVote: () => void;
+  cheeseThiefNextRound: () => void;
+  cheeseThiefReset: () => void;
+  cheeseThiefReaction: (emoji: string) => void;
   cardGameAction: (action: CardGameAction) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
   musicTriviaSyncPlay: MusicTriviaSyncPlayPayload | null;
+  /** Latest room-wide emoji reaction (Cheese Thief sound board). */
+  lastCheeseThiefReaction: { fromName: string; emoji: string; seq: number } | null;
 }
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -202,6 +213,7 @@ export const useGameStore = create<GameState>((set, get) => {
     actionLoading: false,
     musicTriviaTrackAnswer: null,
     musicTriviaSyncPlay: null,
+    lastCheeseThiefReaction: null,
 
     setName: (name) => set({ myName: name }),
 
@@ -396,6 +408,15 @@ export const useGameStore = create<GameState>((set, get) => {
       socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, (data: MusicTriviaSyncPlayPayload) => {
         set({ musicTriviaSyncPlay: data });
       });
+
+      socket.on(
+        SOCKET_EVENTS.CHEESE_THIEF_REACTION,
+        (data: { fromName: string; emoji: string }) => {
+          set({
+            lastCheeseThiefReaction: { ...data, seq: Date.now() + Math.random() },
+          });
+        },
+      );
     },
 
     createRoom: (gameType: GameType = GameType.WHO_KNOW, config?: Partial<RoomConfig>) => {
@@ -673,6 +694,48 @@ export const useGameStore = create<GameState>((set, get) => {
 
     coupExchangeSelect: (keepIndices: number[]) => {
       emitGameAction(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { payload: () => ({ keepIndices }) });
+    },
+
+    cheeseThiefPeek: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_PEEK, { payload: () => ({ targetId }) });
+    },
+
+    cheeseThiefReady: (force?: boolean) => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_READY, {
+        loading: false,
+        payload: () => (force ? { force: true } : {}),
+      });
+    },
+
+    cheeseThiefChooseFollower: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_CHOOSE_FOLLOWER, { payload: () => ({ targetId }) });
+    },
+
+    cheeseThiefNextHour: () => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_NEXT_HOUR, { loading: false });
+    },
+
+    cheeseThiefVote: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_VOTE, { payload: () => ({ targetId }) });
+    },
+
+    cheeseThiefStartVote: () => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_START_VOTE);
+    },
+
+    cheeseThiefNextRound: () => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_NEXT_ROUND);
+    },
+
+    cheeseThiefReset: () => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_RESET);
+    },
+
+    cheeseThiefReaction: (emoji: string) => {
+      emitGameAction(SOCKET_EVENTS.CHEESE_THIEF_REACTION, {
+        loading: false,
+        payload: () => ({ emoji }),
+      });
     },
 
     spectateJoin: (code: string) => {

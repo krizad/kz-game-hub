@@ -34,6 +34,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return t('lobby.gameNames.coup').toUpperCase();
     case GameType.CARD_GAME:
       return t('lobby.gameNames.cardGame').toUpperCase();
+    case GameType.CHEESE_THIEF:
+      return t('lobby.gameNames.cheeseThief').toUpperCase();
     default:
       return t('lobby.gameNames.whoKnow').toUpperCase();
   }
@@ -45,6 +47,92 @@ export function HomeView() {
   const { t } = useTranslate();
 
   const [joinCode, setJoinCode] = useState('');
+
+  const games: {
+    type: GameType;
+    icon: string;
+    name: string;
+    bgClass: string;
+  }[] = [
+    {
+      type: GameType.WHO_KNOW,
+      icon: '🕵️',
+      name: t('lobby.gameNames.whoKnow'),
+      bgClass: 'bg-[#818CF8] hover:bg-[#6366F1] text-white',
+    },
+    {
+      type: GameType.SOUNDS_FISHY,
+      icon: '🐟',
+      name: 'Sounds Fishy',
+      bgClass: 'bg-[#C084FC] hover:bg-[#A855F7] text-white',
+    },
+    {
+      type: GameType.TIC_TAC_TOE,
+      icon: '❌⭕️',
+      name: t('lobby.gameNames.ticTacToe'),
+      bgClass: 'bg-[#A1A1AA] hover:bg-[#71717A] text-white',
+    },
+    {
+      type: GameType.RPS,
+      icon: '✌️✊✋',
+      name: t('lobby.gameNames.handDuel'),
+      bgClass: 'bg-[#FBBF24] hover:bg-[#F59E0B] text-black',
+    },
+    {
+      type: GameType.DETECTIVE_CLUB,
+      icon: '🔍',
+      name: 'Detective Club',
+      bgClass: 'bg-[#FDE047] hover:bg-[#FACC15] text-black',
+    },
+    {
+      type: GameType.WHO_AM_I,
+      icon: '🤔❓',
+      name: 'Who Am I',
+      bgClass: 'bg-[#F472B6] hover:bg-[#EC4899] text-white',
+    },
+    {
+      type: GameType.WHO_FIRST,
+      icon: '🛎️',
+      name: 'Who First',
+      bgClass: 'bg-[#34D399] hover:bg-[#10B981] text-white',
+    },
+    {
+      type: GameType.MUSIC_TRIVIA,
+      icon: '🎵',
+      name: 'Music Trivia',
+      bgClass: 'bg-[#818CF8] hover:bg-[#6366F1] text-white',
+    },
+    {
+      type: GameType.THE_MIND,
+      icon: '🧠',
+      name: 'The Mind',
+      bgClass: 'bg-[#22D3EE] hover:bg-[#06B6D4] text-black',
+    },
+    {
+      type: GameType.SABOTEUR,
+      icon: '⛏️💣',
+      name: 'Saboteur',
+      bgClass: 'bg-[#F97316] hover:bg-[#EA580C] text-white',
+    },
+    {
+      type: GameType.COUP,
+      icon: '👑💰',
+      name: 'Coup',
+      bgClass: 'bg-[#EF4444] hover:bg-[#DC2626] text-white',
+    },
+    {
+      type: GameType.CARD_GAME,
+      icon: '🃏',
+      name: t('lobby.gameNames.cardGame'),
+      bgClass: 'bg-[#F59E0B] hover:bg-[#D97706] text-black',
+    },
+    {
+      type: GameType.CHEESE_THIEF,
+      icon: '🐒🍌',
+      name: t('lobby.gameNames.cheeseThief'),
+      bgClass: 'bg-[#EAB308] hover:bg-[#CA8A04] text-black',
+    },
+  ];
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-[#FEF08A] text-black relative font-black overflow-x-hidden">
@@ -118,6 +206,7 @@ export function HomeView() {
                 maxLength={6}
               />
               <button
+                type="button"
                 onClick={() => joinRoom(joinCode)}
                 disabled={!myName || joinCode.length < 4}
                 className="bg-[#A855F7] hover:bg-[#9333EA] disabled:bg-gray-400 text-white font-black px-6 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black uppercase tracking-widest disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
@@ -131,152 +220,22 @@ export function HomeView() {
         {/* Right Column (PC) / Bottom Section (Mobile) */}
         <div className="flex flex-col mt-8 lg:mt-0">
           <div className="grid grid-cols-2 gap-3 mb-3">
-            {isGameEnabled(GameType.WHO_KNOW) && (
-              <button
-                onClick={() => createRoom(GameType.WHO_KNOW)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🕵️</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  {t('lobby.gameNames.whoKnow')}
-                </span>
-              </button>
-            )}
-            {isGameEnabled(GameType.SOUNDS_FISHY) && (
-              <button
-                onClick={() => createRoom(GameType.SOUNDS_FISHY)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#C084FC] hover:bg-[#A855F7] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🐟</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  Sounds Fishy
-                </span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {isGameEnabled(GameType.TIC_TAC_TOE) && (
-              <button
-                onClick={() => createRoom(GameType.TIC_TAC_TOE)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#A1A1AA] hover:bg-[#71717A] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">❌⭕️</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  {t('lobby.gameNames.ticTacToe')}
-                </span>
-              </button>
-            )}
-            {isGameEnabled(GameType.RPS) && (
-              <button
-                onClick={() => createRoom(GameType.RPS)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">✌️✊✋</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  {t('lobby.gameNames.handDuel')}
-                </span>
-              </button>
-            )}
-            {isGameEnabled(GameType.DETECTIVE_CLUB) && (
-              <button
-                onClick={() => createRoom(GameType.DETECTIVE_CLUB)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#FDE047] hover:bg-[#FACC15] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🔍</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  Detective Club
-                </span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {isGameEnabled(GameType.WHO_AM_I) && (
-              <button
-                onClick={() => createRoom(GameType.WHO_AM_I)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#F472B6] hover:bg-[#EC4899] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🤔❓</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">Who Am I</span>
-              </button>
-            )}
-            {isGameEnabled(GameType.WHO_FIRST) && (
-              <button
-                onClick={() => createRoom(GameType.WHO_FIRST)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#34D399] hover:bg-[#10B981] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🛎️</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">Who First</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {isGameEnabled(GameType.MUSIC_TRIVIA) && (
-              <button
-                onClick={() => createRoom(GameType.MUSIC_TRIVIA)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🎵</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  Music Trivia
-                </span>
-              </button>
-            )}
-            {isGameEnabled(GameType.THE_MIND) && (
-              <button
-                onClick={() => createRoom(GameType.THE_MIND)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#22D3EE] hover:bg-[#06B6D4] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🧠</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">The Mind</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {isGameEnabled(GameType.SABOTEUR) && (
-              <button
-                onClick={() => createRoom(GameType.SABOTEUR)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">⛏️💣</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">Saboteur</span>
-              </button>
-            )}
-            {isGameEnabled(GameType.COUP) && (
-              <button
-                onClick={() => createRoom(GameType.COUP)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#EF4444] hover:bg-[#DC2626] disabled:bg-gray-400 text-white font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">👑💰</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">Coup</span>
-              </button>
-            )}
-            {isGameEnabled(GameType.CARD_GAME) && (
-              <button
-                onClick={() => createRoom(GameType.CARD_GAME)}
-                disabled={!connected || !myName}
-                className="w-full bg-[#F59E0B] hover:bg-[#D97706] disabled:bg-gray-400 text-black font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
-              >
-                <span className="text-xl">🃏</span>
-                <span className="text-xs tracking-wider text-center px-1 uppercase">
-                  {t('lobby.gameNames.cardGame')}
-                </span>
-              </button>
-            )}
+            {games
+              .filter((g) => isGameEnabled(g.type))
+              .map((g) => (
+                <button
+                  key={g.type}
+                  type="button"
+                  onClick={() => createRoom(g.type)}
+                  disabled={!connected || !myName}
+                  className={`w-full ${g.bgClass} disabled:bg-gray-400 font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]`}
+                >
+                  <span className="text-xl">{g.icon}</span>
+                  <span className="text-xs tracking-wider text-center px-1 uppercase">
+                    {g.name}
+                  </span>
+                </button>
+              ))}
           </div>
 
           {availableRooms.length > 0 && (
@@ -296,6 +255,7 @@ export function HomeView() {
                 {availableRooms.map((r) => (
                   <button
                     key={r.code}
+                    type="button"
                     onClick={() => {
                       if (!myName) {
                         toast.error(t('errors.enterNameFirst'));

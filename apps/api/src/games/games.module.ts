@@ -14,6 +14,7 @@ import { MusicTriviaService } from './music-trivia/music-trivia.service';
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { CheeseThiefService } from './cheese-thief/cheese-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
@@ -39,6 +40,7 @@ import { ArtistPresetService } from './artist-preset.service';
     TheMindService,
     SaboteurService,
     CoupService,
+    CheeseThiefService,
     UltimateTicTacToeService,
     PlayerSessionService,
     RoomTimerService,

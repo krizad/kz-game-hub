@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="300" height="420">
+  <!-- Banana Thief card — SYCOPHANT (แกะดำ, DLC) -->
+  <rect x="3" y="3" width="294" height="414" fill="#0f172a" stroke="#000" stroke-width="6"/>
+  <circle cx="238" cy="72" r="34" fill="#fde68a" stroke="#000" stroke-width="5"/>
+  <circle cx="228" cy="64" r="7" fill="#0f172a"/>
+  <circle cx="246" cy="80" r="5" fill="#0f172a"/>
+  <g fill="#fde68a" stroke="none">
+    <path d="M60 52 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
+    <path d="M116 34 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+    <path d="M186 48 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+  </g>
+  <path d="M20 340 Q150 300 280 340 L280 417 L20 417 Z" fill="#1e293b" stroke="#000" stroke-width="6"/>
+  <!-- monkey hiding behind a smiling theater mask -->
+  <g stroke="#000" stroke-width="5">
+    <path d="M104 316 q-32 -8 -26 -38" fill="none" stroke-width="6"/>
+    <ellipse cx="154" cy="276" rx="60" ry="44" fill="#a16207"/>
+    <circle cx="114" cy="220" r="18" fill="#a16207"/>
+    <circle cx="190" cy="220" r="18" fill="#a16207"/>
+    <circle cx="114" cy="220" r="9" fill="#f9a8d4"/>
+    <circle cx="190" cy="220" r="9" fill="#f9a8d4"/>
+    <ellipse cx="152" cy="238" rx="30" ry="18" fill="#fde68a"/>
+    <!-- theater mask -->
+    <path d="M124 244 q30 -14 60 0 v30 q-30 20 -60 0 z" fill="#fef3c7"/>
+    <path d="M138 258 q6 -6 12 0" fill="none"/>
+    <path d="M162 258 q6 -6 12 0" fill="none"/>
+    <path d="M138 270 q16 12 36 0" fill="none"/>
+    <!-- suspicious real eye peeking over the mask -->
+    <circle cx="176" cy="236" r="5" fill="#000" stroke="none"/>
+    <!-- question marks: who is the thief? -->
+    <g fill="#fbbf24" stroke="#000" font-family="sans-serif" font-weight="900" stroke-width="3">
+      <text x="82" y="196" font-size="34">?</text>
+      <text x="208" y="184" font-size="26">?</text>
+    </g>
+  </g>
+  <rect x="14" y="352" width="272" height="50" fill="#f59e0b" stroke="#000" stroke-width="5"/>
+  <text x="150" y="375" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="24" fill="#fff">แกะดำ</text>
+  <text x="150" y="394" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="12" fill="#fef3c7" letter-spacing="3">SYCOPHANT · DLC</text>
+</svg>

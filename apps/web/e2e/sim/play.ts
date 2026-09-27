@@ -187,6 +187,15 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
           .catch(() => {});
         break;
       }
+      case 'cheese-thief-fast': {
+        // Cheese Thief pacing: fastest night clock (3s per hour).
+        const tickSelect = page.locator('#cheeseThiefTickSelect');
+        await tickSelect.waitFor({ timeout: 3000 }).catch(() => {});
+        if (await tickSelect.isVisible().catch(() => false)) {
+          await tickSelect.selectOption('3');
+        }
+        break;
+      }
       default:
         throw new Error(`Unknown lobby config step: ${key}`);
     }
@@ -1233,6 +1242,43 @@ async function playCoup(s: SimSession): Promise<void> {
   await expect(host.getByText(/Winner:/i)).toBeVisible({ timeout: 20000 });
 }
 
+/** Cheese Thief: ready gate, night clock runs, host opens the vote → reveal. */
+async function playCheeseThief(s: SimSession): Promise<void> {
+  const { host, players } = s;
+  await startGame(host);
+
+  // SETUP gate: everyone taps "I'm ready!" before the night may begin.
+  for (const p of players) {
+    const readyBtn = p.getByTestId('cheese-thief-ready');
+    await expect(readyBtn).toBeVisible({ timeout: 15000 });
+    await readyBtn.click();
+  }
+
+  // Night (6 ticks × 3s) → the morning announcement appears for everyone.
+  await expect(host.getByText(/The banana is gone/i)).toBeVisible({ timeout: 60000 });
+
+  // Host skips the rest of the discussion.
+  const startVoteBtn = host.getByRole('button', { name: /Start the vote now/i });
+  await expect(startVoteBtn).toBeVisible({ timeout: 15000 });
+  await startVoteBtn.click();
+
+  // Every player votes for the first listed target — the reveal is the
+  // completion state whatever the outcome (caught / escaped / tie).
+  for (const p of players) {
+    const voteButton = p.locator('[data-testid^="cheese-thief-vote-"]').first();
+    await expect(voteButton).toBeVisible({ timeout: 15000 });
+    await voteButton.click();
+  }
+
+  await expect(
+    host.getByText(/The monkeys win|The thief and Followers win|The thief fled/i).first(),
+  ).toBeVisible({ timeout: 20000 });
+  await expect(host.getByText(/The Banana Thief was|The thief was/i).first()).toBeVisible({
+    timeout: 10000,
+  });
+  await expect(host.getByText(/Everyone's real dice/i)).toBeVisible({ timeout: 10000 });
+}
+
 /** Thai Card Game: Pok Deng (one full round) or Slave (all cards played). */
 async function playCardGame(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
@@ -1318,6 +1364,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playSaboteur(s);
     case 'COUP':
       return playCoup(s);
+    case 'CHEESE_THIEF':
+      return playCheeseThief(s);
     case 'CARD_GAME':
       return playCardGame(s, entry);
     default:

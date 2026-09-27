@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="300" height="420">
+  <!-- Banana Thief card — TWINS (ลิงแฝด, DLC) -->
+  <rect x="3" y="3" width="294" height="414" fill="#0f172a" stroke="#000" stroke-width="6"/>
+  <circle cx="238" cy="72" r="34" fill="#fde68a" stroke="#000" stroke-width="5"/>
+  <circle cx="228" cy="64" r="7" fill="#0f172a"/>
+  <circle cx="246" cy="80" r="5" fill="#0f172a"/>
+  <g fill="#fde68a" stroke="none">
+    <path d="M60 52 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
+    <path d="M116 34 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+    <path d="M186 48 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+  </g>
+  <path d="M20 340 Q150 300 280 340 L280 417 L20 417 Z" fill="#1e293b" stroke="#000" stroke-width="6"/>
+  <!-- two identical twin monkeys, arms linked -->
+  <g stroke="#000" stroke-width="5">
+    <path d="M66 306 q-28 -8 -22 -36" fill="none" stroke-width="6"/>
+    <ellipse cx="108" cy="272" rx="44" ry="36" fill="#a16207"/>
+    <circle cx="84" cy="230" r="14" fill="#a16207"/>
+    <circle cx="132" cy="226" r="14" fill="#a16207"/>
+    <circle cx="84" cy="230" r="7" fill="#f9a8d4"/>
+    <circle cx="132" cy="226" r="7" fill="#f9a8d4"/>
+    <ellipse cx="108" cy="252" rx="24" ry="15" fill="#fde68a"/>
+    <circle cx="100" cy="248" r="2.5" fill="#000" stroke="none"/>
+    <circle cx="116" cy="247" r="2.5" fill="#000" stroke="none"/>
+    <path d="M100 260 q9 6 18 0" fill="none"/>
+    <path d="M232 306 q28 -8 22 -36" fill="none" stroke-width="6"/>
+    <ellipse cx="192" cy="272" rx="44" ry="36" fill="#a16207"/>
+    <circle cx="168" cy="230" r="14" fill="#a16207"/>
+    <circle cx="216" cy="226" r="14" fill="#a16207"/>
+    <circle cx="168" cy="230" r="7" fill="#f9a8d4"/>
+    <circle cx="216" cy="226" r="7" fill="#f9a8d4"/>
+    <ellipse cx="192" cy="252" rx="24" ry="15" fill="#fde68a"/>
+    <circle cx="184" cy="248" r="2.5" fill="#000" stroke="none"/>
+    <circle cx="200" cy="247" r="2.5" fill="#000" stroke="none"/>
+    <path d="M184 260 q9 6 18 0" fill="none"/>
+    <!-- linked arms -->
+    <path d="M140 268 q10 -10 20 0" fill="none" stroke-width="7"/>
+    <!-- trust heart -->
+    <path d="M150 196 q-8 -12 4 -16 q10 -3 12 6 q2 -9 12 -6 q12 4 4 16 l-16 14 z" fill="#fb7185"/>
+  </g>
+  <rect x="14" y="352" width="272" height="50" fill="#ec4899" stroke="#000" stroke-width="5"/>
+  <text x="150" y="375" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="24" fill="#fff">ลิงแฝด</text>
+  <text x="150" y="394" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="12" fill="#fce7f3" letter-spacing="3">TWINS · DLC</text>
+</svg>

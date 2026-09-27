@@ -17,6 +17,7 @@ import {
   BOT_PLAYER_NAME,
   CardGameAction,
   CardGameConfig,
+  CheeseThiefSpecial,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -31,6 +32,7 @@ import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/musi
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { CheeseThiefService } from './cheese-thief/cheese-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -81,6 +83,7 @@ export class GamesService {
     private readonly theMindService: TheMindService,
     private readonly saboteurService: SaboteurService,
     private readonly coupService: CoupService,
+    private readonly cheeseThiefService: CheeseThiefService,
     private readonly ultimateTicTacToeService: UltimateTicTacToeService,
     private readonly playerSessionService: PlayerSessionService,
     private readonly privateStateService: PrivateStateService,
@@ -229,6 +232,15 @@ export class GamesService {
       const presetId = room.config.cardGamePreset ?? 'POK_DENG';
       room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
       room.cardGameAllowedOptions = CARD_GAME_PRESETS[presetId].allowed;
+    } else if (gameType === GameType.CHEESE_THIEF) {
+      room.config.cheeseThiefNarrator = 'AUTO';
+      room.config.cheeseThiefDlc = false;
+      room.config.cheeseThiefTickSeconds = 6;
+      room.config.cheeseThiefDiscussionSeconds = 180;
+      room.config.cheeseThiefVoteSeconds = 15;
+      room.config.cheeseThiefFollowerCount = 1;
+      room.config.cheeseThiefSelectedSpecials = [];
+      // CheeseThiefState is initialized when the game starts via assignRoles
     }
 
     this.syncBotPlayer(room);
@@ -308,6 +320,10 @@ export class GamesService {
       }
       if (room.coupState) {
         this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
+      }
+      if (room.cheeseThiefState) {
+        this.cheeseThiefService.remapSocketId(room.cheeseThiefState, oldSocketId, user.socketId);
+        this.cheeseThiefService.remapRoomSecrets(code, oldSocketId, user.socketId);
       }
       if (room.ultimateTicTacToeState) {
         this.ultimateTicTacToeService.remapSocketId(
@@ -518,6 +534,9 @@ export class GamesService {
     }
     if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
       this.whoAmIService.handlePlayerDisconnect(room, socketId);
+    }
+    if (room.gameType === GameType.CHEESE_THIEF && room.cheeseThiefState) {
+      this.cheeseThiefService.handlePlayerDisconnect(room, socketId);
     }
   }
 
@@ -799,6 +818,18 @@ export class GamesService {
     copyBoolean('saboteurTurnTimerEnabled');
     copyInteger('saboteurTurnTimerSeconds', 5, 300);
     copyBoolean('saboteurStoneEndsRound');
+    copyInteger('cheeseThiefTickSeconds', 1, 15);
+    copyEnum('cheeseThiefNarrator', ['AUTO', 'HOST']);
+    copyBoolean('cheeseThiefDlc');
+    copyInteger('cheeseThiefDiscussionSeconds', 30, 600);
+    copyInteger('cheeseThiefVoteSeconds', 15, 180);
+    copyInteger('cheeseThiefFollowerCount', 0, 3);
+    if (Array.isArray(config.cheeseThiefSelectedSpecials)) {
+      const validSpecials = Object.values(CheeseThiefSpecial);
+      result.cheeseThiefSelectedSpecials = config.cheeseThiefSelectedSpecials.filter(
+        (s): s is CheeseThiefSpecial => validSpecials.includes(s as CheeseThiefSpecial),
+      );
+    }
 
     return result;
   }
@@ -934,6 +965,13 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.CHEESE_THIEF) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.cheeseThiefService.startRound(r, requesterId),
+      );
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     if (room.gameType === GameType.WHO_KNOW) {
       return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
@@ -1042,6 +1080,8 @@ export class GamesService {
         return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
       case GameType.SABOTEUR:
         return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
+      case GameType.CHEESE_THIEF:
+        return this.withRoom(code, (r) => this.cheeseThiefService.reset(r, requesterId));
       default:
         return null;
     }
@@ -1529,6 +1569,57 @@ export class GamesService {
       if (room.gameType !== GameType.THE_MIND) return null;
       return this.theMindService.handleTimeout(room);
     });
+  }
+
+  // --- Cheese Thief Logic ---
+
+  cheeseThiefReady(code: string, clientId: string, force = false): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cheeseThiefService.ready(room, clientId, force));
+  }
+
+  cheeseThiefNextHour(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cheeseThiefService.nextHour(room, clientId));
+  }
+
+  cheeseThiefTick(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.cheeseThiefService.tick(room));
+  }
+
+  cheeseThiefPeek(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cheeseThiefService.peek(room, clientId, targetId));
+  }
+
+  cheeseThiefStartVote(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cheeseThiefService.startVote(room, clientId));
+  }
+
+  cheeseThiefVote(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cheeseThiefService.vote(room, clientId, targetId));
+  }
+
+  cheeseThiefVotePhaseEnd(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.cheeseThiefService.handleVotePhaseEnd(room));
+  }
+
+  cheeseThiefChooseFollower(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) =>
+      this.cheeseThiefService.chooseFollower(room, clientId, targetId),
+    );
+  }
+
+  cheeseThiefChooseFollowerTimeout(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.cheeseThiefService.chooseFollowerTimeout(room));
+  }
+
+  cheeseThiefNextRound(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.cheeseThiefService.startRound(room, clientId));
   }
 
   private getPlayerId(room: RoomState, socketId: string): string | null {

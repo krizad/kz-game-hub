@@ -35,6 +35,8 @@ import {
   SetGameEnabledPayload,
   TttModeFlag,
   TTT_MODE_FLAGS,
+  CHEESE_THIEF_REACTIONS,
+  CheeseThiefChooseFollowerPayload,
 } from '@repo/types';
 
 /** Server string the client localizes via i18n/serverErrors. */
@@ -409,6 +411,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         msg = 'Cannot start game. Need at least 3 players.';
       } else if (gameType === GameType.COUP) {
         msg = 'Cannot start game. Need 3-6 players for Coup.';
+      } else if (gameType === GameType.CHEESE_THIEF) {
+        msg = 'Cannot start game. Need at least 4 players.';
       }
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
     }
@@ -522,6 +526,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         'coup-block',
         'music-trivia-countdown',
         'music-trivia-answer',
+        'cheese-thief',
       ]) {
         this.roomTimerService.cancel(room.code, timerName);
       }
@@ -1349,6 +1354,142 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
+  // --- Cheese Thief Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_READY)
+  handleCheeseThiefReady(
+    @MessageBody() data: { code: string; force?: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cheeseThiefReady(data.code, client.id, !!data.force);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot ready right now.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_NEXT_HOUR)
+  handleCheeseThiefNextHour(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cheeseThiefNextHour(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot advance the night right now.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_PEEK)
+  handleCheeseThiefPeek(
+    @MessageBody() data: { code: string; targetId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cheeseThiefPeek(data.code, client.id, data.targetId);
+    if (room) {
+      // The peek result is private; only the wake/peer refresh is broadcast.
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot peek right now.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_VOTE)
+  handleCheeseThiefVote(
+    @MessageBody() data: { code: string; targetId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cheeseThiefVote(data.code, client.id, data.targetId);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid vote.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_CHOOSE_FOLLOWER)
+  handleCheeseThiefChooseFollower(
+    @MessageBody() data: CheeseThiefChooseFollowerPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.code || !data?.targetId) return;
+    const room = this.gamesService.cheeseThiefChooseFollower(data.code, client.id, data.targetId);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot choose this follower.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_START_VOTE)
+  handleCheeseThiefStartVote(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cheeseThiefStartVote(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot start the vote yet.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_NEXT_ROUND)
+  handleCheeseThiefNextRound(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cheeseThiefNextRound(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to start the next round.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_RESET)
+  handleCheeseThiefReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.resetGame(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_REACTION)
+  handleCheeseThiefReaction(
+    @MessageBody() data: { code: string; emoji: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!this.gamesService.isRoomMember(data.code, client.id)) return;
+    if (
+      typeof data.emoji !== 'string' ||
+      !(CHEESE_THIEF_REACTIONS as readonly string[]).includes(data.emoji)
+    ) {
+      return;
+    }
+    const sender = this.gamesService
+      .getRoom(data.code)
+      ?.players.find((p) => p.socketId === client.id);
+    // Reactions carry no game state — pure fun, broadcast to the room only.
+    this.server.to(data.code).emit(SOCKET_EVENTS.CHEESE_THIEF_REACTION, {
+      fromName: sender?.name ?? '?',
+      emoji: data.emoji,
+    });
+  }
+
   // --- Leaderboard ---
 
   @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)
@@ -1396,6 +1537,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
     if (room.gameType === GameType.CARD_GAME) {
       this.syncCardGameTimer(room);
+    }
+    if (room.gameType === GameType.CHEESE_THIEF) {
+      this.syncCheeseThiefTimer(room);
     }
   }
 
@@ -1528,6 +1672,54 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       );
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
+      }
+    });
+  }
+
+  /**
+   * One timer name drives all three timed phases. Night ticks advance the
+   * clock; discussion expiry opens the ballot; voting expiry finalizes the
+   * round. Every callback re-validates phase + deadline before acting.
+   */
+  private syncCheeseThiefTimer(room: RoomState): void {
+    const state = room.cheeseThiefState;
+    const deadline = state?.tickEndsAt ?? state?.phaseEndsAt ?? null;
+
+    if (!state || !deadline) {
+      this.roomTimerService.cancel(room.code, 'cheese-thief');
+      return;
+    }
+    if (
+      state.phase === 'RESULT' ||
+      (state.phase === 'NIGHT' && !state.tickEndsAt) ||
+      ((state.phase === 'CHOOSE_FOLLOWER' ||
+        state.phase === 'DISCUSSION' ||
+        state.phase === 'VOTING') &&
+        !state.phaseEndsAt)
+    ) {
+      this.roomTimerService.cancel(room.code, 'cheese-thief');
+      return;
+    }
+
+    const phase = state.phase;
+    this.roomTimerService.schedule(room.code, 'cheese-thief', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      const currentState = currentRoom?.cheeseThiefState;
+      if (!currentRoom || !currentState || currentState.phase !== phase) return;
+      const currentDeadline = currentState.tickEndsAt ?? currentState.phaseEndsAt ?? null;
+      if (currentDeadline !== deadline) return; // phase re-armed elsewhere
+
+      const updated =
+        phase === 'CHOOSE_FOLLOWER'
+          ? this.gamesService.cheeseThiefChooseFollowerTimeout(room.code)
+          : phase === 'NIGHT'
+            ? this.gamesService.cheeseThiefTick(room.code)
+            : phase === 'DISCUSSION'
+              ? this.gamesService.cheeseThiefStartVote(room.code, currentRoom.roomHostId)
+              : this.gamesService.cheeseThiefVotePhaseEnd(room.code);
+      if (updated) {
+        this.broadcastRoomState(updated);
+        this.maybeRecordGameResult(updated);
       }
     });
   }
@@ -1774,6 +1966,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 4,
         )
       );
+    }
+    if (event === SOCKET_EVENTS.CHEESE_THIEF_PEEK || event === SOCKET_EVENTS.CHEESE_THIEF_VOTE) {
+      return typeof data.targetId === 'string' && data.targetId.length <= 64;
+    }
+    if (event === SOCKET_EVENTS.CHEESE_THIEF_REACTION) {
+      return (CHEESE_THIEF_REACTIONS as readonly string[]).includes(data.emoji as string);
     }
     return true;
   }

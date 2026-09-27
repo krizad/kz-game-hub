@@ -14,6 +14,7 @@ import { TheMindRules } from './games/the-mind/TheMindRules';
 import { SaboteurRules } from './games/saboteur/SaboteurRules';
 import { CoupRules } from './games/coup/CoupRules';
 import { CardGameRules } from './games/card-game/CardGameRules';
+import { CheeseThiefRules } from './games/cheese-thief/CheeseThiefRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
 
@@ -72,6 +73,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <CoupRules />;
       case GameType.CARD_GAME:
         return <CardGameRules />;
+      case GameType.CHEESE_THIEF:
+        return <CheeseThiefRules />;
       default:
         return null;
     }
@@ -250,6 +253,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CARD_GAME ? 'bg-lime-300 text-black border-2 border-black border border-lime-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.pokDeng')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.CHEESE_THIEF) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.CHEESE_THIEF)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CHEESE_THIEF ? 'bg-yellow-300 text-black border-2 border-black border border-yellow-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.cheeseThief')}
                     </button>
                   )}
                 </div>

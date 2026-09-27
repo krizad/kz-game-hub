@@ -281,6 +281,17 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: 'Income rush, coups until one player remains',
   },
 
+  // --- Banana Thief (4 players) ---
+  {
+    id: 'cheese-thief-4p',
+    game: 'CHEESE_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 4,
+    description: 'Night clock, thief steals, vote and reveal',
+    configure: ['cheese-thief-fast'],
+    timeout: 180000,
+  },
+
   // --- Thai Card Game (preset in lobby) ---
   {
     id: 'card-pok-deng',

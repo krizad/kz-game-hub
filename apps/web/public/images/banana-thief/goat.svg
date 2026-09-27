@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="300" height="420">
+  <!-- Banana Thief card — SCAPEGOAT (แพะรับบาป, DLC) -->
+  <rect x="3" y="3" width="294" height="414" fill="#0f172a" stroke="#000" stroke-width="6"/>
+  <circle cx="238" cy="72" r="34" fill="#fde68a" stroke="#000" stroke-width="5"/>
+  <circle cx="228" cy="64" r="7" fill="#0f172a"/>
+  <circle cx="246" cy="80" r="5" fill="#0f172a"/>
+  <g fill="#fde68a" stroke="none">
+    <path d="M60 52 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
+    <path d="M116 34 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+    <path d="M186 48 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+  </g>
+  <path d="M20 340 Q150 300 280 340 L280 417 L20 417 Z" fill="#1e293b" stroke="#000" stroke-width="6"/>
+  <!-- monkey gleefully stepping into a luxury golden cage -->
+  <g stroke="#000" stroke-width="5">
+    <!-- cage -->
+    <rect x="96" y="196" width="108" height="120" fill="#fef3c7"/>
+    <path d="M116 196 v120 M136 196 v120 M156 196 v120 M176 196 v120 M196 196 v120" stroke-width="4"/>
+    <path d="M90 196 h120 l-10 -18 h-100 z" fill="#fbbf24"/>
+    <!-- happy monkey inside -->
+    <ellipse cx="150" cy="286" rx="30" ry="24" fill="#a16207"/>
+    <circle cx="134" cy="258" r="11" fill="#a16207"/>
+    <circle cx="166" cy="256" r="11" fill="#a16207"/>
+    <circle cx="134" cy="258" r="5.5" fill="#f9a8d4"/>
+    <circle cx="166" cy="256" r="5.5" fill="#f9a8d4"/>
+    <ellipse cx="150" cy="274" rx="16" ry="11" fill="#fde68a"/>
+    <circle cx="145" cy="272" r="2" fill="#000" stroke="none"/>
+    <circle cx="155" cy="272" r="2" fill="#000" stroke="none"/>
+    <path d="M143 280 q7 5 14 0" fill="none"/>
+    <!-- banana bunch inside the cage -->
+    <path d="M132 302 q18 12 36 0 q-6 10 -18 10 q-12 0 -18 -10 z" fill="#fbbf24"/>
+    <!-- target crosshair: catch me! -->
+    <circle cx="150" cy="150" r="26" fill="none" stroke="#10b981" stroke-width="6"/>
+    <path d="M150 116 v68 M116 150 h68" stroke="#10b981" stroke-width="6"/>
+  </g>
+  <rect x="14" y="352" width="272" height="50" fill="#10b981" stroke="#000" stroke-width="5"/>
+  <text x="150" y="375" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="24" fill="#fff">แพะรับบาป</text>
+  <text x="150" y="394" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="12" fill="#d1fae5" letter-spacing="3">SCAPEGOAT · DLC</text>
+</svg>

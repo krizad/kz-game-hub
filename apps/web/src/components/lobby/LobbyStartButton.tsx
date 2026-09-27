@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
-import { GameType } from '@repo/types';
+import { GameType, getCheeseThiefRequiredPlayerCount } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function LobbyStartButton() {
@@ -36,6 +36,8 @@ export function LobbyStartButton() {
         return 2;
       case GameType.THE_MIND:
         return 2;
+      case GameType.CHEESE_THIEF:
+        return getCheeseThiefRequiredPlayerCount(room.config).min;
       case GameType.WHO_AM_I:
       default:
         return 2;
