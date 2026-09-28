@@ -144,6 +144,7 @@ interface GameState {
   coupExchangeSelect: (keepIndices: number[]) => void;
   bananaThiefPeek: (targetId: string) => void;
   bananaThiefReady: (force?: boolean) => void;
+  bananaThiefRollDie: () => void;
   bananaThiefChooseFollower: (targetId: string) => void;
   bananaThiefNextHour: () => void;
   bananaThiefVote: (targetId: string) => void;
@@ -705,6 +706,10 @@ export const useGameStore = create<GameState>((set, get) => {
         loading: false,
         payload: () => (force ? { force: true } : {}),
       });
+    },
+
+    bananaThiefRollDie: () => {
+      emitGameAction(SOCKET_EVENTS.BANANA_THIEF_ROLL_DIE, { loading: false });
     },
 
     bananaThiefChooseFollower: (targetId: string) => {

@@ -14,6 +14,8 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
  * - Detective Club: word -> all cards played -> voting -> Round Over + Scoreboard
  * - Music Trivia: ready -> song -> buzz/answer -> skip -> End Game -> Game Over!
  * - Saboteur: 3 miners dig to the gold -> gold pick -> all 3 rounds -> Game Over
+ * - Banana Thief: 4 players ready -> night -> vote -> full reveal (winner + dice)
+ * - Thai Card Game: Pok Deng round -> Stand/Draw -> score summary RESULT
  *
  * SlowMo 600ms keeps the recorded videos human-readable.
  */
@@ -1257,5 +1259,188 @@ test.describe('Full Game Demos', () => {
     await p1Ctx.close();
     await p2Ctx.close();
     await p3Ctx.close();
+  });
+
+  // ─── 13. Banana Thief ────────────────────────────────────────────────────
+  test('Banana Thief Demo', async ({ browser }) => {
+    // Banana Thief requires minimum 4 players
+    const ctxs = await Promise.all([
+      browser.newContext({ recordVideo: { dir: `${videoDir}/banana-thief-p1` } }),
+      browser.newContext({ recordVideo: { dir: `${videoDir}/banana-thief-p2` } }),
+      browser.newContext({ recordVideo: { dir: `${videoDir}/banana-thief-p3` } }),
+      browser.newContext({ recordVideo: { dir: `${videoDir}/banana-thief-p4` } }),
+    ]);
+    const [p1, p2, p3, p4] = await Promise.all(ctxs.map((c) => c.newPage()));
+    const players = [p1, p2, p3, p4];
+
+    const roomCode = await createRoom(p1, 'Alice', 'Banana Thief');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Bob');
+    await joinRoom(p3, origin, roomCode, 'Carol');
+    await joinRoom(p4, origin, roomCode, 'Dave');
+    await expect(p1.getByText('Bob').first()).toBeVisible({ timeout: 10000 });
+    await p1.waitForTimeout(1000);
+
+    // Fast night clock (3s per tick) via the custom NeobrutalismSelect dropdown
+    // (a toggle button, NOT a native <select> — so click, don't selectOption)
+    const tickSelect = p1.locator('#bananaThiefTickSelect');
+    if (
+      await tickSelect
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      await tickSelect.click();
+      await p1
+        .locator('button')
+        .filter({ hasText: /Fast|เร็ว/i })
+        .last()
+        .click();
+      await p1.waitForTimeout(500);
+    }
+
+    // Host starts the match (retry if a broadcast re-render swallows the click)
+    const startBtn = p1
+      .locator('button')
+      .filter({ hasText: /^Start Game|เริ่มเกม/ })
+      .first();
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await startBtn.click().catch(() => {});
+      await p1.waitForTimeout(900);
+      if (!(await startBtn.isVisible().catch(() => false))) break;
+    }
+
+    // SETUP: everyone rolls their own wake hour (host shows off the re-roll)
+    for (const p of players) {
+      const rollBtn = p.getByTestId('banana-thief-roll');
+      await expect(rollBtn).toBeVisible({ timeout: 15000 });
+      await rollBtn.click();
+    }
+    await p1.waitForTimeout(800);
+    const rerollBtn = p1.getByTestId('banana-thief-reroll');
+    if (
+      await rerollBtn
+        .waitFor({ state: 'visible', timeout: 3000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      await rerollBtn.click();
+    }
+
+    // SETUP gate: everyone taps "I'm ready!" before the night may begin
+    for (const p of players) {
+      const readyBtn = p.getByTestId('banana-thief-ready');
+      await expect(readyBtn).toBeVisible({ timeout: 15000 });
+      await readyBtn.click();
+    }
+
+    // Night (6 ticks × 3s on fast) → thief picks followers (or the 15s window
+    // times out) → morning discussion. Don't wait on "The banana is gone" —
+    // awake mice now see that text on their night banana card — wait for the
+    // host's vote control instead.
+    const startVoteBtn = p1.getByRole('button', { name: /Start the vote now/i });
+    await expect(startVoteBtn).toBeVisible({ timeout: 90000 });
+    await startVoteBtn.click();
+
+    // Every player votes for the first listed suspect — the reveal is the
+    // completion state whatever the outcome (caught / escaped / tie)
+    for (const p of players) {
+      const voteButton = p.locator('[data-testid^="banana-thief-vote-"]').first();
+      await expect(voteButton).toBeVisible({ timeout: 15000 });
+      await voteButton.click();
+    }
+
+    // Reveal: winner verdict, thief identity and everyone's real dice
+    await expect(
+      p1.getByText(/The monkeys win|The thief and Followers win|The thief fled/i).first(),
+    ).toBeVisible({ timeout: 20000 });
+    for (const p of players) {
+      await expect(p.getByText(/The Banana Thief was|The thief was/i).first()).toBeVisible({
+        timeout: 10000,
+      });
+      await expect(p.getByText(/Everyone's real dice/i)).toBeVisible({ timeout: 10000 });
+    }
+    await p1.waitForTimeout(2500);
+
+    await Promise.all(ctxs.map((c) => c.close()));
+  });
+
+  // ─── 14. Thai Card Game (Pok Deng) ───────────────────────────────────────
+  test('Thai Card Game Demo', async ({ browser }) => {
+    const p1Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/card-game-p1` } });
+    const p2Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/card-game-p2` } });
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+
+    const roomCode = await createRoom(p1, 'Alice', 'Thai Card Game');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Bob');
+
+    // Host starts (default preset: Pok Deng)
+    const startBtn = p1
+      .locator('button')
+      .filter({ hasText: /^Start Game|เริ่มเกม/ })
+      .first();
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await startBtn.click().catch(() => {});
+      await p1.waitForTimeout(900);
+      if (!(await startBtn.isVisible().catch(() => false))) break;
+    }
+    await expect(p1.getByText(/Dealer: Alice/)).toBeVisible({ timeout: 15000 });
+
+    // Pok Deng: whoever has the action panel Stands (or Draws when forced)
+    // until the round resolves into the score summary
+    for (let i = 0; i < 60; i++) {
+      if (
+        (await p1
+          .getByTestId('card-game-result')
+          .isVisible()
+          .catch(() => false)) ||
+        (await p2
+          .getByTestId('card-game-result')
+          .isVisible()
+          .catch(() => false))
+      )
+        break;
+      const actor = (await p1
+        .getByTestId('card-game-actions')
+        .isVisible({ timeout: 300 })
+        .catch(() => false))
+        ? p1
+        : (await p2
+              .getByTestId('card-game-actions')
+              .isVisible({ timeout: 300 })
+              .catch(() => false))
+          ? p2
+          : null;
+      if (!actor) {
+        await p1.waitForTimeout(600);
+        continue;
+      }
+      const panel = actor.getByTestId('card-game-actions');
+      if (
+        !(await panel
+          .getByRole('button', { name: 'Stand' })
+          .click({ timeout: 1500 })
+          .then(() => true)
+          .catch(() => false))
+      ) {
+        await panel
+          .getByRole('button', { name: 'Draw' })
+          .click({ timeout: 1500 })
+          .catch(() => {});
+      }
+      await p1.waitForTimeout(700);
+    }
+
+    // Round resolved → score summary visible to BOTH players
+    await expect(p1.getByTestId('card-game-result')).toBeVisible({ timeout: 20000 });
+    await expect(p2.getByTestId('card-game-result')).toBeVisible({ timeout: 10000 });
+    await p1.waitForTimeout(2500);
+
+    await p1Ctx.close();
+    await p2Ctx.close();
   });
 });

@@ -192,7 +192,12 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         const tickSelect = page.locator('#bananaThiefTickSelect');
         await tickSelect.waitFor({ timeout: 3000 }).catch(() => {});
         if (await tickSelect.isVisible().catch(() => false)) {
-          await tickSelect.selectOption('3');
+          await tickSelect.click();
+          await page
+            .locator('button')
+            .filter({ hasText: /Fast|เร็ว/i })
+            .last()
+            .click();
         }
         break;
       }
@@ -1254,12 +1259,12 @@ async function playBananaThief(s: SimSession): Promise<void> {
     await readyBtn.click();
   }
 
-  // Night (6 ticks × 3s) → the morning announcement appears for everyone.
-  await expect(host.getByText(/The banana is gone/i)).toBeVisible({ timeout: 60000 });
-
-  // Host skips the rest of the discussion.
+  // Night (6 ticks × 3s) → thief picks followers (or the 15s window times out)
+  // → the morning discussion. "The banana is gone" is NOT a reliable marker —
+  // awake mice now see the same text on their night banana card — so wait for
+  // the host's vote control instead.
   const startVoteBtn = host.getByRole('button', { name: /Start the vote now/i });
-  await expect(startVoteBtn).toBeVisible({ timeout: 15000 });
+  await expect(startVoteBtn).toBeVisible({ timeout: 90000 });
   await startVoteBtn.click();
 
   // Every player votes for the first listed target — the reveal is the

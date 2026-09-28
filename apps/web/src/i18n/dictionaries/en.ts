@@ -186,7 +186,7 @@ export const en: Dictionary = {
     bananaThief: {
       setupTitle: 'Setup',
       setupDesc:
-        'Everyone secretly rolls a die (1–6 = the hour you will "wake" tonight) and a secret role is dealt: 1 Banana Thief, everyone else is a sleepy monkey. Play with 4+ players. Once everyone taps "I\'m ready", the night begins.',
+        'Everyone presses to roll their own secret die (1–6 = the hour you will "wake" tonight, one re-roll allowed) and a secret role is dealt: 1 Banana Thief, everyone else is a sleepy monkey. Play with 4+ players. Once everyone taps "I\'m ready", the night begins.',
       goalsTitle: 'Role goals — how to win?',
       teamMice: 'Monkey team',
       teamThief: 'Thief team',
@@ -196,7 +196,7 @@ export const en: Dictionary = {
       goalMouse:
         'Track your wake hour and who woke with you, piece the clues together and catch the Banana Thief — a correct vote scores +2',
       goalFollower:
-        "Waking in the thief's hour silently converts you to their side — help the thief escape and you score +2",
+        'Recruited by the Banana Thief themselves — the only way onto the thief team. Help the thief escape and you score +2',
       goalDetective:
         'Monkey-team investigator: wake alone to peek whether the target IS the thief — a correct vote scores +2',
       goalSycophant:
@@ -209,10 +209,10 @@ export const en: Dictionary = {
       roleThief: '🍌 Banana Thief — wakes at their own hour and steals the banana',
       roleMouse: '🐒 Sleepy Monkey — wakes at their own hour and sees who else is awake',
       roleFollower:
-        '🐭🐭 Follower — a monkey that wakes in the same hour as the thief is silently converted to the thief’s side',
+        '🐭🐭 Follower — recruited by the Banana Thief when they open their eyes at night; never assigned by chance',
       nightTitle: 'Night Phase',
       nightDesc:
-        'The web narrates out loud: "Everyone close your eyes... Hour 1... Hour 2..." up to hour 6. Players who have not reached their hour only see a dark screen and a sleeping animation; awake players sneak a glance at their screen and close their eyes again — sleeping players see nothing at all.',
+        'The web narrates out loud: "Everyone close your eyes... Hour 1... Hour 2..." up to hour 6. Players who have not reached their hour only see a dark screen and a sleeping animation; awake players sneak a glance at their screen and close their eyes again — they see the banana (still there or gone) and who else is awake. A mouse waking in the thief\'s hour sees the thief\'s face!',
       peekTitle: 'Peek',
       peekDesc:
         'If you are the only mouse waking in that hour, your screen lists your friends — tap one to peek at their die (wake hour). The number flashes for ~2 seconds, then vanishes by itself. Wake together with another mouse and you lose the peek.',
@@ -226,7 +226,7 @@ export const en: Dictionary = {
       dlcDetective:
         '🕵️ Detective — when waking alone, the peek reveals whether the target IS the thief instead of a die face',
       dlcSycophant:
-        '🎭 Sycophant — on the thief’s team and wins with them (+2), but doesn’t know who the thief is; guess right and protect blindly (waking with the thief turns them into a full Follower)',
+        '🎭 Sycophant — on the thief’s team and wins with them (+2), but doesn’t know who the thief is; guess right and protect blindly',
       dlcTwins:
         '👬 Twins — two monkeys learn each other at the start; neither is the thief, a verified voting bloc',
       dlcScapegoat:
@@ -1187,15 +1187,20 @@ export const en: Dictionary = {
     phaseVoting: 'Voting',
     phaseResult: 'Reveal',
     setupTitle: 'Your secret role is dealt',
-    setupHint: 'Memorise your role and die, then get ready to close your eyes for real',
+    setupHint:
+      'Memorise your role, roll your own wake hour (one re-roll allowed), then get ready to close your eyes for real',
     readyButton: "I'm ready!",
     readyWaiting: 'Waiting for others...',
     readyCount: '{count}/{total} ready',
     forceStartNight: 'Force start the night',
     narratorNight: 'Everyone close your eyes',
-    narratorHour: 'Hour {n}',
-    narratorHourEnd: 'Hour {n} is over',
-    narratorMorning: 'Morning! Open your eyes. The banana is gone!',
+    narratorHour: 'Hour {n} - Open eyes',
+    narratorHourEnd: 'Hour {n} - Close eyes',
+    narratorHour6: 'Hour 6 - Open eyes',
+    narratorHourEnd6: 'Hour 6 - Close eyes',
+    narratorChooseFollower: 'Thief, open your eyes to choose your accomplice',
+    narratorChooseFollowerEnd: 'Thief, close your eyes',
+    narratorMorning: 'Morning! Everyone open your eyes. The banana is gone!',
     narratorVote: 'Time to vote. Tap the suspect.',
     hourName: '{n} AM',
     nextHour: 'Next hour',
@@ -1214,7 +1219,8 @@ export const en: Dictionary = {
     settingsFollowersNone: 'None (0)',
     settingsFollowersOne: '1 Follower (Standard)',
     settingsFollowersTwo: '2 Followers (Large Group)',
-    settingsFollowersHint: 'The Thief taps and picks their accomplice(s) before night begins.',
+    settingsFollowersHint:
+      'The Thief opens eyes and picks accomplice(s) after Hour 6 closes, before morning.',
     settingsSpecialsSelect: 'Select DLC Special Roles',
     settingsSpecialsHint:
       'Check the roles you want to include in the game (min players updates automatically).',
@@ -1226,9 +1232,9 @@ export const en: Dictionary = {
     chooseFollowerTitle: 'You are the Banana Thief!',
     chooseFollowerDesc: 'Tap a player to recruit them as your Accomplice (Follower)',
     chooseFollowerPrompt: 'Choose your accomplice:',
-    waitingThiefFollowerTitle: '🌙 Night is beginning...',
+    waitingThiefFollowerTitle: '🌙 Thief is choosing an accomplice...',
     waitingThiefFollowerDesc:
-      'The Banana Thief is secretly recruiting their accomplice. Keep your eyes closed!',
+      'Everyone close eyes. The Banana Thief is secretly choosing their accomplice!',
     followerSelectedNotice: 'You selected {name} as your accomplice!',
     specialDetective: 'Detective: wake alone → your peek reveals whether the target IS the thief',
     specialSycophant:
@@ -1247,6 +1253,14 @@ export const en: Dictionary = {
     awake: 'You are awake!',
     awakePeersTitle: 'Awake with you:',
     awakeAlone: 'Nobody else is awake',
+    rollDieButton: 'Roll your wake hour',
+    rerollDieButton: 'Re-roll',
+    rerollSpent: 'Re-roll used',
+    rollHint: 'You can skip it — the game rolls for you when the night starts',
+    bananaStillThere: 'The banana is still on the table',
+    bananaGone: 'The banana is gone!',
+    bananaYouStole: 'You already stole the banana — play it cool',
+    bananaWitnessSaw: 'You saw {name} steal the banana!',
     roleThief: 'Banana Thief',
     roleMouse: 'Sleepy Monkey',
     roleFollower: 'Follower (Accomplice)',
@@ -1256,8 +1270,6 @@ export const en: Dictionary = {
     roleScapegoat: '🐐 Scapegoat',
     stealDone: 'You stole the banana! Play it cool in the morning.',
     thiefWitness: '{names} saw you!',
-    followerConverted:
-      'You woke up with the thief — you are now a Follower! Cover for the thief during the day and tell no one.',
     followerSeesThief:
       'You saw {name} steal the banana! You are now their "Follower" — protect the thief and tell no one.',
     peekTitle: 'Secret chance! You woke up alone',

@@ -129,10 +129,10 @@ describe('BananaThiefService', () => {
       expect(roles.filter((r) => r === BananaThiefRole.THIEF)).toHaveLength(1);
       expect(roles.filter((r) => r === BananaThiefRole.MOUSE)).toHaveLength(4);
 
+      // Dice are NOT dealt by the server — each player rolls their own wake
+      // hour during SETUP (no-shows get an auto-roll when the night starts).
       for (const id of PLAYER_IDS) {
-        const die = privateState.get<number>(room.code, id, 'ctDie');
-        expect(die).toBeGreaterThanOrEqual(1);
-        expect(die).toBeLessThanOrEqual(BANANA_THIEF_CLOCK_HOURS);
+        expect(privateState.get(room.code, id, 'ctDie')).toBeUndefined();
       }
 
       // The broadcast payload must not carry any secret.
@@ -143,17 +143,54 @@ describe('BananaThiefService', () => {
     });
   });
 
+  describe('die roll', () => {
+    it('lets each player roll their own wake hour, with exactly one re-roll', () => {
+      expect(service.startRound(room, 'p1')).not.toBeNull();
+      expect(service.rollDie(room, 'p1')).not.toBeNull();
+      const die = privateState.get<number>(room.code, 'p1', 'ctDie')!;
+      expect(die).toBeGreaterThanOrEqual(1);
+      expect(die).toBeLessThanOrEqual(BANANA_THIEF_CLOCK_HOURS);
+
+      // The single re-roll works and burns the budget.
+      expect(service.rollDie(room, 'p1')).not.toBeNull();
+      const rerolled = privateState.get<number>(room.code, 'p1', 'ctDie')!;
+      expect(rerolled).toBeGreaterThanOrEqual(1);
+      expect(rerolled).toBeLessThanOrEqual(BANANA_THIEF_CLOCK_HOURS);
+      expect(privateState.get<boolean>(room.code, 'p1', 'ctRerollUsed')).toBe(true);
+
+      // A third press is refused and the die keeps its rerolled value.
+      expect(service.rollDie(room, 'p1')).toBeNull();
+      expect(privateState.get<number>(room.code, 'p1', 'ctDie')).toBe(rerolled);
+    });
+
+    it('refuses rolls once the night begins and auto-rolls no-shows', () => {
+      expect(service.startRound(room, 'p1')).not.toBeNull();
+      expect(service.rollDie(room, 'p2')).not.toBeNull();
+      for (const id of PLAYER_IDS) expect(service.ready(room, id)).not.toBeNull();
+
+      // Night has begun — no more rolling.
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.NIGHT);
+      expect(service.rollDie(room, 'p3')).toBeNull();
+
+      // p3 never pressed the die; the night start rolled for them.
+      const die = privateState.get<number>(room.code, 'p3', 'ctDie')!;
+      expect(die).toBeGreaterThanOrEqual(1);
+      expect(die).toBeLessThanOrEqual(BANANA_THIEF_CLOCK_HOURS);
+    });
+  });
+
   describe('night tick', () => {
     beforeEach(() => {
       expect(service.startRound(room, 'p1')).not.toBeNull();
       for (const id of PLAYER_IDS) expect(service.ready(room, id)).not.toBeNull();
     });
 
-    it('advances the clock and converts a mouse waking with the thief into a follower', () => {
-      const thief = rigGame({ p1: 3, p2: 1, p3: 2, p4: 3, p5: 6 }, 'p1');
+    it('a mouse waking with the thief witnesses the steal but stays a plain mouse', () => {
+      const thief = rigGame({ p1: 3, p2: 1, p3: 2, p4: 3, p5: 4 }, 'p1');
 
-      tick(); // 1:00 — p2 wakes alone
-      tick(); // 2:00 — p3 wakes alone
+      tick(); // 1:00 — p2 wakes alone (banana still there)
+      expect(privateState.get(room.code, 'p2', 'ctBananaStatus')).toBe('PRESENT');
+      tick(); // 2:00 — p3 wakes alone (banana still there)
       const atThree = tick(); // 3:00 — thief + p4 wake
       expect(atThree.bananaThiefState!.clock).toBe(3);
       // Steal stays private until the morning announcement.
@@ -161,10 +198,21 @@ describe('BananaThiefService', () => {
       expect(privateState.get<boolean>(room.code, ROOM_KEY, 'ctRoomStolen')).toBe(true);
       expect(privateState.get<boolean>(room.code, thief, 'ctStole')).toBe(true);
 
-      expect(followerIds()).toEqual(['p4']);
+      // p4 saw the thief but is NEVER converted — followers come only from the
+      // thief's own choice in CHOOSE_FOLLOWER.
+      expect(followerIds()).toEqual([]);
       expect(privateState.get<BananaThiefRole>(room.code, 'p4', 'ctRole')).toBe(
-        BananaThiefRole.FOLLOWER,
+        BananaThiefRole.MOUSE,
       );
+      expect(privateState.get<string>(room.code, 'p4', 'ctSeesThief')).toBe('P1');
+
+      // Banana views: thief took it, p4 saw it, p5 (asleep) sees nothing.
+      expect(privateState.get(room.code, 'p1', 'ctBananaStatus')).toBe('STOLEN_BY_YOU');
+      expect(privateState.get(room.code, 'p4', 'ctBananaStatus')).toBe('WITNESSED_THEFT');
+      expect(privateState.get(room.code, 'p5', 'ctBananaStatus')).toBeUndefined();
+
+      tick(); // 4:00 — p5 wakes to a missing banana
+      expect(privateState.get(room.code, 'p5', 'ctBananaStatus')).toBe('MISSING');
     });
 
     it('offers a one-time die peek to a mouse waking alone', () => {
@@ -293,11 +341,15 @@ describe('BananaThiefService', () => {
   });
 
   describe('witness & follower secrets', () => {
-    it('the thief learns who saw the steal and the follower learns the thief', () => {
+    it('the thief learns who saw the steal and the witness learns the thief', () => {
       runNight({ p1: 3, p2: 1, p3: 2, p4: 3, p5: 6 }, 'p1');
 
       expect(privateState.get<string[]>(room.code, 'p1', 'ctWitnesses')).toEqual(['P4']);
+      // The witness gets the thief's name but keeps their mouse role.
       expect(privateState.get<string>(room.code, 'p4', 'ctSeesThief')).toBe('P1');
+      expect(privateState.get<BananaThiefRole>(room.code, 'p4', 'ctRole')).toBe(
+        BananaThiefRole.MOUSE,
+      );
       // Bystanders get neither secret.
       expect(privateState.get(room.code, 'p2', 'ctSeesThief')).toBeUndefined();
       expect(privateState.get(room.code, 'p2', 'ctWitnesses')).toBeUndefined();
@@ -348,8 +400,13 @@ describe('BananaThiefService', () => {
     });
 
     it('awards correct voters and escapes to thief + followers', () => {
-      runNight({ p1: 1, p2: 1, p3: 3, p4: 4, p5: 5 }, 'p1');
-      // p2 wakes in the thief's hour → silently converted.
+      room.config.bananaThiefFollowerCount = 1;
+      runNight({ p1: 1, p2: 2, p3: 3, p4: 4, p5: 5 }, 'p1');
+      // A follower quota sends the night into CHOOSE_FOLLOWER.
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.CHOOSE_FOLLOWER);
+      // The thief recruits p2 — the ONLY way anyone becomes a follower.
+      expect(service.chooseFollower(room, 'p1', 'p2')).not.toBeNull();
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.DISCUSSION);
       expect(followerIds()).toEqual(['p2']);
 
       service.startVote(room, 'p1');
@@ -391,16 +448,21 @@ describe('BananaThiefService', () => {
 
   describe('reconnection & disconnect', () => {
     it('re-points thief/follower/vote secrets to the new socket id', () => {
+      room.config.bananaThiefFollowerCount = 1;
       expect(service.startRound(room, 'p1')).not.toBeNull();
       rigGame({ p1: 1, p2: 1, p3: 3, p4: 4, p5: 5 }, 'p2');
       for (const id of PLAYER_IDS) expect(service.ready(room, id)).not.toBeNull();
       for (let i = 0; i < 8 && room.bananaThiefState!.phase === BananaThiefPhase.NIGHT; i++) {
         tick();
       }
+      // p1 co-wakes with the thief at 1:00 (a witness), then the thief recruits
+      // them in CHOOSE_FOLLOWER before the vote opens.
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.CHOOSE_FOLLOWER);
+      expect(service.chooseFollower(room, 'p2', 'p1')).not.toBeNull();
       service.startVote(room, 'p1');
       service.vote(room, 'p1', 'p3');
 
-      // p1 co-wakes with the thief at 1:00 → follower; then both reconnect.
+      // Witness-turned-follower and thief both reconnect.
       privateState.remapSocketId(room.code, 'p2', 'p2-new');
       service.remapRoomSecrets(room.code, 'p2', 'p2-new');
       privateState.remapSocketId(room.code, 'p1', 'p1-new');
@@ -700,20 +762,27 @@ describe('BananaThiefService', () => {
   });
 
   describe('CHOOSE_FOLLOWER phase', () => {
-    it('enters CHOOSE_FOLLOWER when followerCount > 0 and everyone is ready', () => {
+    it('enters CHOOSE_FOLLOWER when followerCount > 0 after night hours end', () => {
       room.config.bananaThiefFollowerCount = 1;
       expect(service.startRound(room, 'p1')).not.toBeNull();
       for (const id of PLAYER_IDS) {
         expect(service.ready(room, id)).not.toBeNull();
       }
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.NIGHT);
+      while (room.bananaThiefState!.phase === BananaThiefPhase.NIGHT) {
+        service.tick(room);
+      }
       expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.CHOOSE_FOLLOWER);
     });
 
-    it('thief can pick a follower and transitions to NIGHT upon meeting quota', () => {
+    it('thief can pick a follower and transitions to DISCUSSION upon meeting quota', () => {
       room.config.bananaThiefFollowerCount = 1;
       expect(service.startRound(room, 'p1')).not.toBeNull();
       rigGame({ p1: 1, p2: 2, p3: 3, p4: 4, p5: 5 }, 'p1');
       for (const id of PLAYER_IDS) service.ready(room, id);
+      while (room.bananaThiefState!.phase === BananaThiefPhase.NIGHT) {
+        service.tick(room);
+      }
 
       expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.CHOOSE_FOLLOWER);
 
@@ -731,8 +800,8 @@ describe('BananaThiefService', () => {
       );
       expect(privateState.get<string>(room.code, 'p2', 'ctSeesThief')).toBe('P1');
       expect(followerIds()).toContain('p2');
-      // Quota of 1 met -> transitioned to NIGHT
-      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.NIGHT);
+      // Quota of 1 met -> transitioned to DISCUSSION
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.DISCUSSION);
     });
 
     it('cannot pick a Scapegoat as follower', () => {
@@ -741,22 +810,31 @@ describe('BananaThiefService', () => {
       rigGame({ p1: 1, p2: 2, p3: 3, p4: 4, p5: 5 }, 'p1');
       privateState.set(room.code, 'p3', 'ctSpecial', BananaThiefSpecial.SCAPEGOAT);
       for (const id of PLAYER_IDS) service.ready(room, id);
+      while (room.bananaThiefState!.phase === BananaThiefPhase.NIGHT) {
+        service.tick(room);
+      }
+
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.CHOOSE_FOLLOWER);
 
       // Thief tries to pick Scapegoat p3 -> rejected
       expect(service.chooseFollower(room, 'p1', 'p3')).toBeNull();
     });
 
-    it('chooseFollowerTimeout auto-selects follower and advances to NIGHT', () => {
+    it('chooseFollowerTimeout never auto-selects followers and advances to DISCUSSION', () => {
       room.config.bananaThiefFollowerCount = 1;
       expect(service.startRound(room, 'p1')).not.toBeNull();
       rigGame({ p1: 1, p2: 2, p3: 3, p4: 4, p5: 5 }, 'p1');
       for (const id of PLAYER_IDS) service.ready(room, id);
+      while (room.bananaThiefState!.phase === BananaThiefPhase.NIGHT) {
+        service.tick(room);
+      }
 
       expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.CHOOSE_FOLLOWER);
       const afterTimeout = service.chooseFollowerTimeout(room);
       expect(afterTimeout).not.toBeNull();
-      expect(followerIds().length).toBe(1);
-      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.NIGHT);
+      // An indecisive thief gets NO accomplices — never a random pick.
+      expect(followerIds()).toEqual([]);
+      expect(room.bananaThiefState!.phase).toBe(BananaThiefPhase.DISCUSSION);
     });
   });
 

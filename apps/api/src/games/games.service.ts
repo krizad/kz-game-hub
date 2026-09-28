@@ -1578,6 +1578,11 @@ export class GamesService {
     return this.withRoom(code, (room) => this.bananaThiefService.ready(room, clientId, force));
   }
 
+  bananaThiefRollDie(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.bananaThiefService.rollDie(room, clientId));
+  }
+
   bananaThiefNextHour(code: string, clientId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) => this.bananaThiefService.nextHour(room, clientId));

@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { SoundToggle } from '@/components/core/SoundToggle';
+import { useBananaThiefSounds, type BananaThiefSound } from '@/hooks/useBananaThiefSounds';
 import { RoleArtwork } from './RoleArtwork';
 import {
   BANANA_THIEF_CLOCK_HOURS,
@@ -13,6 +14,8 @@ import {
   BananaThiefPhase,
   BananaThiefRole,
   BananaThiefSpecial,
+  BananaThiefWinner,
+  BananaStatus,
 } from '@repo/types';
 
 /** Ticking seconds remaining until a server deadline (null when none). */
@@ -66,44 +69,143 @@ function useBananaThiefAmbient(enabled: boolean, active: boolean) {
 const fmtTime = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
+interface BananaThiefNarratorOptions {
+  enabled: boolean;
+  language: string;
+  phase: BananaThiefPhase | undefined;
+  clock: number;
+  tickSeconds: number;
+  playSound: (name: BananaThiefSound) => void;
+  phrase: (
+    kind:
+      | 'night'
+      | 'hour'
+      | 'hour6'
+      | 'hourEnd'
+      | 'hourEnd6'
+      | 'chooseFollower'
+      | 'chooseFollowerEnd'
+      | 'morning'
+      | 'vote',
+    n?: number,
+  ) => string;
+  winner?: BananaThiefWinner;
+  hasFollowers?: boolean;
+}
+
 /**
  * Narrator: speaks the public night-hour announcements out loud so the table
- * can truly close their eyes. Uses the browser's speech synthesis (th-TH when
- * available); the first "I'm ready" tap unlocks it under autoplay policies.
+ * can truly close their eyes. Plays recorded audio clips in Thai (/sounds/banana-thief/*.wav)
+ * with SpeechSynthesis fallback for English or missing assets.
  */
-function useBananaThiefNarrator(
-  enabled: boolean,
-  phase: BananaThiefPhase | undefined,
-  clock: number,
-  phrase: (kind: 'night' | 'hour' | 'morning' | 'vote', n?: number) => string,
-) {
-  const prev = useRef<string | null>(null);
+function useBananaThiefNarrator({
+  enabled,
+  language,
+  phase,
+  clock,
+  tickSeconds,
+  playSound,
+  phrase,
+  winner,
+  hasFollowers,
+}: BananaThiefNarratorOptions) {
+  const prevKey = useRef<string | null>(null);
+  const endHourTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!phase) return;
     const key = `${phase}:${clock}`;
-    if (prev.current === key) return;
-    const wasPrev = prev.current;
-    prev.current = key;
-    if (!enabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    if (wasPrev === null) return; // skip the initial mount/reconnect
+    if (prevKey.current === key) return;
+    const wasPrev = prevKey.current;
+    prevKey.current = key;
 
-    const speak = (text: string) => {
+    // Clear any pending end-hour timer
+    if (endHourTimer.current) {
+      clearTimeout(endHourTimer.current);
+      endHourTimer.current = null;
+    }
+
+    if (!enabled) return;
+    if (wasPrev === null) return; // skip initial mount / reconnect
+
+    const wasChooseFollower = wasPrev.startsWith(BananaThiefPhase.CHOOSE_FOLLOWER);
+
+    const speakFallback = (text: string) => {
+      if (typeof window === 'undefined' || !window.speechSynthesis) return;
       try {
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'th-TH';
+        utterance.lang = language === 'th' ? 'th-TH' : 'en-US';
         utterance.rate = 1;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(utterance);
       } catch {
-        // Narration is a nicety — never break the game on it.
+        // non-fatal
       }
     };
 
-    if (phase === BananaThiefPhase.NIGHT && clock === 0) speak(phrase('night'));
-    else if (phase === BananaThiefPhase.NIGHT) speak(phrase('hour', clock));
-    else if (phase === BananaThiefPhase.DISCUSSION) speak(phrase('morning'));
-    else if (phase === BananaThiefPhase.VOTING) speak(phrase('vote'));
-  }, [phase, clock, enabled, phrase]);
+    if (language === 'th') {
+      if (phase === BananaThiefPhase.NIGHT) {
+        if (clock === 0) {
+          playSound('night');
+        } else if (clock >= 1 && clock <= 6) {
+          playSound(`hour-${clock}` as BananaThiefSound);
+          // Schedule hour-end voice near the end of the tick
+          const delayMs = Math.max(1500, (tickSeconds - 2) * 1000);
+          endHourTimer.current = setTimeout(() => {
+            playSound(`hour-end-${clock}` as BananaThiefSound);
+          }, delayMs);
+        }
+      } else if (phase === BananaThiefPhase.CHOOSE_FOLLOWER) {
+        playSound('choose-follower');
+      } else if (phase === BananaThiefPhase.DISCUSSION) {
+        if (wasChooseFollower) {
+          playSound('choose-follower-end');
+          setTimeout(() => playSound('morning'), 1200);
+        } else {
+          playSound('morning');
+        }
+      } else if (phase === BananaThiefPhase.VOTING) {
+        playSound('vote');
+      } else if (phase === BananaThiefPhase.RESULT) {
+        if (winner === 'SCAPEGOAT') {
+          playSound('result-goat-win');
+        } else if (winner === 'MICE') {
+          playSound('result-mice-win');
+        } else if (winner === 'THIEF') {
+          if (hasFollowers) {
+            playSound('result-fled');
+          } else {
+            playSound('result-thief-win');
+          }
+        }
+      }
+    } else {
+      // Non-Thai speech synthesis fallback
+      if (phase === BananaThiefPhase.NIGHT) {
+        if (clock === 0) speakFallback(phrase('night'));
+        else if (clock === 6) speakFallback(phrase('hour6'));
+        else speakFallback(phrase('hour', clock));
+      } else if (phase === BananaThiefPhase.CHOOSE_FOLLOWER) {
+        speakFallback(phrase('chooseFollower'));
+      } else if (phase === BananaThiefPhase.DISCUSSION) {
+        if (wasChooseFollower) {
+          speakFallback(phrase('chooseFollowerEnd'));
+          setTimeout(() => speakFallback(phrase('morning')), 1200);
+        } else {
+          speakFallback(phrase('morning'));
+        }
+      } else if (phase === BananaThiefPhase.VOTING) {
+        speakFallback(phrase('vote'));
+      }
+    }
+
+    return () => {
+      if (endHourTimer.current) {
+        clearTimeout(endHourTimer.current);
+        endHourTimer.current = null;
+      }
+    };
+  }, [phase, clock, enabled, language, tickSeconds, playSound, phrase, winner, hasFollowers]);
 }
 
 export function BananaThiefView() {
@@ -113,6 +215,7 @@ export function BananaThiefView() {
     privateState,
     bananaThiefPeek,
     bananaThiefReady,
+    bananaThiefRollDie,
     bananaThiefChooseFollower,
     bananaThiefNextHour,
     bananaThiefVote,
@@ -121,7 +224,7 @@ export function BananaThiefView() {
     bananaThiefReset,
     bananaThiefReaction,
   } = useGameStore();
-  const { t } = useTranslate();
+  const { t, language } = useTranslate();
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const [peekTarget, setPeekTarget] = useState('');
   const [myVote, setMyVote] = useState<string | null>(null);
@@ -134,6 +237,8 @@ export function BananaThiefView() {
   const ps = privateState as Record<string, unknown> | undefined;
   const role = ps?.ctRole as BananaThiefRole | undefined;
   const myDie = ps?.ctDie as number | undefined;
+  const rerollUsed = ps?.ctRerollUsed === true;
+  const bananaStatus = ps?.ctBananaStatus as BananaStatus | undefined;
   const awakePeers = (ps?.ctAwakePeers as string[] | undefined) ?? [];
   const peekOffer = ps?.ctPeekOffer === true;
   const stole = ps?.ctStole === true;
@@ -149,16 +254,62 @@ export function BananaThiefView() {
   // Narration phrases (i18n-aware); stable callbacks for the narrator hook.
   // HOST-narrator mode silences the synth — the host reads the script aloud.
   const hostPaced = (room?.config.bananaThiefNarrator ?? 'AUTO') === 'HOST';
-  const phrase = useRef((kind: 'night' | 'hour' | 'morning' | 'vote', n?: number) =>
-    kind === 'night'
-      ? t('gameBananaThief.narratorNight')
-      : kind === 'hour'
-        ? t('gameBananaThief.narratorHour', { n: n ?? 0 })
-        : kind === 'morning'
-          ? t('gameBananaThief.narratorMorning')
-          : t('gameBananaThief.narratorVote'),
+  const playSound = useBananaThiefSounds(soundsEnabled && !hostPaced);
+
+  const phrase = useRef(
+    (
+      kind:
+        | 'night'
+        | 'hour'
+        | 'hour6'
+        | 'hourEnd'
+        | 'hourEnd6'
+        | 'chooseFollower'
+        | 'chooseFollowerEnd'
+        | 'morning'
+        | 'vote',
+      n?: number,
+    ) => {
+      switch (kind) {
+        case 'night':
+          return t('gameBananaThief.narratorNight');
+        case 'hour':
+          return t('gameBananaThief.narratorHour', { n: n ?? 0 });
+        case 'hour6':
+          return t('gameBananaThief.narratorHour6');
+        case 'hourEnd':
+          return t('gameBananaThief.narratorHourEnd', { n: n ?? 0 });
+        case 'hourEnd6':
+          return t('gameBananaThief.narratorHourEnd6');
+        case 'chooseFollower':
+          return t('gameBananaThief.narratorChooseFollower');
+        case 'chooseFollowerEnd':
+          return t('gameBananaThief.narratorChooseFollowerEnd');
+        case 'morning':
+          return t('gameBananaThief.narratorMorning');
+        case 'vote':
+          return t('gameBananaThief.narratorVote');
+      }
+    },
   ).current;
-  useBananaThiefNarrator(soundsEnabled && !hostPaced, state?.phase, state?.clock ?? 0, phrase);
+
+  useBananaThiefNarrator({
+    enabled: soundsEnabled && !hostPaced,
+    language,
+    phase: state?.phase,
+    clock: state?.clock ?? 0,
+    tickSeconds: room?.config.bananaThiefTickSeconds ?? 6,
+    playSound,
+    phrase,
+    winner: state?.winner,
+    hasFollowers: (state?.followerIds?.length ?? 0) > 0,
+  });
+
+  const getHourOpenPhrase = (n: number) =>
+    n === 6 ? t('gameBananaThief.narratorHour6') : t('gameBananaThief.narratorHour', { n });
+
+  const getHourEndPhrase = (n: number) =>
+    n === 6 ? t('gameBananaThief.narratorHourEnd6') : t('gameBananaThief.narratorHourEnd', { n });
 
   // Peek result flashes for ~2s, then disappears (anti-curious-shoulder).
   const peekResultKey = peekResult ? `${peekResult.targetName}:${peekResult.die}` : null;
@@ -302,7 +453,7 @@ export function BananaThiefView() {
             ⏳ {t('gameBananaThief.graceNote')}
           </div>
         )}
-        {nightRemaining !== null && state.clock > 0 && state.clock < BANANA_THIEF_CLOCK_HOURS && (
+        {nightRemaining !== null && state.clock > 0 && state.clock <= BANANA_THIEF_CLOCK_HOURS && (
           <div className="text-xs font-black text-slate-500 tabular-nums">
             {fmtTime(nightRemaining)}
           </div>
@@ -330,11 +481,9 @@ export function BananaThiefView() {
             🎲 {t('gameBananaThief.youWakeAt', { time: hourName(myDie) })}
           </div>
         )}
-        {role === BananaThiefRole.FOLLOWER && (
+        {role === BananaThiefRole.FOLLOWER && seesThief && (
           <div className="text-[11px] font-bold mt-2 text-purple-200">
-            {seesThief
-              ? t('gameBananaThief.followerSeesThief', { name: seesThief })
-              : t('gameBananaThief.followerConverted')}
+            {t('gameBananaThief.followerSeesThief', { name: seesThief })}
           </div>
         )}
         {role === BananaThiefRole.THIEF && stole && (
@@ -359,12 +508,13 @@ export function BananaThiefView() {
           <div className="text-sm font-black mt-1">
             {state.clock === 0
               ? t('gameBananaThief.narratorNight')
-              : state.clock < BANANA_THIEF_CLOCK_HOURS
-                ? `📢 ${t('gameBananaThief.narratorHour', { n: state.clock })} → ${t('gameBananaThief.narratorHourEnd', { n: state.clock })}`
+              : state.clock <= BANANA_THIEF_CLOCK_HOURS
+                ? `📢 ${getHourOpenPhrase(state.clock)} → ${getHourEndPhrase(state.clock)}`
                 : `📢 ${t('gameBananaThief.narratorMorning')}`}
           </div>
-          {state.clock < BANANA_THIEF_CLOCK_HOURS ? (
+          {state.clock <= BANANA_THIEF_CLOCK_HOURS ? (
             <button
+              type="button"
               onClick={bananaThiefNextHour}
               data-testid="banana-thief-next-hour"
               className="mt-2 w-full bg-white text-black border-2 border-black font-black py-2 uppercase tracking-widest shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all"
@@ -378,7 +528,7 @@ export function BananaThiefView() {
           )}
         </div>
       )}
-      {hostPaced && !isHost && state.clock < BANANA_THIEF_CLOCK_HOURS && (
+      {hostPaced && !isHost && state.clock <= BANANA_THIEF_CLOCK_HOURS && (
         <div className="text-xs font-black text-slate-400 uppercase tracking-widest">
           {t('gameBananaThief.waitingHostHour')}
         </div>
@@ -409,6 +559,34 @@ export function BananaThiefView() {
             😴 {t('gameBananaThief.sleeping')}
           </div>
         </motion.div>
+      )}
+
+      {/* Banana status at the center of the table — only visible when awake */}
+      {isAwake && bananaStatus && (
+        <div
+          className={`w-full max-w-sm border-4 border-black p-3 text-center font-black shadow-[4px_4px_0_0_#000] ${
+            bananaStatus === 'PRESENT'
+              ? 'bg-lime-300 text-black'
+              : bananaStatus === 'MISSING'
+                ? 'bg-red-500 text-white'
+                : bananaStatus === 'WITNESSED_THEFT'
+                  ? 'bg-amber-400 text-black'
+                  : 'bg-red-900/70 border-red-500 text-red-100'
+          }`}
+          data-testid="banana-thief-banana-status"
+        >
+          {bananaStatus === 'PRESENT' && <>🍌 {t('gameBananaThief.bananaStillThere')}</>}
+          {bananaStatus === 'MISSING' && <>🍌❓ {t('gameBananaThief.bananaGone')}</>}
+          {bananaStatus === 'STOLEN_BY_YOU' && <>🍌 {t('gameBananaThief.bananaYouStole')}</>}
+          {bananaStatus === 'WITNESSED_THEFT' && (
+            <>
+              👀{' '}
+              {seesThief
+                ? t('gameBananaThief.bananaWitnessSaw', { name: seesThief })
+                : t('gameBananaThief.bananaGone')}
+            </>
+          )}
+        </div>
       )}
 
       {/* Solo-wake peek reward (private) */}
@@ -468,21 +646,35 @@ export function BananaThiefView() {
     </div>
   );
 
+  // Countdown warning in last 10 seconds of discussion
+  const countdownWarned = useRef(false);
+  useEffect(() => {
+    if (state?.phase !== BananaThiefPhase.DISCUSSION) {
+      countdownWarned.current = false;
+      return;
+    }
+    if (
+      phaseRemaining !== null &&
+      phaseRemaining <= 10 &&
+      phaseRemaining > 0 &&
+      !countdownWarned.current
+    ) {
+      countdownWarned.current = true;
+      if (soundsEnabled && !hostPaced && language === 'th') {
+        playSound('countdown');
+      }
+    }
+  }, [state?.phase, phaseRemaining, soundsEnabled, hostPaced, language, playSound]);
+
   const renderSetup = () => {
     const readyIds = state.readyIds ?? [];
     const iAmReady = readyIds.includes(socketId);
     const readyCount = readyIds.length;
     const total = participants.length;
     const unlockNarrator = () => {
-      // First user gesture: unlock speech synthesis with a short confirmation.
-      try {
-        if (soundsEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
-          const utterance = new SpeechSynthesisUtterance(t('gameBananaThief.readyButton'));
-          utterance.lang = 'th-TH';
-          window.speechSynthesis.speak(utterance);
-        }
-      } catch {
-        // ignore — narration stays optional
+      // First user gesture: unlock audio playback with ready cue
+      if (soundsEnabled) {
+        playSound('ready');
       }
       bananaThiefReady();
     };
@@ -513,9 +705,37 @@ export function BananaThiefView() {
           <div className="flex justify-center my-2">
             <RoleArtwork role={role ?? BananaThiefRole.MOUSE} className="h-40" />
           </div>
-          {myDie !== undefined && (
-            <div className="text-sm font-black mt-1">
-              🎲 {t('gameBananaThief.youWakeAt', { time: hourName(myDie) })}
+          {/* Die roll: press to roll your own secret wake hour, one re-roll */}
+          {myDie === undefined ? (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={bananaThiefRollDie}
+                data-testid="banana-thief-roll"
+                className="bg-amber-400 hover:bg-amber-300 text-black border-2 border-black px-4 py-2 text-sm font-black uppercase shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all"
+              >
+                🎲 {t('gameBananaThief.rollDieButton')}
+              </button>
+              <div className="text-[10px] font-bold opacity-70 mt-1">
+                {t('gameBananaThief.rollHint')}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2">
+              <div className="text-sm font-black">
+                🎲 {t('gameBananaThief.youWakeAt', { time: hourName(myDie) })}
+              </div>
+              <button
+                type="button"
+                onClick={bananaThiefRollDie}
+                disabled={rerollUsed}
+                data-testid="banana-thief-reroll"
+                className="mt-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white border-2 border-black px-3 py-1 text-[11px] font-black uppercase shadow-[2px_2px_0_0_#000] transition-all"
+              >
+                {rerollUsed
+                  ? t('gameBananaThief.rerollSpent')
+                  : `🎲 ${t('gameBananaThief.rerollDieButton')}`}
+              </button>
             </div>
           )}
           {specialBadge()}
@@ -558,6 +778,17 @@ export function BananaThiefView() {
     if (isThief) {
       return (
         <div className="bg-slate-900 text-white border-4 border-black p-4 sm:p-6 min-h-[360px] flex flex-col items-center justify-center gap-4">
+          {hostPaced && isHost && (
+            <div className="w-full max-w-md bg-indigo-600 text-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] text-center">
+              <div className="text-[10px] font-black uppercase tracking-widest opacity-80">
+                {t('gameBananaThief.hostScriptTitle')}
+              </div>
+              <div className="text-sm font-black mt-1">
+                📢 {t('gameBananaThief.narratorChooseFollower')} →{' '}
+                {t('gameBananaThief.narratorChooseFollowerEnd')}
+              </div>
+            </div>
+          )}
           <div className="text-center">
             <div className="text-[10px] font-black uppercase tracking-widest text-red-400">
               {t('gameBananaThief.phaseChooseFollower')}
@@ -608,6 +839,17 @@ export function BananaThiefView() {
 
     return (
       <div className="bg-slate-950 text-white border-4 border-black p-4 sm:p-6 min-h-[360px] flex flex-col items-center justify-center gap-4 text-center">
+        {hostPaced && isHost && (
+          <div className="w-full max-w-sm bg-indigo-600 text-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] text-center mb-2">
+            <div className="text-[10px] font-black uppercase tracking-widest opacity-80">
+              {t('gameBananaThief.hostScriptTitle')}
+            </div>
+            <div className="text-sm font-black mt-1">
+              📢 {t('gameBananaThief.narratorChooseFollower')} →{' '}
+              {t('gameBananaThief.narratorChooseFollowerEnd')}
+            </div>
+          </div>
+        )}
         <motion.div
           animate={{ scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }}
           transition={{ repeat: Infinity, duration: 2.5 }}
@@ -658,6 +900,14 @@ export function BananaThiefView() {
 
   const renderDiscussion = () => (
     <div className="bg-white border-4 border-black p-4 sm:p-6 min-h-[320px] flex flex-col items-center justify-center gap-4">
+      {hostPaced && isHost && (
+        <div className="w-full max-w-sm bg-indigo-600 text-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] text-center">
+          <div className="text-[10px] font-black uppercase tracking-widest opacity-80">
+            {t('gameBananaThief.hostScriptTitle')}
+          </div>
+          <div className="text-sm font-black mt-1">📢 {t('gameBananaThief.narratorMorning')}</div>
+        </div>
+      )}
       <motion.div
         initial={{ scale: 0.7, rotate: -4 }}
         animate={{ scale: 1, rotate: 0 }}
@@ -697,6 +947,14 @@ export function BananaThiefView() {
 
   const renderVoting = () => (
     <div className="bg-white border-4 border-black p-4 sm:p-6 min-h-[320px] flex flex-col items-center gap-4">
+      {hostPaced && isHost && (
+        <div className="w-full max-w-sm bg-indigo-600 text-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] text-center">
+          <div className="text-[10px] font-black uppercase tracking-widest opacity-80">
+            {t('gameBananaThief.hostScriptTitle')}
+          </div>
+          <div className="text-sm font-black mt-1">📢 {t('gameBananaThief.narratorVote')}</div>
+        </div>
+      )}
       <div className="text-center">
         <div className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
           🗳️ {t('gameBananaThief.voteTitle')}

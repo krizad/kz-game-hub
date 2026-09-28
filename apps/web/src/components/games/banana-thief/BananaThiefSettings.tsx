@@ -3,6 +3,7 @@
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { BananaThiefSpecial, getBananaThiefRequiredPlayerCount } from '@repo/types';
+import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 interface SpecialRoleDef {
   id: BananaThiefSpecial;
@@ -40,12 +41,11 @@ const SPECIAL_ROLES: SpecialRoleDef[] = [
 
 /** Host-tunable Banana Thief pacing, roles configuration, and live balance calculation. */
 export function BananaThiefSettings() {
-  const { room, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore();
   const { t } = useTranslate();
   if (!room) return null;
 
-  const selectCls =
-    'w-full bg-white border-2 border-black px-2 py-2 text-sm font-black text-black focus:outline-none';
+  const isHost = socketId === room.roomHostId;
 
   const followerCount = room.config.bananaThiefFollowerCount ?? 1;
   const selectedSpecials = room.config.bananaThiefSelectedSpecials ?? [];
@@ -75,6 +75,39 @@ export function BananaThiefSettings() {
 
   const currentPlayers = room.players.length;
   const isEnoughPlayers = currentPlayers >= min;
+
+  const followerOptions = [
+    { value: '0', label: t('gameBananaThief.settingsFollowersNone') },
+    { value: '1', label: t('gameBananaThief.settingsFollowersOne') },
+    { value: '2', label: t('gameBananaThief.settingsFollowersTwo') },
+  ];
+
+  const narratorOptions = [
+    { value: 'AUTO', label: t('gameBananaThief.settingsNarratorAuto') },
+    { value: 'HOST', label: t('gameBananaThief.settingsNarratorHost') },
+  ];
+
+  const tickOptions = [
+    { value: '3', label: t('gameBananaThief.settingsTickFast') },
+    { value: '6', label: t('gameBananaThief.settingsTickNormal') },
+    { value: '9', label: t('gameBananaThief.settingsTickSlow') },
+    { value: '12', label: `12 ${t('lobby.seconds')}` },
+    { value: '15', label: `15 ${t('lobby.seconds')}` },
+  ];
+
+  const discussionOptions = [
+    { value: '60', label: t('gameBananaThief.settingsMin', { count: 1 }) },
+    { value: '120', label: t('gameBananaThief.settingsMin', { count: 2 }) },
+    { value: '180', label: t('gameBananaThief.settingsMin', { count: 3 }) },
+    { value: '300', label: t('gameBananaThief.settingsMin', { count: 5 }) },
+  ];
+
+  const voteOptions = [
+    { value: '15', label: `15 ${t('lobby.seconds')}` },
+    { value: '30', label: `30 ${t('lobby.seconds')}` },
+    { value: '45', label: `45 ${t('lobby.seconds')}` },
+    { value: '60', label: `60 ${t('lobby.seconds')}` },
+  ];
 
   return (
     <div className="space-y-4">
@@ -133,16 +166,19 @@ export function BananaThiefSettings() {
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
           🤝 {t('gameBananaThief.settingsFollowers')}
         </label>
-        <select
-          id="bananaThiefFollowerSelect"
-          className={selectCls}
-          value={followerCount}
-          onChange={(e) => handleFollowerChange(Number(e.target.value))}
-        >
-          <option value={0}>{t('gameBananaThief.settingsFollowersNone')}</option>
-          <option value={1}>{t('gameBananaThief.settingsFollowersOne')}</option>
-          <option value={2}>{t('gameBananaThief.settingsFollowersTwo')}</option>
-        </select>
+        {isHost ? (
+          <NeobrutalismSelect
+            id="bananaThiefFollowerSelect"
+            value={followerCount}
+            options={followerOptions}
+            onChange={(val) => handleFollowerChange(Number(val))}
+            className="bg-white hover:bg-gray-100"
+          />
+        ) : (
+          <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {followerOptions.find((opt) => opt.value === String(followerCount))?.label}
+          </div>
+        )}
         <p className="text-[10px] font-bold text-gray-600 mt-1">
           {t('gameBananaThief.settingsFollowersHint')}
         </p>
@@ -166,8 +202,11 @@ export function BananaThiefSettings() {
               <button
                 key={role.id}
                 type="button"
-                onClick={() => handleToggleSpecial(role.id)}
-                className={`p-2.5 text-left border-2 border-black transition-all cursor-pointer ${
+                disabled={!isHost}
+                onClick={() => isHost && handleToggleSpecial(role.id)}
+                className={`p-2.5 text-left border-2 border-black transition-all ${
+                  !isHost ? 'cursor-default opacity-80' : 'cursor-pointer'
+                } ${
                   isSelected
                     ? 'bg-amber-300 text-black shadow-[3px_3px_0_0_#000] translate-x-[-1px] translate-y-[-1px]'
                     : 'bg-white text-gray-800 hover:bg-gray-50 shadow-[1px_1px_0_0_#000]'
@@ -197,19 +236,23 @@ export function BananaThiefSettings() {
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
           🎙️ {t('gameBananaThief.settingsNarrator')}
         </label>
-        <select
-          id="bananaThiefNarratorSelect"
-          className={selectCls}
-          value={room.config.bananaThiefNarrator ?? 'AUTO'}
-          onChange={(e) =>
-            updateConfig({
-              bananaThiefNarrator: e.target.value as 'AUTO' | 'HOST',
-            })
-          }
-        >
-          <option value="AUTO">{t('gameBananaThief.settingsNarratorAuto')}</option>
-          <option value="HOST">{t('gameBananaThief.settingsNarratorHost')}</option>
-        </select>
+        {isHost ? (
+          <NeobrutalismSelect
+            id="bananaThiefNarratorSelect"
+            value={room.config.bananaThiefNarrator ?? 'AUTO'}
+            options={narratorOptions}
+            onChange={(val) =>
+              updateConfig({
+                bananaThiefNarrator: val as 'AUTO' | 'HOST',
+              })
+            }
+            className="bg-white hover:bg-gray-100"
+          />
+        ) : (
+          <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {narratorOptions.find((opt) => opt.value === (room.config.bananaThiefNarrator ?? 'AUTO'))?.label}
+          </div>
+        )}
       </div>
 
       {/* Night Tick Seconds */}
@@ -217,18 +260,19 @@ export function BananaThiefSettings() {
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
           ⏱️ {t('gameBananaThief.settingsTick')}
         </label>
-        <select
-          id="bananaThiefTickSelect"
-          className={selectCls}
-          value={room.config.bananaThiefTickSeconds ?? 6}
-          onChange={(e) => updateConfig({ bananaThiefTickSeconds: Number(e.target.value) })}
-        >
-          <option value={3}>{t('gameBananaThief.settingsTickFast')}</option>
-          <option value={6}>{t('gameBananaThief.settingsTickNormal')}</option>
-          <option value={9}>{t('gameBananaThief.settingsTickSlow')}</option>
-          <option value={12}>12 {t('lobby.seconds')}</option>
-          <option value={15}>15 {t('lobby.seconds')}</option>
-        </select>
+        {isHost ? (
+          <NeobrutalismSelect
+            id="bananaThiefTickSelect"
+            value={String(room.config.bananaThiefTickSeconds ?? 6)}
+            options={tickOptions}
+            onChange={(val) => updateConfig({ bananaThiefTickSeconds: Number(val) })}
+            className="bg-white hover:bg-gray-100"
+          />
+        ) : (
+          <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {tickOptions.find((opt) => opt.value === String(room.config.bananaThiefTickSeconds ?? 6))?.label}
+          </div>
+        )}
       </div>
 
       {/* Discussion Seconds */}
@@ -236,16 +280,19 @@ export function BananaThiefSettings() {
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
           💬 {t('gameBananaThief.settingsDiscussion')}
         </label>
-        <select
-          className={selectCls}
-          value={room.config.bananaThiefDiscussionSeconds ?? 180}
-          onChange={(e) => updateConfig({ bananaThiefDiscussionSeconds: Number(e.target.value) })}
-        >
-          <option value={60}>{t('gameBananaThief.settingsMin', { count: 1 })}</option>
-          <option value={120}>{t('gameBananaThief.settingsMin', { count: 2 })}</option>
-          <option value={180}>{t('gameBananaThief.settingsMin', { count: 3 })}</option>
-          <option value={300}>{t('gameBananaThief.settingsMin', { count: 5 })}</option>
-        </select>
+        {isHost ? (
+          <NeobrutalismSelect
+            id="bananaThiefDiscussionSelect"
+            value={String(room.config.bananaThiefDiscussionSeconds ?? 180)}
+            options={discussionOptions}
+            onChange={(val) => updateConfig({ bananaThiefDiscussionSeconds: Number(val) })}
+            className="bg-white hover:bg-gray-100"
+          />
+        ) : (
+          <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {discussionOptions.find((opt) => opt.value === String(room.config.bananaThiefDiscussionSeconds ?? 180))?.label}
+          </div>
+        )}
       </div>
 
       {/* Vote Seconds */}
@@ -253,16 +300,19 @@ export function BananaThiefSettings() {
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
           🗳️ {t('gameBananaThief.settingsVote')}
         </label>
-        <select
-          className={selectCls}
-          value={room.config.bananaThiefVoteSeconds ?? 15}
-          onChange={(e) => updateConfig({ bananaThiefVoteSeconds: Number(e.target.value) })}
-        >
-          <option value={15}>15 {t('lobby.seconds')}</option>
-          <option value={30}>30 {t('lobby.seconds')}</option>
-          <option value={45}>45 {t('lobby.seconds')}</option>
-          <option value={60}>60 {t('lobby.seconds')}</option>
-        </select>
+        {isHost ? (
+          <NeobrutalismSelect
+            id="bananaThiefVoteSelect"
+            value={String(room.config.bananaThiefVoteSeconds ?? 15)}
+            options={voteOptions}
+            onChange={(val) => updateConfig({ bananaThiefVoteSeconds: Number(val) })}
+            className="bg-white hover:bg-gray-100"
+          />
+        ) : (
+          <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {voteOptions.find((opt) => opt.value === String(room.config.bananaThiefVoteSeconds ?? 15))?.label}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -118,7 +118,9 @@ kz-game-hub/
      ```
    - **Timers**: If the game has timed rounds or auto-advancing turns, NEVER use raw `setInterval`/`setTimeout`. Inject `RoomTimerService`:
      ```typescript
-     this.roomTimerService.schedule(room.code, '<game>', deadline, () => this.handleTimeout(room.code));
+     this.roomTimerService.schedule(room.code, '<game>', deadline, () =>
+       this.handleTimeout(room.code),
+     );
      ```
 2. **Register in `apps/api/src/games/games.module.ts`**:
    - Add `<Game>Service` to the `providers` array of `GamesModule`. _(Failing to do this causes NestJS dependency injection failure at runtime)._
@@ -259,18 +261,18 @@ kz-game-hub/
 
 ## ⚠️ Common Pitfalls & Invariant Checklist
 
-| Checkpoint                 | Requirement / Gotcha                                                                                                                         |
-| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
-| **RoomHeader Fallback**    | **MUST** add `GameType.<GAME>` in `RoomHeader.tsx`. Missing it causes the header to mistakenly display "Who Know!".                         |
-| **i18n Without Hardcoding**| In `HomeView.tsx` and `RoomHeader.tsx`, **NEVER** hardcode English text; always use `t('lobby.gameNames.<game>')`.                          |
-| **Database Seed**          | **MUST** add `<GAME_NAME>` to `seed.ts` `gameTypes` array so `GameSetting` row exists for admin toggles.                                    |
-| **Admin Controls**         | **MUST** register in `AdminGameSettings.tsx` `ALL_FLAGS` so admins can disable/enable the game.                                               |
-| **Server-Authoritative**   | Never calculate game outcomes on client. Client emits action -> server validates and mutates -> server broadcasts `room_state_updated`.      |
-| **Private State Security** | Never include secret words, traitor identities, or hidden cards in broadcasted `RoomState`. Use `PrivateStateService` or direct socket emit. |
-| **Build Order**            | Always run `pnpm build --filter=@repo/types` immediately after modifying `packages/types`.                                                   |
-| **NestJS Registration**    | Always register `<Game>Service` in `GamesModule.providers`.                                                                                  |
-| **Reconnection Handling**  | In `GamesService.joinRoom()`, remap socket IDs across all game state fields (`oldSocketId` -> `newSocketId`).                                |
-| **Timer Cleanup**          | Always use `RoomTimerService` so timers don't leak in memory when a game ends or room is reset.                                              |
-| **Leaderboard Recording**  | In `games.gateway.ts`, call `this.maybeRecordGameResult(room)` when the game status reaches `RESULT`.                                       |
-| **E2E Test File**          | Create dedicated `apps/web/e2e/<game>.spec.ts` alongside simulation matrix integration.                                                     |
-| **Knowledge Graph**        | Run `graphify update .` after changes to keep knowledge graph synchronized.                                                                 |
+| Checkpoint                  | Requirement / Gotcha                                                                                                                         |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RoomHeader Fallback**     | **MUST** add `GameType.<GAME>` in `RoomHeader.tsx`. Missing it causes the header to mistakenly display "Who Know!".                          |
+| **i18n Without Hardcoding** | In `HomeView.tsx` and `RoomHeader.tsx`, **NEVER** hardcode English text; always use `t('lobby.gameNames.<game>')`.                           |
+| **Database Seed**           | **MUST** add `<GAME_NAME>` to `seed.ts` `gameTypes` array so `GameSetting` row exists for admin toggles.                                     |
+| **Admin Controls**          | **MUST** register in `AdminGameSettings.tsx` `ALL_FLAGS` so admins can disable/enable the game.                                              |
+| **Server-Authoritative**    | Never calculate game outcomes on client. Client emits action -> server validates and mutates -> server broadcasts `room_state_updated`.      |
+| **Private State Security**  | Never include secret words, traitor identities, or hidden cards in broadcasted `RoomState`. Use `PrivateStateService` or direct socket emit. |
+| **Build Order**             | Always run `pnpm build --filter=@repo/types` immediately after modifying `packages/types`.                                                   |
+| **NestJS Registration**     | Always register `<Game>Service` in `GamesModule.providers`.                                                                                  |
+| **Reconnection Handling**   | In `GamesService.joinRoom()`, remap socket IDs across all game state fields (`oldSocketId` -> `newSocketId`).                                |
+| **Timer Cleanup**           | Always use `RoomTimerService` so timers don't leak in memory when a game ends or room is reset.                                              |
+| **Leaderboard Recording**   | In `games.gateway.ts`, call `this.maybeRecordGameResult(room)` when the game status reaches `RESULT`.                                        |
+| **E2E Test File**           | Create dedicated `apps/web/e2e/<game>.spec.ts` alongside simulation matrix integration.                                                      |
+| **Knowledge Graph**         | Run `graphify update .` after changes to keep knowledge graph synchronized.                                                                  |

@@ -8,6 +8,7 @@ import {
   BananaThiefSpecial,
   BananaThiefState,
   BananaThiefWinner,
+  BananaStatus,
   BANANA_THIEF_CLOCK_HOURS,
   BANANA_THIEF_MIN_PLAYERS,
   getBananaThiefRequiredPlayerCount,
@@ -17,6 +18,8 @@ import { PrivateStateService } from '../private-state.service';
 const ROOM_KEY = '__room__';
 const CT_ROLE = 'ctRole';
 const CT_DIE = 'ctDie';
+const CT_REROLL_USED = 'ctRerollUsed';
+const CT_BANANA_STATUS = 'ctBananaStatus';
 const CT_AWAKE_PEERS = 'ctAwakePeers';
 const CT_PEEK_OFFER = 'ctPeekOffer';
 const CT_PEEK_RESULT = 'ctPeekResult';
@@ -58,6 +61,10 @@ export class BananaThiefService {
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+  }
+
+  private randomDie(): number {
+    return 1 + Math.floor(Math.random() * BANANA_THIEF_CLOCK_HOURS);
   }
 
   // --- Room-level secrets -------------------------------------------------
@@ -155,6 +162,33 @@ export class BananaThiefService {
     }
   }
 
+  /**
+   * Per-player banana visibility for everyone whose hour has passed: the
+   * center of the table shows the banana (or its absence). Sleeping players
+   * get no status at all — they see nothing.
+   */
+  private refreshBananaStatus(room: RoomState, clock: number): void {
+    const thiefId = this.getThiefId(room);
+    const stolen = this.isStolen(room);
+    const stealHour = thiefId ? this.getDie(room, thiefId) : undefined;
+    for (const id of this.participatingIds(room)) {
+      const die = this.getDie(room, id) ?? BANANA_THIEF_CLOCK_HOURS;
+      if (die > clock) {
+        this.privateState.delete(room.code, id, CT_BANANA_STATUS);
+        continue;
+      }
+      const status: BananaStatus =
+        id === thiefId
+          ? 'STOLEN_BY_YOU'
+          : stolen && stealHour !== undefined && die === stealHour
+            ? 'WITNESSED_THEFT'
+            : stolen
+              ? 'MISSING'
+              : 'PRESENT';
+      this.privateState.set(room.code, id, CT_BANANA_STATUS, status);
+    }
+  }
+
   // --- Round lifecycle ----------------------------------------------------
 
   /** Start a fresh round (also used for "next round"): secret roles + dice. */
@@ -178,12 +212,11 @@ export class BananaThiefService {
 
     for (const id of participants) {
       this.setRole(room, id, id === thiefId ? BananaThiefRole.THIEF : BananaThiefRole.MOUSE);
-      this.privateState.set(
-        room.code,
-        id,
-        CT_DIE,
-        1 + Math.floor(Math.random() * BANANA_THIEF_CLOCK_HOURS),
-      );
+      // Dice are NOT dealt here — every player rolls their own wake hour
+      // during SETUP (see rollDie); no-shows get a silent auto-roll at night.
+      this.privateState.delete(room.code, id, CT_DIE);
+      this.privateState.delete(room.code, id, CT_REROLL_USED);
+      this.privateState.delete(room.code, id, CT_BANANA_STATUS);
       this.privateState.delete(room.code, id, CT_AWAKE_PEERS);
       this.privateState.delete(room.code, id, CT_PEEK_OFFER);
       this.privateState.delete(room.code, id, CT_PEEK_RESULT);
@@ -303,10 +336,33 @@ export class BananaThiefService {
     return room;
   }
 
+  /**
+   * SETUP-phase die roll: the first press rolls the secret wake hour; one
+   * more press re-rolls it. Once the single re-roll is spent (or the night
+   * has begun) the request is rejected.
+   */
+  rollDie(room: RoomState, socketId: string): RoomState | null {
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.SETUP) return null;
+    if (!this.participatingIds(room).includes(socketId)) return null;
+
+    if (this.getDie(room, socketId) === undefined) {
+      this.privateState.set(room.code, socketId, CT_DIE, this.randomDie());
+      return room;
+    }
+    if (this.privateState.get<boolean>(room.code, socketId, CT_REROLL_USED)) return null;
+    this.privateState.set(room.code, socketId, CT_DIE, this.randomDie());
+    this.privateState.set(room.code, socketId, CT_REROLL_USED, true);
+    return room;
+  }
+
   private afterSetup(room: RoomState): RoomState {
-    const followerCount = room.config.bananaThiefFollowerCount ?? 1;
-    if (followerCount > 0) {
-      return this.beginChooseFollower(room);
+    // Anyone who never pressed the die gets a silent auto-roll so the night
+    // always starts with a full set of wake hours.
+    for (const id of this.participatingIds(room)) {
+      if (this.getDie(room, id) === undefined) {
+        this.privateState.set(room.code, id, CT_DIE, this.randomDie());
+      }
     }
     return this.beginNight(room);
   }
@@ -315,7 +371,7 @@ export class BananaThiefService {
     const state = room.bananaThiefState!;
     state.phase = BananaThiefPhase.CHOOSE_FOLLOWER;
     state.readyIds = [];
-    state.clock = 0;
+    state.clock = BANANA_THIEF_CLOCK_HOURS;
     state.nightGrace = false;
     state.tickEndsAt = null;
     const chooseSeconds = 15;
@@ -370,7 +426,8 @@ export class BananaThiefService {
     }
 
     if (followers.length >= maxFollowers) {
-      return this.beginNight(room);
+      this.beginDiscussion(room);
+      return room;
     }
     return room;
   }
@@ -379,41 +436,11 @@ export class BananaThiefService {
     const state = room.bananaThiefState;
     if (!state || state.phase !== BananaThiefPhase.CHOOSE_FOLLOWER) return null;
 
-    const thiefId = this.getThiefId(room);
-    if (!thiefId) return this.beginNight(room);
-
-    const maxFollowers = room.config.bananaThiefFollowerCount ?? 1;
-    const followers = [...this.getFollowerIds(room)];
-
-    if (followers.length < maxFollowers) {
-      const candidates = this.participatingIds(room).filter(
-        (id) =>
-          id !== thiefId &&
-          !followers.includes(id) &&
-          this.privateState.get<BananaThiefSpecial>(room.code, id, CT_SPECIAL) !==
-            BananaThiefSpecial.SCAPEGOAT,
-      );
-      const shuffledCandidates = this.shuffleArray(candidates);
-      while (followers.length < maxFollowers && shuffledCandidates.length > 0) {
-        followers.push(shuffledCandidates.shift()!);
-      }
-      this.setFollowerIds(room, followers);
-
-      const thiefName = room.players.find((p) => p.socketId === thiefId)?.name;
-      const followerNames = followers
-        .map((id) => room.players.find((p) => p.socketId === id)?.name)
-        .filter((n): n is string => !!n);
-      this.privateState.set(room.code, thiefId, CT_CHOSEN_FOLLOWERS, followerNames);
-
-      for (const fid of followers) {
-        this.setRole(room, fid, BananaThiefRole.FOLLOWER);
-        if (thiefName) {
-          this.privateState.set(room.code, fid, CT_SEES_THIEF, thiefName);
-        }
-      }
-    }
-
-    return this.beginNight(room);
+    // Followers are NEVER auto-assigned: the role exists only because the
+    // thief picked it. An indecisive thief simply starts the morning with no
+    // accomplices.
+    this.beginDiscussion(room);
+    return room;
   }
 
   private beginNight(room: RoomState): RoomState {
@@ -442,8 +469,7 @@ export class BananaThiefService {
     if (state.clock >= BANANA_THIEF_CLOCK_HOURS) {
       state.nightGrace = false;
       this.clearPendingPeeks(room);
-      this.beginDiscussion(room);
-      return room;
+      return this.endNight(room);
     }
 
     state.clock += 1;
@@ -453,7 +479,8 @@ export class BananaThiefService {
     const thiefDie = thiefId ? this.getDie(room, thiefId) : undefined;
 
     // The thief steals the moment their hour arrives; any mouse waking in the
-    // same hour witnesses it. The thief learns who saw them.
+    // same hour witnesses it — but STAYS a mouse. Followers exist only by the
+    // thief's own choice (CHOOSE_FOLLOWER), never by chance.
     if (thiefDie === clock && thiefId) {
       this.setStolen(room, true);
       const thiefName = room.players.find((p) => p.socketId === thiefId)?.name;
@@ -466,19 +493,6 @@ export class BananaThiefService {
         if ((this.getDie(room, id) ?? BANANA_THIEF_CLOCK_HOURS) === clock) {
           const witnessName = room.players.find((p) => p.socketId === id)?.name;
           if (witnessName) witnesses.push(witnessName);
-          // DLC Scapegoat sees the thief
-          if (
-            this.privateState.get<BananaThiefSpecial>(room.code, id, CT_SPECIAL) ===
-            BananaThiefSpecial.SCAPEGOAT
-          ) {
-            if (thiefName) this.privateState.set(room.code, id, CT_SEES_THIEF, thiefName);
-            continue;
-          }
-          const currentFollowers = this.getFollowerIds(room);
-          if (!currentFollowers.includes(id)) {
-            this.setFollowerIds(room, [...currentFollowers, id]);
-          }
-          this.privateState.set(room.code, id, CT_ROLE, BananaThiefRole.FOLLOWER);
           if (thiefName) this.privateState.set(room.code, id, CT_SEES_THIEF, thiefName);
         }
       }
@@ -495,6 +509,7 @@ export class BananaThiefService {
     }
 
     this.refreshAwakePeers(room, clock);
+    this.refreshBananaStatus(room, clock);
 
     if (clock >= BANANA_THIEF_CLOCK_HOURS) {
       // Anti-cutoff: never slam the eyes shut while a die peek is pending.
@@ -504,7 +519,7 @@ export class BananaThiefService {
         const graceSeconds = Math.max(5, room.config.bananaThiefTickSeconds ?? 6);
         state.tickEndsAt = Date.now() + graceSeconds * 1000;
       } else {
-        this.beginDiscussion(room);
+        return this.endNight(room);
       }
     } else {
       const hostPaced = (room.config.bananaThiefNarrator ?? 'AUTO') === 'HOST';
@@ -522,6 +537,15 @@ export class BananaThiefService {
     if (!state || state.phase !== BananaThiefPhase.NIGHT) return null;
     if (room.roomHostId !== requesterId) return null;
     return this.tick(room);
+  }
+
+  private endNight(room: RoomState): RoomState {
+    const followerCount = room.config.bananaThiefFollowerCount ?? 1;
+    if (followerCount > 0) {
+      return this.beginChooseFollower(room);
+    }
+    this.beginDiscussion(room);
+    return room;
   }
 
   private beginDiscussion(room: RoomState): void {

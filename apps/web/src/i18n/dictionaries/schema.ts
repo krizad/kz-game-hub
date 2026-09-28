@@ -1090,6 +1090,10 @@ export interface Dictionary {
     narratorNight: string;
     narratorHour: string;
     narratorHourEnd: string;
+    narratorHour6: string;
+    narratorHourEnd6: string;
+    narratorChooseFollower: string;
+    narratorChooseFollowerEnd: string;
     narratorMorning: string;
     narratorVote: string;
     hourName: string;
@@ -1136,6 +1140,14 @@ export interface Dictionary {
     awake: string;
     awakePeersTitle: string;
     awakeAlone: string;
+    rollDieButton: string;
+    rerollDieButton: string;
+    rerollSpent: string;
+    rollHint: string;
+    bananaStillThere: string;
+    bananaGone: string;
+    bananaYouStole: string;
+    bananaWitnessSaw: string;
     roleThief: string;
     roleMouse: string;
     roleFollower: string;
@@ -1145,7 +1157,6 @@ export interface Dictionary {
     roleScapegoat: string;
     stealDone: string;
     thiefWitness: string;
-    followerConverted: string;
     followerSeesThief: string;
     peekTitle: string;
     peekDesc: string;

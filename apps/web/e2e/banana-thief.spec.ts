@@ -26,7 +26,11 @@ test.describe('Banana Thief Lobby', () => {
     await expect(followerSelect).toBeVisible({ timeout: 5000 });
 
     // Switch to 2 followers: 1 + 2 + 2 = 5 required
-    await followerSelect.selectOption('2');
+    await followerSelect.click();
+    await followerSelect
+      .locator('..')
+      .getByRole('button', { name: /2 Followers|2 คน/ })
+      .click();
     await expect(page.getByText(/Requires at least 5 players/i)).toBeVisible({
       timeout: 5000,
     });

@@ -6,6 +6,8 @@ interface Option {
 }
 
 interface NeobrutalismSelectProps {
+  id?: string;
+  'data-testid'?: string;
   value: string | number;
   options: Option[];
   onChange: (value: string) => void;
@@ -14,12 +16,14 @@ interface NeobrutalismSelectProps {
 }
 
 export function NeobrutalismSelect({
+  id,
+  'data-testid': testId,
   value,
   options,
   onChange,
   className = '',
   disabled = false,
-}: NeobrutalismSelectProps) {
+}: Readonly<NeobrutalismSelectProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -31,15 +35,24 @@ export function NeobrutalismSelect({
         setIsOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
   return (
     <div className="relative w-full" ref={containerRef}>
       <button
+        id={id}
+        data-testid={testId}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}

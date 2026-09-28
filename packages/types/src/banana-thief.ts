@@ -75,15 +75,21 @@ export interface BananaThiefState {
   scoreDeltas?: Record<string, number>;
 }
 
+export type BananaStatus = 'PRESENT' | 'MISSING' | 'STOLEN_BY_YOU' | 'WITNESSED_THEFT';
+
 /** Private per-player payload delivered via PrivateStateService. */
 export interface BananaThiefPrivateState {
   role: BananaThiefRole;
   /** Secret wake hour 1–6. */
   die: number;
+  /** Whether the player has already used their single re-roll during SETUP. */
+  rerollUsed?: boolean;
   /** Names of other players currently awake — only set while this player is
    * awake. Stored by NAME (unique per room) so a reconnect remap can't leave
    * stale socket ids inside a private payload. */
   awakePeers?: string[];
+  /** Banana visibility/status in the center of the table when awake. */
+  bananaStatus?: BananaStatus;
   /** One-time solo-wake reward: peek at another player's die. */
   peekOffer?: boolean;
   /** Die peek; DETECTIVE's peek carries the target's role instead. */

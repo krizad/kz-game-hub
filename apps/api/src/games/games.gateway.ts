@@ -1369,6 +1369,20 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_ROLL_DIE)
+  handleBananaThiefRollDie(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.bananaThiefRollDie(data.code, client.id);
+    if (room) {
+      // The die itself is private; only the (unchanged) public state is echoed.
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot roll the die right now.' });
+    }
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_NEXT_HOUR)
   handleBananaThiefNextHour(
     @MessageBody() data: { code: string },

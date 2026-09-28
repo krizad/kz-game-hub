@@ -171,6 +171,7 @@ export const SOCKET_EVENTS = {
   BANANA_THIEF_RESET: 'banana_thief_reset',
   BANANA_THIEF_REACTION: 'banana_thief_reaction',
   BANANA_THIEF_CHOOSE_FOLLOWER: 'banana_thief_choose_follower',
+  BANANA_THIEF_ROLL_DIE: 'banana_thief_roll_die',
 } as const;
 
 export interface UserState {
