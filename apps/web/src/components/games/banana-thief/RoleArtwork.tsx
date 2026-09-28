@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheeseThiefRole, CheeseThiefSpecial } from '@repo/types';
+import { BananaThiefRole, BananaThiefSpecial } from '@repo/types';
 
 /**
  * Role card artwork (AI-generated, see PROMPTS.md in /images/banana-thief/).
@@ -13,7 +13,7 @@ const ROLE_ART: Record<
   string,
   { src: string; emoji: string; alt: string; nameTh: string; nameEn: string; banner: string }
 > = {
-  [CheeseThiefRole.THIEF]: {
+  [BananaThiefRole.THIEF]: {
     src: '/images/banana-thief/thief.png',
     emoji: '🍌🐒',
     alt: 'ลิงขโมยกล้วย',
@@ -21,7 +21,7 @@ const ROLE_ART: Record<
     nameEn: 'BANANA THIEF',
     banner: '#EF4444',
   },
-  [CheeseThiefRole.MOUSE]: {
+  [BananaThiefRole.MOUSE]: {
     src: '/images/banana-thief/mouse.png',
     emoji: '🐒',
     alt: 'ลิงขี้เซา',
@@ -29,7 +29,7 @@ const ROLE_ART: Record<
     nameEn: 'SLEEPY MONKEY',
     banner: '#64748B',
   },
-  [CheeseThiefRole.FOLLOWER]: {
+  [BananaThiefRole.FOLLOWER]: {
     src: '/images/banana-thief/follower.png',
     emoji: '🐒🐒',
     alt: 'สมุนโจร',
@@ -37,7 +37,7 @@ const ROLE_ART: Record<
     nameEn: 'FOLLOWER',
     banner: '#A855F7',
   },
-  [CheeseThiefSpecial.DETECTIVE]: {
+  [BananaThiefSpecial.DETECTIVE]: {
     src: '/images/banana-thief/detective.png',
     emoji: '🕵️',
     alt: 'นักสืบ',
@@ -45,7 +45,7 @@ const ROLE_ART: Record<
     nameEn: 'DETECTIVE · DLC',
     banner: '#06B6D4',
   },
-  [CheeseThiefSpecial.SYCOPHANT]: {
+  [BananaThiefSpecial.SYCOPHANT]: {
     src: '/images/banana-thief/sycophant.png',
     emoji: '🎭',
     alt: 'แกะดำ',
@@ -53,7 +53,7 @@ const ROLE_ART: Record<
     nameEn: 'SYCOPHANT · DLC',
     banner: '#F59E0B',
   },
-  [CheeseThiefSpecial.TWINS]: {
+  [BananaThiefSpecial.TWINS]: {
     src: '/images/banana-thief/twins.png',
     emoji: '👬',
     alt: 'ลิงแฝด',
@@ -61,7 +61,7 @@ const ROLE_ART: Record<
     nameEn: 'TWINS · DLC',
     banner: '#EC4899',
   },
-  [CheeseThiefSpecial.SCAPEGOAT]: {
+  [BananaThiefSpecial.SCAPEGOAT]: {
     src: '/images/banana-thief/goat.png',
     emoji: '🐐',
     alt: 'แพะรับบาป',
@@ -72,7 +72,7 @@ const ROLE_ART: Record<
 };
 
 interface RoleArtworkProps {
-  /** CheeseThiefRole or CheeseThiefSpecial. */
+  /** BananaThiefRole or BananaThiefSpecial. */
   role: string;
   /** Tailwind height classes for the card. */
   className?: string;

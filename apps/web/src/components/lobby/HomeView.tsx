@@ -34,8 +34,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return t('lobby.gameNames.coup').toUpperCase();
     case GameType.CARD_GAME:
       return t('lobby.gameNames.cardGame').toUpperCase();
-    case GameType.CHEESE_THIEF:
-      return t('lobby.gameNames.cheeseThief').toUpperCase();
+    case GameType.BANANA_THIEF:
+      return t('lobby.gameNames.bananaThief').toUpperCase();
     default:
       return t('lobby.gameNames.whoKnow').toUpperCase();
   }
@@ -63,7 +63,7 @@ export function HomeView() {
     {
       type: GameType.SOUNDS_FISHY,
       icon: '🐟',
-      name: 'Sounds Fishy',
+      name: t('lobby.gameNames.soundsFishy'),
       bgClass: 'bg-[#C084FC] hover:bg-[#A855F7] text-white',
     },
     {
@@ -81,43 +81,43 @@ export function HomeView() {
     {
       type: GameType.DETECTIVE_CLUB,
       icon: '🔍',
-      name: 'Detective Club',
+      name: t('lobby.gameNames.detectiveClub'),
       bgClass: 'bg-[#FDE047] hover:bg-[#FACC15] text-black',
     },
     {
       type: GameType.WHO_AM_I,
       icon: '🤔❓',
-      name: 'Who Am I',
+      name: t('lobby.gameNames.whoAmI'),
       bgClass: 'bg-[#F472B6] hover:bg-[#EC4899] text-white',
     },
     {
       type: GameType.WHO_FIRST,
       icon: '🛎️',
-      name: 'Who First',
+      name: t('lobby.gameNames.whoFirst'),
       bgClass: 'bg-[#34D399] hover:bg-[#10B981] text-white',
     },
     {
       type: GameType.MUSIC_TRIVIA,
       icon: '🎵',
-      name: 'Music Trivia',
+      name: t('lobby.gameNames.musicTrivia'),
       bgClass: 'bg-[#818CF8] hover:bg-[#6366F1] text-white',
     },
     {
       type: GameType.THE_MIND,
       icon: '🧠',
-      name: 'The Mind',
+      name: t('lobby.gameNames.theMind'),
       bgClass: 'bg-[#22D3EE] hover:bg-[#06B6D4] text-black',
     },
     {
       type: GameType.SABOTEUR,
       icon: '⛏️💣',
-      name: 'Saboteur',
+      name: t('lobby.gameNames.saboteur'),
       bgClass: 'bg-[#F97316] hover:bg-[#EA580C] text-white',
     },
     {
       type: GameType.COUP,
       icon: '👑💰',
-      name: 'Coup',
+      name: t('lobby.gameNames.coup'),
       bgClass: 'bg-[#EF4444] hover:bg-[#DC2626] text-white',
     },
     {
@@ -127,9 +127,9 @@ export function HomeView() {
       bgClass: 'bg-[#F59E0B] hover:bg-[#D97706] text-black',
     },
     {
-      type: GameType.CHEESE_THIEF,
+      type: GameType.BANANA_THIEF,
       icon: '🐒🍌',
-      name: t('lobby.gameNames.cheeseThief'),
+      name: t('lobby.gameNames.bananaThief'),
       bgClass: 'bg-[#EAB308] hover:bg-[#CA8A04] text-black',
     },
   ];

@@ -29,7 +29,7 @@ export const th: Dictionary = {
       saboteur: 'คนแคระจอมป่วน (Saboteur)',
       pokDeng: 'ป๊อกเด้ง (Pok Deng)',
       cardGame: 'เกมไพ่ไทย (Thai Card Game)',
-      cheeseThief: 'ลิงขโมยกล้วย',
+      bananaThief: 'ลิงขโมยกล้วย',
     },
     or: 'หรือ',
     roomCodePlaceholder: 'รหัสห้อง',
@@ -137,7 +137,7 @@ export const th: Dictionary = {
         saboteur: 'ซาโบเทอร์',
         coup: 'รัฐประหาร',
         pokDeng: 'เกมไพ่ไทย',
-        cheeseThief: 'ลิงขโมยกล้วย',
+        bananaThief: 'ลิงขโมยกล้วย',
       },
       closeBtn: 'เข้าใจแล้ว ลุยกันเลย!',
     },
@@ -183,7 +183,7 @@ export const th: Dictionary = {
       flowTitle: 'ลำดับการเล่น',
       flowDesc: 'ประกาศแอคชัน → เปิดให้ Challenge 7 วิ → เปิดให้ Block 7 วิ → สำเร็จหรือล้มเหลว',
     },
-    cheeseThief: {
+    bananaThief: {
       setupTitle: 'การเริ่มต้น',
       setupDesc:
         'ทุกคนถูกทอยเต๋าลับๆ (1-6 = ชั่วโมงที่ตัวเองจะ "ตื่น" ในคืนนี้) และสุ่มบทบาทลับ: ลิงขโมย 1 ตัว ที่เหลือเป็นลิงขี้เซา เล่น 4 ตัวขึ้นไป กด "พร้อมแล้ว" ครบทุกคนแล้วกลางคืนจะเริ่ม',
@@ -1154,7 +1154,7 @@ export const th: Dictionary = {
     spectating: 'กำลังรับชม',
     resetHint: 'จบเกมแล้ว กดรีเซ็ตเพื่อเล่นใหม่',
   },
-  gameCheeseThief: {
+  gameBananaThief: {
     phaseSetup: 'เตรียมพร้อม',
     phaseChooseFollower: 'โจรเลือกลูกสมุน',
     phaseNight: 'กลางคืน',
@@ -1237,7 +1237,7 @@ export const th: Dictionary = {
     peekGo: 'แอบดู',
     peekDoneTitle: 'แอบส่องเต๋า! (จะดับเอง)',
     peekDone: 'เต๋าของ {name} คือ {die}:00',
-    cheeseMissing: 'กล้วยหายไปแล้ว!',
+    bananaMissing: 'กล้วยหายไปแล้ว!',
     discussionHint: 'คุยกันว่าใครตื่นช่วงไหน ใครน่าสงสัย — โจรก็กำลังบลัฟอยู่',
     discussionTime: 'เริ่มโหวตในอีก {time}',
     startVote: 'เปิดโหวตเลย',

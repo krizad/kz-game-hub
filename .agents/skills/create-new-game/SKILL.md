@@ -23,35 +23,46 @@ kz-game-hub/
 │   ├── core.ts                             <-- [MODIFY] GameType enum, RoomState field, SOCKET_EVENTS
 │   └── index.ts                            <-- [MODIFY] Re-export types from ./<game>
 │
+├── packages/database/prisma/
+│   └── seed.ts                             <-- [MODIFY] Add to gameTypes array for GameSetting table
+│
 ├── apps/api/src/games/
 │   ├── <game>/
 │   │   ├── <game>.service.ts               <-- [NEW] Core backend game logic (turns, validation, timers)
 │   │   └── <game>.service.spec.ts          <-- [NEW] Jest unit tests
 │   ├── games.module.ts                     <-- [MODIFY] Register <Game>Service in providers!
-│   ├── games.gateway.ts                    <-- [MODIFY] @SubscribeMessage Socket.io handlers
+│   ├── games.gateway.ts                    <-- [MODIFY] @SubscribeMessage Socket.io handlers + sync timer
 │   └── games.service.ts                    <-- [MODIFY] Room lifecycle: resetState, joinRoom reconnect, timer cleanup
 │
-└── apps/web/
-    ├── src/
-    │   ├── store/
-    │   │   └── useGameStore.ts             <-- [MODIFY] Action dispatchers & private state listeners
-    │   ├── components/
-    │   │   ├── games/<game>/
-    │   │   │   ├── <Game>View.tsx          <-- [NEW] Main game screen component
-    │   │   │   ├── <Game>Rules.tsx         <-- [NEW] Rules modal content component
-    │   │   │   └── <Game>Settings.tsx      <-- [OPTIONAL NEW] Custom lobby settings panel
-    │   │   ├── lobby/
-    │   │   │   ├── HomeView.tsx            <-- [MODIFY] Add to getGameName() and create-room card button
-    │   │   │   ├── GameViewManager.tsx     <-- [MODIFY] Render <Game>View in game switch
-    │   │   │   ├── LobbyStartButton.tsx    <-- [MODIFY] Set minPlayers count in getMinPlayers()
-    │   │   │   └── GameSettingsManager.tsx <-- [OPTIONAL MODIFY] Render settings if game has custom config
-    │   │   └── RulesModal.tsx              <-- [MODIFY] Add tab button & switch case in renderContent()
-    │   └── i18n/dictionaries/
-    │       ├── schema.ts                   <-- [MODIFY] TypeScript schema for translation keys
-    │       ├── th.ts                       <-- [MODIFY] Thai translations (default language)
-    │       └── en.ts                       <-- [MODIFY] English translations
-    └── e2e/
-        └── <game>.spec.ts                  <-- [NEW] Playwright multiplayer E2E test
+├── apps/web/
+│   ├── src/
+│   │   ├── store/
+│   │   │   └── useGameStore.ts             <-- [MODIFY] Action dispatchers & private state listeners
+│   │   ├── components/
+│   │   │   ├── games/<game>/
+│   │   │   │   ├── <Game>View.tsx          <-- [NEW] Main game screen component (neo-brutalism)
+│   │   │   │   ├── <Game>Rules.tsx         <-- [NEW] Rules modal content component
+│   │   │   │   └── <Game>Settings.tsx      <-- [OPTIONAL NEW] Custom lobby settings panel
+│   │   │   ├── lobby/
+│   │   │   │   ├── HomeView.tsx            <-- [MODIFY] Add to getGameName() and games list (MUST use t())
+│   │   │   │   ├── RoomHeader.tsx          <-- [MODIFY] Add to game title banner (prevent Who Know fallback!)
+│   │   │   │   ├── AdminGameSettings.tsx   <-- [MODIFY] Add to ALL_FLAGS for enable/disable toggle
+│   │   │   │   ├── GameViewManager.tsx     <-- [MODIFY] Render <Game>View in game switch
+│   │   │   │   ├── LobbyStartButton.tsx    <-- [MODIFY] Set minPlayers count in getMinPlayers()
+│   │   │   │   └── GameSettingsManager.tsx <-- [OPTIONAL MODIFY] Render settings if game has custom config
+│   │   │   └── RulesModal.tsx              <-- [MODIFY] Add tab button & switch case in renderContent()
+│   │   └── i18n/dictionaries/
+│   │       ├── schema.ts                   <-- [MODIFY] TypeScript schema for translation keys
+│   │       ├── th.ts                       <-- [MODIFY] Thai translations (default language)
+│   │       └── en.ts                       <-- [MODIFY] English translations
+│   └── e2e/
+│       ├── <game>.spec.ts                  <-- [NEW] Playwright multiplayer E2E test
+│       └── sim/
+│           ├── matrix.ts                   <-- [MODIFY] Add to test matrix
+│           └── play.ts                     <-- [MODIFY] Add sim action handler
+│
+├── README.md                               <-- [MODIFY] Add to Available Games list
+└── AGENTS.md                               <-- [MODIFY] Add module name to Game module pattern
 ```
 
 ---
@@ -78,7 +89,21 @@ kz-game-hub/
 
 ---
 
-### Step 2: Backend Implementation (`apps/api`)
+### Step 2: Database Seed (`packages/database`)
+
+1. **Update `packages/database/prisma/seed.ts`**:
+   - In `main()`, locate the `gameTypes` array for `GameSetting` upsert.
+   - Add `'<GAME_NAME>'` to `gameTypes` so the game is recognized by the database and admin controls:
+     ```typescript
+     const gameTypes = [
+       // ...existing games
+       '<GAME_NAME>',
+     ];
+     ```
+
+---
+
+### Step 3: Backend Implementation (`apps/api`)
 
 1. **Create `apps/api/src/games/<game>/<game>.service.ts`**:
    - Implement methods:
@@ -93,33 +118,24 @@ kz-game-hub/
      ```
    - **Timers**: If the game has timed rounds or auto-advancing turns, NEVER use raw `setInterval`/`setTimeout`. Inject `RoomTimerService`:
      ```typescript
-     this.roomTimerService.startTimer(roomId, durationSec, () => this.handleTimeout(roomId));
+     this.roomTimerService.schedule(room.code, '<game>', deadline, () => this.handleTimeout(room.code));
      ```
 2. **Register in `apps/api/src/games/games.module.ts`**:
    - Add `<Game>Service` to the `providers` array of `GamesModule`. _(Failing to do this causes NestJS dependency injection failure at runtime)._
 3. **Wire into `apps/api/src/games/games.service.ts`**:
    - Inject `<Game>Service` into `GamesService` constructor.
-   - In `resetRoom()` / `createRoom()`: call `this.<game>Service.resetState(room)`.
+   - In `createRoom()` and `resetRoom()`: initialize or reset the state via `this.<game>Service.resetState(room)`.
    - In `joinRoom()`: handle player reconnection by remapping socket IDs in state:
      ```typescript
      if (room.gameType === GameType.<GAME> && room.<game>State) {
-       this.<game>Service.handleReconnect(room.<game>State, oldSocketId, newSocketId);
+       this.<game>Service.remapSocketId(room.<game>State, oldSocketId, user.socketId);
      }
      ```
-   - In `deleteRoom()`: cancel any active timers via `this.roomTimerService.clearTimer(roomId)`.
+   - In `deleteRoom()`: cancel any active timers via `this.roomTimerService.cancel(room.code, '<game>')`.
 4. **Route Events in `apps/api/src/games/games.gateway.ts`**:
-   - Add `@SubscribeMessage(SOCKET_EVENTS.<EVENT_NAME>)` handlers:
-     ```typescript
-     @SubscribeMessage(SOCKET_EVENTS.<EVENT_NAME>)
-     handle<EventName>(
-       @ConnectedSocket() client: Socket,
-       @MessageBody() payload: <PayloadType>,
-     ) {
-       const roomId = client.data.roomId;
-       if (!roomId) return;
-       this.gamesService.handle<EventName>(roomId, client.id, payload);
-     }
-     ```
+   - Add `@SubscribeMessage(SOCKET_EVENTS.<EVENT_NAME>)` handlers.
+   - Add timer sync helper `sync<Game>Timer(room: RoomState)`.
+   - When a game finishes (`room.status === RoomStatus.RESULT`), ensure `this.maybeRecordGameResult(room)` is invoked to record leaderboard outcomes.
 5. **Unit Tests**:
    - Create `apps/api/src/games/<game>/<game>.service.spec.ts`.
    - Test initialization, turn order, valid actions, invalid actions, win conditions, and reconnects.
@@ -130,7 +146,7 @@ kz-game-hub/
 
 ---
 
-### Step 3: Client Store & Actions (`apps/web/src/store/useGameStore.ts`)
+### Step 4: Client Store & Actions (`apps/web/src/store/useGameStore.ts`)
 
 1. **Add actions to `useGameStore`**:
    - Define action functions (e.g. `<game>MakeMove: (payload) => { get().socket?.emit(SOCKET_EVENTS.<GAME_ACTION>, payload); }`).
@@ -140,7 +156,7 @@ kz-game-hub/
 
 ---
 
-### Step 4: Client UI Components (`apps/web/src/components/games/<game>/`)
+### Step 5: Client UI Components (`apps/web/src/components/games/<game>/`)
 
 1. **Create `<Game>View.tsx`**:
    - Neo-brutalism design style: thick black borders (`border-4 border-black`), sharp drop shadows (`shadow-[4px_4px_0_0_#000]`), bold vibrant colors, bold typography (`font-black`), and micro-interactions.
@@ -153,53 +169,90 @@ kz-game-hub/
 
 ---
 
-### Step 5: Lobby & Modal Integrations
+### Step 6: Lobby, Header & Modal Integrations
 
 1. **`apps/web/src/components/lobby/HomeView.tsx`**:
-   - In `getGameName(gameType, t)`: add case for `GameType.<GAME>` returning translated or styled title.
-   - In the game selection grid: add a button/card allowing players to create a room with `onClick={() => createRoom(GameType.<GAME>)}`.
-2. **`apps/web/src/components/lobby/GameViewManager.tsx`**:
+   - In `getGameName(gameType, t)`: add case for `GameType.<GAME>` returning `t('lobby.gameNames.<game>').toUpperCase()`.
+   - In the `games` array: add card object with:
+     ```typescript
+     {
+       type: GameType.<GAME>,
+       icon: '🎮',
+       name: t('lobby.gameNames.<game>'), // CRITICAL: NEVER hardcode raw string; use t()!
+       bgClass: 'bg-[#...]',
+     }
+     ```
+2. **`apps/web/src/components/lobby/RoomHeader.tsx`**:
+   - In the game title banner (nested ternary or helper): **MUST** add condition for `GameType.<GAME>`:
+     ```typescript
+     room.gameType === GameType.<GAME>
+       ? t('lobby.gameNames.<game>')
+       : ...
+     ```
+     _(CRITICAL: If missed, header falls back to "Who Know!" for this game)._
+3. **`apps/web/src/components/lobby/AdminGameSettings.tsx`**:
+   - In `ALL_FLAGS` array, register the game so admins can enable/disable it:
+     ```typescript
+     { type: GameType.<GAME>, labelKey: 'rules.modal.tabs.<game>' },
+     ```
+4. **`apps/web/src/components/lobby/GameViewManager.tsx`**:
    - Add condition to `renderGameView()` to render `<Game>View`.
    - If the game uses the standard waiting lobby, ensure it checks `room.status !== RoomStatus.LOBBY` before rendering the active game board.
-3. **`apps/web/src/components/lobby/LobbyStartButton.tsx`**:
+5. **`apps/web/src/components/lobby/LobbyStartButton.tsx`**:
    - In `getMinPlayers()`: add case for `GameType.<GAME>` returning minimum required players (e.g., 2, 3, or 4).
-   - If start requires specific room configuration (like queries or categories), add validation to `isDisabled`.
-4. **`apps/web/src/components/RulesModal.tsx`**:
-   - Add tab button in the tab bar for `GameType.<GAME>`.
+   - If start requires specific room configuration, add validation to `isDisabled`.
+6. **`apps/web/src/components/RulesModal.tsx`**:
+   - Add tab button in the tab bar for `GameType.<GAME>`:
+     ```typescript
+     {isGameEnabled(GameType.<GAME>) && (
+       <button onClick={() => setActiveTab(GameType.<GAME>)} ...>
+         {t('rules.modal.tabs.<game>')}
+       </button>
+     )}
+     ```
    - Add case in `renderContent()` returning `<GameRules />`.
-5. **`apps/web/src/components/lobby/GameSettingsManager.tsx` (if game has config)**:
+7. **`apps/web/src/components/lobby/GameSettingsManager.tsx` (if game has config)**:
    - Include `<GameSettings />` in `hasSettings` check and render condition.
 
 ---
 
-### Step 6: Localization (`apps/web/src/i18n/dictionaries/`)
+### Step 7: Localization (`apps/web/src/i18n/dictionaries/`)
 
-1. **`schema.ts`**: Update `Dictionary` interface with any new keys needed (e.g. under `lobby.gameNames`, `rules.modal.tabs`, or `<game>` namespace).
+1. **`schema.ts`**: Update `Dictionary` interface:
+   - Add `<game>: string` under `lobby.gameNames`
+   - Add `<game>: string` under `rules.modal.tabs`
+   - Add custom game namespace `<game>: { ... }` for UI labels, roles, and instructions.
 2. **`th.ts`**: Add Thai translations (Thai is the default language of the application).
 3. **`en.ts`**: Add English translations.
 
 ---
 
-### Step 7: Verification & Testing
+### Step 8: Verification, Testing & Docs
 
-1. **Compile shared types**:
-   ```bash
-   pnpm build --filter=@repo/types
-   ```
-2. **Run Backend Unit Tests**:
+1. **Backend Unit Tests**:
    ```bash
    pnpm -F api test -- --testPathPattern=<game>
    ```
-3. **E2E Testing with Playwright**:
-   - Add `apps/web/e2e/<game>.spec.ts` testing room creation, player join, and game progression using multi-browser contexts.
+2. **Dedicated E2E Spec**:
+   - Create `apps/web/e2e/<game>.spec.ts` testing room creation, lobby settings, and minimum players check.
    - Run E2E test:
      ```bash
-     pnpm test:e2e
+     pnpm -F web exec playwright test apps/web/e2e/<game>.spec.ts
      ```
-4. **Formatting & Typecheck**:
+3. **Simulation Matrix (E2E Sim)**:
+   - In `apps/web/e2e/sim/matrix.ts`: register the game configuration.
+   - In `apps/web/e2e/sim/play.ts`: implement simulation handler if automated playthrough is supported.
+4. **Documentation**:
+   - In `README.md`: add the game to `## 🚀 Available Games`.
+   - In `AGENTS.md`: add `<game>` to the game module pattern list.
+5. **Knowledge Graph Sync**:
+   - Run:
+     ```bash
+     graphify update .
+     ```
+6. **Full Build Check**:
    ```bash
-   pnpm format
-   pnpm dev
+   pnpm build
    ```
 
 ---
@@ -208,10 +261,16 @@ kz-game-hub/
 
 | Checkpoint                 | Requirement / Gotcha                                                                                                                         |
 | :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RoomHeader Fallback**    | **MUST** add `GameType.<GAME>` in `RoomHeader.tsx`. Missing it causes the header to mistakenly display "Who Know!".                         |
+| **i18n Without Hardcoding**| In `HomeView.tsx` and `RoomHeader.tsx`, **NEVER** hardcode English text; always use `t('lobby.gameNames.<game>')`.                          |
+| **Database Seed**          | **MUST** add `<GAME_NAME>` to `seed.ts` `gameTypes` array so `GameSetting` row exists for admin toggles.                                    |
+| **Admin Controls**         | **MUST** register in `AdminGameSettings.tsx` `ALL_FLAGS` so admins can disable/enable the game.                                               |
 | **Server-Authoritative**   | Never calculate game outcomes on client. Client emits action -> server validates and mutates -> server broadcasts `room_state_updated`.      |
 | **Private State Security** | Never include secret words, traitor identities, or hidden cards in broadcasted `RoomState`. Use `PrivateStateService` or direct socket emit. |
 | **Build Order**            | Always run `pnpm build --filter=@repo/types` immediately after modifying `packages/types`.                                                   |
 | **NestJS Registration**    | Always register `<Game>Service` in `GamesModule.providers`.                                                                                  |
-| **Reconnection Handling**  | When a player reconnects (`joinRoom`), remap their socket ID in the game state (`oldSocketId` -> `newSocketId`).                             |
+| **Reconnection Handling**  | In `GamesService.joinRoom()`, remap socket IDs across all game state fields (`oldSocketId` -> `newSocketId`).                                |
 | **Timer Cleanup**          | Always use `RoomTimerService` so timers don't leak in memory when a game ends or room is reset.                                              |
-| **Lobby Start Button**     | Always define minimum player count in `LobbyStartButton.tsx`. Default is 2.                                                                  |
+| **Leaderboard Recording**  | In `games.gateway.ts`, call `this.maybeRecordGameResult(room)` when the game status reaches `RESULT`.                                       |
+| **E2E Test File**          | Create dedicated `apps/web/e2e/<game>.spec.ts` alongside simulation matrix integration.                                                     |
+| **Knowledge Graph**        | Run `graphify update .` after changes to keep knowledge graph synchronized.                                                                 |

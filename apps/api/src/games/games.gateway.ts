@@ -35,8 +35,8 @@ import {
   SetGameEnabledPayload,
   TttModeFlag,
   TTT_MODE_FLAGS,
-  CHEESE_THIEF_REACTIONS,
-  CheeseThiefChooseFollowerPayload,
+  BANANA_THIEF_REACTIONS,
+  BananaThiefChooseFollowerPayload,
 } from '@repo/types';
 
 /** Server string the client localizes via i18n/serverErrors. */
@@ -411,7 +411,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         msg = 'Cannot start game. Need at least 3 players.';
       } else if (gameType === GameType.COUP) {
         msg = 'Cannot start game. Need 3-6 players for Coup.';
-      } else if (gameType === GameType.CHEESE_THIEF) {
+      } else if (gameType === GameType.BANANA_THIEF) {
         msg = 'Cannot start game. Need at least 4 players.';
       }
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
@@ -526,7 +526,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         'coup-block',
         'music-trivia-countdown',
         'music-trivia-answer',
-        'cheese-thief',
+        'banana-thief',
       ]) {
         this.roomTimerService.cancel(room.code, timerName);
       }
@@ -1354,14 +1354,14 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  // --- Cheese Thief Actions ---
+  // --- Banana Thief Actions ---
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_READY)
-  handleCheeseThiefReady(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_READY)
+  handleBananaThiefReady(
     @MessageBody() data: { code: string; force?: boolean },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.cheeseThiefReady(data.code, client.id, !!data.force);
+    const room = this.gamesService.bananaThiefReady(data.code, client.id, !!data.force);
     if (room) {
       this.broadcastRoomState(room);
     } else {
@@ -1369,12 +1369,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_NEXT_HOUR)
-  handleCheeseThiefNextHour(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_NEXT_HOUR)
+  handleBananaThiefNextHour(
     @MessageBody() data: { code: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.cheeseThiefNextHour(data.code, client.id);
+    const room = this.gamesService.bananaThiefNextHour(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
     } else {
@@ -1382,12 +1382,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_PEEK)
-  handleCheeseThiefPeek(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_PEEK)
+  handleBananaThiefPeek(
     @MessageBody() data: { code: string; targetId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.cheeseThiefPeek(data.code, client.id, data.targetId);
+    const room = this.gamesService.bananaThiefPeek(data.code, client.id, data.targetId);
     if (room) {
       // The peek result is private; only the wake/peer refresh is broadcast.
       this.broadcastRoomState(room);
@@ -1396,12 +1396,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_VOTE)
-  handleCheeseThiefVote(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_VOTE)
+  handleBananaThiefVote(
     @MessageBody() data: { code: string; targetId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.cheeseThiefVote(data.code, client.id, data.targetId);
+    const room = this.gamesService.bananaThiefVote(data.code, client.id, data.targetId);
     if (room) {
       this.broadcastRoomState(room);
       this.maybeRecordGameResult(room);
@@ -1410,13 +1410,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_CHOOSE_FOLLOWER)
-  handleCheeseThiefChooseFollower(
-    @MessageBody() data: CheeseThiefChooseFollowerPayload,
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_CHOOSE_FOLLOWER)
+  handleBananaThiefChooseFollower(
+    @MessageBody() data: BananaThiefChooseFollowerPayload,
     @ConnectedSocket() client: Socket,
   ) {
     if (!data?.code || !data?.targetId) return;
-    const room = this.gamesService.cheeseThiefChooseFollower(data.code, client.id, data.targetId);
+    const room = this.gamesService.bananaThiefChooseFollower(data.code, client.id, data.targetId);
     if (room) {
       this.broadcastRoomState(room);
     } else {
@@ -1424,12 +1424,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_START_VOTE)
-  handleCheeseThiefStartVote(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_START_VOTE)
+  handleBananaThiefStartVote(
     @MessageBody() data: { code: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.cheeseThiefStartVote(data.code, client.id);
+    const room = this.gamesService.bananaThiefStartVote(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
     } else {
@@ -1437,12 +1437,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_NEXT_ROUND)
-  handleCheeseThiefNextRound(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_NEXT_ROUND)
+  handleBananaThiefNextRound(
     @MessageBody() data: { code: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.cheeseThiefNextRound(data.code, client.id);
+    const room = this.gamesService.bananaThiefNextRound(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
       this.server.emit(
@@ -1454,8 +1454,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_RESET)
-  handleCheeseThiefReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_RESET)
+  handleBananaThiefReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.resetGame(data.code, client.id);
     if (room) {
       this.broadcastRoomState(room);
@@ -1468,15 +1468,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
-  @SubscribeMessage(SOCKET_EVENTS.CHEESE_THIEF_REACTION)
-  handleCheeseThiefReaction(
+  @SubscribeMessage(SOCKET_EVENTS.BANANA_THIEF_REACTION)
+  handleBananaThiefReaction(
     @MessageBody() data: { code: string; emoji: string },
     @ConnectedSocket() client: Socket,
   ) {
     if (!this.gamesService.isRoomMember(data.code, client.id)) return;
     if (
       typeof data.emoji !== 'string' ||
-      !(CHEESE_THIEF_REACTIONS as readonly string[]).includes(data.emoji)
+      !(BANANA_THIEF_REACTIONS as readonly string[]).includes(data.emoji)
     ) {
       return;
     }
@@ -1484,7 +1484,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       .getRoom(data.code)
       ?.players.find((p) => p.socketId === client.id);
     // Reactions carry no game state — pure fun, broadcast to the room only.
-    this.server.to(data.code).emit(SOCKET_EVENTS.CHEESE_THIEF_REACTION, {
+    this.server.to(data.code).emit(SOCKET_EVENTS.BANANA_THIEF_REACTION, {
       fromName: sender?.name ?? '?',
       emoji: data.emoji,
     });
@@ -1538,8 +1538,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.CARD_GAME) {
       this.syncCardGameTimer(room);
     }
-    if (room.gameType === GameType.CHEESE_THIEF) {
-      this.syncCheeseThiefTimer(room);
+    if (room.gameType === GameType.BANANA_THIEF) {
+      this.syncBananaThiefTimer(room);
     }
   }
 
@@ -1681,12 +1681,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
    * clock; discussion expiry opens the ballot; voting expiry finalizes the
    * round. Every callback re-validates phase + deadline before acting.
    */
-  private syncCheeseThiefTimer(room: RoomState): void {
-    const state = room.cheeseThiefState;
+  private syncBananaThiefTimer(room: RoomState): void {
+    const state = room.bananaThiefState;
     const deadline = state?.tickEndsAt ?? state?.phaseEndsAt ?? null;
 
     if (!state || !deadline) {
-      this.roomTimerService.cancel(room.code, 'cheese-thief');
+      this.roomTimerService.cancel(room.code, 'banana-thief');
       return;
     }
     if (
@@ -1697,26 +1697,26 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         state.phase === 'VOTING') &&
         !state.phaseEndsAt)
     ) {
-      this.roomTimerService.cancel(room.code, 'cheese-thief');
+      this.roomTimerService.cancel(room.code, 'banana-thief');
       return;
     }
 
     const phase = state.phase;
-    this.roomTimerService.schedule(room.code, 'cheese-thief', deadline, () => {
+    this.roomTimerService.schedule(room.code, 'banana-thief', deadline, () => {
       const currentRoom = this.gamesService.getRoom(room.code);
-      const currentState = currentRoom?.cheeseThiefState;
+      const currentState = currentRoom?.bananaThiefState;
       if (!currentRoom || !currentState || currentState.phase !== phase) return;
       const currentDeadline = currentState.tickEndsAt ?? currentState.phaseEndsAt ?? null;
       if (currentDeadline !== deadline) return; // phase re-armed elsewhere
 
       const updated =
         phase === 'CHOOSE_FOLLOWER'
-          ? this.gamesService.cheeseThiefChooseFollowerTimeout(room.code)
+          ? this.gamesService.bananaThiefChooseFollowerTimeout(room.code)
           : phase === 'NIGHT'
-            ? this.gamesService.cheeseThiefTick(room.code)
+            ? this.gamesService.bananaThiefTick(room.code)
             : phase === 'DISCUSSION'
-              ? this.gamesService.cheeseThiefStartVote(room.code, currentRoom.roomHostId)
-              : this.gamesService.cheeseThiefVotePhaseEnd(room.code);
+              ? this.gamesService.bananaThiefStartVote(room.code, currentRoom.roomHostId)
+              : this.gamesService.bananaThiefVotePhaseEnd(room.code);
       if (updated) {
         this.broadcastRoomState(updated);
         this.maybeRecordGameResult(updated);
@@ -1967,11 +1967,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         )
       );
     }
-    if (event === SOCKET_EVENTS.CHEESE_THIEF_PEEK || event === SOCKET_EVENTS.CHEESE_THIEF_VOTE) {
+    if (event === SOCKET_EVENTS.BANANA_THIEF_PEEK || event === SOCKET_EVENTS.BANANA_THIEF_VOTE) {
       return typeof data.targetId === 'string' && data.targetId.length <= 64;
     }
-    if (event === SOCKET_EVENTS.CHEESE_THIEF_REACTION) {
-      return (CHEESE_THIEF_REACTIONS as readonly string[]).includes(data.emoji as string);
+    if (event === SOCKET_EVENTS.BANANA_THIEF_REACTION) {
+      return (BANANA_THIEF_REACTIONS as readonly string[]).includes(data.emoji as string);
     }
     return true;
   }

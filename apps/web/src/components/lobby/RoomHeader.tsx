@@ -38,26 +38,28 @@ export function RoomHeader() {
                 : room.gameType === GameType.RPS
                   ? t('lobby.gameNames.handDuel')
                   : room.gameType === GameType.SOUNDS_FISHY
-                    ? 'Sounds Fishy'
+                    ? t('lobby.gameNames.soundsFishy')
                     : room.gameType === GameType.DETECTIVE_CLUB
-                      ? 'Detective Club'
+                      ? t('lobby.gameNames.detectiveClub')
                       : room.gameType === GameType.MUSIC_TRIVIA
-                        ? 'Music Trivia'
+                        ? t('lobby.gameNames.musicTrivia')
                         : room.gameType === GameType.WHO_AM_I
-                          ? 'Who Am I'
+                          ? t('lobby.gameNames.whoAmI')
                           : room.gameType === GameType.WHO_FIRST
-                            ? 'Who First'
+                            ? t('lobby.gameNames.whoFirst')
                             : room.gameType === GameType.THE_MIND
-                              ? 'The Mind'
+                              ? t('lobby.gameNames.theMind')
                               : room.gameType === GameType.SABOTEUR
-                                ? 'Saboteur'
+                                ? t('lobby.gameNames.saboteur')
                                 : room.gameType === GameType.COUP
-                                  ? 'Coup'
+                                  ? t('lobby.gameNames.coup')
                                   : room.gameType === GameType.CARD_GAME
                                     ? t(
                                         `cardGameSettings.presets.${room.cardGameConfig?.preset ?? 'POK_DENG'}`,
                                       )
-                                    : t('lobby.gameNames.whoKnow')}
+                                    : room.gameType === GameType.BANANA_THIEF
+                                      ? t('lobby.gameNames.bananaThief')
+                                      : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

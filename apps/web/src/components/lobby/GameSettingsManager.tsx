@@ -8,7 +8,7 @@ import { RpsSettings } from '@/components/games/rps/RpsSettings';
 import { WhoAmISettings } from '@/components/games/who-am-i/WhoAmISettings';
 import { MusicTriviaSettings } from '@/components/games/music-trivia/MusicTriviaSettings';
 import { SaboteurSettings } from '@/components/games/saboteur/SaboteurSettings';
-import { CheeseThiefSettings } from '@/components/games/cheese-thief/CheeseThiefSettings';
+import { BananaThiefSettings } from '@/components/games/banana-thief/BananaThiefSettings';
 
 export function GameSettingsManager() {
   const { room } = useGameStore();
@@ -21,7 +21,7 @@ export function GameSettingsManager() {
     room.gameType === GameType.WHO_AM_I ||
     room.gameType === GameType.MUSIC_TRIVIA ||
     room.gameType === GameType.SABOTEUR ||
-    room.gameType === GameType.CHEESE_THIEF;
+    room.gameType === GameType.BANANA_THIEF;
 
   if (!hasSettings) return null;
 
@@ -32,7 +32,7 @@ export function GameSettingsManager() {
       {room.gameType === GameType.WHO_AM_I && <WhoAmISettings />}
       {room.gameType === GameType.MUSIC_TRIVIA && <MusicTriviaSettings />}
       {room.gameType === GameType.SABOTEUR && <SaboteurSettings />}
-      {room.gameType === GameType.CHEESE_THIEF && <CheeseThiefSettings />}
+      {room.gameType === GameType.BANANA_THIEF && <BananaThiefSettings />}
     </div>
   );
 }

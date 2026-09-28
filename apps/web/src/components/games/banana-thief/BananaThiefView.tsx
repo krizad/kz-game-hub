@@ -8,11 +8,11 @@ import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { RoleArtwork } from './RoleArtwork';
 import {
-  CHEESE_THIEF_CLOCK_HOURS,
-  CHEESE_THIEF_REACTIONS,
-  CheeseThiefPhase,
-  CheeseThiefRole,
-  CheeseThiefSpecial,
+  BANANA_THIEF_CLOCK_HOURS,
+  BANANA_THIEF_REACTIONS,
+  BananaThiefPhase,
+  BananaThiefRole,
+  BananaThiefSpecial,
 } from '@repo/types';
 
 /** Ticking seconds remaining until a server deadline (null when none). */
@@ -31,7 +31,7 @@ function useCountdown(deadline?: number | null): number | null {
  * Stealth sync: a very quiet clock tick from every device masks the sound of
  * neighbours tapping their screens. WebAudio-generated, no assets needed.
  */
-function useCheeseThiefAmbient(enabled: boolean, active: boolean) {
+function useBananaThiefAmbient(enabled: boolean, active: boolean) {
   const ctxRef = useRef<AudioContext | null>(null);
   useEffect(() => {
     if (!enabled || !active) return;
@@ -71,9 +71,9 @@ const fmtTime = (seconds: number) =>
  * can truly close their eyes. Uses the browser's speech synthesis (th-TH when
  * available); the first "I'm ready" tap unlocks it under autoplay policies.
  */
-function useCheeseThiefNarrator(
+function useBananaThiefNarrator(
   enabled: boolean,
-  phase: CheeseThiefPhase | undefined,
+  phase: BananaThiefPhase | undefined,
   clock: number,
   phrase: (kind: 'night' | 'hour' | 'morning' | 'vote', n?: number) => string,
 ) {
@@ -99,27 +99,27 @@ function useCheeseThiefNarrator(
       }
     };
 
-    if (phase === CheeseThiefPhase.NIGHT && clock === 0) speak(phrase('night'));
-    else if (phase === CheeseThiefPhase.NIGHT) speak(phrase('hour', clock));
-    else if (phase === CheeseThiefPhase.DISCUSSION) speak(phrase('morning'));
-    else if (phase === CheeseThiefPhase.VOTING) speak(phrase('vote'));
+    if (phase === BananaThiefPhase.NIGHT && clock === 0) speak(phrase('night'));
+    else if (phase === BananaThiefPhase.NIGHT) speak(phrase('hour', clock));
+    else if (phase === BananaThiefPhase.DISCUSSION) speak(phrase('morning'));
+    else if (phase === BananaThiefPhase.VOTING) speak(phrase('vote'));
   }, [phase, clock, enabled, phrase]);
 }
 
-export function CheeseThiefView() {
+export function BananaThiefView() {
   const {
     room,
     socketId,
     privateState,
-    cheeseThiefPeek,
-    cheeseThiefReady,
-    cheeseThiefChooseFollower,
-    cheeseThiefNextHour,
-    cheeseThiefVote,
-    cheeseThiefStartVote,
-    cheeseThiefNextRound,
-    cheeseThiefReset,
-    cheeseThiefReaction,
+    bananaThiefPeek,
+    bananaThiefReady,
+    bananaThiefChooseFollower,
+    bananaThiefNextHour,
+    bananaThiefVote,
+    bananaThiefStartVote,
+    bananaThiefNextRound,
+    bananaThiefReset,
+    bananaThiefReaction,
   } = useGameStore();
   const { t } = useTranslate();
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
@@ -130,35 +130,35 @@ export function CheeseThiefView() {
     { seq: number; emoji: string; fromName: string; x: number }[]
   >([]);
 
-  const state = room?.cheeseThiefState;
+  const state = room?.bananaThiefState;
   const ps = privateState as Record<string, unknown> | undefined;
-  const role = ps?.ctRole as CheeseThiefRole | undefined;
+  const role = ps?.ctRole as BananaThiefRole | undefined;
   const myDie = ps?.ctDie as number | undefined;
   const awakePeers = (ps?.ctAwakePeers as string[] | undefined) ?? [];
   const peekOffer = ps?.ctPeekOffer === true;
   const stole = ps?.ctStole === true;
   const witnesses = (ps?.ctWitnesses as string[] | undefined) ?? [];
   const seesThief = ps?.ctSeesThief as string | undefined;
-  const mySpecial = ps?.ctSpecial as CheeseThiefSpecial | undefined;
+  const mySpecial = ps?.ctSpecial as BananaThiefSpecial | undefined;
   const twinPartner = ps?.ctTwinPartner as string | undefined;
   const chosenFollowers = (ps?.ctChosenFollowers as string[] | undefined) ?? [];
   const peekResult = ps?.ctPeekResult as
-    | { targetName: string; die: number; role?: CheeseThiefRole }
+    | { targetName: string; die: number; role?: BananaThiefRole }
     | undefined;
 
   // Narration phrases (i18n-aware); stable callbacks for the narrator hook.
   // HOST-narrator mode silences the synth — the host reads the script aloud.
-  const hostPaced = (room?.config.cheeseThiefNarrator ?? 'AUTO') === 'HOST';
+  const hostPaced = (room?.config.bananaThiefNarrator ?? 'AUTO') === 'HOST';
   const phrase = useRef((kind: 'night' | 'hour' | 'morning' | 'vote', n?: number) =>
     kind === 'night'
-      ? t('gameCheeseThief.narratorNight')
+      ? t('gameBananaThief.narratorNight')
       : kind === 'hour'
-        ? t('gameCheeseThief.narratorHour', { n: n ?? 0 })
+        ? t('gameBananaThief.narratorHour', { n: n ?? 0 })
         : kind === 'morning'
-          ? t('gameCheeseThief.narratorMorning')
-          : t('gameCheeseThief.narratorVote'),
+          ? t('gameBananaThief.narratorMorning')
+          : t('gameBananaThief.narratorVote'),
   ).current;
-  useCheeseThiefNarrator(soundsEnabled && !hostPaced, state?.phase, state?.clock ?? 0, phrase);
+  useBananaThiefNarrator(soundsEnabled && !hostPaced, state?.phase, state?.clock ?? 0, phrase);
 
   // Peek result flashes for ~2s, then disappears (anti-curious-shoulder).
   const peekResultKey = peekResult ? `${peekResult.targetName}:${peekResult.die}` : null;
@@ -171,7 +171,7 @@ export function CheeseThiefView() {
     return () => clearTimeout(timer);
   }, [peekResultKey]);
 
-  const reaction = useGameStore((s) => s.lastCheeseThiefReaction);
+  const reaction = useGameStore((s) => s.lastBananaThiefReaction);
   useEffect(() => {
     if (!reaction) return;
     const f = { ...reaction, x: 8 + Math.random() * 80 };
@@ -186,58 +186,58 @@ export function CheeseThiefView() {
   const isHost = socketId === room?.roomHostId;
   const isViewer = room?.players.find((p) => p.socketId === socketId)?.isViewer === true;
   /** "ตี 3" / "3 AM" — the whole UI speaks in Thai night-hours. */
-  const hourName = (n: number) => t('gameCheeseThief.hourName', { n });
+  const hourName = (n: number) => t('gameBananaThief.hourName', { n });
   const nameOf = (id: string) => room?.players.find((p) => p.socketId === id)?.name ?? '?';
   const participants = (room?.players ?? []).filter((p) => p.connected !== false && !p.isViewer);
   const voteTargets = participants.filter((p) => p.socketId !== socketId);
 
-  const tickSeconds = room?.config.cheeseThiefTickSeconds ?? 6;
+  const tickSeconds = room?.config.bananaThiefTickSeconds ?? 6;
   const nightRemaining = useCountdown(state?.tickEndsAt);
   const phaseRemaining = useCountdown(state?.phaseEndsAt);
-  useCheeseThiefAmbient(
+  useBananaThiefAmbient(
     soundsEnabled,
-    state?.phase === CheeseThiefPhase.NIGHT || state?.phase === CheeseThiefPhase.CHOOSE_FOLLOWER,
+    state?.phase === BananaThiefPhase.NIGHT || state?.phase === BananaThiefPhase.CHOOSE_FOLLOWER,
   );
 
   // A fresh ballot clears the local "already voted" marker.
   useEffect(() => {
-    if (state?.phase !== CheeseThiefPhase.VOTING) setMyVote(null);
+    if (state?.phase !== BananaThiefPhase.VOTING) setMyVote(null);
   }, [state?.phase]);
 
-  if (!room || !state) return <div className="p-6 font-black">Loading Cheese Thief...</div>;
+  if (!room || !state) return <div className="p-6 font-black">Loading Banana Thief...</div>;
 
   const isAwake =
-    state.phase === CheeseThiefPhase.NIGHT && myDie !== undefined && state.clock >= myDie;
+    state.phase === BananaThiefPhase.NIGHT && myDie !== undefined && state.clock >= myDie;
 
   const roleLabel =
-    role === CheeseThiefRole.THIEF
-      ? t('gameCheeseThief.roleThief')
-      : role === CheeseThiefRole.FOLLOWER
-        ? t('gameCheeseThief.roleFollower')
-        : t('gameCheeseThief.roleMouse');
+    role === BananaThiefRole.THIEF
+      ? t('gameBananaThief.roleThief')
+      : role === BananaThiefRole.FOLLOWER
+        ? t('gameBananaThief.roleFollower')
+        : t('gameBananaThief.roleMouse');
 
   /** DLC special badge (private card copy) shown under the role card. */
   const specialBadge = () => {
     if (!mySpecial) return null;
     const text =
-      mySpecial === CheeseThiefSpecial.DETECTIVE
-        ? t('gameCheeseThief.specialDetective')
-        : mySpecial === CheeseThiefSpecial.SYCOPHANT
-          ? t('gameCheeseThief.specialSycophant')
-          : mySpecial === CheeseThiefSpecial.SCAPEGOAT
+      mySpecial === BananaThiefSpecial.DETECTIVE
+        ? t('gameBananaThief.specialDetective')
+        : mySpecial === BananaThiefSpecial.SYCOPHANT
+          ? t('gameBananaThief.specialSycophant')
+          : mySpecial === BananaThiefSpecial.SCAPEGOAT
             ? seesThief
-              ? t('gameCheeseThief.specialScapegoatSaw', { name: seesThief })
-              : t('gameCheeseThief.specialScapegoat')
+              ? t('gameBananaThief.specialScapegoatSaw', { name: seesThief })
+              : t('gameBananaThief.specialScapegoat')
             : twinPartner
-              ? t('gameCheeseThief.specialTwins', { name: twinPartner })
+              ? t('gameBananaThief.specialTwins', { name: twinPartner })
               : null;
     if (!text) return null;
     const icon =
-      mySpecial === CheeseThiefSpecial.DETECTIVE
+      mySpecial === BananaThiefSpecial.DETECTIVE
         ? '🕵️'
-        : mySpecial === CheeseThiefSpecial.SYCOPHANT
+        : mySpecial === BananaThiefSpecial.SYCOPHANT
           ? '🎭'
-          : mySpecial === CheeseThiefSpecial.SCAPEGOAT
+          : mySpecial === BananaThiefSpecial.SCAPEGOAT
             ? '🐐'
             : '👬';
     return (
@@ -249,27 +249,27 @@ export function CheeseThiefView() {
 
   const submitPeek = () => {
     if (!peekTarget) return;
-    cheeseThiefPeek(peekTarget);
+    bananaThiefPeek(peekTarget);
     setPeekTarget('');
   };
 
   const submitVote = (targetId: string) => {
     if (myVote) return;
     setMyVote(targetId);
-    cheeseThiefVote(targetId);
+    bananaThiefVote(targetId);
   };
 
   const sendReaction = (emoji: string) => {
-    cheeseThiefReaction(emoji);
+    bananaThiefReaction(emoji);
   };
 
   const renderReactionBar = () => (
     <div className="mt-4 border-t-4 border-black pt-3">
       <div className="text-[10px] font-black uppercase tracking-widest mb-2 text-black">
-        {t('gameCheeseThief.reactionsTitle')}
+        {t('gameBananaThief.reactionsTitle')}
       </div>
       <div className="flex flex-wrap gap-2">
-        {CHEESE_THIEF_REACTIONS.map((emoji) => (
+        {BANANA_THIEF_REACTIONS.map((emoji) => (
           <button
             key={emoji}
             onClick={() => sendReaction(emoji)}
@@ -287,7 +287,7 @@ export function CheeseThiefView() {
       {/* Public clock — everyone hears the night hours pass */}
       <div className="text-center">
         <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-          {t('gameCheeseThief.phaseNight')}
+          {t('gameBananaThief.phaseNight')}
         </div>
         <motion.div
           key={state.clock}
@@ -297,12 +297,12 @@ export function CheeseThiefView() {
         >
           {state.clock > 0 ? `🌙 ${hourName(state.clock)}` : '🌙 …'}
         </motion.div>
-        {state.nightGrace && state.clock >= CHEESE_THIEF_CLOCK_HOURS && (
+        {state.nightGrace && state.clock >= BANANA_THIEF_CLOCK_HOURS && (
           <div className="text-xs font-black text-amber-300">
-            ⏳ {t('gameCheeseThief.graceNote')}
+            ⏳ {t('gameBananaThief.graceNote')}
           </div>
         )}
-        {nightRemaining !== null && state.clock > 0 && state.clock < CHEESE_THIEF_CLOCK_HOURS && (
+        {nightRemaining !== null && state.clock > 0 && state.clock < BANANA_THIEF_CLOCK_HOURS && (
           <div className="text-xs font-black text-slate-500 tabular-nums">
             {fmtTime(nightRemaining)}
           </div>
@@ -312,37 +312,37 @@ export function CheeseThiefView() {
       {/* Secret role card */}
       <div
         className={`w-full max-w-sm border-4 p-3 text-center ${
-          role === CheeseThiefRole.THIEF
+          role === BananaThiefRole.THIEF
             ? 'bg-red-900/60 border-red-500 text-red-100'
-            : role === CheeseThiefRole.FOLLOWER
+            : role === BananaThiefRole.FOLLOWER
               ? 'bg-purple-900/60 border-purple-400 text-purple-100'
               : 'bg-slate-900 border-slate-600 text-slate-100'
         }`}
       >
         <div className="text-[10px] font-black uppercase tracking-widest opacity-70">
-          {t('gameCheeseThief.youAre', { role: roleLabel })}
+          {t('gameBananaThief.youAre', { role: roleLabel })}
         </div>
         <div className="flex justify-center my-2">
-          <RoleArtwork role={role ?? CheeseThiefRole.MOUSE} className="h-28" />
+          <RoleArtwork role={role ?? BananaThiefRole.MOUSE} className="h-28" />
         </div>
         {myDie !== undefined && (
           <div className="text-xs font-black mt-1">
-            🎲 {t('gameCheeseThief.youWakeAt', { time: hourName(myDie) })}
+            🎲 {t('gameBananaThief.youWakeAt', { time: hourName(myDie) })}
           </div>
         )}
-        {role === CheeseThiefRole.FOLLOWER && (
+        {role === BananaThiefRole.FOLLOWER && (
           <div className="text-[11px] font-bold mt-2 text-purple-200">
             {seesThief
-              ? t('gameCheeseThief.followerSeesThief', { name: seesThief })
-              : t('gameCheeseThief.followerConverted')}
+              ? t('gameBananaThief.followerSeesThief', { name: seesThief })
+              : t('gameBananaThief.followerConverted')}
           </div>
         )}
-        {role === CheeseThiefRole.THIEF && stole && (
+        {role === BananaThiefRole.THIEF && stole && (
           <div className="text-[11px] font-bold mt-2 text-red-200">
-            {t('gameCheeseThief.stealDone')}
+            {t('gameBananaThief.stealDone')}
             {witnesses.length > 0 && (
               <div className="mt-1">
-                ⚠️ {t('gameCheeseThief.thiefWitness', { names: witnesses.join(', ') })}
+                ⚠️ {t('gameBananaThief.thiefWitness', { names: witnesses.join(', ') })}
               </div>
             )}
           </div>
@@ -354,33 +354,33 @@ export function CheeseThiefView() {
       {hostPaced && isHost && (
         <div className="w-full max-w-sm bg-indigo-600 text-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000]">
           <div className="text-[10px] font-black uppercase tracking-widest opacity-80">
-            {t('gameCheeseThief.hostScriptTitle')}
+            {t('gameBananaThief.hostScriptTitle')}
           </div>
           <div className="text-sm font-black mt-1">
             {state.clock === 0
-              ? t('gameCheeseThief.narratorNight')
-              : state.clock < CHEESE_THIEF_CLOCK_HOURS
-                ? `📢 ${t('gameCheeseThief.narratorHour', { n: state.clock })} → ${t('gameCheeseThief.narratorHourEnd', { n: state.clock })}`
-                : `📢 ${t('gameCheeseThief.narratorMorning')}`}
+              ? t('gameBananaThief.narratorNight')
+              : state.clock < BANANA_THIEF_CLOCK_HOURS
+                ? `📢 ${t('gameBananaThief.narratorHour', { n: state.clock })} → ${t('gameBananaThief.narratorHourEnd', { n: state.clock })}`
+                : `📢 ${t('gameBananaThief.narratorMorning')}`}
           </div>
-          {state.clock < CHEESE_THIEF_CLOCK_HOURS ? (
+          {state.clock < BANANA_THIEF_CLOCK_HOURS ? (
             <button
-              onClick={cheeseThiefNextHour}
-              data-testid="cheese-thief-next-hour"
+              onClick={bananaThiefNextHour}
+              data-testid="banana-thief-next-hour"
               className="mt-2 w-full bg-white text-black border-2 border-black font-black py-2 uppercase tracking-widest shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all"
             >
-              ⏭ {t('gameCheeseThief.nextHour')}
+              ⏭ {t('gameBananaThief.nextHour')}
             </button>
           ) : (
             <div className="text-[11px] font-bold mt-1 opacity-90">
-              {t('gameCheeseThief.graceNote')}
+              {t('gameBananaThief.graceNote')}
             </div>
           )}
         </div>
       )}
-      {hostPaced && !isHost && state.clock < CHEESE_THIEF_CLOCK_HOURS && (
+      {hostPaced && !isHost && state.clock < BANANA_THIEF_CLOCK_HOURS && (
         <div className="text-xs font-black text-slate-400 uppercase tracking-widest">
-          {t('gameCheeseThief.waitingHostHour')}
+          {t('gameBananaThief.waitingHostHour')}
         </div>
       )}
 
@@ -392,11 +392,11 @@ export function CheeseThiefView() {
           transition={{ opacity: { repeat: Infinity, duration: 2 } }}
           className="w-full max-w-sm bg-amber-400 text-black border-4 border-black p-3 text-center shadow-[4px_4px_0_0_#000]"
         >
-          <div className="text-xl font-black">👁️ {t('gameCheeseThief.awake')}</div>
+          <div className="text-xl font-black">👁️ {t('gameBananaThief.awake')}</div>
           <div className="text-xs font-black mt-1">
             {awakePeers.length > 0
-              ? `${t('gameCheeseThief.awakePeersTitle')} ${awakePeers.join(', ')}`
-              : t('gameCheeseThief.awakeAlone')}
+              ? `${t('gameBananaThief.awakePeersTitle')} ${awakePeers.join(', ')}`
+              : t('gameBananaThief.awakeAlone')}
           </div>
         </motion.div>
       ) : (
@@ -406,7 +406,7 @@ export function CheeseThiefView() {
           className="w-full max-w-sm bg-slate-900 border-4 border-slate-700 p-3 text-center"
         >
           <div className="text-xl font-black text-slate-300">
-            😴 {t('gameCheeseThief.sleeping')}
+            😴 {t('gameBananaThief.sleeping')}
           </div>
         </motion.div>
       )}
@@ -414,8 +414,8 @@ export function CheeseThiefView() {
       {/* Solo-wake peek reward (private) */}
       {peekOffer && (
         <div className="w-full max-w-sm bg-yellow-300 text-black border-4 border-black p-3 shadow-[4px_4px_0_0_#000]">
-          <div className="font-black text-sm">🤫 {t('gameCheeseThief.peekTitle')}</div>
-          <div className="text-xs font-bold mt-1">{t('gameCheeseThief.peekDesc')}</div>
+          <div className="font-black text-sm">🤫 {t('gameBananaThief.peekTitle')}</div>
+          <div className="text-xs font-bold mt-1">{t('gameBananaThief.peekDesc')}</div>
           <div className="flex gap-2 mt-2">
             <select
               value={peekTarget}
@@ -436,7 +436,7 @@ export function CheeseThiefView() {
               disabled={!peekTarget}
               className="bg-black text-yellow-300 disabled:bg-gray-600 disabled:text-gray-400 border-2 border-black px-3 py-2 text-sm font-black uppercase shadow-[2px_2px_0_0_#000]"
             >
-              {t('gameCheeseThief.peekGo')}
+              {t('gameBananaThief.peekGo')}
             </button>
           </div>
         </div>
@@ -450,16 +450,16 @@ export function CheeseThiefView() {
           className="w-full max-w-sm bg-lime-200 text-black border-4 border-black p-3 text-center font-black"
         >
           <div className="text-[10px] uppercase tracking-widest opacity-70">
-            {t('gameCheeseThief.peekDoneTitle')}
+            {t('gameBananaThief.peekDoneTitle')}
           </div>
           <div className="text-3xl font-black">
             {peekResult.role !== undefined
               ? `${peekResult.targetName}: ${
-                  peekResult.role === CheeseThiefRole.THIEF
-                    ? t('gameCheeseThief.peekRoleThief')
-                    : peekResult.role === CheeseThiefRole.FOLLOWER
-                      ? t('gameCheeseThief.peekRoleFollower')
-                      : t('gameCheeseThief.peekRoleMouse')
+                  peekResult.role === BananaThiefRole.THIEF
+                    ? t('gameBananaThief.peekRoleThief')
+                    : peekResult.role === BananaThiefRole.FOLLOWER
+                      ? t('gameBananaThief.peekRoleFollower')
+                      : t('gameBananaThief.peekRoleMouse')
                 }`
               : `${peekResult.targetName}: 🎲 ${hourName(peekResult.die)}`}
           </div>
@@ -477,45 +477,45 @@ export function CheeseThiefView() {
       // First user gesture: unlock speech synthesis with a short confirmation.
       try {
         if (soundsEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
-          const utterance = new SpeechSynthesisUtterance(t('gameCheeseThief.readyButton'));
+          const utterance = new SpeechSynthesisUtterance(t('gameBananaThief.readyButton'));
           utterance.lang = 'th-TH';
           window.speechSynthesis.speak(utterance);
         }
       } catch {
         // ignore — narration stays optional
       }
-      cheeseThiefReady();
+      bananaThiefReady();
     };
     return (
       <div className="bg-slate-900 text-white border-4 border-black p-4 sm:p-6 min-h-[320px] flex flex-col items-center justify-center gap-4">
         <div className="text-center">
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            {t('gameCheeseThief.phaseSetup')}
+            {t('gameBananaThief.phaseSetup')}
           </div>
           <div className="text-2xl sm:text-3xl font-black mt-1">
-            {t('gameCheeseThief.setupTitle')}
+            {t('gameBananaThief.setupTitle')}
           </div>
           <div className="text-xs font-bold text-slate-400 mt-1">
-            {t('gameCheeseThief.setupHint')}
+            {t('gameBananaThief.setupHint')}
           </div>
         </div>
 
         <div
           className={`w-full max-w-sm border-4 p-3 text-center ${
-            role === CheeseThiefRole.THIEF
+            role === BananaThiefRole.THIEF
               ? 'bg-red-900/60 border-red-500 text-red-100'
               : 'bg-slate-800 border-slate-600 text-slate-100'
           }`}
         >
           <div className="text-[10px] font-black uppercase tracking-widest opacity-70">
-            {t('gameCheeseThief.youAre', { role: roleLabel })}
+            {t('gameBananaThief.youAre', { role: roleLabel })}
           </div>
           <div className="flex justify-center my-2">
-            <RoleArtwork role={role ?? CheeseThiefRole.MOUSE} className="h-40" />
+            <RoleArtwork role={role ?? BananaThiefRole.MOUSE} className="h-40" />
           </div>
           {myDie !== undefined && (
             <div className="text-sm font-black mt-1">
-              🎲 {t('gameCheeseThief.youWakeAt', { time: hourName(myDie) })}
+              🎲 {t('gameBananaThief.youWakeAt', { time: hourName(myDie) })}
             </div>
           )}
           {specialBadge()}
@@ -524,26 +524,26 @@ export function CheeseThiefView() {
         {!iAmReady ? (
           <button
             onClick={unlockNarrator}
-            data-testid="cheese-thief-ready"
+            data-testid="banana-thief-ready"
             className="bg-lime-400 hover:bg-lime-300 text-black border-4 border-black font-black text-lg px-8 py-4 uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
-            ✋ {t('gameCheeseThief.readyButton')}
+            ✋ {t('gameBananaThief.readyButton')}
           </button>
         ) : (
           <div className="bg-slate-800 border-4 border-slate-600 px-6 py-3 text-sm font-black uppercase tracking-widest">
-            ⏳ {t('gameCheeseThief.readyWaiting')}
+            ⏳ {t('gameBananaThief.readyWaiting')}
           </div>
         )}
         <div className="text-xs font-black text-slate-400 tabular-nums">
-          {t('gameCheeseThief.readyCount', { count: readyCount, total })}
+          {t('gameBananaThief.readyCount', { count: readyCount, total })}
         </div>
         {isHost && readyCount < total && (
           <button
-            onClick={() => cheeseThiefReady(true)}
-            data-testid="cheese-thief-force-start"
+            onClick={() => bananaThiefReady(true)}
+            data-testid="banana-thief-force-start"
             className="bg-amber-400 hover:bg-amber-300 text-black border-2 border-black px-4 py-2 text-xs font-black uppercase shadow-[2px_2px_0_0_#000]"
           >
-            ⏩ {t('gameCheeseThief.forceStartNight')}
+            ⏩ {t('gameBananaThief.forceStartNight')}
           </button>
         )}
       </div>
@@ -551,22 +551,22 @@ export function CheeseThiefView() {
   };
 
   const renderChooseFollower = () => {
-    const isThief = role === CheeseThiefRole.THIEF;
+    const isThief = role === BananaThiefRole.THIEF;
     const candidates = participants.filter((p) => p.socketId !== socketId);
-    const quota = room?.config.cheeseThiefFollowerCount ?? 1;
+    const quota = room?.config.bananaThiefFollowerCount ?? 1;
 
     if (isThief) {
       return (
         <div className="bg-slate-900 text-white border-4 border-black p-4 sm:p-6 min-h-[360px] flex flex-col items-center justify-center gap-4">
           <div className="text-center">
             <div className="text-[10px] font-black uppercase tracking-widest text-red-400">
-              {t('gameCheeseThief.phaseChooseFollower')}
+              {t('gameBananaThief.phaseChooseFollower')}
             </div>
             <div className="text-2xl sm:text-3xl font-black mt-1 text-red-400">
-              🦹 {t('gameCheeseThief.chooseFollowerTitle')}
+              🦹 {t('gameBananaThief.chooseFollowerTitle')}
             </div>
             <div className="text-xs font-bold text-slate-300 mt-1 max-w-md">
-              {t('gameCheeseThief.chooseFollowerDesc')}
+              {t('gameBananaThief.chooseFollowerDesc')}
             </div>
             <div className="mt-2 text-xs font-black text-amber-300 tabular-nums">
               ⏳ {phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--'} (
@@ -576,7 +576,7 @@ export function CheeseThiefView() {
 
           <div className="w-full max-w-md space-y-2 mt-2">
             <div className="text-xs font-black uppercase text-slate-400">
-              {t('gameCheeseThief.chooseFollowerPrompt')}
+              {t('gameBananaThief.chooseFollowerPrompt')}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {candidates.map((p) => {
@@ -586,7 +586,7 @@ export function CheeseThiefView() {
                     key={p.socketId}
                     type="button"
                     disabled={isSelected || chosenFollowers.length >= quota}
-                    onClick={() => cheeseThiefChooseFollower(p.socketId)}
+                    onClick={() => bananaThiefChooseFollower(p.socketId)}
                     className={`p-3 border-3 border-black text-left flex items-center justify-between font-black transition-all ${
                       isSelected
                         ? 'bg-purple-600 text-white border-purple-300 shadow-[2px_2px_0_0_#000]'
@@ -617,17 +617,17 @@ export function CheeseThiefView() {
         </motion.div>
         <div>
           <div className="text-xl sm:text-2xl font-black text-amber-300">
-            {t('gameCheeseThief.waitingThiefFollowerTitle')}
+            {t('gameBananaThief.waitingThiefFollowerTitle')}
           </div>
           <div className="text-xs font-bold text-slate-400 mt-1 max-w-sm">
-            {t('gameCheeseThief.waitingThiefFollowerDesc')}
+            {t('gameBananaThief.waitingThiefFollowerDesc')}
           </div>
           <div className="text-xs font-black text-slate-500 mt-2 tabular-nums">
             ⏳ {phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--'}
           </div>
         </div>
 
-        {role === CheeseThiefRole.FOLLOWER && (
+        {role === BananaThiefRole.FOLLOWER && (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -644,11 +644,11 @@ export function CheeseThiefView() {
 
         <div className="w-full max-w-xs border-2 border-slate-700 bg-slate-900 p-2.5 text-center mt-2">
           <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            {t('gameCheeseThief.youAre', { role: roleLabel })}
+            {t('gameBananaThief.youAre', { role: roleLabel })}
           </div>
           {myDie !== undefined && (
             <div className="text-xs font-black text-slate-300 mt-0.5">
-              🎲 {t('gameCheeseThief.youWakeAt', { time: hourName(myDie) })}
+              🎲 {t('gameBananaThief.youWakeAt', { time: hourName(myDie) })}
             </div>
           )}
         </div>
@@ -665,13 +665,13 @@ export function CheeseThiefView() {
       >
         <div className="text-5xl sm:text-6xl">🍌❓</div>
         <div className="text-3xl sm:text-4xl font-black text-black uppercase tracking-tight mt-2">
-          {t('gameCheeseThief.cheeseMissing')}
+          {t('gameBananaThief.bananaMissing')}
         </div>
       </motion.div>
-      <div className="text-sm font-bold text-gray-600">{t('gameCheeseThief.discussionHint')}</div>
+      <div className="text-sm font-bold text-gray-600">{t('gameBananaThief.discussionHint')}</div>
       <div className="bg-amber-200 border-4 border-black shadow-[4px_4px_0_0_#000] px-6 py-3 text-center">
         <div className="text-[10px] font-black uppercase tracking-widest">
-          {t('gameCheeseThief.discussionTime', {
+          {t('gameBananaThief.discussionTime', {
             time: phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--',
           })}
         </div>
@@ -681,14 +681,14 @@ export function CheeseThiefView() {
       </div>
       {isHost ? (
         <button
-          onClick={cheeseThiefStartVote}
+          onClick={bananaThiefStartVote}
           className="bg-red-500 hover:bg-red-400 text-white border-4 border-black font-black px-6 py-3 uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
         >
-          🗳️ {t('gameCheeseThief.startVote')}
+          🗳️ {t('gameBananaThief.startVote')}
         </button>
       ) : (
         <div className="text-sm font-black text-gray-500 uppercase tracking-widest">
-          {t('gameCheeseThief.waitingHostStartVote')}
+          {t('gameBananaThief.waitingHostStartVote')}
         </div>
       )}
       {renderReactionBar()}
@@ -699,10 +699,10 @@ export function CheeseThiefView() {
     <div className="bg-white border-4 border-black p-4 sm:p-6 min-h-[320px] flex flex-col items-center gap-4">
       <div className="text-center">
         <div className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
-          🗳️ {t('gameCheeseThief.voteTitle')}
+          🗳️ {t('gameBananaThief.voteTitle')}
         </div>
         <div className="text-xs font-black text-gray-500 mt-1 tabular-nums">
-          {t('gameCheeseThief.voteTime', {
+          {t('gameBananaThief.voteTime', {
             time: phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--',
           })}
           {' · '}
@@ -715,7 +715,7 @@ export function CheeseThiefView() {
             key={p.socketId}
             onClick={() => submitVote(p.socketId)}
             disabled={!!myVote}
-            data-testid={`cheese-thief-vote-${p.socketId}`}
+            data-testid={`banana-thief-vote-${p.socketId}`}
             className={`border-4 border-black px-2 py-3 font-black text-sm truncate transition-all shadow-[3px_3px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] ${
               myVote === p.socketId ? 'bg-amber-300' : 'bg-white hover:bg-red-100'
             } disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0`}
@@ -726,7 +726,7 @@ export function CheeseThiefView() {
       </div>
       {myVote && (
         <div className="bg-lime-200 border-2 border-black px-4 py-2 text-sm font-black">
-          ✅ {t('gameCheeseThief.voted', { count: state.votesRecorded, total: state.votesTotal })}
+          ✅ {t('gameBananaThief.voted', { count: state.votesRecorded, total: state.votesTotal })}
         </div>
       )}
       {renderReactionBar()}
@@ -746,28 +746,28 @@ export function CheeseThiefView() {
         >
           <div className="text-2xl font-black uppercase tracking-tight">
             {state.fledThief
-              ? t('gameCheeseThief.thiefFled')
+              ? t('gameBananaThief.thiefFled')
               : goatWin
-                ? t('gameCheeseThief.goatWin', {
+                ? t('gameBananaThief.goatWin', {
                     name: state.caughtId ? nameOf(state.caughtId) : '?',
                   })
                 : miceWin
-                  ? t('gameCheeseThief.miceWin')
-                  : t('gameCheeseThief.thiefWin')}
+                  ? t('gameBananaThief.miceWin')
+                  : t('gameBananaThief.thiefWin')}
           </div>
         </div>
 
         <div className="w-full max-w-md space-y-2 text-sm font-black">
           <div className="bg-red-100 border-2 border-black p-2">
-            🍌 {t('gameCheeseThief.thiefIs', { name: state.thiefId ? nameOf(state.thiefId) : '?' })}
+            🍌 {t('gameBananaThief.thiefIs', { name: state.thiefId ? nameOf(state.thiefId) : '?' })}
           </div>
           <div className="bg-purple-100 border-2 border-black p-2">
             🐒{' '}
             {state.followerIds && state.followerIds.length > 0
-              ? t('gameCheeseThief.followersAre', {
+              ? t('gameBananaThief.followersAre', {
                   names: state.followerIds.map(nameOf).join(', '),
                 })
-              : t('gameCheeseThief.noFollowers')}
+              : t('gameBananaThief.noFollowers')}
           </div>
           {state.votes && (
             <div className="bg-amber-50 border-2 border-black p-2 space-y-1">
@@ -785,7 +785,7 @@ export function CheeseThiefView() {
           {state.dice && Object.keys(state.dice).length > 0 && (
             <div className="bg-slate-900 text-white border-2 border-black p-2">
               <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">
-                🎲 {t('gameCheeseThief.resultDiceTitle')}
+                🎲 {t('gameBananaThief.resultDiceTitle')}
               </div>
               <div className="grid grid-cols-2 gap-1">
                 {Object.entries(state.dice).map(([id, die]) => {
@@ -793,13 +793,13 @@ export function CheeseThiefView() {
                   const isFollower = state.followerIds?.includes(id) ?? false;
                   const special = state.specials?.[id];
                   const specialIcon =
-                    special === CheeseThiefSpecial.DETECTIVE
+                    special === BananaThiefSpecial.DETECTIVE
                       ? ' 🕵️'
-                      : special === CheeseThiefSpecial.SYCOPHANT
+                      : special === BananaThiefSpecial.SYCOPHANT
                         ? ' 🎭'
-                        : special === CheeseThiefSpecial.TWINS
+                        : special === BananaThiefSpecial.TWINS
                           ? ' 👬'
-                          : special === CheeseThiefSpecial.SCAPEGOAT
+                          : special === BananaThiefSpecial.SCAPEGOAT
                             ? ' 🐐'
                             : '';
                   return (
@@ -807,7 +807,7 @@ export function CheeseThiefView() {
                       <span className="truncate">
                         {isThief
                           ? '🍌'
-                          : special === CheeseThiefSpecial.SCAPEGOAT
+                          : special === BananaThiefSpecial.SCAPEGOAT
                             ? '🐐'
                             : isFollower
                               ? '🐒🐒'
@@ -823,28 +823,28 @@ export function CheeseThiefView() {
             </div>
           )}
           <div className="bg-lime-100 border-2 border-black p-2 text-center">
-            {t('gameCheeseThief.yourDelta', { score: myDelta })}
+            {t('gameBananaThief.yourDelta', { score: myDelta })}
           </div>
         </div>
 
         {isHost ? (
           <div className="flex gap-2 w-full max-w-md">
             <button
-              onClick={cheeseThiefNextRound}
+              onClick={bananaThiefNextRound}
               className="flex-1 bg-lime-400 hover:bg-lime-300 text-black border-4 border-black font-black py-3 uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
-              ▶ {t('gameCheeseThief.nextRound')}
+              ▶ {t('gameBananaThief.nextRound')}
             </button>
             <button
-              onClick={cheeseThiefReset}
+              onClick={bananaThiefReset}
               className="flex-1 bg-white hover:bg-gray-100 text-black border-4 border-black font-black py-3 uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
-              🏠 {t('gameCheeseThief.backToLobby')}
+              🏠 {t('gameBananaThief.backToLobby')}
             </button>
           </div>
         ) : (
           <div className="text-sm font-black text-gray-500 uppercase tracking-widest">
-            {t('gameCheeseThief.waitingHost')}
+            {t('gameBananaThief.waitingHost')}
           </div>
         )}
         {renderReactionBar()}
@@ -877,49 +877,49 @@ export function CheeseThiefView() {
       <div className="flex items-center justify-between mb-2">
         <div className="bg-black text-white px-3 py-1.5 text-xs font-black uppercase tracking-widest border-2 border-black shadow-[2px_2px_0_0_#000]">
           🍌{' '}
-          {state.phase === CheeseThiefPhase.SETUP
-            ? t('gameCheeseThief.phaseSetup')
-            : state.phase === CheeseThiefPhase.CHOOSE_FOLLOWER
-              ? t('gameCheeseThief.phaseChooseFollower')
-              : state.phase === CheeseThiefPhase.NIGHT
-                ? t('gameCheeseThief.phaseNight')
-                : state.phase === CheeseThiefPhase.DISCUSSION
-                  ? t('gameCheeseThief.phaseDiscussion')
-                  : state.phase === CheeseThiefPhase.VOTING
-                    ? t('gameCheeseThief.phaseVoting')
-                    : t('gameCheeseThief.phaseResult')}
+          {state.phase === BananaThiefPhase.SETUP
+            ? t('gameBananaThief.phaseSetup')
+            : state.phase === BananaThiefPhase.CHOOSE_FOLLOWER
+              ? t('gameBananaThief.phaseChooseFollower')
+              : state.phase === BananaThiefPhase.NIGHT
+                ? t('gameBananaThief.phaseNight')
+                : state.phase === BananaThiefPhase.DISCUSSION
+                  ? t('gameBananaThief.phaseDiscussion')
+                  : state.phase === BananaThiefPhase.VOTING
+                    ? t('gameBananaThief.phaseVoting')
+                    : t('gameBananaThief.phaseResult')}
         </div>
         <SoundToggle
           enabled={soundsEnabled}
           onToggle={toggleSound}
           titleOn="Ambient on"
           titleOff="Ambient off"
-          testId="cheese-thief-sound-toggle"
+          testId="banana-thief-sound-toggle"
           className="w-9 h-9"
         />
       </div>
 
       {isViewer ? (
         <div className="bg-white border-4 border-black p-8 text-center font-black text-gray-500">
-          👀 {t('gameCheeseThief.spectator')}
+          👀 {t('gameBananaThief.spectator')}
         </div>
-      ) : state.phase === CheeseThiefPhase.SETUP ? (
+      ) : state.phase === BananaThiefPhase.SETUP ? (
         renderSetup()
-      ) : state.phase === CheeseThiefPhase.CHOOSE_FOLLOWER ? (
+      ) : state.phase === BananaThiefPhase.CHOOSE_FOLLOWER ? (
         renderChooseFollower()
-      ) : state.phase === CheeseThiefPhase.NIGHT ? (
+      ) : state.phase === BananaThiefPhase.NIGHT ? (
         renderNight()
-      ) : state.phase === CheeseThiefPhase.DISCUSSION ? (
+      ) : state.phase === BananaThiefPhase.DISCUSSION ? (
         renderDiscussion()
-      ) : state.phase === CheeseThiefPhase.VOTING ? (
+      ) : state.phase === BananaThiefPhase.VOTING ? (
         renderVoting()
       ) : (
         renderResult()
       )}
 
       {/* Keep the per-tick pace visible to the player without leaking roles */}
-      {state.phase === CheeseThiefPhase.NIGHT && tickSeconds > 0 && (
-        <div className="sr-only" data-testid="cheese-thief-tick-seconds">
+      {state.phase === BananaThiefPhase.NIGHT && tickSeconds > 0 && (
+        <div className="sr-only" data-testid="banana-thief-tick-seconds">
           {tickSeconds}
         </div>
       )}

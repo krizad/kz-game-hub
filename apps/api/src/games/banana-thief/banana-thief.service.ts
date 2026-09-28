@@ -3,14 +3,14 @@ import {
   RoomState,
   RoomStatus,
   GameType,
-  CheeseThiefPhase,
-  CheeseThiefRole,
-  CheeseThiefSpecial,
-  CheeseThiefState,
-  CheeseThiefWinner,
-  CHEESE_THIEF_CLOCK_HOURS,
-  CHEESE_THIEF_MIN_PLAYERS,
-  getCheeseThiefRequiredPlayerCount,
+  BananaThiefPhase,
+  BananaThiefRole,
+  BananaThiefSpecial,
+  BananaThiefState,
+  BananaThiefWinner,
+  BANANA_THIEF_CLOCK_HOURS,
+  BANANA_THIEF_MIN_PLAYERS,
+  getBananaThiefRequiredPlayerCount,
 } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 
@@ -28,7 +28,7 @@ const CT_TWIN_PARTNER = 'ctTwinPartner';
 const CT_CHOSEN_FOLLOWERS = 'ctChosenFollowers';
 
 /** DLC needs a bigger table so specials don't crowd out the plain mice. */
-const CHEESE_THIEF_DLC_MIN_PLAYERS = CHEESE_THIEF_MIN_PLAYERS + 1;
+const BANANA_THIEF_DLC_MIN_PLAYERS = BANANA_THIEF_MIN_PLAYERS + 1;
 // Room-level secrets (socket ids stored as VALUES need explicit remapping).
 const CT_ROOM_THIEF = 'ctRoomThief';
 const CT_ROOM_FOLLOWERS = 'ctRoomFollowers';
@@ -41,8 +41,8 @@ const SCORE_THIEF_ESCAPE = 3;
 const SCORE_FOLLOWER_ESCAPE = 2;
 
 @Injectable()
-export class CheeseThiefService {
-  private readonly logger = new Logger(CheeseThiefService.name);
+export class BananaThiefService {
+  private readonly logger = new Logger(BananaThiefService.name);
 
   constructor(private readonly privateState: PrivateStateService) {}
 
@@ -126,18 +126,18 @@ export class CheeseThiefService {
     return this.privateState.get<number>(room.code, socketId, CT_DIE);
   }
 
-  private getRole(room: RoomState, socketId: string): CheeseThiefRole | undefined {
-    return this.privateState.get<CheeseThiefRole>(room.code, socketId, CT_ROLE);
+  private getRole(room: RoomState, socketId: string): BananaThiefRole | undefined {
+    return this.privateState.get<BananaThiefRole>(room.code, socketId, CT_ROLE);
   }
 
-  private setRole(room: RoomState, socketId: string, role: CheeseThiefRole): void {
+  private setRole(room: RoomState, socketId: string, role: BananaThiefRole): void {
     this.privateState.set(room.code, socketId, CT_ROLE, role);
   }
 
   /** Awake players are everyone whose secret die hour has already passed. */
   private refreshAwakePeers(room: RoomState, clock: number): void {
     const awakeIds = this.participatingIds(room).filter(
-      (id) => (this.getDie(room, id) ?? CHEESE_THIEF_CLOCK_HOURS) <= clock,
+      (id) => (this.getDie(room, id) ?? BANANA_THIEF_CLOCK_HOURS) <= clock,
     );
     const nameOf = (id: string) => room.players.find((p) => p.socketId === id)?.name;
     for (const id of awakeIds) {
@@ -159,12 +159,12 @@ export class CheeseThiefService {
 
   /** Start a fresh round (also used for "next round"): secret roles + dice. */
   startRound(room: RoomState, requesterId: string): RoomState | null {
-    if (room.gameType !== GameType.CHEESE_THIEF) return null;
+    if (room.gameType !== GameType.BANANA_THIEF) return null;
     if (room.roomHostId !== requesterId) return null;
     if (room.status === RoomStatus.PLAYING) return null; // round already live
 
     const participants = this.participatingIds(room);
-    const minRequired = getCheeseThiefRequiredPlayerCount(room.config).min;
+    const minRequired = getBananaThiefRequiredPlayerCount(room.config).min;
     if (participants.length < minRequired) return null;
 
     const shuffled = this.shuffleArray(participants);
@@ -177,12 +177,12 @@ export class CheeseThiefService {
     this.setStolen(room, false);
 
     for (const id of participants) {
-      this.setRole(room, id, id === thiefId ? CheeseThiefRole.THIEF : CheeseThiefRole.MOUSE);
+      this.setRole(room, id, id === thiefId ? BananaThiefRole.THIEF : BananaThiefRole.MOUSE);
       this.privateState.set(
         room.code,
         id,
         CT_DIE,
-        1 + Math.floor(Math.random() * CHEESE_THIEF_CLOCK_HOURS),
+        1 + Math.floor(Math.random() * BANANA_THIEF_CLOCK_HOURS),
       );
       this.privateState.delete(room.code, id, CT_AWAKE_PEERS);
       this.privateState.delete(room.code, id, CT_PEEK_OFFER);
@@ -201,13 +201,13 @@ export class CheeseThiefService {
     );
 
     room.status = RoomStatus.PLAYING;
-    room.cheeseThiefState = {
-      phase: CheeseThiefPhase.SETUP,
+    room.bananaThiefState = {
+      phase: BananaThiefPhase.SETUP,
       readyIds: [],
       clock: 0,
       tickEndsAt: null,
       phaseEndsAt: null,
-      cheeseStolen: false,
+      bananaStolen: false,
       votesRecorded: 0,
       votesTotal: participants.length,
     };
@@ -217,14 +217,14 @@ export class CheeseThiefService {
 
   /**
    * DLC "special mice": deal specific selected specials if configured,
-   * or fall back to random pool when cheeseThiefDlc is on.
+   * or fall back to random pool when bananaThiefDlc is on.
    */
   private maybeAssignSpecials(room: RoomState, miceIds: string[]): void {
-    const selected = room.config.cheeseThiefSelectedSpecials;
+    const selected = room.config.bananaThiefSelectedSpecials;
     if (selected && selected.length > 0) {
       const shuffledMice = this.shuffleArray(miceIds);
       for (const special of selected) {
-        if (special === CheeseThiefSpecial.TWINS) {
+        if (special === BananaThiefSpecial.TWINS) {
           if (shuffledMice.length < 2) continue;
           const a = shuffledMice.shift()!;
           const b = shuffledMice.shift()!;
@@ -245,17 +245,17 @@ export class CheeseThiefService {
       return;
     }
 
-    if (!(room.config.cheeseThiefDlc ?? false)) return;
+    if (!(room.config.bananaThiefDlc ?? false)) return;
     if (miceIds.length < 4) return; // keep at least 3 plain mice
 
-    const pool: CheeseThiefSpecial[] = [
-      CheeseThiefSpecial.DETECTIVE,
-      CheeseThiefSpecial.SYCOPHANT,
-      CheeseThiefSpecial.SCAPEGOAT,
+    const pool: BananaThiefSpecial[] = [
+      BananaThiefSpecial.DETECTIVE,
+      BananaThiefSpecial.SYCOPHANT,
+      BananaThiefSpecial.SCAPEGOAT,
     ];
-    const count = miceIds.length >= CHEESE_THIEF_DLC_MIN_PLAYERS ? 2 : 1;
+    const count = miceIds.length >= BANANA_THIEF_DLC_MIN_PLAYERS ? 2 : 1;
     if (count >= 2) {
-      pool.push(CheeseThiefSpecial.TWINS);
+      pool.push(BananaThiefSpecial.TWINS);
     }
 
     const shuffledMice = this.shuffleArray(miceIds);
@@ -263,7 +263,7 @@ export class CheeseThiefService {
     const chosen = shuffledPool.slice(0, count);
 
     for (const special of chosen) {
-      if (special === CheeseThiefSpecial.TWINS) {
+      if (special === BananaThiefSpecial.TWINS) {
         const [a, b] = shuffledMice.splice(0, 2);
         const nameOf = (id: string) => room.players.find((p) => p.socketId === id)?.name;
         const nameA = a ? nameOf(a) : undefined;
@@ -287,8 +287,8 @@ export class CheeseThiefService {
    * speech synthesis on the client for the night narration.
    */
   ready(room: RoomState, socketId: string, force = false): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.SETUP) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.SETUP) return null;
 
     const participants = this.participatingIds(room);
     if (!participants.includes(socketId)) return null;
@@ -304,7 +304,7 @@ export class CheeseThiefService {
   }
 
   private afterSetup(room: RoomState): RoomState {
-    const followerCount = room.config.cheeseThiefFollowerCount ?? 1;
+    const followerCount = room.config.bananaThiefFollowerCount ?? 1;
     if (followerCount > 0) {
       return this.beginChooseFollower(room);
     }
@@ -312,8 +312,8 @@ export class CheeseThiefService {
   }
 
   private beginChooseFollower(room: RoomState): RoomState {
-    const state = room.cheeseThiefState!;
-    state.phase = CheeseThiefPhase.CHOOSE_FOLLOWER;
+    const state = room.bananaThiefState!;
+    state.phase = BananaThiefPhase.CHOOSE_FOLLOWER;
     state.readyIds = [];
     state.clock = 0;
     state.nightGrace = false;
@@ -327,8 +327,8 @@ export class CheeseThiefService {
    * Thief recruits follower(s) directly during the CHOOSE_FOLLOWER phase.
    */
   chooseFollower(room: RoomState, requesterId: string, targetId: string): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.CHOOSE_FOLLOWER) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.CHOOSE_FOLLOWER) return null;
 
     const thiefId = this.getThiefId(room);
     if (requesterId !== thiefId) return null;
@@ -339,14 +339,14 @@ export class CheeseThiefService {
 
     // Scapegoat cannot be recruited (they are neutral)
     if (
-      this.privateState.get<CheeseThiefSpecial>(room.code, targetId, CT_SPECIAL) ===
-      CheeseThiefSpecial.SCAPEGOAT
+      this.privateState.get<BananaThiefSpecial>(room.code, targetId, CT_SPECIAL) ===
+      BananaThiefSpecial.SCAPEGOAT
     ) {
       return null;
     }
 
     const followers = [...this.getFollowerIds(room)];
-    const maxFollowers = room.config.cheeseThiefFollowerCount ?? 1;
+    const maxFollowers = room.config.bananaThiefFollowerCount ?? 1;
 
     if (!followers.includes(targetId)) {
       if (followers.length >= maxFollowers) {
@@ -363,7 +363,7 @@ export class CheeseThiefService {
     this.privateState.set(room.code, thiefId, CT_CHOSEN_FOLLOWERS, followerNames);
 
     for (const fid of followers) {
-      this.setRole(room, fid, CheeseThiefRole.FOLLOWER);
+      this.setRole(room, fid, BananaThiefRole.FOLLOWER);
       if (thiefName) {
         this.privateState.set(room.code, fid, CT_SEES_THIEF, thiefName);
       }
@@ -376,13 +376,13 @@ export class CheeseThiefService {
   }
 
   chooseFollowerTimeout(room: RoomState): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.CHOOSE_FOLLOWER) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.CHOOSE_FOLLOWER) return null;
 
     const thiefId = this.getThiefId(room);
     if (!thiefId) return this.beginNight(room);
 
-    const maxFollowers = room.config.cheeseThiefFollowerCount ?? 1;
+    const maxFollowers = room.config.bananaThiefFollowerCount ?? 1;
     const followers = [...this.getFollowerIds(room)];
 
     if (followers.length < maxFollowers) {
@@ -390,8 +390,8 @@ export class CheeseThiefService {
         (id) =>
           id !== thiefId &&
           !followers.includes(id) &&
-          this.privateState.get<CheeseThiefSpecial>(room.code, id, CT_SPECIAL) !==
-            CheeseThiefSpecial.SCAPEGOAT,
+          this.privateState.get<BananaThiefSpecial>(room.code, id, CT_SPECIAL) !==
+            BananaThiefSpecial.SCAPEGOAT,
       );
       const shuffledCandidates = this.shuffleArray(candidates);
       while (followers.length < maxFollowers && shuffledCandidates.length > 0) {
@@ -406,7 +406,7 @@ export class CheeseThiefService {
       this.privateState.set(room.code, thiefId, CT_CHOSEN_FOLLOWERS, followerNames);
 
       for (const fid of followers) {
-        this.setRole(room, fid, CheeseThiefRole.FOLLOWER);
+        this.setRole(room, fid, BananaThiefRole.FOLLOWER);
         if (thiefName) {
           this.privateState.set(room.code, fid, CT_SEES_THIEF, thiefName);
         }
@@ -417,10 +417,10 @@ export class CheeseThiefService {
   }
 
   private beginNight(room: RoomState): RoomState {
-    const state = room.cheeseThiefState!;
-    const hostPaced = (room.config.cheeseThiefNarrator ?? 'AUTO') === 'HOST';
-    const tickSeconds = room.config.cheeseThiefTickSeconds ?? 6;
-    state.phase = CheeseThiefPhase.NIGHT;
+    const state = room.bananaThiefState!;
+    const hostPaced = (room.config.bananaThiefNarrator ?? 'AUTO') === 'HOST';
+    const tickSeconds = room.config.bananaThiefTickSeconds ?? 6;
+    state.phase = BananaThiefPhase.NIGHT;
     state.readyIds = [];
     state.clock = 0;
     state.nightGrace = false;
@@ -435,11 +435,11 @@ export class CheeseThiefService {
    * gateway's phase+deadline re-check.
    */
   tick(room: RoomState): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.NIGHT) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.NIGHT) return null;
 
     // Grace expiry: everyone had their extra seconds — close the night.
-    if (state.clock >= CHEESE_THIEF_CLOCK_HOURS) {
+    if (state.clock >= BANANA_THIEF_CLOCK_HOURS) {
       state.nightGrace = false;
       this.clearPendingPeeks(room);
       this.beginDiscussion(room);
@@ -463,13 +463,13 @@ export class CheeseThiefService {
           this.privateState.set(room.code, id, CT_STOLE, true);
           continue;
         }
-        if ((this.getDie(room, id) ?? CHEESE_THIEF_CLOCK_HOURS) === clock) {
+        if ((this.getDie(room, id) ?? BANANA_THIEF_CLOCK_HOURS) === clock) {
           const witnessName = room.players.find((p) => p.socketId === id)?.name;
           if (witnessName) witnesses.push(witnessName);
           // DLC Scapegoat sees the thief
           if (
-            this.privateState.get<CheeseThiefSpecial>(room.code, id, CT_SPECIAL) ===
-            CheeseThiefSpecial.SCAPEGOAT
+            this.privateState.get<BananaThiefSpecial>(room.code, id, CT_SPECIAL) ===
+            BananaThiefSpecial.SCAPEGOAT
           ) {
             if (thiefName) this.privateState.set(room.code, id, CT_SEES_THIEF, thiefName);
             continue;
@@ -478,7 +478,7 @@ export class CheeseThiefService {
           if (!currentFollowers.includes(id)) {
             this.setFollowerIds(room, [...currentFollowers, id]);
           }
-          this.privateState.set(room.code, id, CT_ROLE, CheeseThiefRole.FOLLOWER);
+          this.privateState.set(room.code, id, CT_ROLE, BananaThiefRole.FOLLOWER);
           if (thiefName) this.privateState.set(room.code, id, CT_SEES_THIEF, thiefName);
         }
       }
@@ -486,7 +486,7 @@ export class CheeseThiefService {
     } else {
       // A mouse waking completely alone earns a one-time die peek.
       const soloWakees = this.participatingIds(room).filter(
-        (id) => (this.getDie(room, id) ?? CHEESE_THIEF_CLOCK_HOURS) === clock,
+        (id) => (this.getDie(room, id) ?? BANANA_THIEF_CLOCK_HOURS) === clock,
       );
       if (soloWakees.length === 1) {
         this.privateState.set(room.code, soloWakees[0], CT_PEEK_OFFER, true);
@@ -496,21 +496,21 @@ export class CheeseThiefService {
 
     this.refreshAwakePeers(room, clock);
 
-    if (clock >= CHEESE_THIEF_CLOCK_HOURS) {
+    if (clock >= BANANA_THIEF_CLOCK_HOURS) {
       // Anti-cutoff: never slam the eyes shut while a die peek is pending.
       // Hold the night open for a few extra seconds, then move on.
       if (this.getPendingPeeks(room).length > 0) {
         state.nightGrace = true;
-        const graceSeconds = Math.max(5, room.config.cheeseThiefTickSeconds ?? 6);
+        const graceSeconds = Math.max(5, room.config.bananaThiefTickSeconds ?? 6);
         state.tickEndsAt = Date.now() + graceSeconds * 1000;
       } else {
         this.beginDiscussion(room);
       }
     } else {
-      const hostPaced = (room.config.cheeseThiefNarrator ?? 'AUTO') === 'HOST';
+      const hostPaced = (room.config.bananaThiefNarrator ?? 'AUTO') === 'HOST';
       state.tickEndsAt = hostPaced
         ? null
-        : Date.now() + (room.config.cheeseThiefTickSeconds ?? 6) * 1000;
+        : Date.now() + (room.config.bananaThiefTickSeconds ?? 6) * 1000;
     }
 
     return room;
@@ -518,27 +518,27 @@ export class CheeseThiefService {
 
   /** HOST-narrator mode: the host manually advances to the next hour. */
   nextHour(room: RoomState, requesterId: string): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.NIGHT) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.NIGHT) return null;
     if (room.roomHostId !== requesterId) return null;
     return this.tick(room);
   }
 
   private beginDiscussion(room: RoomState): void {
-    const state = room.cheeseThiefState!;
-    state.phase = CheeseThiefPhase.DISCUSSION;
-    state.clock = CHEESE_THIEF_CLOCK_HOURS;
+    const state = room.bananaThiefState!;
+    state.phase = BananaThiefPhase.DISCUSSION;
+    state.clock = BANANA_THIEF_CLOCK_HOURS;
     state.tickEndsAt = null;
-    state.cheeseStolen = true;
-    state.phaseEndsAt = Date.now() + (room.config.cheeseThiefDiscussionSeconds ?? 180) * 1000;
+    state.bananaStolen = true;
+    state.phaseEndsAt = Date.now() + (room.config.bananaThiefDiscussionSeconds ?? 180) * 1000;
     // An unspent peek offer expires with the night.
     this.clearPendingPeeks(room);
   }
 
   /** Solo-wake reward: peek at one other player's secret die. */
   peek(room: RoomState, socketId: string, targetId: string): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.NIGHT) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.NIGHT) return null;
     if (!this.getPendingPeeks(room).includes(socketId)) return null;
     if (!this.privateState.get<boolean>(room.code, socketId, CT_PEEK_OFFER)) return null;
     if (targetId === socketId) return null;
@@ -553,10 +553,10 @@ export class CheeseThiefService {
     // DLC Detective: the solo-wake peek returns the target's ROLE (as of this
     // moment) instead of a die face — the whole point of the mouse.
     const isDetective =
-      this.privateState.get<CheeseThiefSpecial>(room.code, socketId, CT_SPECIAL) ===
-      CheeseThiefSpecial.DETECTIVE;
+      this.privateState.get<BananaThiefSpecial>(room.code, socketId, CT_SPECIAL) ===
+      BananaThiefSpecial.DETECTIVE;
     const peekRole = isDetective
-      ? (this.getRole(room, targetId) ?? CheeseThiefRole.MOUSE)
+      ? (this.getRole(room, targetId) ?? BananaThiefRole.MOUSE)
       : undefined;
     this.privateState.set(room.code, socketId, CT_PEEK_RESULT, {
       targetId,
@@ -572,19 +572,19 @@ export class CheeseThiefService {
 
   /** Host skip or discussion timer expiry → open the ballot. */
   startVote(room: RoomState, requesterId: string): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.DISCUSSION) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.DISCUSSION) return null;
     if (room.roomHostId !== requesterId) return null;
     return this.openBallot(room);
   }
 
   private openBallot(room: RoomState): RoomState | null {
-    const state = room.cheeseThiefState!;
+    const state = room.bananaThiefState!;
     const participants = this.participatingIds(room);
     if (participants.length === 0) return null;
 
-    state.phase = CheeseThiefPhase.VOTING;
-    state.phaseEndsAt = Date.now() + (room.config.cheeseThiefVoteSeconds ?? 15) * 1000;
+    state.phase = BananaThiefPhase.VOTING;
+    state.phaseEndsAt = Date.now() + (room.config.bananaThiefVoteSeconds ?? 15) * 1000;
     state.votesRecorded = 0;
     state.votesTotal = participants.length;
     this.setVotes(room, {});
@@ -592,8 +592,8 @@ export class CheeseThiefService {
   }
 
   vote(room: RoomState, socketId: string, targetId: string): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.VOTING) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.VOTING) return null;
 
     const participants = new Set(this.participatingIds(room));
     if (!participants.has(socketId) || !participants.has(targetId) || targetId === socketId) {
@@ -614,14 +614,14 @@ export class CheeseThiefService {
 
   /** Vote phase timer expiry — finalize with whatever ballots arrived. */
   handleVotePhaseEnd(room: RoomState): RoomState | null {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase !== CheeseThiefPhase.VOTING) return null;
+    const state = room.bananaThiefState;
+    if (!state || state.phase !== BananaThiefPhase.VOTING) return null;
     this.finalize(room);
     return room;
   }
 
   private finalize(room: RoomState, fledThief = false): void {
-    const state = room.cheeseThiefState!;
+    const state = room.bananaThiefState!;
     const thiefId = this.getThiefId(room);
     const followerIds = this.getFollowerIds(room);
     const votes = this.getVotes(room);
@@ -655,10 +655,10 @@ export class CheeseThiefService {
     // everyone else (thief team included) gets fooled.
     const caughtIsGoat =
       !!caughtId &&
-      this.privateState.get<CheeseThiefSpecial>(room.code, caughtId, CT_SPECIAL) ===
-        CheeseThiefSpecial.SCAPEGOAT;
+      this.privateState.get<BananaThiefSpecial>(room.code, caughtId, CT_SPECIAL) ===
+        BananaThiefSpecial.SCAPEGOAT;
 
-    const winner: CheeseThiefWinner = caughtIsGoat
+    const winner: BananaThiefWinner = caughtIsGoat
       ? 'SCAPEGOAT'
       : caughtId && caughtId === thiefId
         ? 'MICE'
@@ -688,8 +688,8 @@ export class CheeseThiefService {
       for (const id of participants) {
         if (
           scoreDeltas[id] === 0 &&
-          this.privateState.get<CheeseThiefSpecial>(room.code, id, CT_SPECIAL) ===
-            CheeseThiefSpecial.SYCOPHANT
+          this.privateState.get<BananaThiefSpecial>(room.code, id, CT_SPECIAL) ===
+            BananaThiefSpecial.SYCOPHANT
         ) {
           scoreDeltas[id] = SCORE_FOLLOWER_ESCAPE;
         }
@@ -701,7 +701,7 @@ export class CheeseThiefService {
       if (player) player.score += delta;
     }
 
-    state.phase = CheeseThiefPhase.RESULT;
+    state.phase = BananaThiefPhase.RESULT;
     state.tickEndsAt = null;
     state.phaseEndsAt = null;
     state.thiefId = thiefId;
@@ -716,7 +716,7 @@ export class CheeseThiefService {
     // DLC specials are public knowledge once the round is over.
     state.specials = {};
     for (const id of participants) {
-      const special = this.privateState.get<CheeseThiefSpecial>(room.code, id, CT_SPECIAL);
+      const special = this.privateState.get<BananaThiefSpecial>(room.code, id, CT_SPECIAL);
       if (special) state.specials[id] = special;
     }
     state.fledThief = fledThief;
@@ -726,11 +726,11 @@ export class CheeseThiefService {
   }
 
   reset(room: RoomState, requesterId: string): RoomState | null {
-    if (room.gameType !== GameType.CHEESE_THIEF) return null;
+    if (room.gameType !== GameType.BANANA_THIEF) return null;
     if (room.roomHostId !== requesterId) return null;
 
     room.status = RoomStatus.LOBBY;
-    room.cheeseThiefState = undefined;
+    room.bananaThiefState = undefined;
     this.privateState.clearRoom(room.code);
 
     room.players.forEach((p) => {
@@ -785,7 +785,7 @@ export class CheeseThiefService {
   }
 
   /** Re-point every socket-id reference inside the public state on reconnect. */
-  remapSocketId(state: CheeseThiefState, oldSocketId: string, newSocketId: string): void {
+  remapSocketId(state: BananaThiefState, oldSocketId: string, newSocketId: string): void {
     if (state.thiefId === oldSocketId) state.thiefId = newSocketId;
     if (state.caughtId === oldSocketId) state.caughtId = newSocketId;
     if (state.readyIds) {
@@ -813,8 +813,8 @@ export class CheeseThiefService {
    * Any other dropout during voting may unblock the ballot.
    */
   handlePlayerDisconnect(room: RoomState, socketId: string): void {
-    const state = room.cheeseThiefState;
-    if (!state || state.phase === CheeseThiefPhase.RESULT) return;
+    const state = room.bananaThiefState;
+    if (!state || state.phase === BananaThiefPhase.RESULT) return;
 
     if (this.getThiefId(room) === socketId) {
       this.finalize(room, true);
@@ -823,7 +823,7 @@ export class CheeseThiefService {
 
     const participants = new Set(this.participatingIds(room));
 
-    if (state.phase === CheeseThiefPhase.SETUP) {
+    if (state.phase === BananaThiefPhase.SETUP) {
       // Re-ready against the smaller table; start once the rest are all set.
       state.readyIds = (state.readyIds ?? []).filter((id) => participants.has(id));
       if (participants.size > 0 && [...participants].every((id) => state.readyIds.includes(id))) {
@@ -832,14 +832,14 @@ export class CheeseThiefService {
       return;
     }
 
-    if (state.phase === CheeseThiefPhase.CHOOSE_FOLLOWER) {
+    if (state.phase === BananaThiefPhase.CHOOSE_FOLLOWER) {
       if (this.getThiefId(room) === socketId) {
         this.finalize(room, true);
         return;
       }
     }
 
-    if (state.phase === CheeseThiefPhase.VOTING) {
+    if (state.phase === BananaThiefPhase.VOTING) {
       const votes = this.getVotes(room);
       state.votesRecorded = Object.keys(votes).filter((v) => participants.has(v)).length;
       state.votesTotal = participants.size;

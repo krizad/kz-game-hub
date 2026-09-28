@@ -283,12 +283,12 @@ export const GAME_MATRIX: MatrixEntry[] = [
 
   // --- Banana Thief (4 players) ---
   {
-    id: 'cheese-thief-4p',
-    game: 'CHEESE_THIEF',
+    id: 'banana-thief-4p',
+    game: 'BANANA_THIEF',
     lobbyButton: 'Banana Thief',
     players: 4,
     description: 'Night clock, thief steals, vote and reveal',
-    configure: ['cheese-thief-fast'],
+    configure: ['banana-thief-fast'],
     timeout: 180000,
   },
 

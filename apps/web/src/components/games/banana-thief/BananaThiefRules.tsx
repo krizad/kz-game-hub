@@ -1,6 +1,6 @@
 'use client';
 
-import { CheeseThiefRole, CheeseThiefSpecial } from '@repo/types';
+import { BananaThiefRole, BananaThiefSpecial } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { RoleArtwork } from './RoleArtwork';
 
@@ -11,47 +11,47 @@ const TEAM_BADGE: Record<string, string> = {
   neutral: 'bg-emerald-300',
 };
 
-export function CheeseThiefRules() {
+export function BananaThiefRules() {
   const { t } = useTranslate();
 
   const goals = [
-    { role: CheeseThiefRole.THIEF, team: 'thief', text: t('rules.cheeseThief.goalThief') },
-    { role: CheeseThiefRole.MOUSE, team: 'mice', text: t('rules.cheeseThief.goalMouse') },
-    { role: CheeseThiefRole.FOLLOWER, team: 'thief', text: t('rules.cheeseThief.goalFollower') },
+    { role: BananaThiefRole.THIEF, team: 'thief', text: t('rules.bananaThief.goalThief') },
+    { role: BananaThiefRole.MOUSE, team: 'mice', text: t('rules.bananaThief.goalMouse') },
+    { role: BananaThiefRole.FOLLOWER, team: 'thief', text: t('rules.bananaThief.goalFollower') },
     {
-      role: CheeseThiefSpecial.DETECTIVE,
+      role: BananaThiefSpecial.DETECTIVE,
       team: 'mice',
-      text: t('rules.cheeseThief.goalDetective'),
+      text: t('rules.bananaThief.goalDetective'),
     },
     {
-      role: CheeseThiefSpecial.SYCOPHANT,
+      role: BananaThiefSpecial.SYCOPHANT,
       team: 'thief',
-      text: t('rules.cheeseThief.goalSycophant'),
+      text: t('rules.bananaThief.goalSycophant'),
     },
-    { role: CheeseThiefSpecial.TWINS, team: 'mice', text: t('rules.cheeseThief.goalTwins') },
+    { role: BananaThiefSpecial.TWINS, team: 'mice', text: t('rules.bananaThief.goalTwins') },
     {
-      role: CheeseThiefSpecial.SCAPEGOAT,
+      role: BananaThiefSpecial.SCAPEGOAT,
       team: 'neutral',
-      text: t('rules.cheeseThief.goalScapegoat'),
+      text: t('rules.bananaThief.goalScapegoat'),
     },
   ];
   const teamLabel = (team: string) =>
     team === 'thief'
-      ? t('rules.cheeseThief.teamThief')
+      ? t('rules.bananaThief.teamThief')
       : team === 'neutral'
-        ? t('rules.cheeseThief.teamNeutral')
-        : t('rules.cheeseThief.teamMice');
+        ? t('rules.bananaThief.teamNeutral')
+        : t('rules.bananaThief.teamMice');
 
   return (
     <div className="space-y-4 text-sm font-bold">
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.setupTitle')}</h4>
-        <p className="opacity-80">{t('rules.cheeseThief.setupDesc')}</p>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.setupTitle')}</h4>
+        <p className="opacity-80">{t('rules.bananaThief.setupDesc')}</p>
       </div>
 
       {/* Roles & goals: card art + team badge + win condition */}
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.goalsTitle')}</h4>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.goalsTitle')}</h4>
         <div className="mt-2 space-y-2">
           {goals.map(({ role, team, text }) => (
             <div
@@ -75,30 +75,30 @@ export function CheeseThiefRules() {
       </div>
 
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.nightTitle')}</h4>
-        <p className="opacity-80">{t('rules.cheeseThief.nightDesc')}</p>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.nightTitle')}</h4>
+        <p className="opacity-80">{t('rules.bananaThief.nightDesc')}</p>
       </div>
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.peekTitle')}</h4>
-        <p className="opacity-80">{t('rules.cheeseThief.peekDesc')}</p>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.peekTitle')}</h4>
+        <p className="opacity-80">{t('rules.bananaThief.peekDesc')}</p>
       </div>
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.dayTitle')}</h4>
-        <p className="opacity-80">{t('rules.cheeseThief.dayDesc')}</p>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.dayTitle')}</h4>
+        <p className="opacity-80">{t('rules.bananaThief.dayDesc')}</p>
       </div>
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.winTitle')}</h4>
-        <p className="opacity-80">{t('rules.cheeseThief.winDesc')}</p>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.winTitle')}</h4>
+        <p className="opacity-80">{t('rules.bananaThief.winDesc')}</p>
       </div>
       <div>
-        <h4 className="font-black uppercase">{t('rules.cheeseThief.dlcTitle')}</h4>
+        <h4 className="font-black uppercase">{t('rules.bananaThief.dlcTitle')}</h4>
         <ul className="list-disc list-inside opacity-80 space-y-1">
-          <li>{t('rules.cheeseThief.dlcDetective')}</li>
-          <li>{t('rules.cheeseThief.dlcSycophant')}</li>
-          <li>{t('rules.cheeseThief.dlcTwins')}</li>
-          <li>{t('rules.cheeseThief.dlcScapegoat')}</li>
+          <li>{t('rules.bananaThief.dlcDetective')}</li>
+          <li>{t('rules.bananaThief.dlcSycophant')}</li>
+          <li>{t('rules.bananaThief.dlcTwins')}</li>
+          <li>{t('rules.bananaThief.dlcScapegoat')}</li>
         </ul>
-        <p className="opacity-60 mt-1">{t('rules.cheeseThief.dlcNote')}</p>
+        <p className="opacity-60 mt-1">{t('rules.bananaThief.dlcNote')}</p>
       </div>
     </div>
   );

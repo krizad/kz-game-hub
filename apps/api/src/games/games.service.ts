@@ -17,7 +17,7 @@ import {
   BOT_PLAYER_NAME,
   CardGameAction,
   CardGameConfig,
-  CheeseThiefSpecial,
+  BananaThiefSpecial,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -32,7 +32,7 @@ import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/musi
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
-import { CheeseThiefService } from './cheese-thief/cheese-thief.service';
+import { BananaThiefService } from './banana-thief/banana-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -83,7 +83,7 @@ export class GamesService {
     private readonly theMindService: TheMindService,
     private readonly saboteurService: SaboteurService,
     private readonly coupService: CoupService,
-    private readonly cheeseThiefService: CheeseThiefService,
+    private readonly bananaThiefService: BananaThiefService,
     private readonly ultimateTicTacToeService: UltimateTicTacToeService,
     private readonly playerSessionService: PlayerSessionService,
     private readonly privateStateService: PrivateStateService,
@@ -232,15 +232,15 @@ export class GamesService {
       const presetId = room.config.cardGamePreset ?? 'POK_DENG';
       room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
       room.cardGameAllowedOptions = CARD_GAME_PRESETS[presetId].allowed;
-    } else if (gameType === GameType.CHEESE_THIEF) {
-      room.config.cheeseThiefNarrator = 'AUTO';
-      room.config.cheeseThiefDlc = false;
-      room.config.cheeseThiefTickSeconds = 6;
-      room.config.cheeseThiefDiscussionSeconds = 180;
-      room.config.cheeseThiefVoteSeconds = 15;
-      room.config.cheeseThiefFollowerCount = 1;
-      room.config.cheeseThiefSelectedSpecials = [];
-      // CheeseThiefState is initialized when the game starts via assignRoles
+    } else if (gameType === GameType.BANANA_THIEF) {
+      room.config.bananaThiefNarrator = 'AUTO';
+      room.config.bananaThiefDlc = false;
+      room.config.bananaThiefTickSeconds = 6;
+      room.config.bananaThiefDiscussionSeconds = 180;
+      room.config.bananaThiefVoteSeconds = 15;
+      room.config.bananaThiefFollowerCount = 1;
+      room.config.bananaThiefSelectedSpecials = [];
+      // BananaThiefState is initialized when the game starts via assignRoles
     }
 
     this.syncBotPlayer(room);
@@ -321,9 +321,9 @@ export class GamesService {
       if (room.coupState) {
         this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
       }
-      if (room.cheeseThiefState) {
-        this.cheeseThiefService.remapSocketId(room.cheeseThiefState, oldSocketId, user.socketId);
-        this.cheeseThiefService.remapRoomSecrets(code, oldSocketId, user.socketId);
+      if (room.bananaThiefState) {
+        this.bananaThiefService.remapSocketId(room.bananaThiefState, oldSocketId, user.socketId);
+        this.bananaThiefService.remapRoomSecrets(code, oldSocketId, user.socketId);
       }
       if (room.ultimateTicTacToeState) {
         this.ultimateTicTacToeService.remapSocketId(
@@ -535,8 +535,8 @@ export class GamesService {
     if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
       this.whoAmIService.handlePlayerDisconnect(room, socketId);
     }
-    if (room.gameType === GameType.CHEESE_THIEF && room.cheeseThiefState) {
-      this.cheeseThiefService.handlePlayerDisconnect(room, socketId);
+    if (room.gameType === GameType.BANANA_THIEF && room.bananaThiefState) {
+      this.bananaThiefService.handlePlayerDisconnect(room, socketId);
     }
   }
 
@@ -818,16 +818,16 @@ export class GamesService {
     copyBoolean('saboteurTurnTimerEnabled');
     copyInteger('saboteurTurnTimerSeconds', 5, 300);
     copyBoolean('saboteurStoneEndsRound');
-    copyInteger('cheeseThiefTickSeconds', 1, 15);
-    copyEnum('cheeseThiefNarrator', ['AUTO', 'HOST']);
-    copyBoolean('cheeseThiefDlc');
-    copyInteger('cheeseThiefDiscussionSeconds', 30, 600);
-    copyInteger('cheeseThiefVoteSeconds', 15, 180);
-    copyInteger('cheeseThiefFollowerCount', 0, 3);
-    if (Array.isArray(config.cheeseThiefSelectedSpecials)) {
-      const validSpecials = Object.values(CheeseThiefSpecial);
-      result.cheeseThiefSelectedSpecials = config.cheeseThiefSelectedSpecials.filter(
-        (s): s is CheeseThiefSpecial => validSpecials.includes(s as CheeseThiefSpecial),
+    copyInteger('bananaThiefTickSeconds', 1, 15);
+    copyEnum('bananaThiefNarrator', ['AUTO', 'HOST']);
+    copyBoolean('bananaThiefDlc');
+    copyInteger('bananaThiefDiscussionSeconds', 30, 600);
+    copyInteger('bananaThiefVoteSeconds', 15, 180);
+    copyInteger('bananaThiefFollowerCount', 0, 3);
+    if (Array.isArray(config.bananaThiefSelectedSpecials)) {
+      const validSpecials = Object.values(BananaThiefSpecial);
+      result.bananaThiefSelectedSpecials = config.bananaThiefSelectedSpecials.filter(
+        (s): s is BananaThiefSpecial => validSpecials.includes(s as BananaThiefSpecial),
       );
     }
 
@@ -965,9 +965,9 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
-    if (room.gameType === GameType.CHEESE_THIEF) {
+    if (room.gameType === GameType.BANANA_THIEF) {
       const startedRoom = this.withRoom(code, (r) =>
-        this.cheeseThiefService.startRound(r, requesterId),
+        this.bananaThiefService.startRound(r, requesterId),
       );
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
@@ -1080,8 +1080,8 @@ export class GamesService {
         return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
       case GameType.SABOTEUR:
         return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
-      case GameType.CHEESE_THIEF:
-        return this.withRoom(code, (r) => this.cheeseThiefService.reset(r, requesterId));
+      case GameType.BANANA_THIEF:
+        return this.withRoom(code, (r) => this.bananaThiefService.reset(r, requesterId));
       default:
         return null;
     }
@@ -1571,55 +1571,55 @@ export class GamesService {
     });
   }
 
-  // --- Cheese Thief Logic ---
+  // --- Banana Thief Logic ---
 
-  cheeseThiefReady(code: string, clientId: string, force = false): RoomState | null {
+  bananaThiefReady(code: string, clientId: string, force = false): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.cheeseThiefService.ready(room, clientId, force));
+    return this.withRoom(code, (room) => this.bananaThiefService.ready(room, clientId, force));
   }
 
-  cheeseThiefNextHour(code: string, clientId: string): RoomState | null {
+  bananaThiefNextHour(code: string, clientId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.cheeseThiefService.nextHour(room, clientId));
+    return this.withRoom(code, (room) => this.bananaThiefService.nextHour(room, clientId));
   }
 
-  cheeseThiefTick(code: string): RoomState | null {
-    return this.withRoom(code, (room) => this.cheeseThiefService.tick(room));
+  bananaThiefTick(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.bananaThiefService.tick(room));
   }
 
-  cheeseThiefPeek(code: string, clientId: string, targetId: string): RoomState | null {
+  bananaThiefPeek(code: string, clientId: string, targetId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.cheeseThiefService.peek(room, clientId, targetId));
+    return this.withRoom(code, (room) => this.bananaThiefService.peek(room, clientId, targetId));
   }
 
-  cheeseThiefStartVote(code: string, clientId: string): RoomState | null {
+  bananaThiefStartVote(code: string, clientId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.cheeseThiefService.startVote(room, clientId));
+    return this.withRoom(code, (room) => this.bananaThiefService.startVote(room, clientId));
   }
 
-  cheeseThiefVote(code: string, clientId: string, targetId: string): RoomState | null {
+  bananaThiefVote(code: string, clientId: string, targetId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.cheeseThiefService.vote(room, clientId, targetId));
+    return this.withRoom(code, (room) => this.bananaThiefService.vote(room, clientId, targetId));
   }
 
-  cheeseThiefVotePhaseEnd(code: string): RoomState | null {
-    return this.withRoom(code, (room) => this.cheeseThiefService.handleVotePhaseEnd(room));
+  bananaThiefVotePhaseEnd(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.bananaThiefService.handleVotePhaseEnd(room));
   }
 
-  cheeseThiefChooseFollower(code: string, clientId: string, targetId: string): RoomState | null {
+  bananaThiefChooseFollower(code: string, clientId: string, targetId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
-      this.cheeseThiefService.chooseFollower(room, clientId, targetId),
+      this.bananaThiefService.chooseFollower(room, clientId, targetId),
     );
   }
 
-  cheeseThiefChooseFollowerTimeout(code: string): RoomState | null {
-    return this.withRoom(code, (room) => this.cheeseThiefService.chooseFollowerTimeout(room));
+  bananaThiefChooseFollowerTimeout(code: string): RoomState | null {
+    return this.withRoom(code, (room) => this.bananaThiefService.chooseFollowerTimeout(room));
   }
 
-  cheeseThiefNextRound(code: string, clientId: string): RoomState | null {
+  bananaThiefNextRound(code: string, clientId: string): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.cheeseThiefService.startRound(room, clientId));
+    return this.withRoom(code, (room) => this.bananaThiefService.startRound(room, clientId));
   }
 
   private getPlayerId(room: RoomState, socketId: string): string | null {

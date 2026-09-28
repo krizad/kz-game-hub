@@ -35,7 +35,7 @@ naturally; no state injection).
 | saboteur-3p             | Saboteur       | 3       | defaults, full 3 rounds              | Win overlay / back to lobby    |
 | saboteur-stone-ends     | Saboteur       | 3       | stone ends round instantly, 3 rounds | Win overlay / back to lobby    |
 | coup-3p                 | Coup           | 3       | defaults                             | "Winner:" banner               |
-| cheese-thief-4p         | Banana Thief   | 4       | fast night clock                     | Reveal banner + thief name     |
+| banana-thief-4p         | Banana Thief   | 4       | fast night clock                     | Reveal banner + thief name     |
 | card-pok-deng           | Thai Card Game | 2       | POK_DENG                             | RESULT panel                   |
 | card-slave              | Thai Card Game | 2       | SLAVE preset                         | RESULT panel                   |
 

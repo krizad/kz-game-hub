@@ -29,7 +29,7 @@ export const en: Dictionary = {
       saboteur: 'Saboteur',
       pokDeng: 'Pok Deng',
       cardGame: 'Thai Card Game',
-      cheeseThief: 'Banana Thief',
+      bananaThief: 'Banana Thief',
     },
     or: 'OR',
     roomCodePlaceholder: 'ROOM CODE',
@@ -138,7 +138,7 @@ export const en: Dictionary = {
         saboteur: 'Saboteur',
         coup: 'Coup',
         pokDeng: 'Thai Card Game',
-        cheeseThief: 'Banana Thief',
+        bananaThief: 'Banana Thief',
       },
       closeBtn: "Got it, let's play!",
     },
@@ -183,7 +183,7 @@ export const en: Dictionary = {
       flowTitle: 'Flow',
       flowDesc: 'Declare → Challenge 7s → Block 7s → Resolve',
     },
-    cheeseThief: {
+    bananaThief: {
       setupTitle: 'Setup',
       setupDesc:
         'Everyone secretly rolls a die (1–6 = the hour you will "wake" tonight) and a secret role is dealt: 1 Banana Thief, everyone else is a sleepy monkey. Play with 4+ players. Once everyone taps "I\'m ready", the night begins.',
@@ -1179,7 +1179,7 @@ export const en: Dictionary = {
     spectating: 'Spectating',
     resetHint: 'Game over — reset to play again',
   },
-  gameCheeseThief: {
+  gameBananaThief: {
     phaseSetup: 'Ready Up',
     phaseChooseFollower: 'Thief Picks Accomplice',
     phaseNight: 'Night',
@@ -1265,7 +1265,7 @@ export const en: Dictionary = {
     peekGo: 'Peek',
     peekDoneTitle: 'Sneaky peek! (vanishes by itself)',
     peekDone: '{name}’s die is {die}:00',
-    cheeseMissing: 'The banana is gone!',
+    bananaMissing: 'The banana is gone!',
     discussionHint: 'Talk it out — who woke when? Who is acting suspicious?',
     discussionTime: 'Voting starts in {time}',
     startVote: 'Start the vote now',

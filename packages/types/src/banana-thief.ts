@@ -1,4 +1,4 @@
-export enum CheeseThiefRole {
+export enum BananaThiefRole {
   THIEF = 'THIEF',
   MOUSE = 'MOUSE',
   FOLLOWER = 'FOLLOWER',
@@ -11,36 +11,36 @@ export enum CheeseThiefRole {
  * a thief-team madman who does NOT know who the thief is, and SCAPEGOAT is
  * the classic Tanner — a neutral who WINS if the vote lands on them.
  */
-export enum CheeseThiefSpecial {
+export enum BananaThiefSpecial {
   DETECTIVE = 'DETECTIVE',
   TWINS = 'TWINS',
   SYCOPHANT = 'SYCOPHANT',
   SCAPEGOAT = 'SCAPEGOAT',
 }
 
-export enum CheeseThiefPhase {
+export enum BananaThiefPhase {
   /** Roles dealt; waiting for every player to tap "I'm ready". */
   SETUP = 'SETUP',
   /** Thief secretly chooses follower(s) before night hours. */
   CHOOSE_FOLLOWER = 'CHOOSE_FOLLOWER',
   /** Clock 1:00 → 6:00; players "wake" at their secret die hour. */
   NIGHT = 'NIGHT',
-  /** Cheese reported missing; free bluffing time (timer-gated). */
+  /** Banana reported missing; free bluffing time (timer-gated). */
   DISCUSSION = 'DISCUSSION',
   /** Everyone votes for the thief; ballots stay sealed until reveal. */
   VOTING = 'VOTING',
   RESULT = 'RESULT',
 }
 
-export type CheeseThiefWinner = 'MICE' | 'THIEF' | 'SCAPEGOAT';
+export type BananaThiefWinner = 'MICE' | 'THIEF' | 'SCAPEGOAT';
 
 /**
  * Public state broadcast to the whole room. All role/die/vote secrets live in
  * PrivateStateService — nothing here can identify the thief before RESULT,
  * when the service itself populates the reveal fields.
  */
-export interface CheeseThiefState {
-  phase: CheeseThiefPhase;
+export interface BananaThiefState {
+  phase: BananaThiefPhase;
   /** Socket ids that tapped ready during SETUP (public — readiness isn't secret). */
   readyIds?: string[];
   /** Current night hour 0–6 (0 = night not started yet). */
@@ -56,7 +56,7 @@ export interface CheeseThiefState {
   /** Server deadline of the CHOOSE_FOLLOWER, DISCUSSION or VOTING phase. */
   phaseEndsAt?: number | null;
   /** Set the moment the thief steals (public knowledge only from DISCUSSION). */
-  cheeseStolen: boolean;
+  bananaStolen: boolean;
   /** Live ballot counter — identities stay sealed until RESULT. */
   votesRecorded: number;
   votesTotal: number;
@@ -68,16 +68,16 @@ export interface CheeseThiefState {
   /** Secret wake dice of every participant, revealed at RESULT. */
   dice?: Record<string, number>;
   /** DLC specials per participant, revealed at RESULT. */
-  specials?: Record<string, CheeseThiefSpecial>;
+  specials?: Record<string, BananaThiefSpecial>;
   /** True when the thief dropped mid-round and the mice win by forfeit. */
   fledThief?: boolean;
-  winner?: CheeseThiefWinner;
+  winner?: BananaThiefWinner;
   scoreDeltas?: Record<string, number>;
 }
 
 /** Private per-player payload delivered via PrivateStateService. */
-export interface CheeseThiefPrivateState {
-  role: CheeseThiefRole;
+export interface BananaThiefPrivateState {
+  role: BananaThiefRole;
   /** Secret wake hour 1–6. */
   die: number;
   /** Names of other players currently awake — only set while this player is
@@ -87,7 +87,7 @@ export interface CheeseThiefPrivateState {
   /** One-time solo-wake reward: peek at another player's die. */
   peekOffer?: boolean;
   /** Die peek; DETECTIVE's peek carries the target's role instead. */
-  peekResult?: { targetId: string; targetName: string; die: number; role?: CheeseThiefRole };
+  peekResult?: { targetId: string; targetName: string; die: number; role?: BananaThiefRole };
   /** Set privately on the thief the moment their steal executes. */
   stole?: boolean;
   /** Thief-only: names of the mice that woke in the steal hour and saw it. */
@@ -97,37 +97,37 @@ export interface CheeseThiefPrivateState {
   /** Thief-only: names of the chosen follower(s). */
   chosenFollowers?: string[];
   /** DLC: this player's special-mice role, if any. */
-  special?: CheeseThiefSpecial;
+  special?: BananaThiefSpecial;
   /** DLC Twins: the partner's name — both are verified non-thieves. */
   twinPartner?: string;
 }
 
-export interface CheeseThiefPeekPayload {
+export interface BananaThiefPeekPayload {
   code: string;
   targetId: string;
 }
 
-export interface CheeseThiefVotePayload {
+export interface BananaThiefVotePayload {
   code: string;
   targetId: string;
 }
 
-export interface CheeseThiefChooseFollowerPayload {
+export interface BananaThiefChooseFollowerPayload {
   code: string;
   targetId: string;
 }
 
-export interface CheeseThiefReactionPayload {
+export interface BananaThiefReactionPayload {
   code: string;
   emoji: string;
 }
 
-export const CHEESE_THIEF_REACTIONS = ['🐭', '🧀', '😱', '😂', '👀', '🎯', '🤷', '😴'] as const;
+export const BANANA_THIEF_REACTIONS = ['🐭', '🧀', '😱', '😂', '👀', '🎯', '🤷', '😴'] as const;
 
-export const CHEESE_THIEF_MIN_PLAYERS = 4;
-export const CHEESE_THIEF_CLOCK_HOURS = 6;
+export const BANANA_THIEF_MIN_PLAYERS = 4;
+export const BANANA_THIEF_CLOCK_HOURS = 6;
 
-export interface CheeseThiefPlayerRequirement {
+export interface BananaThiefPlayerRequirement {
   min: number;
   recommended: number;
   followerCount: number;
@@ -144,16 +144,16 @@ export interface CheeseThiefPlayerRequirement {
  * Formula: 1 Thief + Follower Count (if > 0) + Specials Count (Twins=2, others=1) + at least 2 Plain Mice.
  * Absolute minimum is 4.
  */
-export function getCheeseThiefRequiredPlayerCount(config?: {
-  cheeseThiefFollowerCount?: number;
-  cheeseThiefSelectedSpecials?: CheeseThiefSpecial[];
-}): CheeseThiefPlayerRequirement {
-  const followerCount = config?.cheeseThiefFollowerCount ?? 1;
-  const specials = config?.cheeseThiefSelectedSpecials ?? [];
+export function getBananaThiefRequiredPlayerCount(config?: {
+  bananaThiefFollowerCount?: number;
+  bananaThiefSelectedSpecials?: BananaThiefSpecial[];
+}): BananaThiefPlayerRequirement {
+  const followerCount = config?.bananaThiefFollowerCount ?? 1;
+  const specials = config?.bananaThiefSelectedSpecials ?? [];
 
   let specialsTotal = 0;
   for (const s of specials) {
-    if (s === CheeseThiefSpecial.TWINS) {
+    if (s === BananaThiefSpecial.TWINS) {
       specialsTotal += 2;
     } else {
       specialsTotal += 1;
@@ -161,19 +161,19 @@ export function getCheeseThiefRequiredPlayerCount(config?: {
   }
 
   const calculatedMin = 1 + followerCount + specialsTotal + 2;
-  const min = Math.max(CHEESE_THIEF_MIN_PLAYERS, calculatedMin);
+  const min = Math.max(BANANA_THIEF_MIN_PLAYERS, calculatedMin);
   const recommended = min + 1;
 
   const breakdown: { labelKey: string; count: number }[] = [
-    { labelKey: 'gameCheeseThief.breakdownThief', count: 1 },
+    { labelKey: 'gameBananaThief.breakdownThief', count: 1 },
   ];
   if (followerCount > 0) {
-    breakdown.push({ labelKey: 'gameCheeseThief.breakdownFollower', count: followerCount });
+    breakdown.push({ labelKey: 'gameBananaThief.breakdownFollower', count: followerCount });
   }
   if (specialsTotal > 0) {
-    breakdown.push({ labelKey: 'gameCheeseThief.breakdownSpecials', count: specialsTotal });
+    breakdown.push({ labelKey: 'gameBananaThief.breakdownSpecials', count: specialsTotal });
   }
-  breakdown.push({ labelKey: 'gameCheeseThief.breakdownPlainMice', count: 2 });
+  breakdown.push({ labelKey: 'gameBananaThief.breakdownPlainMice', count: 2 });
 
   return {
     min,

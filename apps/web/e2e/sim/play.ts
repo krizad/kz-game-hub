@@ -187,9 +187,9 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
           .catch(() => {});
         break;
       }
-      case 'cheese-thief-fast': {
-        // Cheese Thief pacing: fastest night clock (3s per hour).
-        const tickSelect = page.locator('#cheeseThiefTickSelect');
+      case 'banana-thief-fast': {
+        // Banana Thief pacing: fastest night clock (3s per hour).
+        const tickSelect = page.locator('#bananaThiefTickSelect');
         await tickSelect.waitFor({ timeout: 3000 }).catch(() => {});
         if (await tickSelect.isVisible().catch(() => false)) {
           await tickSelect.selectOption('3');
@@ -1242,14 +1242,14 @@ async function playCoup(s: SimSession): Promise<void> {
   await expect(host.getByText(/Winner:/i)).toBeVisible({ timeout: 20000 });
 }
 
-/** Cheese Thief: ready gate, night clock runs, host opens the vote → reveal. */
-async function playCheeseThief(s: SimSession): Promise<void> {
+/** Banana Thief: ready gate, night clock runs, host opens the vote → reveal. */
+async function playBananaThief(s: SimSession): Promise<void> {
   const { host, players } = s;
   await startGame(host);
 
   // SETUP gate: everyone taps "I'm ready!" before the night may begin.
   for (const p of players) {
-    const readyBtn = p.getByTestId('cheese-thief-ready');
+    const readyBtn = p.getByTestId('banana-thief-ready');
     await expect(readyBtn).toBeVisible({ timeout: 15000 });
     await readyBtn.click();
   }
@@ -1265,7 +1265,7 @@ async function playCheeseThief(s: SimSession): Promise<void> {
   // Every player votes for the first listed target — the reveal is the
   // completion state whatever the outcome (caught / escaped / tie).
   for (const p of players) {
-    const voteButton = p.locator('[data-testid^="cheese-thief-vote-"]').first();
+    const voteButton = p.locator('[data-testid^="banana-thief-vote-"]').first();
     await expect(voteButton).toBeVisible({ timeout: 15000 });
     await voteButton.click();
   }
@@ -1364,8 +1364,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playSaboteur(s);
     case 'COUP':
       return playCoup(s);
-    case 'CHEESE_THIEF':
-      return playCheeseThief(s);
+    case 'BANANA_THIEF':
+      return playBananaThief(s);
     case 'CARD_GAME':
       return playCardGame(s, entry);
     default:

@@ -15,7 +15,7 @@ import {
 import { TheMindState } from './the-mind';
 import { SaboteurState } from './saboteur';
 import { CoupState } from './coup';
-import { CheeseThiefState, CheeseThiefSpecial } from './cheese-thief';
+import { BananaThiefState, BananaThiefSpecial } from './banana-thief';
 import { UltimateTicTacToeState } from './ultimate-tic-tac-toe';
 import {
   CardGameAllowedOptions,
@@ -51,7 +51,7 @@ export enum GameType {
   SABOTEUR = 'SABOTEUR',
   COUP = 'COUP',
   CARD_GAME = 'CARD_GAME',
-  CHEESE_THIEF = 'CHEESE_THIEF',
+  BANANA_THIEF = 'BANANA_THIEF',
 }
 
 /**
@@ -161,16 +161,16 @@ export const SOCKET_EVENTS = {
   UTTT_RESET: 'uttt_reset',
   // Configurable card game
   CARD_GAME_ACTION: 'card_game_action',
-  // Cheese Thief specific events
-  CHEESE_THIEF_PEEK: 'cheese_thief_peek',
-  CHEESE_THIEF_READY: 'cheese_thief_ready',
-  CHEESE_THIEF_NEXT_HOUR: 'cheese_thief_next_hour',
-  CHEESE_THIEF_VOTE: 'cheese_thief_vote',
-  CHEESE_THIEF_START_VOTE: 'cheese_thief_start_vote',
-  CHEESE_THIEF_NEXT_ROUND: 'cheese_thief_next_round',
-  CHEESE_THIEF_RESET: 'cheese_thief_reset',
-  CHEESE_THIEF_REACTION: 'cheese_thief_reaction',
-  CHEESE_THIEF_CHOOSE_FOLLOWER: 'cheese_thief_choose_follower',
+  // Banana Thief specific events
+  BANANA_THIEF_PEEK: 'banana_thief_peek',
+  BANANA_THIEF_READY: 'banana_thief_ready',
+  BANANA_THIEF_NEXT_HOUR: 'banana_thief_next_hour',
+  BANANA_THIEF_VOTE: 'banana_thief_vote',
+  BANANA_THIEF_START_VOTE: 'banana_thief_start_vote',
+  BANANA_THIEF_NEXT_ROUND: 'banana_thief_next_round',
+  BANANA_THIEF_RESET: 'banana_thief_reset',
+  BANANA_THIEF_REACTION: 'banana_thief_reaction',
+  BANANA_THIEF_CHOOSE_FOLLOWER: 'banana_thief_choose_follower',
 } as const;
 
 export interface UserState {
@@ -241,25 +241,25 @@ export interface RoomConfig {
   saboteurTurnTimerSeconds?: number;
   /** Sudden-death variant: revealing a STONE goal immediately ends the round (saboteurs win). */
   saboteurStoneEndsRound?: boolean;
-  // Cheese Thief config
+  // Banana Thief config
   /**
    * Who narrates the night: AUTO = built-in speech synthesis + auto-advancing
    * clock; HOST = no TTS, the host reads the script aloud and advances each
    * hour manually (eye-closed length is then the host's call).
    */
-  cheeseThiefNarrator?: 'AUTO' | 'HOST';
+  bananaThiefNarrator?: 'AUTO' | 'HOST';
   /** DLC: deal special-mice roles (Detective / Twins / Sycophant) at 5+ players. */
-  cheeseThiefDlc?: boolean;
+  bananaThiefDlc?: boolean;
   /** Seconds per night-clock hour (1:00 → 6:00) in AUTO mode. */
-  cheeseThiefTickSeconds?: number;
+  bananaThiefTickSeconds?: number;
   /** Discussion phase length in seconds. */
-  cheeseThiefDiscussionSeconds?: number;
+  bananaThiefDiscussionSeconds?: number;
   /** Voting phase length in seconds (fallback timer; voting ends when all voted). */
-  cheeseThiefVoteSeconds?: number;
+  bananaThiefVoteSeconds?: number;
   /** Number of followers the thief can recruit (default: 1; or 0, 1, 2). */
-  cheeseThiefFollowerCount?: number;
+  bananaThiefFollowerCount?: number;
   /** Specifically selected DLC specials (Detective, Twins, Sycophant, Scapegoat). */
-  cheeseThiefSelectedSpecials?: CheeseThiefSpecial[];
+  bananaThiefSelectedSpecials?: BananaThiefSpecial[];
 }
 
 export interface RoomState {
@@ -286,7 +286,7 @@ export interface RoomState {
   theMindState?: TheMindState;
   saboteurState?: SaboteurState;
   coupState?: CoupState;
-  cheeseThiefState?: CheeseThiefState;
+  bananaThiefState?: BananaThiefState;
   ultimateTicTacToeState?: UltimateTicTacToeState;
   /** Contains only public card-game information; hands are private socket state. */
   cardGameState?: CardGamePublicState;

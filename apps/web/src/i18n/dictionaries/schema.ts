@@ -27,7 +27,7 @@ export interface Dictionary {
       saboteur: string;
       pokDeng: string;
       cardGame: string;
-      cheeseThief: string;
+      bananaThief: string;
     };
     or: string;
     roomCodePlaceholder: string;
@@ -132,7 +132,7 @@ export interface Dictionary {
         saboteur: string;
         coup: string;
         pokDeng: string;
-        cheeseThief: string;
+        bananaThief: string;
       };
       closeBtn: string;
     };
@@ -167,7 +167,7 @@ export interface Dictionary {
       flowTitle: string;
       flowDesc: string;
     };
-    cheeseThief: {
+    bananaThief: {
       setupTitle: string;
       setupDesc: string;
       goalsTitle: string;
@@ -1074,7 +1074,7 @@ export interface Dictionary {
     spectating: string;
     resetHint: string;
   };
-  gameCheeseThief: {
+  gameBananaThief: {
     phaseSetup: string;
     phaseChooseFollower: string;
     phaseNight: string;
@@ -1152,7 +1152,7 @@ export interface Dictionary {
     peekGo: string;
     peekDoneTitle: string;
     peekDone: string;
-    cheeseMissing: string;
+    bananaMissing: string;
     discussionHint: string;
     discussionTime: string;
     startVote: string;

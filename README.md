@@ -19,6 +19,7 @@ Built as a modern web application within a Turborepo.
 - **Saboteur:** A social deduction game where gold miners dig tunnels towards hidden treasures while saboteurs try to secretly derail them.
 - **Coup:** A high-stakes game of deception, bluffing, and manipulation — eliminate all rival influences to take control.
 - **Thai Card Game (เกมไพ่ไทย):** Classic Thai card games with virtual chips — **Pok Deng** (ป๊อกเด้ง) and **Slave** (ไพ่ตกน้ำ), with host-editable advanced rules.
+- **Banana Thief (ลิงขโมยกล้วย):** A nighttime social deduction game — one player is the thief who secretly steals the banana while mice wake at their die-roll hours to peek and investigate, then everyone votes. Host-tunable followers, optional special roles (Detective, Twins, Sycophant, Scapegoat), and a live player-requirement calculator in the lobby.
 
 ## ✨ Core Features
 

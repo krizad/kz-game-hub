@@ -2,10 +2,10 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
-import { CheeseThiefSpecial, getCheeseThiefRequiredPlayerCount } from '@repo/types';
+import { BananaThiefSpecial, getBananaThiefRequiredPlayerCount } from '@repo/types';
 
 interface SpecialRoleDef {
-  id: CheeseThiefSpecial;
+  id: BananaThiefSpecial;
   nameKey: 'roleDetective' | 'roleTwins' | 'roleSycophant' | 'roleScapegoat';
   descKey: 'dlcDetective' | 'dlcTwins' | 'dlcSycophant' | 'dlcScapegoat';
   playersCount: number;
@@ -13,33 +13,33 @@ interface SpecialRoleDef {
 
 const SPECIAL_ROLES: SpecialRoleDef[] = [
   {
-    id: CheeseThiefSpecial.DETECTIVE,
+    id: BananaThiefSpecial.DETECTIVE,
     nameKey: 'roleDetective',
     descKey: 'dlcDetective',
     playersCount: 1,
   },
   {
-    id: CheeseThiefSpecial.TWINS,
+    id: BananaThiefSpecial.TWINS,
     nameKey: 'roleTwins',
     descKey: 'dlcTwins',
     playersCount: 2,
   },
   {
-    id: CheeseThiefSpecial.SYCOPHANT,
+    id: BananaThiefSpecial.SYCOPHANT,
     nameKey: 'roleSycophant',
     descKey: 'dlcSycophant',
     playersCount: 1,
   },
   {
-    id: CheeseThiefSpecial.SCAPEGOAT,
+    id: BananaThiefSpecial.SCAPEGOAT,
     nameKey: 'roleScapegoat',
     descKey: 'dlcScapegoat',
     playersCount: 1,
   },
 ];
 
-/** Host-tunable Cheese Thief pacing, roles configuration, and live balance calculation. */
-export function CheeseThiefSettings() {
+/** Host-tunable Banana Thief pacing, roles configuration, and live balance calculation. */
+export function BananaThiefSettings() {
   const { room, updateConfig } = useGameStore();
   const { t } = useTranslate();
   if (!room) return null;
@@ -47,21 +47,21 @@ export function CheeseThiefSettings() {
   const selectCls =
     'w-full bg-white border-2 border-black px-2 py-2 text-sm font-black text-black focus:outline-none';
 
-  const followerCount = room.config.cheeseThiefFollowerCount ?? 1;
-  const selectedSpecials = room.config.cheeseThiefSelectedSpecials ?? [];
+  const followerCount = room.config.bananaThiefFollowerCount ?? 1;
+  const selectedSpecials = room.config.bananaThiefSelectedSpecials ?? [];
 
   const handleFollowerChange = (count: number) => {
-    updateConfig({ cheeseThiefFollowerCount: count });
+    updateConfig({ bananaThiefFollowerCount: count });
   };
 
-  const handleToggleSpecial = (special: CheeseThiefSpecial) => {
+  const handleToggleSpecial = (special: BananaThiefSpecial) => {
     const nextSpecials = selectedSpecials.includes(special)
       ? selectedSpecials.filter((s) => s !== special)
       : [...selectedSpecials, special];
 
     updateConfig({
-      cheeseThiefSelectedSpecials: nextSpecials,
-      cheeseThiefDlc: nextSpecials.length > 0,
+      bananaThiefSelectedSpecials: nextSpecials,
+      bananaThiefDlc: nextSpecials.length > 0,
     });
   };
 
@@ -71,7 +71,7 @@ export function CheeseThiefSettings() {
     followerCount: reqFollowers,
     specialsCount,
     plainMiceCount,
-  } = getCheeseThiefRequiredPlayerCount(room.config);
+  } = getBananaThiefRequiredPlayerCount(room.config);
 
   const currentPlayers = room.players.length;
   const isEnoughPlayers = currentPlayers >= min;
@@ -86,7 +86,7 @@ export function CheeseThiefSettings() {
       >
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="text-xs font-black uppercase tracking-wider text-black">
-            {t('gameCheeseThief.settingsMinPlayersRequired', { count: min })}
+            {t('gameBananaThief.settingsMinPlayersRequired', { count: min })}
           </div>
           <span
             className={`text-[11px] font-black px-2 py-0.5 border border-black ${
@@ -102,28 +102,28 @@ export function CheeseThiefSettings() {
         {/* Breakdown Tags */}
         <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
           <span className="px-2 py-0.5 bg-red-100 border border-black text-red-900">
-            🦹 {t('gameCheeseThief.settingsBreakdownThief')}
+            🦹 {t('gameBananaThief.settingsBreakdownThief')}
           </span>
           {reqFollowers > 0 && (
             <span className="px-2 py-0.5 bg-purple-100 border border-black text-purple-900">
-              🤝 {t('gameCheeseThief.settingsBreakdownFollower', { count: reqFollowers })}
+              🤝 {t('gameBananaThief.settingsBreakdownFollower', { count: reqFollowers })}
             </span>
           )}
           {specialsCount > 0 && (
             <span className="px-2 py-0.5 bg-blue-100 border border-black text-blue-900">
               ⭐{' '}
-              {t('gameCheeseThief.settingsBreakdownSpecials', {
+              {t('gameBananaThief.settingsBreakdownSpecials', {
                 count: specialsCount,
                 roles: selectedSpecials
                   .map(
-                    (s) => t(`gameCheeseThief.role${s[0]}${s.slice(1).toLowerCase()}` as any) || s,
+                    (s) => t(`gameBananaThief.role${s[0]}${s.slice(1).toLowerCase()}` as any) || s,
                   )
                   .join(', '),
               })}
             </span>
           )}
           <span className="px-2 py-0.5 bg-yellow-100 border border-black text-yellow-900">
-            🐭 {t('gameCheeseThief.settingsBreakdownInnocent', { count: plainMiceCount })}
+            🐭 {t('gameBananaThief.settingsBreakdownInnocent', { count: plainMiceCount })}
           </span>
         </div>
       </div>
@@ -131,20 +131,20 @@ export function CheeseThiefSettings() {
       {/* Follower Selection */}
       <div>
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
-          🤝 {t('gameCheeseThief.settingsFollowers')}
+          🤝 {t('gameBananaThief.settingsFollowers')}
         </label>
         <select
-          id="cheeseThiefFollowerSelect"
+          id="bananaThiefFollowerSelect"
           className={selectCls}
           value={followerCount}
           onChange={(e) => handleFollowerChange(Number(e.target.value))}
         >
-          <option value={0}>{t('gameCheeseThief.settingsFollowersNone')}</option>
-          <option value={1}>{t('gameCheeseThief.settingsFollowersOne')}</option>
-          <option value={2}>{t('gameCheeseThief.settingsFollowersTwo')}</option>
+          <option value={0}>{t('gameBananaThief.settingsFollowersNone')}</option>
+          <option value={1}>{t('gameBananaThief.settingsFollowersOne')}</option>
+          <option value={2}>{t('gameBananaThief.settingsFollowersTwo')}</option>
         </select>
         <p className="text-[10px] font-bold text-gray-600 mt-1">
-          {t('gameCheeseThief.settingsFollowersHint')}
+          {t('gameBananaThief.settingsFollowersHint')}
         </p>
       </div>
 
@@ -152,11 +152,11 @@ export function CheeseThiefSettings() {
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className="block text-xs font-black uppercase tracking-wider">
-            ⭐ {t('gameCheeseThief.settingsSpecialsSelect')}
+            ⭐ {t('gameBananaThief.settingsSpecialsSelect')}
           </label>
         </div>
         <p className="text-[10px] font-bold text-gray-600 mb-2">
-          {t('gameCheeseThief.settingsSpecialsHint')}
+          {t('gameBananaThief.settingsSpecialsHint')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -174,7 +174,7 @@ export function CheeseThiefSettings() {
                 }`}
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-black">{t(`gameCheeseThief.${role.nameKey}`)}</span>
+                  <span className="text-xs font-black">{t(`gameBananaThief.${role.nameKey}`)}</span>
                   <span
                     className={`text-[10px] font-black px-1.5 py-0.2 border border-black ${
                       isSelected ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'
@@ -184,7 +184,7 @@ export function CheeseThiefSettings() {
                   </span>
                 </div>
                 <div className="text-[10px] leading-tight font-medium text-gray-700">
-                  {t(`rules.cheeseThief.${role.descKey}`)}
+                  {t(`rules.bananaThief.${role.descKey}`)}
                 </div>
               </button>
             );
@@ -195,37 +195,37 @@ export function CheeseThiefSettings() {
       {/* Narrator Settings */}
       <div>
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
-          🎙️ {t('gameCheeseThief.settingsNarrator')}
+          🎙️ {t('gameBananaThief.settingsNarrator')}
         </label>
         <select
-          id="cheeseThiefNarratorSelect"
+          id="bananaThiefNarratorSelect"
           className={selectCls}
-          value={room.config.cheeseThiefNarrator ?? 'AUTO'}
+          value={room.config.bananaThiefNarrator ?? 'AUTO'}
           onChange={(e) =>
             updateConfig({
-              cheeseThiefNarrator: e.target.value as 'AUTO' | 'HOST',
+              bananaThiefNarrator: e.target.value as 'AUTO' | 'HOST',
             })
           }
         >
-          <option value="AUTO">{t('gameCheeseThief.settingsNarratorAuto')}</option>
-          <option value="HOST">{t('gameCheeseThief.settingsNarratorHost')}</option>
+          <option value="AUTO">{t('gameBananaThief.settingsNarratorAuto')}</option>
+          <option value="HOST">{t('gameBananaThief.settingsNarratorHost')}</option>
         </select>
       </div>
 
       {/* Night Tick Seconds */}
       <div>
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
-          ⏱️ {t('gameCheeseThief.settingsTick')}
+          ⏱️ {t('gameBananaThief.settingsTick')}
         </label>
         <select
-          id="cheeseThiefTickSelect"
+          id="bananaThiefTickSelect"
           className={selectCls}
-          value={room.config.cheeseThiefTickSeconds ?? 6}
-          onChange={(e) => updateConfig({ cheeseThiefTickSeconds: Number(e.target.value) })}
+          value={room.config.bananaThiefTickSeconds ?? 6}
+          onChange={(e) => updateConfig({ bananaThiefTickSeconds: Number(e.target.value) })}
         >
-          <option value={3}>{t('gameCheeseThief.settingsTickFast')}</option>
-          <option value={6}>{t('gameCheeseThief.settingsTickNormal')}</option>
-          <option value={9}>{t('gameCheeseThief.settingsTickSlow')}</option>
+          <option value={3}>{t('gameBananaThief.settingsTickFast')}</option>
+          <option value={6}>{t('gameBananaThief.settingsTickNormal')}</option>
+          <option value={9}>{t('gameBananaThief.settingsTickSlow')}</option>
           <option value={12}>12 {t('lobby.seconds')}</option>
           <option value={15}>15 {t('lobby.seconds')}</option>
         </select>
@@ -234,29 +234,29 @@ export function CheeseThiefSettings() {
       {/* Discussion Seconds */}
       <div>
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
-          💬 {t('gameCheeseThief.settingsDiscussion')}
+          💬 {t('gameBananaThief.settingsDiscussion')}
         </label>
         <select
           className={selectCls}
-          value={room.config.cheeseThiefDiscussionSeconds ?? 180}
-          onChange={(e) => updateConfig({ cheeseThiefDiscussionSeconds: Number(e.target.value) })}
+          value={room.config.bananaThiefDiscussionSeconds ?? 180}
+          onChange={(e) => updateConfig({ bananaThiefDiscussionSeconds: Number(e.target.value) })}
         >
-          <option value={60}>{t('gameCheeseThief.settingsMin', { count: 1 })}</option>
-          <option value={120}>{t('gameCheeseThief.settingsMin', { count: 2 })}</option>
-          <option value={180}>{t('gameCheeseThief.settingsMin', { count: 3 })}</option>
-          <option value={300}>{t('gameCheeseThief.settingsMin', { count: 5 })}</option>
+          <option value={60}>{t('gameBananaThief.settingsMin', { count: 1 })}</option>
+          <option value={120}>{t('gameBananaThief.settingsMin', { count: 2 })}</option>
+          <option value={180}>{t('gameBananaThief.settingsMin', { count: 3 })}</option>
+          <option value={300}>{t('gameBananaThief.settingsMin', { count: 5 })}</option>
         </select>
       </div>
 
       {/* Vote Seconds */}
       <div>
         <label className="block text-xs font-black uppercase tracking-wider mb-1">
-          🗳️ {t('gameCheeseThief.settingsVote')}
+          🗳️ {t('gameBananaThief.settingsVote')}
         </label>
         <select
           className={selectCls}
-          value={room.config.cheeseThiefVoteSeconds ?? 15}
-          onChange={(e) => updateConfig({ cheeseThiefVoteSeconds: Number(e.target.value) })}
+          value={room.config.bananaThiefVoteSeconds ?? 15}
+          onChange={(e) => updateConfig({ bananaThiefVoteSeconds: Number(e.target.value) })}
         >
           <option value={15}>15 {t('lobby.seconds')}</option>
           <option value={30}>30 {t('lobby.seconds')}</option>

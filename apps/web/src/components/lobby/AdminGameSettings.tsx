@@ -21,7 +21,7 @@ const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.SABOTEUR, labelKey: 'rules.modal.tabs.saboteur' },
   { type: GameType.COUP, labelKey: 'rules.modal.tabs.coup' },
   { type: GameType.CARD_GAME, labelKey: 'rules.modal.tabs.pokDeng' },
-  { type: GameType.CHEESE_THIEF, labelKey: 'rules.modal.tabs.cheeseThief' },
+  { type: GameType.BANANA_THIEF, labelKey: 'rules.modal.tabs.bananaThief' },
 ];
 
 interface AdminGameSettingsProps {
