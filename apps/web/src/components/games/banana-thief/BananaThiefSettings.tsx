@@ -250,7 +250,11 @@ export function BananaThiefSettings() {
           />
         ) : (
           <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            {narratorOptions.find((opt) => opt.value === (room.config.bananaThiefNarrator ?? 'AUTO'))?.label}
+            {
+              narratorOptions.find(
+                (opt) => opt.value === (room.config.bananaThiefNarrator ?? 'AUTO'),
+              )?.label
+            }
           </div>
         )}
       </div>
@@ -270,7 +274,11 @@ export function BananaThiefSettings() {
           />
         ) : (
           <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            {tickOptions.find((opt) => opt.value === String(room.config.bananaThiefTickSeconds ?? 6))?.label}
+            {
+              tickOptions.find(
+                (opt) => opt.value === String(room.config.bananaThiefTickSeconds ?? 6),
+              )?.label
+            }
           </div>
         )}
       </div>
@@ -290,7 +298,11 @@ export function BananaThiefSettings() {
           />
         ) : (
           <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            {discussionOptions.find((opt) => opt.value === String(room.config.bananaThiefDiscussionSeconds ?? 180))?.label}
+            {
+              discussionOptions.find(
+                (opt) => opt.value === String(room.config.bananaThiefDiscussionSeconds ?? 180),
+              )?.label
+            }
           </div>
         )}
       </div>
@@ -310,7 +322,11 @@ export function BananaThiefSettings() {
           />
         ) : (
           <div className="text-black font-black text-sm px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            {voteOptions.find((opt) => opt.value === String(room.config.bananaThiefVoteSeconds ?? 15))?.label}
+            {
+              voteOptions.find(
+                (opt) => opt.value === String(room.config.bananaThiefVoteSeconds ?? 15),
+              )?.label
+            }
           </div>
         )}
       </div>
