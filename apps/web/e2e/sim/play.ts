@@ -35,8 +35,9 @@ export async function setupSession(
   const host = pages[0];
   const roomCode = await createRoom(host, 'Alice', entry.lobbyButton, entry.tttMode);
   const origin = await getOrigin(host);
+  const guestNames = ['Bob', 'Carol', 'Dave', 'Eve', 'Frank', 'Grace', 'Heidi'];
   for (let i = 1; i < entry.players; i++) {
-    await joinRoom(pages[i], origin, roomCode, ['Bob', 'Carol', 'Dave'][i - 1]);
+    await joinRoom(pages[i], origin, roomCode, guestNames[i - 1]);
   }
   // Bob appears in the players list (multiple elements possible: grid + scores)
   if (entry.players > 1) {
@@ -185,6 +186,91 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
           .getByRole('button', { name: 'On', exact: true })
           .click()
           .catch(() => {});
+        break;
+      }
+      case 'who-know-host': {
+        const map: Record<string, RegExp> = {
+          ROUND_ROBIN: /Round Robin/i,
+          RANDOM: /^Random$/i,
+          FIXED: /Room Creator/i,
+        };
+        await selectNeobrutalism(page, /Round Robin|^Random$|Room Creator/i, map[value]);
+        break;
+      }
+      case 'who-first-infinite': {
+        const sw = page.locator('#infinite-switch');
+        if (await sw.isVisible().catch(() => false)) {
+          if ((await sw.getAttribute('aria-checked')) !== 'true') await sw.click();
+        }
+        break;
+      }
+      case 'the-mind-timeattack': {
+        // The toggle input is a SIBLING label of the "Time Attack" text label
+        // inside the same row — click the row's checkbox-label, not the text.
+        const taRow = page
+          .locator('label', { hasText: /Time Attack/i })
+          .first()
+          .locator('xpath=..');
+        const taToggle = taRow.locator('label:has(input[type="checkbox"])').first();
+        if (await taToggle.isVisible().catch(() => false)) {
+          await taToggle.click().catch(() => {});
+        }
+        break;
+      }
+      case 'saboteur-timer-on': {
+        // Same On/Off button-group shape as the stone toggle: click "On" in the
+        // group that follows the turn-timer label.
+        const timerLabel = page.getByText(/^Turn timer$/i).first();
+        const group = timerLabel.locator('xpath=..');
+        await group
+          .getByRole('button', { name: 'On', exact: true })
+          .click()
+          .catch(() => {});
+        break;
+      }
+      case 'banana-thief-specials': {
+        const specialLabels: Record<string, RegExp> = {
+          DETECTIVE: /Detective/i,
+          TWINS: /Twins/i,
+          SYCOPHANT: /Sycophant/i,
+          SCAPEGOAT: /Scapegoat/i,
+        };
+        for (const special of value.split(',')) {
+          const label = specialLabels[special.trim()];
+          if (!label) throw new Error(`Unknown Banana Thief special: ${special}`);
+          const btn = page.locator('button').filter({ hasText: label }).first();
+          if (await btn.isVisible().catch(() => false)) {
+            await btn.click().catch(() => {});
+            await page.waitForTimeout(300);
+          }
+        }
+        break;
+      }
+      case 'banana-thief-followers': {
+        const followerMap: Record<string, RegExp> = {
+          '0': /None \(0\)/i,
+          '1': /1 Follower/i,
+          '2': /2 Followers/i,
+        };
+        await selectNeobrutalism(page, /Follower|None/i, followerMap[value]);
+        break;
+      }
+      case 'banana-thief-narrator-host': {
+        await selectNeobrutalism(page, /Automatic|host narrates/i, /host narrates/i);
+        break;
+      }
+      case 'banana-thief-discussion': {
+        const discussionMap: Record<string, RegExp> = {
+          '60': /^1 min$/i,
+          '120': /^2 min$/i,
+          '180': /^3 min$/i,
+          '300': /^5 min$/i,
+        };
+        await selectNeobrutalism(page, /min$/i, discussionMap[value]);
+        break;
+      }
+      case 'card-game-timer': {
+        await page.locator(`[data-testid="card-game-timer-${value}"]`).click();
         break;
       }
       case 'banana-thief-fast': {
@@ -395,12 +481,14 @@ async function playTicTacToeBot(s: SimSession): Promise<void> {
 }
 
 /** RPS: both players throw every round until a match winner is set. */
-async function playRps(s: SimSession): Promise<void> {
+async function playRps(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
   const [p1, p2] = players;
   await startGame(host);
-  const target = 2; // BO3 target (also covers BO1 which ends at 1)
-  for (let round = 0; round < target + 1; round++) {
+  // Match target from the lobby's best-of config (BO1 → 1 win, BO3 → 2, BO5 → 3)
+  const bestOf = entry.configure?.find((c) => c.startsWith('rps-bestof:'))?.split(':')[1];
+  const target = bestOf === '5' ? 3 : bestOf === '1' ? 1 : 2;
+  for (let round = 0; round < target + 2; round++) {
     const rock = (p: Page) => p.locator('button', { hasText: '✊' }).first();
     const paper = (p: Page) => p.locator('button', { hasText: '✋' }).first();
     await expect(rock(p1)).toBeVisible({ timeout: 15000 });
@@ -1174,13 +1262,30 @@ async function playSaboteur(s: SimSession): Promise<void> {
   ).toBeTruthy();
 }
 
+/** Set a React-controlled select by index, with a JS-dispatch fallback. */
+async function setSelectByIndex(page: Page, select: Locator, index: number): Promise<void> {
+  await select.selectOption({ index }).catch(() => {});
+  const applied = await select
+    .inputValue()
+    .then((v) => v !== '')
+    .catch(() => false);
+  if (!applied) {
+    await select.evaluate((el, i) => {
+      const sel = el as HTMLSelectElement;
+      sel.value = sel.options[i]?.value ?? '';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }, index);
+  }
+}
+
 /** Coup: income until 7+, then coup the next player until one remains. */
-async function playCoup(s: SimSession): Promise<void> {
+async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
+  const aggressive = entry.id === 'coup-3p-aggressive';
   await startGame(host);
   await expect(host.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 15000 });
   const income = (p: Page) => p.getByRole('button', { name: /Income/i });
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 90; i++) {
     if (
       await host
         .getByText(/Winner:/i)
@@ -1218,20 +1323,44 @@ async function playCoup(s: SimSession): Promise<void> {
       .catch(() => false);
     const coupSelect = turnPage.locator('select').last();
     if (coupVisible && mustCoup) {
-      await coupSelect.selectOption({ index: 1 }).catch(() => {});
-      const applied = await coupSelect
-        .inputValue()
-        .then((v) => v !== '')
-        .catch(() => false);
-      if (!applied) {
-        await coupSelect.evaluate((el) => {
-          const sel = el as HTMLSelectElement;
-          sel.value = sel.options[1]?.value ?? '';
-          sel.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-      }
+      await setSelectByIndex(turnPage, coupSelect, 1);
       await expect(coupBtn).toBeEnabled({ timeout: 5000 });
       await coupBtn.click();
+    } else if (aggressive) {
+      // Aggressive rush: Assassinate when affordable, else Tax (+3), else
+      // Steal, else Income. Challenge/block windows are left to expire
+      // server-side (deterministic deadlines).
+      const selects = turnPage.locator('select');
+      const assassinateBtn = turnPage.getByRole('button', { name: /Assassinate/i });
+      const assassinateReady =
+        (await assassinateBtn.isVisible({ timeout: 200 }).catch(() => false)) &&
+        (await assassinateBtn.isEnabled().catch(() => false));
+      if (assassinateReady) {
+        await setSelectByIndex(turnPage, selects.nth(0), 1);
+        await assassinateBtn.click().catch(() => {});
+      } else {
+        const taxBtn = turnPage.getByRole('button', { name: /Tax/i });
+        if (await taxBtn.isEnabled().catch(() => false)) {
+          await taxBtn.click().catch(() => {});
+        } else {
+          const stealBtn = turnPage.getByRole('button', { name: /Steal/i });
+          if (
+            (await stealBtn.isVisible({ timeout: 200 }).catch(() => false)) &&
+            (await stealBtn.isEnabled().catch(() => false))
+          ) {
+            await setSelectByIndex(turnPage, selects.nth(1), 1);
+            await stealBtn.click().catch(() => {});
+          } else if (
+            await income(turnPage)
+              .isEnabled()
+              .catch(() => false)
+          ) {
+            await income(turnPage)
+              .click()
+              .catch(() => {});
+          }
+        }
+      }
     } else {
       const incEnabled = await income(turnPage)
         .isEnabled()
@@ -1248,8 +1377,9 @@ async function playCoup(s: SimSession): Promise<void> {
 }
 
 /** Banana Thief: ready gate, night clock runs, host opens the vote → reveal. */
-async function playBananaThief(s: SimSession): Promise<void> {
+async function playBananaThief(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
+  const isHostNarrator = entry.configure?.some((c) => c === 'banana-thief-narrator-host');
   await startGame(host);
 
   // SETUP gate: everyone taps "I'm ready!" before the night may begin.
@@ -1259,10 +1389,51 @@ async function playBananaThief(s: SimSession): Promise<void> {
     await readyBtn.click();
   }
 
-  // Night (6 ticks × 3s) → thief picks followers (or the 15s window times out)
-  // → the morning discussion. "The banana is gone" is NOT a reliable marker —
-  // awake mice now see the same text on their night banana card — so wait for
-  // the host's vote control instead.
+  // CHOOSE_FOLLOWER: the thief's page shows candidate buttons marked
+  // "แตะเพื่อเลือก" (tap to choose). Pick while the picker is up so the
+  // follower path is exercised; the phase also self-advances on timeout,
+  // so this is opportunistic and never blocks.
+  const pickFollower = async (): Promise<boolean> => {
+    const thiefPage = await anyVisible(players, (p) =>
+      p.locator('button:has-text("แตะเพื่อเลือก")').first(),
+    );
+    if (!thiefPage) return false;
+    await thiefPage
+      .locator('button:has-text("แตะเพื่อเลือก")')
+      .first()
+      .click({ timeout: 2000 })
+      .catch(() => {});
+    await thiefPage.waitForTimeout(700);
+    return true;
+  };
+  for (let i = 0; i < 6; i++) {
+    if (!(await pickFollower())) break;
+  }
+
+  if (isHostNarrator) {
+    // HOST narrator: no auto clock — the host paces all 6 hours with the
+    // next-hour control (follower picks may still appear between hours).
+    const nextHour = host.getByTestId('banana-thief-next-hour');
+    for (let i = 0; i < 30; i++) {
+      if (
+        await host
+          .getByRole('button', { name: /Start the vote now/i })
+          .isVisible()
+          .catch(() => false)
+      )
+        break;
+      if (await nextHour.isVisible().catch(() => false)) {
+        await nextHour.click().catch(() => {});
+      } else {
+        await pickFollower();
+      }
+      await host.waitForTimeout(900);
+    }
+  }
+
+  // Night (6 ticks × 3s) → the morning discussion. "The banana is gone" is NOT
+  // a reliable marker — awake mice now see the same text on their night banana
+  // card — so wait for the host's vote control instead.
   const startVoteBtn = host.getByRole('button', { name: /Start the vote now/i });
   await expect(startVoteBtn).toBeVisible({ timeout: 90000 });
   await startVoteBtn.click();
@@ -1275,8 +1446,11 @@ async function playBananaThief(s: SimSession): Promise<void> {
     await voteButton.click();
   }
 
+  // Scapegoat rooms can end with the goat-win outcome instead of a team win.
   await expect(
-    host.getByText(/The monkeys win|The thief and Followers win|The thief fled/i).first(),
+    host
+      .getByText(/The monkeys win|The thief and Followers win|The thief fled|The Scapegoat wins/i)
+      .first(),
   ).toBeVisible({ timeout: 20000 });
   await expect(host.getByText(/The Banana Thief was|The thief was/i).first()).toBeVisible({
     timeout: 10000,
@@ -1350,7 +1524,7 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       if (entry.players === 1) return playTicTacToeBot(s);
       return playTicTacToeFamily(s, entry);
     case 'RPS':
-      return playRps(s);
+      return playRps(s, entry);
     case 'WHO_KNOW':
       return playWhoKnow(s);
     case 'SOUNDS_FISHY':
@@ -1368,9 +1542,9 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
     case 'SABOTEUR':
       return playSaboteur(s);
     case 'COUP':
-      return playCoup(s);
+      return playCoup(s, entry);
     case 'BANANA_THIEF':
-      return playBananaThief(s);
+      return playBananaThief(s, entry);
     case 'CARD_GAME':
       return playCardGame(s, entry);
     default:

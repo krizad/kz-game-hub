@@ -39,6 +39,22 @@ export const GAME_MATRIX: MatrixEntry[] = [
     players: 4,
     description: 'Word reveal, questioning, voting, results',
   },
+  {
+    id: 'who-know-random',
+    game: 'WHO_KNOW',
+    lobbyButton: 'Who Know!',
+    players: 4,
+    description: 'Random host selection, full round',
+    configure: ['who-know-host:RANDOM'],
+  },
+  {
+    id: 'who-know-fixed',
+    game: 'WHO_KNOW',
+    lobbyButton: 'Who Know!',
+    players: 4,
+    description: 'Room-creator-fixed host, full round',
+    configure: ['who-know-host:FIXED'],
+  },
 
   // --- Sounds Fishy ---
   {
@@ -115,6 +131,14 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: 'BO3 all at once',
     configure: ['rps-mode:ALL_AT_ONCE', 'rps-bestof:3'],
   },
+  {
+    id: 'rps-allatonce-bo5',
+    game: 'RPS',
+    lobbyButton: 'Hand Duel',
+    players: 2,
+    description: 'BO5 all at once',
+    configure: ['rps-mode:ALL_AT_ONCE', 'rps-bestof:5'],
+  },
 
   // --- Detective Club ---
   {
@@ -179,6 +203,14 @@ export const GAME_MATRIX: MatrixEntry[] = [
     players: 2,
     description: 'Countdown duel with false-start penalty',
     configure: ['who-first-penalty'],
+  },
+  {
+    id: 'who-first-infinite',
+    game: 'WHO_FIRST',
+    lobbyButton: 'Who First',
+    players: 2,
+    description: 'Infinite rounds, host ends the game manually',
+    configure: ['who-first-infinite'],
   },
 
   // --- Music Trivia (mode in lobby; iTunes default source) ---
@@ -252,6 +284,14 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: 'Blind mode, finish by Game Over',
     configure: ['the-mind-maxlevel:3', 'the-mind-blind'],
   },
+  {
+    id: 'the-mind-timeattack',
+    game: 'THE_MIND',
+    lobbyButton: 'The Mind',
+    players: 2,
+    description: 'Time Attack countdown, win or Game Over',
+    configure: ['the-mind-maxlevel:3', 'the-mind-timeattack'],
+  },
 
   // --- Saboteur (3+ players) ---
   {
@@ -271,6 +311,15 @@ export const GAME_MATRIX: MatrixEntry[] = [
     configure: ['saboteur-stone-on'],
     timeout: 420000,
   },
+  {
+    id: 'saboteur-timer',
+    game: 'SABOTEUR',
+    lobbyButton: 'Saboteur',
+    players: 3,
+    description: 'Turn timer on (60s auto-pass), 3 rounds',
+    configure: ['saboteur-timer-on'],
+    timeout: 420000,
+  },
 
   // --- Coup (3 players) ---
   {
@@ -280,8 +329,17 @@ export const GAME_MATRIX: MatrixEntry[] = [
     players: 3,
     description: 'Income rush, coups until one player remains',
   },
+  {
+    id: 'coup-3p-aggressive',
+    game: 'COUP',
+    lobbyButton: 'Coup',
+    players: 3,
+    description: 'Tax/Steal/Assassinate rush until one player remains',
+    timeout: 240000,
+  },
 
-  // --- Banana Thief (4 players) ---
+  // --- Banana Thief (specials / followers / narrator variants) ---
+  // Min players = 1 thief + followerCount + specials (Twins=2) + 2 plain mice.
   {
     id: 'banana-thief-4p',
     game: 'BANANA_THIEF',
@@ -291,6 +349,95 @@ export const GAME_MATRIX: MatrixEntry[] = [
     configure: ['banana-thief-fast'],
     timeout: 180000,
   },
+  {
+    id: 'banana-thief-no-followers',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 4,
+    description: 'No followers, fast night clock',
+    configure: ['banana-thief-fast', 'banana-thief-followers:0'],
+    timeout: 180000,
+  },
+  {
+    id: 'banana-thief-narrator-host',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 4,
+    description: 'Host narrates and paces all 6 hours',
+    configure: ['banana-thief-fast', 'banana-thief-narrator-host'],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-detective',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 5,
+    description: 'Detective special (peek returns the role)',
+    configure: ['banana-thief-fast', 'banana-thief-specials:DETECTIVE'],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-sycophant',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 5,
+    description: 'Sycophant special (thief-team madman)',
+    configure: ['banana-thief-fast', 'banana-thief-specials:SYCOPHANT'],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-scapegoat',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 5,
+    description: 'Scapegoat special (vote target wins alone)',
+    configure: ['banana-thief-fast', 'banana-thief-specials:SCAPEGOAT'],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-two-followers',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 5,
+    description: 'Two followers, thief picks both',
+    configure: ['banana-thief-fast', 'banana-thief-followers:2'],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-twins',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 6,
+    description: 'Twins special pair, mutual names',
+    configure: ['banana-thief-fast', 'banana-thief-followers:0', 'banana-thief-specials:TWINS'],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-specials-multi',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 6,
+    description: 'Two specials assigned (Detective + Sycophant)',
+    configure: [
+      'banana-thief-fast',
+      'banana-thief-followers:0',
+      'banana-thief-specials:DETECTIVE,SYCOPHANT',
+    ],
+    timeout: 240000,
+  },
+  {
+    id: 'banana-thief-all-specials',
+    game: 'BANANA_THIEF',
+    lobbyButton: 'Banana Thief',
+    players: 8,
+    description: 'All four special types selected, 2 assigned',
+    configure: [
+      'banana-thief-fast',
+      'banana-thief-followers:0',
+      'banana-thief-specials:DETECTIVE,TWINS,SYCOPHANT,SCAPEGOAT',
+    ],
+    timeout: 300000,
+  },
 
   // --- Thai Card Game (preset in lobby) ---
   {
@@ -299,6 +446,14 @@ export const GAME_MATRIX: MatrixEntry[] = [
     lobbyButton: 'Thai Card Game',
     players: 2,
     description: 'Pok Deng round to dealer-rotation RESULT',
+  },
+  {
+    id: 'card-pok-deng-timer',
+    game: 'CARD_GAME',
+    lobbyButton: 'Thai Card Game',
+    players: 2,
+    description: 'Pok Deng with the 20s turn timer enabled',
+    configure: ['card-game-timer:20'],
   },
   {
     id: 'card-slave',
