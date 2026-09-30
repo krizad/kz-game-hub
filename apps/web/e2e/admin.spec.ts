@@ -46,12 +46,13 @@ test('admin panel unlocks and lists every game flag and artist preset', async ({
   }
 
   // Artist preset section renders rows (seeded catalogs in the reference DB)
-  // or the explicit empty state — read-only either way.
+  // or the explicit empty state ("No artist presets yet" / Thai) — read-only
+  // either way. CI's local DB has zero artists, so this branch matters there.
   await expect(
     page
       .locator('[data-testid^="admin-artist-toggle-"]')
       .first()
-      .or(page.getByText(/no artists|artist.*empty/i)),
+      .or(page.getByText(/no artist|artists?\s*empty|ยังไม่มีรายชื่อศิลปิน/i)),
   ).toBeVisible({ timeout: 10000 });
 });
 
