@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MusicTriviaService = void 0;
 const common_1 = require("@nestjs/common");
 const private_state_service_1 = require("../private-state.service");
+const artist_preset_service_1 = require("../artist-preset.service");
 const types_1 = require("@repo/types");
 const itunes_adapter_1 = require("./adapters/itunes.adapter");
 const spotify_adapter_1 = require("./adapters/spotify.adapter");
@@ -20,6 +21,7 @@ const youtube_adapter_1 = require("./adapters/youtube.adapter");
 const deezer_adapter_1 = require("./adapters/deezer.adapter");
 const soundcloud_adapter_1 = require("./adapters/soundcloud.adapter");
 const music_source_adapter_1 = require("./music-source-adapter");
+const music_trivia_levels_1 = require("./music-trivia-levels");
 const scheduleCountdownCommand = (deadline) => ({
     kind: 'SCHEDULE',
     name: 'music-trivia-countdown',
@@ -40,8 +42,9 @@ const cancelCountdownTimerCommand = () => ({
 });
 const COUNTDOWN_MS = 3000;
 let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
-    constructor(privateState) {
+    constructor(privateState, artistPresets) {
         this.privateState = privateState;
+        this.artistPresets = artistPresets;
         this.logger = new common_1.Logger(MusicTriviaService_1.name);
         this.sourceFactory = new music_source_adapter_1.MusicSourceFactory();
         this.sourceFactory.register(new itunes_adapter_1.ITunesAdapter());
@@ -58,11 +61,13 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
         if (room.players.length < 2)
             return null;
         const config = room.config;
+        const presetMode = !!config.musicTriviaArtistPresetId;
         room.musicTriviaState = {
             phase: 'SETUP',
             mode: config.musicTriviaMode || 'TYPING',
-            sourceType: config.musicTriviaSource || 'ITUNES',
+            sourceType: presetMode ? 'YOUTUBE' : config.musicTriviaSource || 'ITUNES',
             totalRounds: config.musicTriviaRounds || 10,
+            level: presetMode ? config.musicTriviaLevel || 'EASY' : undefined,
             currentRound: null,
             roundHistory: [],
             readyPlayerIds: [],
@@ -190,6 +195,9 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
                 durationMs: round.track.durationMs,
                 artworkUrl: round.track.artworkUrl,
             },
+            timerCommands: [
+                scheduleAnswerTimeoutCommand(state.playStartTime + (state.answerTimeoutMs || 15000)),
+            ],
         };
     }
     async configureSource(room, clientId, action) {
@@ -198,12 +206,17 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             return null;
         if (state.phase !== 'SETUP')
             return null;
+        const presetId = room.config.musicTriviaArtistPresetId;
+        if (presetId)
+            return this.configureFromPreset(room, clientId, presetId);
         const query = action.query;
         if (!query || query.trim().length === 0)
             return null;
         const sourceType = action.sourceType || state.sourceType;
         state.phase = 'LOADING';
         state.sourceType = sourceType;
+        state.level = undefined;
+        state.artistPresetName = undefined;
         try {
             const adapter = this.sourceFactory.get(sourceType);
             const fetchLimit = Math.max(state.totalRounds * 3, 50);
@@ -222,40 +235,9 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
                     uniqueTracks.push(t);
                 }
             }
-            for (let i = uniqueTracks.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [uniqueTracks[i], uniqueTracks[j]] = [uniqueTracks[j], uniqueTracks[i]];
-            }
+            (0, music_trivia_levels_1.shuffle)(uniqueTracks);
             state.totalRounds = Math.min(state.totalRounds, uniqueTracks.length);
-            const selectedTracks = uniqueTracks.slice(0, state.totalRounds);
-            this.privateState.set(room.code, '__ROOM__', 'mtTrackAnswers', selectedTracks.map((t) => ({
-                id: t.id,
-                title: t.title,
-                artist: t.artist,
-                trackViewUrl: t.trackViewUrl,
-                album: t.album,
-                releaseYear: t.releaseYear,
-            })));
-            this.privateState.set(room.code, '__ROOM__', 'mtFullTracks', selectedTracks);
-            const firstTrack = selectedTracks[0];
-            state.currentRound = this.createRound(1, firstTrack);
-            state.phase = 'GET_READY';
-            state.readyPlayerIds = [];
-            const result = { room };
-            if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
-                const trackAnswer = this.getTrackAnswer(room, 1);
-                const hostPlayer = room.players.find((p) => p.socketId === room.roomHostId);
-                if (hostPlayer && trackAnswer) {
-                    result.hostAnswerTo = {
-                        socketId: hostPlayer.socketId,
-                        title: trackAnswer.title,
-                        artist: trackAnswer.artist,
-                        artworkUrl: firstTrack.artworkUrl,
-                        trackViewUrl: trackAnswer.trackViewUrl,
-                    };
-                }
-            }
-            return result;
+            return this.finalizeSelection(room, uniqueTracks.slice(0, state.totalRounds));
         }
         catch (error) {
             this.logger.error('configureSource failed', error);
@@ -264,6 +246,105 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             state.errorMessage = errorMessage;
             return { room };
         }
+    }
+    async configureFromPreset(room, clientId, presetId) {
+        const state = room.musicTriviaState;
+        state.phase = 'LOADING';
+        state.sourceType = 'YOUTUBE';
+        state.level = room.config.musicTriviaLevel || 'EASY';
+        try {
+            const catalog = await this.artistPresets.getCatalog(presetId);
+            if (!catalog) {
+                state.phase = 'SETUP';
+                state.errorMessage = 'This artist preset is no longer available. Pick another one.';
+                return { room };
+            }
+            state.artistPresetName = catalog.name;
+            const candidates = catalog.tracks.map((track) => ({
+                viewCount: track.viewCount,
+                track: {
+                    id: track.videoId,
+                    title: track.title,
+                    artist: catalog.name,
+                    previewUrl: track.videoId,
+                    durationMs: track.durationMs,
+                    artworkUrl: track.thumbnailUrl ?? undefined,
+                    trackViewUrl: `https://www.youtube.com/watch?v=${track.videoId}`,
+                    sourceType: 'YOUTUBE',
+                    releaseYear: track.releaseYear ? String(track.releaseYear) : undefined,
+                },
+            }));
+            const selected = this.selectPresetTracks(candidates, state.level, state.totalRounds);
+            if (selected.length === 0) {
+                state.phase = 'SETUP';
+                state.errorMessage = 'No playable songs in this artist catalog.';
+                return { room };
+            }
+            state.totalRounds = Math.min(state.totalRounds, selected.length);
+            return this.finalizeSelection(room, selected.slice(0, state.totalRounds));
+        }
+        catch (error) {
+            this.logger.error('configureFromPreset failed', error);
+            state.phase = 'SETUP';
+            state.errorMessage = 'Could not load the artist catalog. Try again later.';
+            return { room };
+        }
+    }
+    selectPresetTracks(candidates, level, totalRounds) {
+        const buckets = {
+            EASY: [],
+            MEDIUM: [],
+            HARD: [],
+        };
+        for (const candidate of candidates) {
+            buckets[(0, music_trivia_levels_1.levelOfViewCount)(candidate.viewCount)].push(candidate);
+        }
+        for (const bucket of Object.values(buckets)) {
+            (0, music_trivia_levels_1.shuffle)(bucket);
+        }
+        const borrowOrder = music_trivia_levels_1.LEVEL_BORROW_ORDER[level];
+        const native = buckets[borrowOrder[0]];
+        const borrowed = borrowOrder.slice(1).flatMap((l) => buckets[l]);
+        (0, music_trivia_levels_1.shuffle)(borrowed);
+        const selection = [...native];
+        for (const candidate of borrowed) {
+            if (selection.length >= totalRounds)
+                break;
+            selection.push(candidate);
+        }
+        return selection.slice(0, totalRounds).map((candidate) => candidate.track);
+    }
+    finalizeSelection(room, selectedTracks) {
+        const state = room.musicTriviaState;
+        this.privateState.set(room.code, '__ROOM__', 'mtTrackAnswers', selectedTracks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            artist: t.artist,
+            trackViewUrl: t.trackViewUrl,
+            album: t.album,
+            releaseYear: t.releaseYear,
+        })));
+        this.privateState.set(room.code, '__ROOM__', 'mtFullTracks', selectedTracks);
+        const firstTrack = selectedTracks[0];
+        state.currentRound = this.createRound(1, firstTrack);
+        state.phase = 'GET_READY';
+        state.readyPlayerIds = [];
+        state.errorMessage = undefined;
+        const result = { room };
+        if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
+            const trackAnswer = this.getTrackAnswer(room, 1);
+            const hostPlayer = room.players.find((p) => p.socketId === room.roomHostId);
+            if (hostPlayer && trackAnswer) {
+                result.hostAnswerTo = {
+                    socketId: hostPlayer.socketId,
+                    title: trackAnswer.title,
+                    artist: trackAnswer.artist,
+                    artworkUrl: firstTrack.artworkUrl,
+                    trackViewUrl: trackAnswer.trackViewUrl,
+                };
+            }
+        }
+        return result;
     }
     startRound(room, clientId) {
         const state = room.musicTriviaState;
@@ -310,11 +391,17 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
     }
     answerTimeout(room) {
         const state = room.musicTriviaState;
-        if (!state || (state.phase !== 'ANSWERING' && state.phase !== 'BUZZED'))
+        if (!state ||
+            (state.phase !== 'PLAYING' && state.phase !== 'ANSWERING' && state.phase !== 'BUZZED'))
             return null;
         const round = state.currentRound;
-        if (!round || !round.currentBuzzerId)
+        if (!round)
             return null;
+        if (!round.currentBuzzerId) {
+            state.phase = 'REVEAL';
+            this.setRevealedAnswer(room);
+            return { room };
+        }
         return this.strikeOutPlayer(room, round.currentBuzzerId, true);
     }
     strikeOutPlayer(room, clientId, resumeMusic) {
@@ -645,6 +732,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
 exports.MusicTriviaService = MusicTriviaService;
 exports.MusicTriviaService = MusicTriviaService = MusicTriviaService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [private_state_service_1.PrivateStateService])
+    __metadata("design:paramtypes", [private_state_service_1.PrivateStateService,
+        artist_preset_service_1.ArtistPresetService])
 ], MusicTriviaService);
 //# sourceMappingURL=music-trivia.service.js.map

@@ -22,16 +22,18 @@ const leaderboard_service_1 = require("./leaderboard/leaderboard.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
 const game_settings_service_1 = require("./game-settings.service");
+const artist_preset_service_1 = require("./artist-preset.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 let GamesGateway = GamesGateway_1 = class GamesGateway {
-    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService) {
+    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService) {
         this.gamesService = gamesService;
         this.leaderboardService = leaderboardService;
         this.roomTimerService = roomTimerService;
         this.privateStateService = privateStateService;
         this.gameSettingsService = gameSettingsService;
+        this.artistPresetService = artistPresetService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
     }
@@ -121,6 +123,70 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.logger.log(`Game ${data.gameType} ${data.enabled ? 'enabled' : 'disabled'}`);
         this.server.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
         this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+    }
+    isAdminKey(adminKey) {
+        return (typeof adminKey === 'string' &&
+            !!process.env.ADMIN_SECRET &&
+            adminKey === process.env.ADMIN_SECRET);
+    }
+    async broadcastArtistPresets() {
+        this.server.emit(types_1.SOCKET_EVENTS.ARTIST_PRESETS_UPDATED, await this.listArtistPresets(false));
+    }
+    async listArtistPresets(includeDisabled) {
+        try {
+            return await this.artistPresetService.listPresets(includeDisabled);
+        }
+        catch (error) {
+            this.logger.error('Failed to list artist presets', error);
+            return [];
+        }
+    }
+    async handleGetArtistPresets(data, client) {
+        const includeDisabled = this.isAdminKey(data?.adminKey);
+        client.emit(types_1.SOCKET_EVENTS.ARTIST_PRESETS_LIST, await this.listArtistPresets(includeDisabled));
+    }
+    async handleSetArtistEnabled(data, client) {
+        if (!this.isAdminKey(data?.adminKey)) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+            return;
+        }
+        if (!data ||
+            typeof data.artistId !== 'string' ||
+            data.artistId.length > 64 ||
+            typeof data.enabled !== 'boolean') {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+            return;
+        }
+        try {
+            await this.artistPresetService.setEnabled(data.artistId, data.enabled);
+        }
+        catch (error) {
+            this.logger.error(`Failed to set artist preset ${data.artistId}`, error);
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Failed to update the artist preset.' });
+            return;
+        }
+        this.logger.log(`Artist preset ${data.artistId} ${data.enabled ? 'enabled' : 'disabled'}`);
+        await this.broadcastArtistPresets();
+    }
+    async handleDeleteArtist(data, client) {
+        if (!this.isAdminKey(data?.adminKey)) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+            return;
+        }
+        if (!data || typeof data.artistId !== 'string' || data.artistId.length > 64) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+            return;
+        }
+        try {
+            await this.artistPresetService.deleteArtist(data.artistId);
+        }
+        catch (error) {
+            this.logger.error(`Failed to delete artist preset ${data.artistId}`, error);
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Failed to delete the artist preset.' });
+            return;
+        }
+        this.logger.log(`Artist preset ${data.artistId} deleted`);
+        await this.broadcastArtistPresets();
     }
     leavePreviousRoom(client, nextRoomCode) {
         const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
@@ -228,6 +294,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             else if (gameType === types_1.GameType.COUP) {
                 msg = 'Cannot start game. Need 3-6 players for Coup.';
             }
+            else if (gameType === types_1.GameType.BANANA_THIEF) {
+                msg = 'Cannot start game. Need at least 4 players.';
+            }
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: msg });
         }
     }
@@ -306,6 +375,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 'coup-block',
                 'music-trivia-countdown',
                 'music-trivia-answer',
+                'banana-thief',
             ]) {
                 this.roomTimerService.cancel(room.code, timerName);
             }
@@ -850,6 +920,107 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot cancel shuriken proposal.' });
         }
     }
+    handleBananaThiefReady(data, client) {
+        const room = this.gamesService.bananaThiefReady(data.code, client.id, !!data.force);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot ready right now.' });
+        }
+    }
+    handleBananaThiefRollDie(data, client) {
+        const room = this.gamesService.bananaThiefRollDie(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot roll the die right now.' });
+        }
+    }
+    handleBananaThiefNextHour(data, client) {
+        const room = this.gamesService.bananaThiefNextHour(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot advance the night right now.' });
+        }
+    }
+    handleBananaThiefPeek(data, client) {
+        const room = this.gamesService.bananaThiefPeek(data.code, client.id, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot peek right now.' });
+        }
+    }
+    handleBananaThiefVote(data, client) {
+        const room = this.gamesService.bananaThiefVote(data.code, client.id, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid vote.' });
+        }
+    }
+    handleBananaThiefChooseFollower(data, client) {
+        if (!data?.code || !data?.targetId)
+            return;
+        const room = this.gamesService.bananaThiefChooseFollower(data.code, client.id, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot choose this follower.' });
+        }
+    }
+    handleBananaThiefStartVote(data, client) {
+        const room = this.gamesService.bananaThiefStartVote(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot start the vote yet.' });
+        }
+    }
+    handleBananaThiefNextRound(data, client) {
+        const room = this.gamesService.bananaThiefNextRound(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to start the next round.' });
+        }
+    }
+    handleBananaThiefReset(data, client) {
+        const room = this.gamesService.resetGame(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+        }
+    }
+    handleBananaThiefReaction(data, client) {
+        if (!this.gamesService.isRoomMember(data.code, client.id))
+            return;
+        if (typeof data.emoji !== 'string' ||
+            !types_1.BANANA_THIEF_REACTIONS.includes(data.emoji)) {
+            return;
+        }
+        const sender = this.gamesService
+            .getRoom(data.code)
+            ?.players.find((p) => p.socketId === client.id);
+        this.server.to(data.code).emit(types_1.SOCKET_EVENTS.BANANA_THIEF_REACTION, {
+            fromName: sender?.name ?? '?',
+            emoji: data.emoji,
+        });
+    }
     async handleLeaderboardGet(data, client) {
         const leaderboard = await this.leaderboardService.getLeaderboard(data?.gameType);
         client.emit(types_1.SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
@@ -880,6 +1051,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (room.gameType === types_1.GameType.CARD_GAME) {
             this.syncCardGameTimer(room);
+        }
+        if (room.gameType === types_1.GameType.BANANA_THIEF) {
+            this.syncBananaThiefTimer(room);
         }
     }
     publicRoomView(room) {
@@ -990,6 +1164,44 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
         });
     }
+    syncBananaThiefTimer(room) {
+        const state = room.bananaThiefState;
+        const deadline = state?.tickEndsAt ?? state?.phaseEndsAt ?? null;
+        if (!state || !deadline) {
+            this.roomTimerService.cancel(room.code, 'banana-thief');
+            return;
+        }
+        if (state.phase === 'RESULT' ||
+            (state.phase === 'NIGHT' && !state.tickEndsAt) ||
+            ((state.phase === 'CHOOSE_FOLLOWER' ||
+                state.phase === 'DISCUSSION' ||
+                state.phase === 'VOTING') &&
+                !state.phaseEndsAt)) {
+            this.roomTimerService.cancel(room.code, 'banana-thief');
+            return;
+        }
+        const phase = state.phase;
+        this.roomTimerService.schedule(room.code, 'banana-thief', deadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            const currentState = currentRoom?.bananaThiefState;
+            if (!currentRoom || !currentState || currentState.phase !== phase)
+                return;
+            const currentDeadline = currentState.tickEndsAt ?? currentState.phaseEndsAt ?? null;
+            if (currentDeadline !== deadline)
+                return;
+            const updated = phase === 'CHOOSE_FOLLOWER'
+                ? this.gamesService.bananaThiefChooseFollowerTimeout(room.code)
+                : phase === 'NIGHT'
+                    ? this.gamesService.bananaThiefTick(room.code)
+                    : phase === 'DISCUSSION'
+                        ? this.gamesService.bananaThiefStartVote(room.code, currentRoom.roomHostId)
+                        : this.gamesService.bananaThiefVotePhaseEnd(room.code);
+            if (updated) {
+                this.broadcastRoomState(updated);
+                this.maybeRecordGameResult(updated);
+            }
+        });
+    }
     emitPrivateStates(room) {
         for (const player of room.players) {
             const data = this.privateStateService.getSocketData(room.code, player.socketId);
@@ -1022,6 +1234,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                             .to(result.room.code)
                             .emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, result.syncPlay);
                     }
+                    this.applyMusicTriviaTimers(code, result.timerCommands);
                 }
             });
         }
@@ -1087,11 +1300,31 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             event === types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS ||
             event === types_1.SOCKET_EVENTS.GET_GAME_SETTINGS)
             return true;
+        if (event === types_1.SOCKET_EVENTS.GET_ARTIST_PRESETS) {
+            if (payload === undefined || payload === null)
+                return true;
+            if (typeof payload !== 'object' || Array.isArray(payload))
+                return false;
+            const d = payload;
+            return (d.adminKey === undefined || (typeof d.adminKey === 'string' && d.adminKey.length <= 200));
+        }
         if (!payload || typeof payload !== 'object' || Array.isArray(payload))
             return false;
         const data = payload;
         if (!this.hasSafeValues(data))
             return false;
+        const isValidArtistId = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(value);
+        if (event === types_1.SOCKET_EVENTS.SET_ARTIST_ENABLED) {
+            return (isValidArtistId(data.artistId) &&
+                typeof data.enabled === 'boolean' &&
+                typeof data.adminKey === 'string' &&
+                data.adminKey.length <= 200);
+        }
+        if (event === types_1.SOCKET_EVENTS.DELETE_ARTIST) {
+            return (isValidArtistId(data.artistId) &&
+                typeof data.adminKey === 'string' &&
+                data.adminKey.length <= 200);
+        }
         if (event === types_1.SOCKET_EVENTS.SET_GAME_ENABLED) {
             return (this.isSettingsKey(data.gameType) &&
                 typeof data.enabled === 'boolean' &&
@@ -1164,6 +1397,12 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 data.keepIndices.length >= 1 &&
                 data.keepIndices.length <= 4 &&
                 data.keepIndices.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 4));
+        }
+        if (event === types_1.SOCKET_EVENTS.BANANA_THIEF_PEEK || event === types_1.SOCKET_EVENTS.BANANA_THIEF_VOTE) {
+            return typeof data.targetId === 'string' && data.targetId.length <= 64;
+        }
+        if (event === types_1.SOCKET_EVENTS.BANANA_THIEF_REACTION) {
+            return types_1.BANANA_THIEF_REACTIONS.includes(data.emoji);
         }
         return true;
     }
@@ -1247,6 +1486,30 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], GamesGateway.prototype, "handleSetGameEnabled", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.GET_ARTIST_PRESETS),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], GamesGateway.prototype, "handleGetArtistPresets", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SET_ARTIST_ENABLED),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], GamesGateway.prototype, "handleSetArtistEnabled", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.DELETE_ARTIST),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], GamesGateway.prototype, "handleDeleteArtist", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CREATE_ROOM),
     __param(0, (0, websockets_1.MessageBody)()),
@@ -1704,6 +1967,86 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleTheMindCancelShuriken", null);
 __decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_READY),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefReady", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_ROLL_DIE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefRollDie", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_NEXT_HOUR),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefNextHour", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_PEEK),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefPeek", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_VOTE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefVote", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_CHOOSE_FOLLOWER),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefChooseFollower", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_START_VOTE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefStartVote", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_NEXT_ROUND),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefNextRound", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_RESET),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefReset", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BANANA_THIEF_REACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBananaThiefReaction", null);
+__decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.LEADERBOARD_GET),
     __param(0, (0, websockets_1.MessageBody)()),
     __param(1, (0, websockets_1.ConnectedSocket)()),
@@ -1732,6 +2075,7 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
         leaderboard_service_1.LeaderboardService,
         room_timer_service_1.RoomTimerService,
         private_state_service_1.PrivateStateService,
-        game_settings_service_1.GameSettingsService])
+        game_settings_service_1.GameSettingsService,
+        artist_preset_service_1.ArtistPresetService])
 ], GamesGateway);
 //# sourceMappingURL=games.gateway.js.map

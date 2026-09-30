@@ -11,6 +11,7 @@ import { MusicTriviaService, MusicTriviaActionResult } from './music-trivia/musi
 import { TheMindService } from './the-mind/the-mind.service';
 import { SaboteurService } from './saboteur/saboteur.service';
 import { CoupService } from './coup/coup.service';
+import { BananaThiefService } from './banana-thief/banana-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
@@ -49,6 +50,7 @@ export declare class GamesService {
     private readonly theMindService;
     private readonly saboteurService;
     private readonly coupService;
+    private readonly bananaThiefService;
     private readonly ultimateTicTacToeService;
     private readonly playerSessionService;
     private readonly privateStateService;
@@ -60,7 +62,7 @@ export declare class GamesService {
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, gameSettings: GameSettingsService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, gameSettings: GameSettingsService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
@@ -188,5 +190,16 @@ export declare class GamesService {
     theMindVoteShuriken(code: string, clientId: string, agree: boolean): RoomState | null;
     theMindCancelShuriken(code: string, clientId: string): RoomState | null;
     theMindServerTimeout(code: string): RoomState | null;
+    bananaThiefReady(code: string, clientId: string, force?: boolean): RoomState | null;
+    bananaThiefRollDie(code: string, clientId: string): RoomState | null;
+    bananaThiefNextHour(code: string, clientId: string): RoomState | null;
+    bananaThiefTick(code: string): RoomState | null;
+    bananaThiefPeek(code: string, clientId: string, targetId: string): RoomState | null;
+    bananaThiefStartVote(code: string, clientId: string): RoomState | null;
+    bananaThiefVote(code: string, clientId: string, targetId: string): RoomState | null;
+    bananaThiefVotePhaseEnd(code: string): RoomState | null;
+    bananaThiefChooseFollower(code: string, clientId: string, targetId: string): RoomState | null;
+    bananaThiefChooseFollowerTimeout(code: string): RoomState | null;
+    bananaThiefNextRound(code: string, clientId: string): RoomState | null;
     private getPlayerId;
 }

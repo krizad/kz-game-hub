@@ -23,12 +23,14 @@ const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const saboteur_service_1 = require("./saboteur/saboteur.service");
 const coup_service_1 = require("./coup/coup.service");
+const banana_thief_service_1 = require("./banana-thief/banana-thief.service");
 const ultimate_tic_tac_toe_service_1 = require("./ultimate-tic-tac-toe/ultimate-tic-tac-toe.service");
 const player_session_service_1 = require("./player-session.service");
 const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
 const card_game_service_1 = require("./card-game/card-game.service");
 const game_settings_service_1 = require("./game-settings.service");
+const artist_preset_service_1 = require("./artist-preset.service");
 let GamesModule = class GamesModule {
 };
 exports.GamesModule = GamesModule;
@@ -50,12 +52,14 @@ exports.GamesModule = GamesModule = __decorate([
             the_mind_service_1.TheMindService,
             saboteur_service_1.SaboteurService,
             coup_service_1.CoupService,
+            banana_thief_service_1.BananaThiefService,
             ultimate_tic_tac_toe_service_1.UltimateTicTacToeService,
             player_session_service_1.PlayerSessionService,
             room_timer_service_1.RoomTimerService,
             private_state_service_1.PrivateStateService,
             card_game_service_1.CardGameService,
             game_settings_service_1.GameSettingsService,
+            artist_preset_service_1.ArtistPresetService,
         ],
     })
 ], GamesModule);

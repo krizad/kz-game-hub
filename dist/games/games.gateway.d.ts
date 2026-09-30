@@ -5,17 +5,19 @@ import { LeaderboardService } from './leaderboard/leaderboard.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, SetGameEnabledPayload } from '@repo/types';
+import { ArtistPresetService } from './artist-preset.service';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, BananaThiefChooseFollowerPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
     private readonly roomTimerService;
     private readonly privateStateService;
     private readonly gameSettingsService;
+    private readonly artistPresetService;
     server: Server;
     private readonly logger;
     private readonly recordedResults;
-    constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService);
+    constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService, artistPresetService: ArtistPresetService);
     afterInit(): void;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
@@ -25,6 +27,12 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleGetAvailableRooms(client: Socket): void;
     handleGetGameSettings(client: Socket): void;
     handleSetGameEnabled(data: SetGameEnabledPayload, client: Socket): Promise<void>;
+    private isAdminKey;
+    private broadcastArtistPresets;
+    private listArtistPresets;
+    handleGetArtistPresets(data: GetArtistPresetsPayload | undefined, client: Socket): Promise<void>;
+    handleSetArtistEnabled(data: SetArtistEnabledPayload, client: Socket): Promise<void>;
+    handleDeleteArtist(data: DeleteArtistPayload, client: Socket): Promise<void>;
     private leavePreviousRoom;
     handleCreateRoom(data: {
         name: string;
@@ -250,6 +258,38 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleTheMindCancelShuriken(data: {
         code: string;
     }, client: Socket): void;
+    handleBananaThiefReady(data: {
+        code: string;
+        force?: boolean;
+    }, client: Socket): void;
+    handleBananaThiefRollDie(data: {
+        code: string;
+    }, client: Socket): void;
+    handleBananaThiefNextHour(data: {
+        code: string;
+    }, client: Socket): void;
+    handleBananaThiefPeek(data: {
+        code: string;
+        targetId: string;
+    }, client: Socket): void;
+    handleBananaThiefVote(data: {
+        code: string;
+        targetId: string;
+    }, client: Socket): void;
+    handleBananaThiefChooseFollower(data: BananaThiefChooseFollowerPayload, client: Socket): void;
+    handleBananaThiefStartVote(data: {
+        code: string;
+    }, client: Socket): void;
+    handleBananaThiefNextRound(data: {
+        code: string;
+    }, client: Socket): void;
+    handleBananaThiefReset(data: {
+        code: string;
+    }, client: Socket): void;
+    handleBananaThiefReaction(data: {
+        code: string;
+        emoji: string;
+    }, client: Socket): void;
     handleLeaderboardGet(data: {
         gameType?: string;
     }, client: Socket): Promise<void>;
@@ -264,6 +304,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncCoupBlockTimer;
     private syncSaboteurTimer;
     private syncCardGameTimer;
+    private syncBananaThiefTimer;
     private emitPrivateStates;
     private emitSessionToken;
     private applyMusicTriviaTimers;

@@ -1,5 +1,7 @@
 import { PrivateStateService } from '../private-state.service';
-import { MusicTriviaAction, MusicTriviaState, MusicTriviaSyncPlayPayload, RoomState } from '@repo/types';
+import { ArtistPresetService } from '../artist-preset.service';
+import { MusicTriviaAction, MusicTriviaLevel, MusicTriviaState, MusicTriviaSyncPlayPayload, RoomState } from '@repo/types';
+import { TrackResult } from './music-source-adapter';
 export type MusicTriviaTimerName = 'music-trivia-countdown' | 'music-trivia-answer';
 export type MusicTriviaTimerCommand = {
     kind: 'SCHEDULE';
@@ -9,6 +11,10 @@ export type MusicTriviaTimerCommand = {
     kind: 'CANCEL';
     name: MusicTriviaTimerName;
 };
+interface PresetTrackCandidate {
+    track: TrackResult;
+    viewCount: number;
+}
 export interface MusicTriviaActionResult {
     room: RoomState;
     syncPlay?: MusicTriviaSyncPlayPayload;
@@ -27,9 +33,10 @@ export interface MusicTriviaActionResult {
 }
 export declare class MusicTriviaService {
     private readonly privateState;
+    private readonly artistPresets;
     private readonly logger;
     private sourceFactory;
-    constructor(privateState: PrivateStateService);
+    constructor(privateState: PrivateStateService, artistPresets: ArtistPresetService);
     startGame(room: RoomState, requesterId: string): RoomState | null;
     handleGameAction(room: RoomState, clientId: string, action: MusicTriviaAction): Promise<MusicTriviaActionResult | null>;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
@@ -39,6 +46,9 @@ export declare class MusicTriviaService {
     private startCountdown;
     finalizeCountdown(room: RoomState): MusicTriviaActionResult | null;
     private configureSource;
+    private configureFromPreset;
+    selectPresetTracks(candidates: PresetTrackCandidate[], level: MusicTriviaLevel, totalRounds: number): TrackResult[];
+    private finalizeSelection;
     private startRound;
     private pressBuzzer;
     answerTimeout(room: RoomState): MusicTriviaActionResult | null;
@@ -60,3 +70,4 @@ export declare class MusicTriviaService {
     private levenshteinDistance;
     fuzzyMatch(input: string, target: string): boolean;
 }
+export {};

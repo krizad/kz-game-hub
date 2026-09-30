@@ -26,6 +26,7 @@ const music_trivia_service_1 = require("./music-trivia/music-trivia.service");
 const the_mind_service_1 = require("./the-mind/the-mind.service");
 const saboteur_service_1 = require("./saboteur/saboteur.service");
 const coup_service_1 = require("./coup/coup.service");
+const banana_thief_service_1 = require("./banana-thief/banana-thief.service");
 const ultimate_tic_tac_toe_service_1 = require("./ultimate-tic-tac-toe/ultimate-tic-tac-toe.service");
 const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
@@ -36,7 +37,7 @@ const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, gameSettings) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, gameSettings) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -49,6 +50,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.theMindService = theMindService;
         this.saboteurService = saboteurService;
         this.coupService = coupService;
+        this.bananaThiefService = bananaThiefService;
         this.ultimateTicTacToeService = ultimateTicTacToeService;
         this.playerSessionService = playerSessionService;
         this.privateStateService = privateStateService;
@@ -190,6 +192,15 @@ let GamesService = GamesService_1 = class GamesService {
             room.cardGameConfig = presets_1.CARD_GAME_PRESETS[presetId].defaultConfig;
             room.cardGameAllowedOptions = presets_1.CARD_GAME_PRESETS[presetId].allowed;
         }
+        else if (gameType === types_1.GameType.BANANA_THIEF) {
+            room.config.bananaThiefNarrator = 'AUTO';
+            room.config.bananaThiefDlc = false;
+            room.config.bananaThiefTickSeconds = 6;
+            room.config.bananaThiefDiscussionSeconds = 180;
+            room.config.bananaThiefVoteSeconds = 15;
+            room.config.bananaThiefFollowerCount = 1;
+            room.config.bananaThiefSelectedSpecials = [];
+        }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
@@ -252,6 +263,10 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.coupState) {
                 this.coupService.remapSocketId(room.coupState, oldSocketId, user.socketId);
+            }
+            if (room.bananaThiefState) {
+                this.bananaThiefService.remapSocketId(room.bananaThiefState, oldSocketId, user.socketId);
+                this.bananaThiefService.remapRoomSecrets(code, oldSocketId, user.socketId);
             }
             if (room.ultimateTicTacToeState) {
                 this.ultimateTicTacToeService.remapSocketId(room.ultimateTicTacToeState, oldSocketId, user.socketId);
@@ -421,6 +436,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (room.gameType === types_1.GameType.WHO_AM_I && room.whoAmIState) {
             this.whoAmIService.handlePlayerDisconnect(room, socketId);
         }
+        if (room.gameType === types_1.GameType.BANANA_THIEF && room.bananaThiefState) {
+            this.bananaThiefService.handlePlayerDisconnect(room, socketId);
+        }
     }
     transferHost(room, formerHostSocketId) {
         const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId && p.socketId !== types_1.BOT_SOCKET_ID);
@@ -462,6 +480,10 @@ let GamesService = GamesService_1 = class GamesService {
         if (room.roomHostId !== requesterId)
             return null;
         const safeConfig = this.sanitizeRoomConfig(config);
+        const clearArtistPreset = safeConfig.musicTriviaArtistPresetId === null;
+        if (clearArtistPreset) {
+            delete safeConfig.musicTriviaArtistPresetId;
+        }
         if (room.gameType === types_1.GameType.CARD_GAME &&
             safeConfig.cardGamePreset &&
             safeConfig.cardGamePreset !== room.config.cardGamePreset) {
@@ -482,6 +504,10 @@ let GamesService = GamesService_1 = class GamesService {
             this.switchTicTacToeMode(room, safeConfig.ticTacToeMode);
         }
         room.config = { ...room.config, ...safeConfig };
+        if (clearArtistPreset) {
+            delete room.config.musicTriviaArtistPresetId;
+            delete room.config.musicTriviaLevel;
+        }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
@@ -634,6 +660,14 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('musicTriviaAnswerTimeoutMs', 1_000, 120_000);
         copyEnum('musicTriviaAudioPlayback', ['HOST_ONLY', 'EVERYONE']);
         copyEnum('musicTriviaAnswerCriteria', ['ANY', 'TITLE', 'ARTIST']);
+        copyEnum('musicTriviaLevel', ['EASY', 'MEDIUM', 'HARD']);
+        if (typeof config.musicTriviaArtistPresetId === 'string' &&
+            /^[a-zA-Z0-9_-]{1,64}$/.test(config.musicTriviaArtistPresetId)) {
+            result.musicTriviaArtistPresetId = config.musicTriviaArtistPresetId;
+        }
+        else if (config.musicTriviaArtistPresetId === null) {
+            result.musicTriviaArtistPresetId = null;
+        }
         copyInteger('theMindStartingLives', 1, 10);
         copyInteger('theMindStartingShurikens', 0, 10);
         copyBoolean('theMindBlindMode');
@@ -643,6 +677,16 @@ let GamesService = GamesService_1 = class GamesService {
         copyBoolean('saboteurTurnTimerEnabled');
         copyInteger('saboteurTurnTimerSeconds', 5, 300);
         copyBoolean('saboteurStoneEndsRound');
+        copyInteger('bananaThiefTickSeconds', 1, 15);
+        copyEnum('bananaThiefNarrator', ['AUTO', 'HOST']);
+        copyBoolean('bananaThiefDlc');
+        copyInteger('bananaThiefDiscussionSeconds', 30, 600);
+        copyInteger('bananaThiefVoteSeconds', 15, 180);
+        copyInteger('bananaThiefFollowerCount', 0, 3);
+        if (Array.isArray(config.bananaThiefSelectedSpecials)) {
+            const validSpecials = Object.values(types_1.BananaThiefSpecial);
+            result.bananaThiefSelectedSpecials = config.bananaThiefSelectedSpecials.filter((s) => validSpecials.includes(s));
+        }
         return result;
     }
     isViewerClient(room, socketId) {
@@ -731,6 +775,10 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.gameType === types_1.GameType.CARD_GAME) {
             const startedRoom = this.withRoom(code, (r) => this.cardGameService.startCardRound(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
+        if (room.gameType === types_1.GameType.BANANA_THIEF) {
+            const startedRoom = this.withRoom(code, (r) => this.bananaThiefService.startRound(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
         if (room.gameType === types_1.GameType.WHO_KNOW) {
@@ -824,6 +872,8 @@ let GamesService = GamesService_1 = class GamesService {
                 return this.withRoom(code, (r) => this.theMindService.resetGame(r, requesterId));
             case types_1.GameType.SABOTEUR:
                 return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
+            case types_1.GameType.BANANA_THIEF:
+                return this.withRoom(code, (r) => this.bananaThiefService.reset(r, requesterId));
             default:
                 return null;
         }
@@ -1174,6 +1224,55 @@ let GamesService = GamesService_1 = class GamesService {
             return this.theMindService.handleTimeout(room);
         });
     }
+    bananaThiefReady(code, clientId, force = false) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.ready(room, clientId, force));
+    }
+    bananaThiefRollDie(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.rollDie(room, clientId));
+    }
+    bananaThiefNextHour(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.nextHour(room, clientId));
+    }
+    bananaThiefTick(code) {
+        return this.withRoom(code, (room) => this.bananaThiefService.tick(room));
+    }
+    bananaThiefPeek(code, clientId, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.peek(room, clientId, targetId));
+    }
+    bananaThiefStartVote(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.startVote(room, clientId));
+    }
+    bananaThiefVote(code, clientId, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.vote(room, clientId, targetId));
+    }
+    bananaThiefVotePhaseEnd(code) {
+        return this.withRoom(code, (room) => this.bananaThiefService.handleVotePhaseEnd(room));
+    }
+    bananaThiefChooseFollower(code, clientId, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.chooseFollower(room, clientId, targetId));
+    }
+    bananaThiefChooseFollowerTimeout(code) {
+        return this.withRoom(code, (room) => this.bananaThiefService.chooseFollowerTimeout(room));
+    }
+    bananaThiefNextRound(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.bananaThiefService.startRound(room, clientId));
+    }
     getPlayerId(room, socketId) {
         return room.players.find((player) => player.socketId === socketId)?.id ?? null;
     }
@@ -1194,6 +1293,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         the_mind_service_1.TheMindService,
         saboteur_service_1.SaboteurService,
         coup_service_1.CoupService,
+        banana_thief_service_1.BananaThiefService,
         ultimate_tic_tac_toe_service_1.UltimateTicTacToeService,
         player_session_service_1.PlayerSessionService,
         private_state_service_1.PrivateStateService,
