@@ -1,0 +1,87 @@
+name: Nightly tests
+
+# Test-only workflow (jest + Playwright e2e). Never gates PRs; run nightly or
+# on demand. Uses a LOCAL MySQL service container — the repo .env points at
+# the production database and must never be loaded here.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 20 * * *' # 03:00 +07 daily
+
+concurrency:
+  group: nightly-tests
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: kz_game_hub
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # Local service DB only — NEVER the repo .env (production MySQL).
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/kz_game_hub
+      ADMIN_SECRET: e2e-dummy-secret
+      DISABLE_GAME_SETTINGS_DB: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages (build order matters)
+        run: pnpm build --filter=@repo/types --filter=@repo/database
+
+      - name: Push schema and seed reference data (local DB)
+        run: |
+          pnpm db:push
+          pnpm db:seed
+
+      - name: Jest (API)
+        run: pnpm -F api test
+
+      - name: Playwright browsers
+        run: pnpm -F web exec playwright install --with-deps chromium
+
+      # Playwright configs spawn API (3101) + web (3100) themselves with
+      # DISABLE_GAME_SETTINGS_DB=1. SoundCloud/YouTube sim entries stay
+      # skipped (external, network-flaky) — E2E_SIM_INCLUDE_EXTERNAL is
+      # deliberately not set.
+      - name: E2E main suite
+        run: pnpm -F web exec playwright test --reporter=list
+
+      - name: E2E sim suite (all default matrix entries)
+        run: E2E_SIM_PLAYS=1 pnpm -F web exec playwright test -c playwright.sim.config.ts --reporter=list
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          retention-days: 7

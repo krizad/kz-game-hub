@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, type Locator } from '@playwright/test';
 
 export async function waitForConnection(page: Page) {
   await page.waitForFunction(
@@ -11,6 +11,25 @@ export async function waitForConnection(page: Page) {
     { timeout: 20000 },
   );
   await page.locator('h1').waitFor({ state: 'visible', timeout: 5000 });
+}
+
+/**
+ * Poll several candidate locators until one is visible; returns the first
+ * match or null when the budget runs out. Shared by specs that drive
+ * random-role games where the next control can appear on any player's page.
+ */
+export async function waitForAnyVisible(
+  locators: Locator[],
+  timeout = 15000,
+): Promise<Locator | null> {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    for (const loc of locators) {
+      if (await loc.isVisible({ timeout: 250 }).catch(() => false)) return loc;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  return null;
 }
 
 export async function switchToEnglish(page: Page) {

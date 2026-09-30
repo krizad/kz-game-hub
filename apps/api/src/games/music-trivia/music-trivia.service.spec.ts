@@ -264,6 +264,20 @@ describe('MusicTriviaService', () => {
 
       expect(service.answerTimeout(room)).toBeNull();
     });
+
+    it('reveals the answer when the deadline passes with nobody buzzing', () => {
+      const room = createAnsweringRoom();
+      // Nobody has buzzed yet: the round sits in PLAYING with no buzzer
+      room.musicTriviaState!.phase = 'PLAYING';
+      room.musicTriviaState!.currentRound!.currentBuzzerId = null;
+
+      const result = service.answerTimeout(room);
+
+      expect(result).not.toBeNull();
+      expect(result!.room.musicTriviaState!.phase).toBe('REVEAL');
+      // The round is kept intact for the history entry on NEXT_ROUND
+      expect(result!.room.musicTriviaState!.currentRound).not.toBeNull();
+    });
   });
 
   describe('configureSource', () => {
@@ -351,6 +365,56 @@ describe('MusicTriviaService', () => {
     };
 
     expect(service.finalizeCountdown(room)).toBeNull();
+  });
+
+  it('finalizeCountdown arms the per-round answer timeout when PLAYING starts', () => {
+    const room: RoomState = {
+      id: 'room-1',
+      gameType: GameType.MUSIC_TRIVIA,
+      code: 'ABCDEF',
+      status: RoomStatus.LOBBY,
+      roomHostId: 'host-1',
+      players: [
+        { id: '1', socketId: 'host-1', name: 'Host', score: 0, roomId: 'room-1' },
+        { id: '2', socketId: 'player-2', name: 'Player2', score: 0, roomId: 'room-1' },
+        { id: '3', socketId: 'player-3', name: 'Player3', score: 0, roomId: 'room-1' },
+      ],
+      createdAt: new Date(),
+      config: {
+        hostSelection: 'FIXED',
+        timerMin: 5,
+        musicTriviaMode: 'TYPING',
+        musicTriviaSource: 'ITUNES',
+        musicTriviaRounds: 10,
+        musicTriviaHostPlays: false,
+        musicTriviaAnswerTimeoutMs: 15000,
+      },
+    };
+    service.startGame(room, 'host-1');
+    const state = room.musicTriviaState!;
+    state.phase = 'COUNTDOWN';
+    state.playStartTime = undefined;
+    state.currentRound = {
+      roundNumber: 1,
+      track: {
+        id: 't1',
+        previewUrl: 'https://example.com/preview.m4a',
+        sourceType: 'ITUNES',
+        durationMs: 30000,
+      },
+      buzzerPresses: [],
+      currentBuzzerId: null,
+      struckOutIds: [],
+      answeredCorrectly: false,
+      winnerId: null,
+    };
+
+    const result = service.finalizeCountdown(room);
+
+    expect(result).not.toBeNull();
+    const schedule = result!.timerCommands?.find((cmd) => cmd.kind === 'SCHEDULE');
+    expect(schedule).toBeDefined();
+    expect(schedule!.name).toBe('music-trivia-answer');
   });
 
   it('startGame refuses to restart a running game', () => {

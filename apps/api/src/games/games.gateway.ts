@@ -1777,6 +1777,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
               .to(result.room.code)
               .emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, result.syncPlay);
           }
+          // Timer-driven results can chain further timers (e.g. the answer
+          // timeout armed when the countdown finalizes into PLAYING) — apply
+          // them or they are silently dropped.
+          this.applyMusicTriviaTimers(code, result.timerCommands);
         }
       });
     }

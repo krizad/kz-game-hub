@@ -136,7 +136,8 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         break;
       }
       case 'music-trivia-rounds': {
-        await selectNeobrutalism(page, /Rounds/i, new RegExp(`${value} Rounds`, 'i'));
+        // \b so "5 Rounds" can't substring-match the "25 Rounds" option
+        await selectNeobrutalism(page, /Rounds/i, new RegExp(`\\b${value} Rounds\\b`, 'i'));
         break;
       }
       case 'music-trivia-query': {
@@ -344,6 +345,27 @@ async function clickIfVisible(loc: Locator, timeout = 1500): Promise<boolean> {
   return false;
 }
 
+/**
+ * Heal a page whose renderer is starved or whose socket died mid-game: a
+ * crashed/frozen page keeps rendering its LAST frame (stale buzz buttons
+ * included) and silently swallows every emit. `evaluate` races a short
+ * timeout; on failure a reload brings the page back via its persisted
+ * reconnect token (same mechanism the reconnect spec proves out).
+ */
+async function healPage(page: Page, timeoutMs = 3000): Promise<void> {
+  const alive = await Promise.race([
+    page
+      .evaluate(() => true)
+      .then(() => true)
+      .catch(() => false),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), timeoutMs)),
+  ]);
+  if (!alive) {
+    await page.reload().catch(() => {});
+    await page.waitForTimeout(1500);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Game drivers                                                        */
 /* ------------------------------------------------------------------ */
@@ -440,6 +462,11 @@ async function playTicTacToeBot(s: SimSession): Promise<void> {
   const host = s.host;
   await host.locator('[data-testid="ttt-join-x"]').click();
   const cells = host.locator('div.grid.grid-cols-3 button');
+  // The board only renders once the server broadcasts status PLAYING; under
+  // load that can land well after the join click. Reading `allInnerTexts()`
+  // before it renders returns [] and the loop below breaks on "no empty
+  // cells" without ever moving — the historic bot-flake signature.
+  await expect(cells).toHaveCount(9, { timeout: 15000 });
   const resultPanel = host.locator(
     'button:has-text("Play Again"), button:has-text("เล่นอีกครั้ง")',
   );
@@ -974,24 +1001,42 @@ async function playWhoFirst(s: SimSession): Promise<void> {
 }
 
 /** Music Trivia (TYPING or GAME_MASTER) to Game Over. */
-async function playMusicTrivia(s: SimSession): Promise<void> {
+async function playMusicTrivia(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
-  const [p1, p2] = players;
   await startGame(host);
-  // SETUP → "I'm Ready!" on both pages
-  await p1.getByText("I'm Ready!").waitFor({ state: 'visible', timeout: 60000 });
-  await p2.getByText("I'm Ready!").waitFor({ state: 'visible', timeout: 60000 });
-  await p1.getByText("I'm Ready!").click();
-  await p2.getByText("I'm Ready!").click();
-  const isGameMaster = await host
-    .getByText(/Voice \(Host Judge\)|GAME MASTER/i)
-    .isVisible()
-    .catch(() => false);
+  // GET_READY gate: ready everyone as many times as the gate appears
+  for (let readyPass = 0; readyPass < 10; readyPass++) {
+    await clickIfVisible(players[0].getByText("I'm Ready!"), 800);
+    let missingReady = false;
+    for (const p of players) {
+      if (
+        await p
+          .getByText("I'm Ready!")
+          .isVisible()
+          .catch(() => false)
+      ) {
+        missingReady = true;
+      }
+    }
+    if (!missingReady) break;
+    await host.waitForTimeout(500);
+  }
+  // The in-game strip shows a short "MODE: VOICE/TYPING" label, not the
+  // lobby's "Voice (Host Judge)" option text — read the mode from what the
+  // matrix entry configured instead of guessing from the UI.
+  const isGameMaster = entry.configure?.some((c) => c === 'music-trivia-mode:GAME_MASTER') ?? false;
   const startSong = host.getByText('Start Song (Countdown)');
   await expect(startSong).toBeVisible({ timeout: 20000 });
   await startSong.click();
-  // Rounds may auto-advance; loop until Game Over shows up
-  for (let i = 0; i < 10; i++) {
+  // Rounds advance on their own now (armed answer timeout + host auto-next),
+  // but each timeout-driven round costs ~28s. Buzzing resolves a round in a
+  // few seconds, so drive it actively — and keep going on a TIME BUDGET, not
+  // a fixed iteration count, so slow rounds still reach Game Over. A wrong or
+  // given-up answer STRIKES THE BUZZER OUT for the round and flips their
+  // button to '❌ X', so every pass scans ALL pages for whoever currently has
+  // a live buzzer instead of waiting on one page.
+  const deadline = Date.now() + 200000;
+  while (Date.now() < deadline) {
     if (
       await host
         .getByText(/Game Over/i)
@@ -1000,44 +1045,69 @@ async function playMusicTrivia(s: SimSession): Promise<void> {
         .catch(() => false)
     )
       break;
-    if (isGameMaster) {
-      // GM mode: a non-host buzzes, the host judges Yes
-      const buzz = p2.locator('button:has-text("BUZZ!")').last();
-      await buzz.waitFor({ state: 'attached', timeout: 45000 });
-      await buzz.scrollIntoViewIfNeeded();
-      await buzz.click({ force: true, timeout: 10000 });
-      const input = p2.getByPlaceholder('Type answer here...');
-      await input.waitFor({ state: 'visible', timeout: 5000 });
-      await input.fill('Bob guess');
-      await p2.keyboard.press('Enter');
+    // Ready gates also reappear between rounds in some flows — clear them.
+    // Heal dead/starved pages FIRST so a stale frame can't win the buzzer scan.
+    for (const p of players) {
+      await healPage(p);
+      await clickIfVisible(p.getByText("I'm Ready!"), 300);
+    }
+    const candidates = isGameMaster ? players.slice(1) : players;
+    const buzzerPage = await anyVisible(candidates, (p) =>
+      p.locator('button:has-text("BUZZ!")').first(),
+    );
+    if (buzzerPage) {
+      const buzz = buzzerPage.locator('button:has-text("BUZZ!")').last();
+      await buzz.scrollIntoViewIfNeeded().catch(() => {});
+      await buzz.click({ force: true, timeout: 5000 }).catch(() => {});
+      const input = buzzerPage.getByPlaceholder('Type answer here...');
+      if (await input.waitFor({ state: 'visible', timeout: 2500 }).catch(() => false)) {
+        await input.fill('Sim guess').catch(() => {});
+        await buzzerPage.keyboard.press('Enter').catch(() => {});
+      } else if (isGameMaster) {
+        // GM mode with no input: nothing to judge yet — move on
+      } else {
+        // Typing mode fallback: Give Up strikes this buzzer immediately so
+        // the round resolves without waiting out the answer timeout
+        await clickIfVisible(
+          buzzerPage
+            .locator('button')
+            .filter({ hasText: /Give Up|ยอมแพ้/i })
+            .first(),
+          1500,
+        );
+      }
+      if (isGameMaster) {
+        // Host judges the submitted answer as correct so the round resolves
+        await clickIfVisible(
+          host
+            .locator('button')
+            .filter({ hasText: /Yes \(Correct\)/i })
+            .first(),
+          8000,
+        );
+      }
+    } else if (isGameMaster) {
       await clickIfVisible(
         host
           .locator('button')
           .filter({ hasText: /Yes \(Correct\)/i })
           .first(),
-        10000,
+        1000,
       );
-    } else {
-      const buzz = p1.locator('button:has-text("BUZZ!")').first();
-      await buzz.waitFor({ state: 'attached', timeout: 45000 });
-      await buzz.scrollIntoViewIfNeeded();
-      await buzz.click({ force: true, timeout: 10000 });
-      const input = p1.getByPlaceholder('Type answer here...');
-      await input.waitFor({ state: 'visible', timeout: 5000 });
-      await input.fill('Alice guess');
-      await p1.keyboard.press('Enter');
     }
     await clickIfVisible(
       host
         .locator('button')
         .filter({ hasText: /Next Round/i })
         .first(),
-      8000,
+      1500,
     );
-    await host.waitForTimeout(800);
+    await host.waitForTimeout(600);
   }
   await expect(host.getByText(/Game Over/i).first()).toBeVisible({ timeout: 45000 });
-  await expect(p2.getByText(/Game Over/i).first()).toBeVisible({ timeout: 45000 });
+  await expect(players[players.length - 1].getByText(/Game Over/i).first()).toBeVisible({
+    timeout: 45000,
+  });
 }
 
 /**
@@ -1536,7 +1606,7 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
     case 'WHO_FIRST':
       return playWhoFirst(s);
     case 'MUSIC_TRIVIA':
-      return playMusicTrivia(s);
+      return playMusicTrivia(s, entry);
     case 'THE_MIND':
       return playTheMind(s);
     case 'SABOTEUR':

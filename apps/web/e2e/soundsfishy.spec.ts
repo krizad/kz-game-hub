@@ -1,101 +1,105 @@
-import { test, expect } from '@playwright/test';
-import { createRoom, joinRoom, getOrigin } from './helpers';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import { createRoom, joinRoom, getOrigin, waitForAnyVisible } from './helpers';
 
+/**
+ * Sounds Fishy: hard assertions at every deterministic gate. Roles are
+ * server-random, so completion is asserted as "Round Over reached", never a
+ * specific winner (same contract as the sim driver).
+ */
 test.describe('Sounds Fishy Gameplay', () => {
-  test('three players can start game and enter answer phase', async ({ browser }) => {
+  test('three players play a full round to Round Over', async ({ browser }) => {
+    test.setTimeout(120000);
     const contexts = await Promise.all([
       browser.newContext(),
       browser.newContext(),
       browser.newContext(),
     ]);
     const [p1, p2, p3] = await Promise.all(contexts.map((c) => c.newPage()));
+    const pages: Page[] = [p1, p2, p3];
 
     const roomCode = await createRoom(p1, 'FishHost', 'Sounds Fishy');
     const origin = await getOrigin(p1);
-
     await joinRoom(p2, origin, roomCode, 'F1');
     await joinRoom(p3, origin, roomCode, 'F2');
 
-    // All should be in the room
-    await p1.waitForTimeout(1500);
-
-    // Host starts game
+    // Start — the Start button must exist for the host and clicking it must
+    // leave the lobby
     const startBtn = p1.getByText('Start Game');
-    if (await startBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await startBtn.click();
-      await p1.waitForTimeout(3000);
-    }
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    await startBtn.click();
 
-    // Check for answer submission phase
-    // Non-picker players should see an answer input
-    await p1.waitForTimeout(1000);
+    // Answer phase: every non-picker page shows the answer input
+    const answerInputs = pages.map((p) => p.locator('input#answerInput'));
+    const firstInput = await waitForAnyVisible(answerInputs, 20000);
+    expect(firstInput, 'at least one player should see the answer input').not.toBeNull();
 
-    for (const page of [p1, p2, p3]) {
-      const input = page.locator('input#answerInput');
+    // Submit answers wherever the input is up, then keep driving whatever
+    // control appears (reveal / eliminate / bank) until Round Over
+    for (let i = 0; i < 40; i++) {
       if (
-        (await input.count()) > 0 &&
-        (await input
+        await p1
+          .getByText(/Round Over/i)
           .first()
-          .isVisible({ timeout: 1000 })
-          .catch(() => false))
-      ) {
-        await input.first().fill('This is the truth');
-        const submitBtn = page.locator('button').filter({ hasText: /Submit/ });
-        if (
-          await submitBtn
-            .first()
-            .isVisible({ timeout: 1000 })
-            .catch(() => false)
-        ) {
-          await submitBtn.first().click();
+          .isVisible()
+          .catch(() => false)
+      )
+        break;
+      for (const page of pages) {
+        const input = page.locator('input#answerInput');
+        if (await input.isVisible().catch(() => false)) {
+          // The blue fish MUST submit the exact true answer shown on their
+          // page; everyone else may lie. (Copied from the proven sim driver.)
+          let text = 'This is the truth';
+          if (
+            await page
+              .getByText(/You MUST enter the true answer exactly/i)
+              .isVisible()
+              .catch(() => false)
+          ) {
+            text =
+              (await page
+                .locator('span:has-text("The True Answer") + p')
+                .textContent()
+                .catch(() => null)) ?? '';
+            text = text.trim();
+          }
+          if (text) {
+            await input.fill(text).catch(() => {});
+            await page
+              .locator('button')
+              .filter({ hasText: /Submit Answer/i })
+              .first()
+              .click({ timeout: 1500 })
+              .catch(() => {});
+          }
+          continue;
+        }
+        const controls: Locator[] = [
+          page
+            .locator('button')
+            .filter({ hasText: /Reveal Answer/i })
+            .first(),
+          page
+            .locator('button')
+            .filter({ hasText: /Eliminate \(Looks Fishy\)/i })
+            .first(),
+          page
+            .locator('button')
+            .filter({ hasText: /Bank Points & End Round/i })
+            .first(),
+        ];
+        for (const control of controls) {
+          if (await control.isVisible({ timeout: 150 }).catch(() => false)) {
+            await control.click({ timeout: 1500 }).catch(() => {});
+            break;
+          }
         }
       }
+      await p1.waitForTimeout(800);
     }
 
-    // Wait for Answers to be submitted
-    await p1.waitForTimeout(2000);
+    await expect(p1.getByText(/Round Over/i).first()).toBeVisible({ timeout: 15000 });
 
-    // The picker now has to click "Eliminate (Looks Fishy)" on another player
-    let pickerPage = null;
-    for (const page of [p1, p2, p3]) {
-      const eliminateBtn = page.locator('button').filter({ hasText: /Eliminate|Reveal/i });
-      if (
-        await eliminateBtn
-          .first()
-          .isVisible({ timeout: 1000 })
-          .catch(() => false)
-      ) {
-        pickerPage = page;
-        break;
-      }
-    }
-
-    if (pickerPage) {
-      // Click the first eliminate button to eliminate someone
-      const eliminateBtn = pickerPage.locator('button').filter({ hasText: /Eliminate/i });
-      if (
-        await eliminateBtn
-          .first()
-          .isVisible({ timeout: 3000 })
-          .catch(() => false)
-      ) {
-        await eliminateBtn.first().click();
-      }
-
-      await pickerPage.waitForTimeout(2000);
-
-      // We might be at results or can bank
-      const bankBtn = pickerPage.locator('button').filter({ hasText: /Bank/i });
-      if (await bankBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await bankBtn.click();
-      }
-    }
-
-    // The round outcome varies with random roles; the answer-phase assertions above are the
-    // real coverage. Give the round a moment to settle before closing the contexts.
-    await p1.waitForTimeout(2000);
-
-    await p1.waitForTimeout(2000);
     await Promise.all(contexts.map((c) => c.close()));
   });
 

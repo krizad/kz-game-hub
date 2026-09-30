@@ -31,8 +31,8 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 | who-first-2p                | Who First      | 2       | defaults                                    | Final results after End Game   |
 | who-first-penalty           | Who First      | 2       | penalty on                                  | Final results after End Game   |
 | who-first-infinite          | Who First      | 2       | infinite rounds, host ends game             | Final results after End Game   |
-| music-trivia-typing         | Music Trivia   | 2       | TYPING, 5 rounds, iTunes                    | external, skipped by default†  |
-| music-trivia-gm             | Music Trivia   | 2       | GAME_MASTER, 5 rounds                       | external, skipped by default†  |
+| music-trivia-typing         | Music Trivia   | 2       | TYPING, 5 rounds, iTunes                    | Game Over!                     |
+| music-trivia-gm             | Music Trivia   | 2       | GAME_MASTER, 5 rounds                       | Game Over!                     |
 | music-trivia-soundcloud     | Music Trivia   | 2       | SoundCloud source                           | external, skipped by default†  |
 | music-trivia-youtube        | Music Trivia   | 2       | YouTube source                              | external, skipped by default†  |
 | the-mind-normal             | The Mind       | 2       | NORMAL, max level 4                         | You Win! / Game Over           |
@@ -58,11 +58,11 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 | card-pok-deng-timer         | Thai Card Game | 2       | POK_DENG + 20s turn timer                   | RESULT panel                   |
 | card-slave                  | Thai Card Game | 2       | SLAVE preset                                | RESULT panel                   |
 
-† All Music Trivia entries are external: the sim driver predates the artist-preset
-rework of the Music Trivia UI and no longer reaches the BUZZ state in a headless
-browser (audio-gated view). Fixing the driver is tracked as a follow-up in
-`plan/2026-09-29-e2e-full-coverage.md` (D3); lobby-config coverage for Music
-Trivia lives in `e2e/lobby-options.spec.ts`.
+† SoundCloud/YouTube entries are external: their live track lookups are
+network-flaky in headless runs. The iTunes-backed typing/GM entries were
+re-promoted on 2026-09-30 after the driver rewrite (scan-all-pages buzzer +
+page healing) and the answer-timeout server fix (see `.scratch/0005-*.md`).
+Lobby-config coverage for Music Trivia also lives in `e2e/lobby-options.spec.ts`.
 
 External entries need services beyond the default iTunes lookup or an LLM key;
 they are skipped unless `E2E_SIM_INCLUDE_EXTERNAL=1`.
@@ -96,13 +96,13 @@ title, e.g. `sim/coup-3p — Income rush, coups until one player remains >
 playthrough 2/3 reaches completion`. Screenshots and video are captured on
 failure (Playwright config `screenshot: on`, `video: on`).
 
-Known flaky/non-deterministic spots: hidden randomness in Saboteur roles/deals,
-Music Trivia external lookups, and the `ttt-classic-bot-*` entries under
-parallel-suite load (the bot's reply to X's first move can drop; documented
-pre-existing sim-harness flake — single-entry `--workers=1` runs pass, the
-interactive `tictactoe-bot.spec.ts` covers the same path reliably). Drivers use
-bounded step budgets and always assert an achievable completion state, never a
-specific winner.
+Known flaky/non-deterministic spots: hidden randomness in Saboteur roles/deals
+and the external Music Trivia lookups. The historic `ttt-classic-bot-*`
+load-flake was fixed on 2026-09-30 — the driver broke out of its loop when the
+board hadn't rendered yet (`.scratch/0006` has the full post-mortem); it now
+waits for the 9 board cells after joining a side. Drivers use bounded step
+budgets and always assert an achievable completion state, never a specific
+winner.
 
 ## Admin flags are never toggled in e2e
 

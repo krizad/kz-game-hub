@@ -283,6 +283,11 @@ export class MusicTriviaService {
         durationMs: round.track.durationMs,
         artworkUrl: round.track.artworkUrl,
       },
+      // Arm the per-round answer deadline now that PLAYING started; without
+      // this a round nobody buzzes on sits on the playing screen forever
+      timerCommands: [
+        scheduleAnswerTimeoutCommand(state.playStartTime + (state.answerTimeoutMs || 15000)),
+      ],
     };
   }
 
@@ -552,10 +557,23 @@ export class MusicTriviaService {
 
   answerTimeout(room: RoomState): MusicTriviaActionResult | null {
     const state = room.musicTriviaState;
-    if (!state || (state.phase !== 'ANSWERING' && state.phase !== 'BUZZED')) return null;
+    if (
+      !state ||
+      (state.phase !== 'PLAYING' && state.phase !== 'ANSWERING' && state.phase !== 'BUZZED')
+    )
+      return null;
 
     const round = state.currentRound;
-    if (!round || !round.currentBuzzerId) return null;
+    if (!round) return null;
+
+    // The deadline passed with nobody having buzzed (the round sits in
+    // PLAYING in this case). Reveal and let the round move on instead of
+    // leaving the room stuck on the playing screen forever.
+    if (!round.currentBuzzerId) {
+      state.phase = 'REVEAL';
+      this.setRevealedAnswer(room);
+      return { room };
+    }
 
     // The buzzer ran out of time — treat it as a give-up.
     return this.strikeOutPlayer(room, round.currentBuzzerId, true);

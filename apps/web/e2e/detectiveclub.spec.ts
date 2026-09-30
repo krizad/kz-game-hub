@@ -1,107 +1,111 @@
-import { test, expect } from '@playwright/test';
-import { createRoom, joinRoom, getOrigin } from './helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { createRoom, joinRoom, getOrigin, waitForAnyVisible } from './helpers';
 
+/**
+ * Detective Club: hard assertions at the deterministic gates (roles assigned,
+ * word submitted, both playing rounds, voting, scoring). Roles are
+ * server-random, so scoring asserts the phase controls, never an outcome.
+ */
 test.describe('Detective Club Gameplay', () => {
-  test('three players can start game and enter setup phase', async ({ browser }) => {
+  test('three players play through to the scoring phase', async ({ browser }) => {
+    test.setTimeout(180000);
     const contexts = await Promise.all([
       browser.newContext(),
       browser.newContext(),
       browser.newContext(),
     ]);
     const [p1, p2, p3] = await Promise.all(contexts.map((c) => c.newPage()));
+    const pages: Page[] = [p1, p2, p3];
 
     const roomCode = await createRoom(p1, 'DetHost', 'Detective Club');
     const origin = await getOrigin(p1);
-
     await joinRoom(p2, origin, roomCode, 'D1');
     await joinRoom(p3, origin, roomCode, 'D2');
 
-    // Verify all joined
-    await p1.waitForTimeout(1000);
     for (const name of ['D1', 'D2']) {
-      await expect(p1.getByText(name)).toBeVisible({ timeout: 5000 });
+      await expect(p1.getByText(name).first()).toBeVisible({ timeout: 10000 });
     }
 
-    // Host starts game
+    // Start — hard: the lobby must hand over to the role/setup view
     const startBtn = p1.getByText('Start Game');
-    if (await startBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await startBtn.click();
-      await p1.waitForTimeout(3000);
-    }
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    await startBtn.click();
+    await expect(p1.getByText(/Your Role|Setup Phase/i).first()).toBeVisible({ timeout: 15000 });
 
-    // Game should be in SETUP phase - each player has a role
-    await p1.waitForTimeout(1000);
+    // Informer submits the secret word (whichever page holds the input)
+    const wordInputs = pages.map((p) => p.locator('input#wordInput'));
+    const wordInput = await waitForAnyVisible(wordInputs, 20000);
+    expect(wordInput, 'the informer should see the word input').not.toBeNull();
+    await wordInput!.fill('Mystery');
+    await wordInput!
+      .page()
+      .locator('button')
+      .filter({ hasText: /Confirm|Submit/i })
+      .first()
+      .click();
 
-    // Check for role display or setup phase text
-    const hasRole = await p1
-      .locator('text=Your Role')
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
-    const hasSetup = await p1
-      .locator('text=Setup Phase')
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
-    expect(hasRole || hasSetup).toBeTruthy();
-
-    // Informer should submit a word if visible
-    for (const page of [p1, p2, p3]) {
-      const wordInput = page.locator('input#wordInput');
-      if (await wordInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await wordInput.fill('Mystery');
-        await page
-          .locator('button', { hasText: /Confirm|Submit/i })
-          .first()
-          .click();
-        await page.waitForTimeout(1500);
-        break;
-      }
-    }
-
-    // Now players need to play cards in order (Playing Phase)
-    // There are 3 players. Each plays 1 card, then again 1 card.
-    // For simplicity, we just look for any page that has "Play Card" button and click it, 6 times total.
-    for (let round = 0; round < 6; round++) {
-      for (const page of [p1, p2, p3]) {
-        // Wait briefly to see if it's this player's turn
-        const playBtn = page.locator('button', { hasText: /Play Card/i }).first();
-        if (await playBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          // Select a card (click the first image in hand)
-          await page.locator('img').first().click();
-          await playBtn.click();
-          await page.waitForTimeout(1000);
-          break; // Move to next play
+    // Drive both playing rounds, discussion, and voting like the sim driver:
+    // force-click a hand card on the active player, confirm, start the vote,
+    // pick a candidate and confirm. Scoring is the guaranteed end state.
+    for (let i = 0; i < 60; i++) {
+      const scoringBtn = p1
+        .locator('button')
+        .filter({ hasText: /Play Next Round|End Game/i })
+        .first();
+      if (await scoringBtn.isVisible({ timeout: 300 }).catch(() => false)) break;
+      for (const page of pages) {
+        const myTurn = await page
+          .getByText(/Your Turn - Play a Card/i)
+          .isVisible({ timeout: 150 })
+          .catch(() => false);
+        const hand = page.locator('img[alt="Hand Card"]').first();
+        if (myTurn && (await hand.isVisible({ timeout: 150 }).catch(() => false))) {
+          // force click: the hover overlay covers the img and blocks
+          // actionability, but still fires the overlay's onClick
+          await hand.click({ force: true, timeout: 2000 }).catch(() => {});
+          const confirm = page
+            .locator('button')
+            .filter({ hasText: /^Play Card$/i })
+            .last();
+          if (await confirm.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await confirm.click({ timeout: 1500 }).catch(() => {});
+          }
+          continue;
+        }
+        const startVoting = page
+          .locator('button')
+          .filter({ hasText: /Start Voting/i })
+          .first();
+        if (await startVoting.isVisible({ timeout: 150 }).catch(() => false)) {
+          await startVoting.click({ timeout: 1500 }).catch(() => {});
+          continue;
+        }
+        const candidate = page
+          .locator('button')
+          .filter({ hasText: /DetHost|D1|D2/ })
+          .first();
+        if (await candidate.isVisible({ timeout: 150 }).catch(() => false)) {
+          await candidate.click({ timeout: 1500 }).catch(() => {});
+        }
+        const confirmVote = page
+          .locator('button')
+          .filter({ hasText: /Confirm Vote/i })
+          .first();
+        if (await confirmVote.isVisible({ timeout: 150 }).catch(() => false)) {
+          await confirmVote.click({ timeout: 1500 }).catch(() => {});
         }
       }
+      await p1.waitForTimeout(800);
     }
 
-    // Then there might be a discussion phase -> Continue
-    for (const page of [p1, p2, p3]) {
-      const continueBtn = page.locator('button', { hasText: /Continue|Vote/i }).first();
-      if (await continueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await continueBtn.click();
-      }
-    }
+    // Scoring reached — the deterministic completion for a random-role round
+    await expect(
+      p1
+        .locator('button')
+        .filter({ hasText: /Play Next Round|End Game/i })
+        .first(),
+    ).toBeVisible({ timeout: 15000 });
 
-    // Voting Phase
-    for (const page of [p1, p2, p3]) {
-      const voteBtn = page.locator('button', { hasText: /Vote/i }).first();
-      if (await voteBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        // Vote for someone (e.g. click first player to vote)
-        await page
-          .locator('button')
-          .filter({ hasText: /Player|D1|D2|DetHost/i })
-          .first()
-          .click()
-          .catch(() => {});
-        await voteBtn.click().catch(() => {});
-      }
-    }
-
-    // The round outcome varies with random roles; the setup-phase assertions above are the
-    // real coverage. Give the round a moment to settle before closing the contexts.
-    await p1.waitForTimeout(1000);
-
-    await p1.waitForTimeout(1000);
     await Promise.all(contexts.map((c) => c.close()));
   });
 

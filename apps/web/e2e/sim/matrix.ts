@@ -214,15 +214,15 @@ export const GAME_MATRIX: MatrixEntry[] = [
   },
 
   // --- Music Trivia (mode in lobby; iTunes default source) ---
-  // Music entries need live external music lookups + browser audio playback,
-  // so they are external by default even for the iTunes source.
+  // The iTunes-backed typing/GM entries run by default (driver rewritten
+  // 2026-09-30 against the artist-preset UI). SoundCloud/YouTube stay
+  // external: their live lookups are network-flaky in headless runs.
   {
     id: 'music-trivia-typing',
     game: 'MUSIC_TRIVIA',
     lobbyButton: 'Music Trivia',
     players: 2,
     description: 'Typing mode, 5 rounds, game over',
-    external: true,
     configure: ['music-trivia-rounds:5', 'music-trivia-query:Pop'],
     timeout: 240000,
   },
@@ -232,7 +232,6 @@ export const GAME_MATRIX: MatrixEntry[] = [
     lobbyButton: 'Music Trivia',
     players: 2,
     description: 'Game master (host judges), 5 rounds',
-    external: true,
     configure: ['music-trivia-mode:GAME_MASTER', 'music-trivia-rounds:5', 'music-trivia-query:Pop'],
     timeout: 240000,
   },
