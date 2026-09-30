@@ -128,6 +128,11 @@ function buildFlatBundle() {
   mkdirSync(DEPLOY_DIR, { recursive: true });
 
   cpSync(join(apiPkgDir, 'dist'), join(DEPLOY_DIR, 'dist'), { recursive: true });
+  if (!existsSync(join(DEPLOY_DIR, 'dist', 'main.js'))) {
+    // Fail before the slow npm install — this catches output-layout drifts
+    // like the dist/src/main.js regression caused by rootDir inference.
+    throw new Error('dist/main.js missing from API build output (nest build layout changed?)');
+  }
   cpSync(join(ROOT, 'scripts', 'diag-server.js'), join(DEPLOY_DIR, 'diag.js'));
 
   const vendorDir = join(DEPLOY_DIR, 'vendor');
@@ -183,16 +188,24 @@ function buildFlatBundle() {
 
 function smokeTest() {
   return new Promise((resolveSmoke) => {
+    // Capture boot output so a failed smoke shows the real error in CI logs
+    // (a bare "process exited early" hides the actual crash).
+    let output = '';
     const child = spawn('node', ['dist/main.js'], {
       cwd: DEPLOY_DIR,
       env: { ...process.env, PORT: '3999', NODE_ENV: 'production' },
-      stdio: 'ignore',
     });
+    child.stdout.on('data', (d) => { output += d; });
+    child.stderr.on('data', (d) => { output += d; });
     let settled = false;
     const finish = (ok, detail) => {
       if (settled) return;
       settled = true;
       try { child.kill('SIGTERM'); } catch {}
+      if (!ok && output) {
+        const tail = output.split('\n').filter(Boolean).slice(-30).join('\n');
+        console.error(`--- API boot output (last 30 lines) ---\n${tail}`);
+      }
       resolveSmoke({ ok, detail });
     };
     const timer = setTimeout(async () => {
