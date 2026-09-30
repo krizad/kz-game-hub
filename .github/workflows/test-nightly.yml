@@ -36,7 +36,9 @@ jobs:
       # Local service DB only — NEVER the repo .env (production MySQL).
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/kz_game_hub
       ADMIN_SECRET: e2e-dummy-secret
-      DISABLE_GAME_SETTINGS_DB: '1'
+      # No DISABLE_GAME_SETTINGS_DB here: it is injected per-server by both
+      # playwright configs' webServer commands. Setting it job-wide also hits
+      # jest, where game-settings.service.spec expects the DB path to load.
 
     steps:
       - uses: actions/checkout@v4
