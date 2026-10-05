@@ -70,10 +70,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.handleLeaveResult(client, result);
         const roomCode = 'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
         const spectatingRoomCode = client.data.spectatingRoomCode;
-        const leftCode = roomCode ?? spectatingRoomCode;
-        if (leftCode) {
-            client.leave(leftCode);
-        }
+        if (roomCode)
+            client.leave(roomCode);
+        if (spectatingRoomCode && spectatingRoomCode !== roomCode)
+            client.leave(spectatingRoomCode);
         client.data.spectatingRoomCode = undefined;
     }
     handleLeaveResult(client, result) {
@@ -190,11 +190,17 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     leavePreviousRoom(client, nextRoomCode) {
         const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
-        if (!previousRoomCode || previousRoomCode === nextRoomCode)
-            return;
-        const leaveResult = this.gamesService.leaveRoom(client.id, true);
-        if (leaveResult.outcome !== 'NOT_IN_ROOM') {
-            this.handleLeaveResult(client, leaveResult);
+        if (previousRoomCode && previousRoomCode !== nextRoomCode) {
+            const leaveResult = this.gamesService.leaveRoom(client.id, true);
+            if (leaveResult.outcome !== 'NOT_IN_ROOM') {
+                this.handleLeaveResult(client, leaveResult);
+            }
+            client.leave(previousRoomCode);
+        }
+        const spectatingRoomCode = client.data.spectatingRoomCode;
+        if (spectatingRoomCode && spectatingRoomCode !== nextRoomCode) {
+            client.leave(spectatingRoomCode);
+            client.data.spectatingRoomCode = undefined;
         }
     }
     handleCreateRoom(data, client) {
@@ -1031,6 +1037,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found' });
             return;
         }
+        this.leavePreviousRoom(client, room.code);
         client.join(room.code);
         client.data.spectatingRoomCode = room.code;
         client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
