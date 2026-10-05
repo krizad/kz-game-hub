@@ -65,3 +65,6 @@ tmp-script/
 
 # local delivery/e2e report artifacts
 DELIVERY/
+
+# Stitch capture artifacts
+.stitch/
