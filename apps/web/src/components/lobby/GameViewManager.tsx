@@ -1,6 +1,6 @@
 'use client';
 
-import { GameType, RoomStatus } from '@repo/types';
+import { BOT_PLAYER_NAME, BOT_SOCKET_ID, GameType, RoomState, RoomStatus } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { TicTacToeUnifiedView } from '@/components/games/tic-tac-toe/TicTacToeUnifiedView';
 import { RPSView } from '@/components/games/rps/RPSView';
@@ -21,9 +21,164 @@ import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
 import { useTranslate } from '@/hooks/useTranslate';
+import { GameStatusHeader } from '@/components/games/GameStatusHeader';
+
+function getGameStatus(room: RoomState, socketId: string) {
+  let phase: string = room.status;
+  let activePlayerId: string | null | undefined;
+  let progress: { current: number; total: number } | undefined;
+  let promptKey: string | undefined;
+
+  switch (room.gameType) {
+    case GameType.TIC_TAC_TOE: {
+      const mode = room.config.ticTacToeMode;
+      const state =
+        mode === 'GOBBLER'
+          ? room.gobblerState
+          : mode === 'ULTIMATE'
+            ? room.ultimateTicTacToeState
+            : room.ticTacToeState;
+      if (state) activePlayerId = state.currentTurn === 'X' ? state.playerXId : state.playerOId;
+      break;
+    }
+    case GameType.RPS:
+      if (room.rpsState?.roundWinner) phase = 'ROUND_RESULT';
+      break;
+    case GameType.SOUNDS_FISHY:
+      phase = room.soundsFishyState?.currentPhase ?? room.status;
+      break;
+    case GameType.DETECTIVE_CLUB:
+      phase = room.detectiveClubState?.currentPhase ?? room.status;
+      activePlayerId = room.detectiveClubState?.currentPhase.startsWith('PLAYING')
+        ? room.detectiveClubState.activePlayerId
+        : null;
+      break;
+    case GameType.WHO_AM_I:
+      if (room.whoAmIState) {
+        phase = room.whoAmIState.phase;
+        activePlayerId = room.whoAmIState.currentTurn;
+        progress = { current: room.whoAmIState.currentRound, total: room.whoAmIState.maxRounds };
+      }
+      break;
+    case GameType.WHO_FIRST:
+      if (room.whoFirstState) {
+        phase = room.whoFirstState.phase;
+        if (room.whoFirstState.maxRounds > 0) {
+          progress = {
+            current: room.whoFirstState.currentRound,
+            total: room.whoFirstState.maxRounds,
+          };
+        }
+      }
+      break;
+    case GameType.MUSIC_TRIVIA:
+      if (room.musicTriviaState) {
+        phase = room.musicTriviaState.phase;
+        activePlayerId = room.musicTriviaState.currentRound?.currentBuzzerId;
+        if (room.musicTriviaState.totalRounds > 0) {
+          progress = {
+            current:
+              room.musicTriviaState.currentRound?.roundNumber ??
+              room.musicTriviaState.roundHistory.length,
+            total: room.musicTriviaState.totalRounds,
+          };
+        }
+      }
+      break;
+    case GameType.THE_MIND:
+      if (room.theMindState) {
+        phase = room.theMindState.phase;
+        progress = { current: room.theMindState.level, total: room.theMindState.maxLevel };
+      }
+      break;
+    case GameType.SABOTEUR:
+      if (room.saboteurState) {
+        phase = room.saboteurState.currentPhase;
+        activePlayerId =
+          room.saboteurState.currentPhase === 'PLAYING' ? room.saboteurState.activePlayerId : null;
+      }
+      break;
+    case GameType.COUP:
+      if (room.coupState) {
+        phase = room.coupState.phase;
+        activePlayerId = room.coupState.phase === 'PLAYING' ? room.coupState.currentTurn : null;
+      }
+      break;
+    case GameType.BANANA_THIEF:
+      if (room.bananaThiefState) {
+        phase = room.bananaThiefState.phase;
+        if (room.bananaThiefState.phase === 'VOTING' && room.bananaThiefState.votesTotal > 0) {
+          progress = {
+            current: room.bananaThiefState.votesRecorded,
+            total: room.bananaThiefState.votesTotal,
+          };
+        }
+      }
+      break;
+    case GameType.CARD_GAME:
+      if (room.cardGameState) {
+        phase = room.cardGameState.phase;
+        activePlayerId =
+          room.cardGameState.phase === 'PLAYER_TURNS' ? room.cardGameState.activePlayerId : null;
+      }
+      break;
+    case GameType.WHO_KNOW:
+      if (room.status === RoomStatus.WORD_SETTING) {
+        promptKey =
+          socketId === room.hostPlayerId
+            ? 'gameWhoKnow.wordSettingHost'
+            : 'gameWhoKnow.wordSettingWaiting';
+      } else if (room.status === RoomStatus.QUESTIONING) {
+        promptKey =
+          socketId === room.hostPlayerId
+            ? 'gameWhoKnow.questioningHost'
+            : 'gameWhoKnow.questioningPlayers';
+      } else if (room.status === RoomStatus.VOTING) {
+        promptKey =
+          socketId === room.hostPlayerId
+            ? 'gameWhoKnow.votingHostWait'
+            : 'gameWhoKnow.votingPrompt';
+      } else if (room.status === RoomStatus.RESULT) {
+        promptKey = 'gameWhoKnow.resultPrompt';
+      }
+      break;
+    default:
+      break;
+  }
+
+  const activePlayerName = activePlayerId
+    ? activePlayerId === BOT_SOCKET_ID
+      ? BOT_PLAYER_NAME
+      : room.players.find((player) => player.socketId === activePlayerId)?.name
+    : undefined;
+  const accentClass: Record<GameType, string> = {
+    [GameType.WHO_KNOW]: 'bg-indigo-500',
+    [GameType.TIC_TAC_TOE]: 'bg-slate-400',
+    [GameType.RPS]: 'bg-amber-300',
+    [GameType.SOUNDS_FISHY]: 'bg-teal-300',
+    [GameType.DETECTIVE_CLUB]: 'bg-yellow-300',
+    [GameType.WHO_AM_I]: 'bg-pink-400',
+    [GameType.WHO_FIRST]: 'bg-emerald-400',
+    [GameType.MUSIC_TRIVIA]: 'bg-violet-400',
+    [GameType.THE_MIND]: 'bg-orange-200',
+    [GameType.SABOTEUR]: 'bg-orange-500',
+    [GameType.COUP]: 'bg-rose-200',
+    [GameType.CARD_GAME]: 'bg-amber-500',
+    [GameType.BANANA_THIEF]: 'bg-lime-400',
+  };
+
+  return {
+    phase,
+    activePlayerName,
+    isMyTurn: activePlayerId === socketId,
+    progress,
+    accentClass: accentClass[room.gameType],
+    promptKey,
+  };
+}
 
 export function GameViewManager() {
-  const { room } = useGameStore();
+  const { room, socketId } = useGameStore();
   const { t } = useTranslate();
 
   if (!room) return null;
@@ -79,7 +234,12 @@ export function GameViewManager() {
       </div>
 
       {/* Right: Game Area */}
-      <div className="flex-1 flex flex-col min-w-0">{renderGameView()}</div>
+      <div className="flex-1 flex flex-col min-w-0">
+        {room.status !== RoomStatus.LOBBY && (
+          <GameStatusHeader {...getGameStatus(room, socketId)} />
+        )}
+        {renderGameView()}
+      </div>
     </div>
   );
 }

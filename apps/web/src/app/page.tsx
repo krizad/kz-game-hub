@@ -19,7 +19,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 // Components extracted to separate files
 
 function GameLobby() {
-  const { connect, connected, room, myRole } = useGameStore();
+  const { connect, connected, room, myRole, secretWord } = useGameStore();
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room');
   const { t } = useTranslate();
@@ -68,26 +68,13 @@ function GameLobby() {
         {/* Role Section at Top */}
         {myRole && room.gameType === GameType.WHO_KNOW && (
           <div className="flex-none w-full relative z-0">
-            <RoleCard role={myRole} word={useGameStore.getState().secretWord} />
+            <RoleCard role={myRole} word={secretWord} />
           </div>
         )}
 
         {/* Main Content Area */}
         <GameViewManager />
 
-        {/* Phase Footer */}
-        {room.status !== RoomStatus.LOBBY && room.gameType === GameType.WHO_KNOW && (
-          <footer className="flex-none p-2 sm:p-3 bg-white border border-amber-200 rounded-xl text-center shadow-xl flex items-center justify-center gap-2 sm:gap-3 w-full">
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-              {t('lobby.phase')}
-            </span>
-            <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-full text-[10px] sm:text-xs font-black tracking-widest">
-              {room.status === 'WORD_SETTING'
-                ? t('lobby.secretWordSelection')
-                : room.status.replace('_', ' ')}
-            </span>
-          </footer>
-        )}
       </div>
 
       {/* Secret Word Setting Modal Handle */}

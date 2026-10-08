@@ -29,6 +29,21 @@ export interface Dictionary {
       cardGame: string;
       bananaThief: string;
     };
+    gameCards: {
+      whoKnow: { category: string; description: string; players: string };
+      soundsFishy: { category: string; description: string; players: string };
+      ticTacToe: { category: string; description: string; players: string };
+      handDuel: { category: string; description: string; players: string };
+      detectiveClub: { category: string; description: string; players: string };
+      whoAmI: { category: string; description: string; players: string };
+      whoFirst: { category: string; description: string; players: string };
+      musicTrivia: { category: string; description: string; players: string };
+      theMind: { category: string; description: string; players: string };
+      saboteur: { category: string; description: string; players: string };
+      coup: { category: string; description: string; players: string };
+      cardGame: { category: string; description: string; players: string };
+      bananaThief: { category: string; description: string; players: string };
+    };
     or: string;
     roomCodePlaceholder: string;
     join: string;
@@ -81,6 +96,14 @@ export interface Dictionary {
     invitePlayers: string;
     scanQrCodeDesc: string;
     close: string;
+  };
+  gameStatus: {
+    phase: string;
+    yourTurn: string;
+    waitingFor: string;
+    groupAction: string;
+    progress: string;
+    phaseNames: Record<string, string>;
   };
   errors: {
     enterNameFirst: string;
@@ -1261,6 +1284,16 @@ export interface Dictionary {
       seekerDesc: string;
       secretHint: string;
     };
+    phaseSteps: { label: string; word: string; questions: string; vote: string; reveal: string };
+    privateRoleReminder: string;
+    hostQuestioningHint: string;
+    timeRemaining: string;
+    voteSubmittedStatus: string;
+    sealedVoteHostHint: string;
+    sealedVoteWaitingHint: string;
+    sealedVoteHint: string;
+    resultPrompt: string;
+    roleAndScoreReveal: string;
     wordSettingHost: string;
     wordSettingWaiting: string;
     questioningPhase: string;

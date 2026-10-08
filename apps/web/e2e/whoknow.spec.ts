@@ -37,6 +37,9 @@ test.describe('Knowguise Gameplay', () => {
 
     // Verify game started
     await p1.waitForTimeout(1500);
+    await expect(
+      p1.getByRole('navigation', { name: /ช่วงต่างๆ ของเกม|Knowguise game phases/i }),
+    ).toBeVisible();
 
     // Secret word selection: ROUND_ROBIN picks the in-game host randomly, so the
     // popup can appear on any player's page. Find the page that shows it.
@@ -57,6 +60,11 @@ test.describe('Knowguise Gameplay', () => {
     await wordInput.fill('E2E Secret Word');
     await wordInput.press('Enter');
     await hostPage.waitForTimeout(2000);
+    await expect(
+      hostPage.getByRole('heading', {
+        name: /ตอบคำถาม|ถามคำถาม.*คนถือคำ|Answer the players|Ask the Word Keeper/i,
+      }),
+    ).toBeVisible({ timeout: 15000 });
 
     // In-game host ends the questioning phase
     const endBtn = hostPage
@@ -69,20 +77,39 @@ test.describe('Knowguise Gameplay', () => {
     // Wait for Voting Phase
     await p1.waitForTimeout(2000);
 
-    // Players vote (everyone except the in-game host)
-    for (const page of players.filter((page) => page !== hostPage)) {
-      const voteBtn = page
+    // Vote with one player first. Their own page must show the private receipt,
+    // while everyone else still sees the sealed-vote phase and no result breakdown.
+    const voters = players.filter((page) => page !== hostPage);
+    const firstVoter = voters[0];
+    const firstVoteButton = firstVoter
+      .locator('button')
+      .filter({ hasText: /P1|P2|P3|Host/i })
+      .first();
+    await expect(firstVoteButton).toBeVisible({ timeout: 10000 });
+    await firstVoteButton.click();
+    await expect(firstVoter.getByText(/ล็อกคะแนนของคุณแล้ว|Your vote is locked/i)).toBeVisible({
+      timeout: 10000,
+    });
+    for (const page of players.filter((page) => page !== hostPage && page !== firstVoter)) {
+      await expect(page.getByText(/Voting Results|ผลการโหวต/i)).toHaveCount(0);
+      await expect(
+        page.getByRole('heading', { name: /ใครคือคนที่แอบชี้นำกลุ่ม|Who was secretly guiding/i }),
+      ).toBeVisible({ timeout: 10000 });
+    }
+
+    // Finish the round and verify the authorized reveal is understandable.
+    for (const page of voters.slice(1)) {
+      const voteButton = page
         .locator('button')
         .filter({ hasText: /P1|P2|P3|Host/i })
         .first();
-      if (await voteBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await voteBtn.click().catch(() => {});
-      }
+      await expect(voteButton).toBeVisible({ timeout: 10000 });
+      await voteButton.click();
     }
-
-    // The match outcome depends on timer/vote timing; the start-and-questioning
-    // assertions above are this flow's real coverage. Let the round settle.
-    await p1.waitForTimeout(2000);
+    await expect(p1.getByRole('heading', { name: /ผลเกม|Game Results/i })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(p1.getByText(/เฉลยบทบาทและคะแนน|Roles and scores/i)).toBeVisible();
 
     await Promise.all(contexts.map((c) => c.close()));
   });

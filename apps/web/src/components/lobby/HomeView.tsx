@@ -52,85 +52,99 @@ export function HomeView() {
     type: GameType;
     icon: string;
     name: string;
-    bgClass: string;
+    catalogKey: string;
+    color: string;
   }[] = [
     {
       type: GameType.WHO_KNOW,
       icon: '🎭',
       name: t('lobby.gameNames.whoKnow'),
-      bgClass: 'bg-[#818CF8] hover:bg-[#6366F1] text-white',
+      catalogKey: 'whoKnow',
+      color: 'bg-indigo-500',
     },
     {
       type: GameType.SOUNDS_FISHY,
       icon: '💬',
       name: t('lobby.gameNames.soundsFishy'),
-      bgClass: 'bg-[#D6E7DA] hover:bg-[#BDD6C3] text-black',
+      catalogKey: 'soundsFishy',
+      color: 'bg-teal-300',
     },
     {
       type: GameType.TIC_TAC_TOE,
-      icon: '❌⭕️',
+      icon: '❌',
       name: t('lobby.gameNames.ticTacToe'),
-      bgClass: 'bg-[#A1A1AA] hover:bg-[#71717A] text-white',
+      catalogKey: 'ticTacToe',
+      color: 'bg-slate-400',
     },
     {
       type: GameType.RPS,
-      icon: '✌️✊✋',
+      icon: '✊',
       name: t('lobby.gameNames.handDuel'),
-      bgClass: 'bg-[#FBBF24] hover:bg-[#F59E0B] text-black',
+      catalogKey: 'handDuel',
+      color: 'bg-amber-300',
     },
     {
       type: GameType.DETECTIVE_CLUB,
       icon: '🖼️',
       name: t('lobby.gameNames.detectiveClub'),
-      bgClass: 'bg-[#FDE047] hover:bg-[#FACC15] text-black',
+      catalogKey: 'detectiveClub',
+      color: 'bg-yellow-300',
     },
     {
       type: GameType.WHO_AM_I,
       icon: '🤔❓',
       name: t('lobby.gameNames.whoAmI'),
-      bgClass: 'bg-[#F472B6] hover:bg-[#EC4899] text-white',
+      catalogKey: 'whoAmI',
+      color: 'bg-pink-400',
     },
     {
       type: GameType.WHO_FIRST,
       icon: '🛎️',
       name: t('lobby.gameNames.whoFirst'),
-      bgClass: 'bg-[#34D399] hover:bg-[#10B981] text-white',
+      catalogKey: 'whoFirst',
+      color: 'bg-emerald-400',
     },
     {
       type: GameType.MUSIC_TRIVIA,
       icon: '🎵',
       name: t('lobby.gameNames.musicTrivia'),
-      bgClass: 'bg-[#818CF8] hover:bg-[#6366F1] text-white',
+      catalogKey: 'musicTrivia',
+      color: 'bg-violet-400',
     },
     {
       type: GameType.THE_MIND,
       icon: '⏳',
       name: t('lobby.gameNames.theMind'),
-      bgClass: 'bg-[#F2D7B6] hover:bg-[#E8BE79] text-black',
+      catalogKey: 'theMind',
+      color: 'bg-orange-200',
     },
     {
       type: GameType.SABOTEUR,
-      icon: '⛏️💣',
+      icon: '⛏️',
       name: t('lobby.gameNames.saboteur'),
-      bgClass: 'bg-[#F97316] hover:bg-[#EA580C] text-white',
+      catalogKey: 'saboteur',
+      color: 'bg-orange-500',
     },
     {
       type: GameType.COUP,
       icon: '🏠📜',
       name: t('lobby.gameNames.coup'),
-      bgClass: 'bg-[#F3D9A4] hover:bg-[#E8C782] text-black',
+      catalogKey: 'coup',
+      color: 'bg-rose-200',
     },
     {
       type: GameType.CARD_GAME,
       icon: '🃏',
       name: t('lobby.gameNames.cardGame'),
-      bgClass: 'bg-[#F59E0B] hover:bg-[#D97706] text-black',
+      catalogKey: 'cardGame',
+      color: 'bg-amber-500',
     },
     {
       type: GameType.BANANA_THIEF,
-      icon: '🐒🍌',
+      icon: '🐒',
       name: t('lobby.gameNames.bananaThief'),
-      bgClass: 'bg-[#EAB308] hover:bg-[#CA8A04] text-black',
+      catalogKey: 'bananaThief',
+      color: 'bg-lime-400',
     },
   ];
 
@@ -148,7 +162,7 @@ export function HomeView() {
       </div>
       <div className="w-full max-w-md lg:max-w-5xl p-6 sm:p-8 bg-white border-4 border-black shadow-[8px_8px_0_0_#000] lg:p-10 lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
         {/* Left Column (PC) / Top Section (Mobile) */}
-        <div className="flex flex-col h-full lg:justify-center">
+        <div className="flex flex-col h-full lg:justify-start">
           <div className="flex justify-center mb-6">
             <img
               src="/icon.png"
@@ -219,7 +233,7 @@ export function HomeView() {
 
         {/* Right Column (PC) / Bottom Section (Mobile) */}
         <div className="flex flex-col mt-8 lg:mt-0">
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             {games
               .filter((g) => isGameEnabled(g.type))
               .map((g) => (
@@ -228,11 +242,31 @@ export function HomeView() {
                   type="button"
                   onClick={() => createRoom(g.type)}
                   disabled={!connected || !myName}
-                  className={`w-full ${g.bgClass} disabled:bg-gray-400 font-black py-3 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black flex flex-col items-center justify-center gap-1 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]`}
+                  aria-label={`${g.name}. ${t(`lobby.gameCards.${g.catalogKey}.category`)}. ${t(`lobby.gameCards.${g.catalogKey}.players`)}`}
+                  className="group relative w-full overflow-hidden border-4 border-black bg-white p-3 text-left shadow-[4px_4px_0_0_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
                 >
-                  <span className="text-xl">{g.icon}</span>
-                  <span className="text-xs tracking-wider text-center px-1 uppercase">
-                    {g.name}
+                  <span className={`absolute inset-y-0 left-0 w-2 ${g.color}`} aria-hidden="true" />
+                  <span className="flex items-start gap-3 pl-2">
+                    <span
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border-2 border-black text-2xl shadow-[2px_2px_0_0_#000] ${g.color}`}
+                      aria-hidden="true"
+                    >
+                      {g.icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
+                        {t(`lobby.gameCards.${g.catalogKey}.category`)}
+                      </span>
+                      <span className="block text-sm font-black leading-tight text-black">
+                        {g.name}
+                      </span>
+                      <span className="mt-1 block text-xs font-medium leading-snug text-slate-700">
+                        {t(`lobby.gameCards.${g.catalogKey}.description`)}
+                      </span>
+                      <span className="mt-2 inline-flex border-2 border-black bg-[#FEF08A] px-2 py-0.5 text-[10px] font-black text-black">
+                        👥 {t(`lobby.gameCards.${g.catalogKey}.players`)}
+                      </span>
+                    </span>
                   </span>
                 </button>
               ))}

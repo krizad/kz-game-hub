@@ -63,6 +63,12 @@ _Avoid_: Treating a translated title as the game's identity.
 **Role name**:
 The name of a part a player takes within a game. It can resemble a game title but is a separate naming decision.
 
+**Game catalog card**:
+A room-creation choice that describes a game's play style, supported player count, and core activity before a room is created.
+
+**Turn prompt**:
+A concise in-game status that tells a player the current phase, whose turn it is, and what action is available when that information exists.
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |
