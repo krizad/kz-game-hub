@@ -114,7 +114,7 @@ class SlaveRuntime {
         state.activePlayerId = this.nextActiveAfterPass(state, socketId, trick);
         return room;
     }
-    autoAction(room, socketId, config) {
+    autoAction(room, socketId) {
         const state = room.cardGameState;
         const following = Boolean(state.trick && state.trick.playedById !== null);
         if (following)

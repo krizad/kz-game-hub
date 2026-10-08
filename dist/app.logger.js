@@ -11,27 +11,33 @@ class AppLogger {
         (0, node_fs_1.mkdirSync)(logDirectory, { recursive: true });
         this.logPath = (0, node_path_1.join)(logDirectory, 'app.log');
     }
-    log(message, ...optionalParams) {
+    log(...args) {
+        const [message, ...optionalParams] = args;
         this.consoleLogger.log(message, ...optionalParams);
         this.write('LOG', message, optionalParams);
     }
-    error(message, ...optionalParams) {
+    error(...args) {
+        const [message, ...optionalParams] = args;
         this.consoleLogger.error(message, ...optionalParams);
         this.write('ERROR', message, optionalParams);
     }
-    warn(message, ...optionalParams) {
+    warn(...args) {
+        const [message, ...optionalParams] = args;
         this.consoleLogger.warn(message, ...optionalParams);
         this.write('WARN', message, optionalParams);
     }
-    debug(message, ...optionalParams) {
+    debug(...args) {
+        const [message, ...optionalParams] = args;
         this.consoleLogger.debug(message, ...optionalParams);
         this.write('DEBUG', message, optionalParams);
     }
-    verbose(message, ...optionalParams) {
+    verbose(...args) {
+        const [message, ...optionalParams] = args;
         this.consoleLogger.verbose(message, ...optionalParams);
         this.write('VERBOSE', message, optionalParams);
     }
-    fatal(message, ...optionalParams) {
+    fatal(...args) {
+        const [message, ...optionalParams] = args;
         this.consoleLogger.fatal(message, ...optionalParams);
         this.write('FATAL', message, optionalParams);
     }

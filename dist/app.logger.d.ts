@@ -3,12 +3,12 @@ export declare class AppLogger implements LoggerService {
     private readonly consoleLogger;
     private readonly logPath;
     constructor();
-    log(message: any, ...optionalParams: any[]): void;
-    error(message: any, ...optionalParams: any[]): void;
-    warn(message: any, ...optionalParams: any[]): void;
-    debug(message: any, ...optionalParams: any[]): void;
-    verbose(message: any, ...optionalParams: any[]): void;
-    fatal(message: any, ...optionalParams: any[]): void;
+    log(...args: Parameters<LoggerService['log']>): void;
+    error(...args: Parameters<LoggerService['error']>): void;
+    warn(...args: Parameters<LoggerService['warn']>): void;
+    debug(...args: Parameters<LoggerService['debug']>): void;
+    verbose(...args: Parameters<LoggerService['verbose']>): void;
+    fatal(...args: Parameters<LoggerService['fatal']>): void;
     setLogLevels(levels: Parameters<ConsoleLogger['setLogLevels']>[0]): void;
     private write;
     private stringify;

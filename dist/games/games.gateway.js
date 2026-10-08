@@ -229,10 +229,14 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     handleJoinRoom(data, client) {
         this.leavePreviousRoom(client, data.code.toUpperCase());
         const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
-        const isSeatedMember = (targetRoom?.players.some((p) => p.socketId === client.id) ?? false) ||
+        if (!targetRoom) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found' });
+            return;
+        }
+        const isSeatedMember = targetRoom.players.some((p) => p.socketId === client.id) ||
             (!!data.reconnectToken &&
                 this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
-        if (targetRoom && !isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
+        if (!isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
             return;
         }
@@ -265,7 +269,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
-                message: 'Room not found or player name is already in use',
+                message: 'Player name is already in use',
             });
         }
     }

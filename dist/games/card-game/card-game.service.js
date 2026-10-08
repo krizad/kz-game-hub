@@ -241,7 +241,7 @@ let CardGameService = class CardGameService {
         const config = this.configFor(room);
         const runtime = this.cardRuntimes[state.preset];
         const action = runtime
-            ? runtime.autoAction(room, state.activePlayerId, config)
+            ? runtime.autoAction(room, state.activePlayerId)
             : (0, card_engine_service_1.autoActionFor)(config.actions);
         return action ? { playerId: state.activePlayerId, action } : null;
     }

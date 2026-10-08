@@ -27,17 +27,7 @@ let PlayerSessionService = PlayerSessionService_1 = class PlayerSessionService {
         this.pendingTokens.set(socketId, token);
     }
     consume(roomCode, token) {
-        const roomSessions = this.sessions.get(roomCode);
-        if (!roomSessions)
-            return null;
-        const tokenHash = this.hash(token);
-        const session = roomSessions.get(tokenHash);
-        if (!session)
-            return null;
-        roomSessions.delete(tokenHash);
-        if (session.expiresAt <= Date.now())
-            return null;
-        return session.playerId;
+        return this.verify(roomCode, token);
     }
     verify(roomCode, token) {
         const roomSessions = this.sessions.get(roomCode);
@@ -49,6 +39,8 @@ let PlayerSessionService = PlayerSessionService_1 = class PlayerSessionService {
             return null;
         if (session.expiresAt <= Date.now()) {
             roomSessions.delete(tokenHash);
+            if (roomSessions.size === 0)
+                this.sessions.delete(roomCode);
             return null;
         }
         return session.playerId;
