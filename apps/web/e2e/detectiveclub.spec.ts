@@ -2,11 +2,11 @@ import { test, expect, type Page } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin, waitForAnyVisible } from './helpers';
 
 /**
- * Detective Club: hard assertions at the deterministic gates (roles assigned,
+ * Cluecanvas: hard assertions at the deterministic gates (roles assigned,
  * word submitted, both playing rounds, voting, scoring). Roles are
  * server-random, so scoring asserts the phase controls, never an outcome.
  */
-test.describe('Detective Club Gameplay', () => {
+test.describe('Cluecanvas Gameplay', () => {
   test('three players play through to the scoring phase', async ({ browser }) => {
     test.setTimeout(180000);
     const contexts = await Promise.all([
@@ -17,7 +17,7 @@ test.describe('Detective Club Gameplay', () => {
     const [p1, p2, p3] = await Promise.all(contexts.map((c) => c.newPage()));
     const pages: Page[] = [p1, p2, p3];
 
-    const roomCode = await createRoom(p1, 'DetHost', 'Detective Club');
+    const roomCode = await createRoom(p1, 'DetHost', 'Cluecanvas');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'D1');
     await joinRoom(p3, origin, roomCode, 'D2');
@@ -43,6 +43,19 @@ test.describe('Detective Club Gameplay', () => {
       .filter({ hasText: /Confirm|Submit/i })
       .first()
       .click();
+
+    // A dealt image must use the restored user-generated JPG deck and actually decode in the browser.
+    // This catches the API filename filter and public-asset path drifting apart.
+    for (const page of pages) {
+      const card = page.locator('img[alt="Hand Card"]').first();
+      await expect(card).toBeVisible();
+      await expect(card).toHaveAttribute('src', /\/images\/detective-club\/card_\d{3}\.jpg$/);
+      await expect
+        .poll(() =>
+          card.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+        )
+        .toBe(true);
+    }
 
     // Drive both playing rounds, discussion, and voting like the sim driver:
     // force-click a hand card on the active player, confirm, start the vote,
@@ -106,11 +119,15 @@ test.describe('Detective Club Gameplay', () => {
         .first(),
     ).toBeVisible({ timeout: 15000 });
 
+    // With only one Picture Reader, at most one vote can expose the Improviser.
+    // The displayed verdict must agree with the server's 5-point escape award.
+    await expect(p1.getByText('Improviser Escaped!', { exact: true })).toBeVisible();
+
     await Promise.all(contexts.map((c) => c.close()));
   });
 
   test('can create room and see lobby', async ({ page }) => {
-    await createRoom(page, 'DetTest', 'Detective Club');
+    await createRoom(page, 'DetTest', 'Cluecanvas');
     await expect(page.getByText('DetTest').first()).toBeVisible();
   });
 });

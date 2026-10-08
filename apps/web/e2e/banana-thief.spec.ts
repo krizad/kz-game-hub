@@ -8,9 +8,9 @@ test.describe('Banana Thief Lobby', () => {
     const roomCode = await createRoom(page, 'HostMonkey', 'Banana Thief');
     expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
 
-    // The header must show the localized Banana Thief name, not fall through to "Who Know!"
+    // The header must show the localized Banana Thief name, not fall through to "Knowguise"
     await expect(page.locator('body')).toContainText('Banana Thief');
-    await expect(page.locator('body')).not.toContainText('Who Know');
+    await expect(page.locator('body')).not.toContainText('Knowguise');
 
     // Host sees themselves in the player list
     await expect(page.getByText('HostMonkey').first()).toBeVisible({ timeout: 5000 });

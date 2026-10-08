@@ -50,6 +50,19 @@ This document defines the shared vocabulary and boundaries for the configurable 
 | Free search   | The original Music Trivia setup where the host types a query and may filter by year range; coexists with, and is unaffected by, artist presets.                                                 |
 | Scrape        | The one-time per-artist fetch that builds a catalog: search YouTube, deduplicate by normalized song title (highest-view video wins, official channel as tiebreak), then store the snapshot.     |
 
+## Game catalog vocabulary
+
+**Game display name**:
+The localized title players see for a game. Thai and English titles refer to the same game and may change without changing its identity.
+_Avoid_: Using an internal game code as a player-facing title.
+
+**Game identity**:
+The stable identity of a game across rooms, settings, and recorded results, independent of its display name.
+_Avoid_: Treating a translated title as the game's identity.
+
+**Role name**:
+The name of a part a player takes within a game. It can resemble a game title but is a separate naming decision.
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |

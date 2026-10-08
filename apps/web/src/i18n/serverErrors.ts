@@ -5,7 +5,11 @@ import type { Language } from './dictionaries';
  * Map them to localized UI text here instead of hardcoding translations in stores.
  */
 const SERVER_ERRORS: Record<Language, Record<string, string>> = {
-  en: {},
+  en: {
+    'Cannot propose shuriken.': 'Cannot propose a Breath Break.',
+    'Cannot vote on shuriken.': 'Cannot vote on a Breath Break.',
+    'Cannot cancel shuriken proposal.': 'Cannot cancel the Breath Break proposal.',
+  },
   th: {
     'The Room Host has left. Room has been closed.': 'โฮสต์ออก ห้องถูกปิดลงแล้ว',
     'Please enter your name first': 'กรุณากรอกชื่อก่อน',
@@ -35,9 +39,9 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     'Cannot ready for game.': 'ไม่สามารถกดพร้อมได้',
     'Cannot play card right now.': 'ยังไม่สามารถเล่นการ์ดได้',
     'Cannot advance to next level.': 'ไม่สามารถไปเลเวลถัดไปได้',
-    'Cannot propose shuriken.': 'ไม่สามารถเสนอใช้ดาวกระจายได้',
-    'Cannot vote on shuriken.': 'ไม่สามารถโหวตดาวกระจายได้',
-    'Cannot cancel shuriken proposal.': 'ไม่สามารถยกเลิกการเสนอใช้ดาวกระจายได้',
+    'Cannot propose shuriken.': 'ไม่สามารถเสนอใช้จังหวะพักได้',
+    'Cannot vote on shuriken.': 'ไม่สามารถโหวตจังหวะพักได้',
+    'Cannot cancel shuriken proposal.': 'ไม่สามารถยกเลิกการเสนอใช้จังหวะพักได้',
     'This game is currently disabled.': 'เกมนี้ถูกปิดใช้งานชั่วคราว',
     'Unauthorized.': 'ไม่ได้รับอนุญาต',
     'Failed to update the game setting.': 'อัปเดตการตั้งค่าเกมไม่สำเร็จ',

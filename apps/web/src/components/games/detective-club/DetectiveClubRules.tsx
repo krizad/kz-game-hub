@@ -30,7 +30,7 @@ export function DetectiveClubRules() {
           </li>
           <li className="flex gap-3 bg-white p-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             <span className="mt-0.5 flex-shrink-0 text-2xl leading-none drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-              🕵️
+              🖼️
             </span>
             <div>
               <strong className="text-black block mb-1 uppercase tracking-widest bg-rose-300 px-1 border-2 border-black inline-block">

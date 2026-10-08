@@ -18,7 +18,7 @@ export function LobbyRules() {
         </h3>
         <ul className="space-y-4">
           <li className="flex gap-4 items-start bg-white p-4 border-4 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] transition-all">
-            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">🕵️</span>
+            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">🎭</span>
             <div>
               <strong className="text-black font-black block mb-1 text-lg uppercase bg-yellow-200 inline-block px-2 border-2 border-black shadow-[2px_2px_0_0_#000]">
                 {t('lobby.gameNames.whoKnow')}
@@ -63,7 +63,7 @@ export function LobbyRules() {
             </div>
           </li>
           <li className="flex gap-4 items-start bg-white p-4 border-4 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] transition-all">
-            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">🔍</span>
+            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">🖼️</span>
             <div>
               <strong className="text-black font-black block mb-1 text-lg uppercase bg-slate-300 inline-block px-2 border-2 border-black shadow-[2px_2px_0_0_#000]">
                 {t('lobby.gameNames.detectiveClub')}
@@ -72,7 +72,7 @@ export function LobbyRules() {
             </div>
           </li>
           <li className="flex gap-4 items-start bg-white p-4 border-4 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] transition-all">
-            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">🐟</span>
+            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">💬</span>
             <div>
               <strong className="text-black font-black block mb-1 text-lg uppercase bg-purple-300 inline-block px-2 border-2 border-black shadow-[2px_2px_0_0_#000]">
                 {t('lobby.gameNames.soundsFishy')}
@@ -99,7 +99,7 @@ export function LobbyRules() {
             </div>
           </li>
           <li className="flex gap-4 items-start bg-white p-4 border-4 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] transition-all">
-            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">🧠</span>
+            <span className="mt-0.5 flex-shrink-0 text-3xl leading-none">⏳</span>
             <div>
               <strong className="text-black font-black block mb-1 text-lg uppercase bg-cyan-300 inline-block px-2 border-2 border-black shadow-[2px_2px_0_0_#000]">
                 {t('lobby.gameNames.theMind')}

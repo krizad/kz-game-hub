@@ -152,7 +152,7 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         break;
       }
       case 'the-mind-extreme': {
-        await selectNeobrutalism(page, /Normal \(Classic\)|Extreme \(2 Piles\)/i, /Extreme/i);
+        await selectNeobrutalism(page, /Normal \(Classic\)|Two Tracks/i, /Two Tracks/i);
         break;
       }
       case 'ttt-mode-classic':
@@ -549,7 +549,7 @@ async function playRps(s: SimSession, entry: MatrixEntry): Promise<void> {
   await expect(p1.getByText(/Wins the Match/i)).toBeVisible({ timeout: 15000 });
 }
 
-/** Who Know: 4 players, word popup, questioning, vote, results. */
+/** Knowguise: 4 players, word popup, questioning, vote, results. */
 async function playWhoKnow(s: SimSession): Promise<void> {
   const { host, players } = s;
   await startGame(host);
@@ -595,7 +595,7 @@ async function playWhoKnow(s: SimSession): Promise<void> {
 }
 
 /**
- * Sounds Fishy: answers, reveal all, eliminate, bank, Round Over.
+ * GuiseGuess: answers, reveal all, eliminate, bank, Round Over.
  * The picker/roles are random and phases flip on every action, so one unified
  * act-loop scans every page each iteration and performs whatever control is
  * available (proven pattern from the debug run).
@@ -652,7 +652,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
       // 3. Eliminate during the hunt
       const elim = p
         .locator('button')
-        .filter({ hasText: /Eliminate \(Looks Fishy\)/i })
+        .filter({ hasText: /Reject this answer/i })
         .first();
       if (await elim.isVisible().catch(() => false)) {
         await elim.click({ timeout: 2000 }).catch(() => {});
@@ -672,7 +672,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
 }
 
 /**
- * Detective Club: word, 9 card plays (1 each R1 + 2 each R2), discussion, vote,
+ * Cluecanvas: word, 9 card plays (1 each R1 + 2 each R2), discussion, vote,
  * scoring. The informer is random and turns rotate, so one unified act-loop
  * scans every page each iteration and performs whatever control is available.
  */
@@ -758,7 +758,7 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
     await host.waitForTimeout(1200);
   }
   if (!sawScoring) {
-    throw new Error('Detective Club did not reach the scoring phase in the step budget');
+    throw new Error('Cluecanvas did not reach the scoring phase in the step budget');
   }
   await expect(
     host
@@ -1111,14 +1111,14 @@ async function playMusicTrivia(s: SimSession, entry: MatrixEntry): Promise<void>
 }
 
 /**
- * The Mind: play cards in ascending order to the max level.
+ * Countaline: play cards in ascending order to the max level.
  * NORMAL/BLIND: clicking a playable card plays it immediately.
  * EXTREME: select a card, then use the White pile (UP) button.
  */
 async function playTheMind(s: SimSession): Promise<void> {
   const { host, players } = s;
   const isExtreme = await host
-    .getByText(/Extreme \(2 Piles\)/i)
+    .getByText(/Two Tracks/i)
     .isVisible()
     .catch(() => false);
   await startGame(host);
@@ -1142,7 +1142,7 @@ async function playTheMind(s: SimSession): Promise<void> {
         .first(),
       400,
     );
-    // Play the globally-lowest visible card (The Mind requires strict ascending
+    // Play the globally-lowest visible card (Countaline requires strict ascending
     // order across ALL players). Blind mode shows '?' — accept mistakes there;
     // lost lives still end the game (a valid completion).
     type CardInfo = { page: Page; idx: number; val: number };
@@ -1348,17 +1348,19 @@ async function setSelectByIndex(page: Page, select: Locator, index: number): Pro
   }
 }
 
-/** Coup: income until 7+, then coup the next player until one remains. */
+/** Golden Sand House: collect coins, then reveal the will until one player remains. */
 async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
   const aggressive = entry.id === 'coup-3p-aggressive';
   await startGame(host);
-  await expect(host.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 15000 });
-  const income = (p: Page) => p.getByRole('button', { name: /Income/i });
+  await expect(host.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+    timeout: 15000,
+  });
+  const income = (p: Page) => p.getByRole('button', { name: /Polish stairs/i });
   for (let i = 0; i < 90; i++) {
     if (
       await host
-        .getByText(/Winner:/i)
+        .getByText(/inherits the mansion!/i)
         .isVisible()
         .catch(() => false)
     )
@@ -1380,14 +1382,13 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
       await host.waitForTimeout(500);
       continue;
     }
-    // Income-only rush reaches 10 coins where Income disables (Must Coup) and
-    // only Coup remains. The Coup button enables only after picking a target in
+    // The coin rush reaches 10, where only the will action remains. The button enables after picking a target in
     // the LAST select; if the normal selectOption doesn't stick (React state),
     // set the value via JS and dispatch a change event.
-    const coupBtn = turnPage.getByRole('button', { name: /Coup Pay 7 to Kill/i });
+    const coupBtn = turnPage.getByRole('button', { name: /Reveal the real will/i });
     const coupVisible = await coupBtn.isVisible({ timeout: 300 }).catch(() => false);
     const mustCoup = await turnPage
-      .getByText(/Must Coup/i)
+      .getByText(/Must reveal the real will/i)
       .first()
       .isVisible({ timeout: 200 })
       .catch(() => false);
@@ -1401,7 +1402,7 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
       // Steal, else Income. Challenge/block windows are left to expire
       // server-side (deterministic deadlines).
       const selects = turnPage.locator('select');
-      const assassinateBtn = turnPage.getByRole('button', { name: /Assassinate/i });
+      const assassinateBtn = turnPage.getByRole('button', { name: /Hire the gardener/i });
       const assassinateReady =
         (await assassinateBtn.isVisible({ timeout: 200 }).catch(() => false)) &&
         (await assassinateBtn.isEnabled().catch(() => false));
@@ -1409,11 +1410,11 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
         await setSelectByIndex(turnPage, selects.nth(0), 1);
         await assassinateBtn.click().catch(() => {});
       } else {
-        const taxBtn = turnPage.getByRole('button', { name: /Tax/i });
+        const taxBtn = turnPage.getByRole('button', { name: /Maintenance fee/i });
         if (await taxBtn.isEnabled().catch(() => false)) {
           await taxBtn.click().catch(() => {});
         } else {
-          const stealBtn = turnPage.getByRole('button', { name: /Steal/i });
+          const stealBtn = turnPage.getByRole('button', { name: /Demand allowance/i });
           if (
             (await stealBtn.isVisible({ timeout: 200 }).catch(() => false)) &&
             (await stealBtn.isEnabled().catch(() => false))
@@ -1443,7 +1444,7 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
     }
     await host.waitForTimeout(STEP);
   }
-  await expect(host.getByText(/Winner:/i)).toBeVisible({ timeout: 20000 });
+  await expect(host.getByText(/inherits the mansion!/i)).toBeVisible({ timeout: 20000 });
 }
 
 /** Banana Thief: ready gate, night clock runs, host opens the vote → reveal. */

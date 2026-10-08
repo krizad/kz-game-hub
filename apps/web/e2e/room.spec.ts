@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { createRoom } from './helpers';
 
 test.describe('Room Creation & Join Flow', () => {
-  test('can create a Who Know room', async ({ page }) => {
-    await createRoom(page, 'HostPlayer', 'Who Know');
+  test('can create a Knowguise room', async ({ page }) => {
+    await createRoom(page, 'HostPlayer', 'Knowguise');
     await expect(page.getByText('Waiting Room').or(page.getByText('ห้องรอ'))).toBeVisible({
       timeout: 5000,
     });
@@ -12,8 +12,8 @@ test.describe('Room Creation & Join Flow', () => {
     });
   });
 
-  test('can create Sounds Fishy room', async ({ page }) => {
-    await createRoom(page, 'FishyHost', 'Sounds Fishy');
+  test('can create GuiseGuess room', async ({ page }) => {
+    await createRoom(page, 'FishyHost', 'GuiseGuess');
     await expect(page.getByText('Waiting Room').or(page.getByText('ห้องรอ'))).toBeVisible({
       timeout: 5000,
     });
@@ -24,8 +24,8 @@ test.describe('Room Creation & Join Flow', () => {
     await expect(page.locator('button:has-text("Join X")')).toBeVisible({ timeout: 5000 });
   });
 
-  test('can create Detective Club room', async ({ page }) => {
-    await createRoom(page, 'DetectiveHost', 'Detective Club');
+  test('can create Cluecanvas room', async ({ page }) => {
+    await createRoom(page, 'DetectiveHost', 'Cluecanvas');
     await expect(page.getByText('Waiting Room').or(page.getByText('ห้องรอ'))).toBeVisible({
       timeout: 5000,
     });
@@ -38,11 +38,9 @@ test.describe('Room Creation & Join Flow', () => {
     });
   });
 
-  test('can create The Mind room', async ({ page }) => {
-    await createRoom(page, 'Alice', 'The Mind');
-    await expect(
-      page.locator('text=Ready to Sync?').or(page.getByText('พร้อมเชื่อมต่อจิตใจ?')),
-    ).toBeVisible({
+  test('can create Countaline room', async ({ page }) => {
+    await createRoom(page, 'Alice', 'Countaline');
+    await expect(page.getByText('Countaline — Find your shared rhythm')).toBeVisible({
       timeout: 5000,
     });
   });
@@ -57,7 +55,7 @@ test.describe('Room Creation & Join Flow', () => {
   });
 
   test('host can leave room and return to lobby', async ({ page }) => {
-    await createRoom(page, 'TempHost', 'Who Know');
+    await createRoom(page, 'TempHost', 'Knowguise');
     await page.getByText('Leave').click();
     await expect(page.getByText('Leave Room?').or(page.getByText('ออกจากห้อง?'))).toBeVisible({
       timeout: 5000,

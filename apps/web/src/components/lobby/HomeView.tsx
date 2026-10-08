@@ -56,15 +56,15 @@ export function HomeView() {
   }[] = [
     {
       type: GameType.WHO_KNOW,
-      icon: '🕵️',
+      icon: '🎭',
       name: t('lobby.gameNames.whoKnow'),
       bgClass: 'bg-[#818CF8] hover:bg-[#6366F1] text-white',
     },
     {
       type: GameType.SOUNDS_FISHY,
-      icon: '🐟',
+      icon: '💬',
       name: t('lobby.gameNames.soundsFishy'),
-      bgClass: 'bg-[#C084FC] hover:bg-[#A855F7] text-white',
+      bgClass: 'bg-[#D6E7DA] hover:bg-[#BDD6C3] text-black',
     },
     {
       type: GameType.TIC_TAC_TOE,
@@ -80,7 +80,7 @@ export function HomeView() {
     },
     {
       type: GameType.DETECTIVE_CLUB,
-      icon: '🔍',
+      icon: '🖼️',
       name: t('lobby.gameNames.detectiveClub'),
       bgClass: 'bg-[#FDE047] hover:bg-[#FACC15] text-black',
     },
@@ -104,9 +104,9 @@ export function HomeView() {
     },
     {
       type: GameType.THE_MIND,
-      icon: '🧠',
+      icon: '⏳',
       name: t('lobby.gameNames.theMind'),
-      bgClass: 'bg-[#22D3EE] hover:bg-[#06B6D4] text-black',
+      bgClass: 'bg-[#F2D7B6] hover:bg-[#E8BE79] text-black',
     },
     {
       type: GameType.SABOTEUR,
@@ -116,9 +116,9 @@ export function HomeView() {
     },
     {
       type: GameType.COUP,
-      icon: '👑💰',
+      icon: '🏠📜',
       name: t('lobby.gameNames.coup'),
-      bgClass: 'bg-[#EF4444] hover:bg-[#DC2626] text-white',
+      bgClass: 'bg-[#F3D9A4] hover:bg-[#E8C782] text-black',
     },
     {
       type: GameType.CARD_GAME,

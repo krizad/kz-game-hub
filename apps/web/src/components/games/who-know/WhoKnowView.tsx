@@ -167,14 +167,14 @@ export function WhoKnowView() {
               {t('gameWhoKnow.secretWordWas')}
             </p>
             <p className="text-4xl font-black text-black mb-6 uppercase bg-white border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
-              {useGameStore.getState().secretWord || 'Unknown'}
+              {useGameStore.getState().secretWord || t('lobby.unknownHost')}
             </p>
 
             <p className="text-black mb-2 uppercase tracking-widest text-sm font-black bg-white inline-block px-2 py-1 border-2 border-black ">
               {t('gameWhoKnow.insiderWas')}
             </p>
             <p className="text-3xl font-black text-black uppercase bg-white border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
-              {room.players.find((p) => p.role === Role.Know)?.name || 'Unknown'}
+              {room.players.find((p) => p.role === Role.Know)?.name || t('lobby.unknownHost')}
             </p>
           </div>
 

@@ -8,7 +8,7 @@ import { createRoom } from './helpers';
  */
 
 test('who know lobby offers all three host-selection modes', async ({ page }) => {
-  await createRoom(page, 'Alice', 'Who Know!');
+  await createRoom(page, 'Alice', 'Knowguise');
   const trigger = page.locator('button', { hasText: /^Round Robin$/ }).first();
   await expect(trigger).toBeVisible();
   await trigger.click();
@@ -28,11 +28,11 @@ test('hand duel lobby offers mode and best-of selects', async ({ page }) => {
 });
 
 test('the mind lobby exposes blind, time attack and extreme mode', async ({ page }) => {
-  await createRoom(page, 'Alice', 'The Mind');
+  await createRoom(page, 'Alice', 'Countaline');
   await expect(page.getByText(/Time Attack/i).first()).toBeVisible();
   await expect(page.getByText(/Blind/i).first()).toBeVisible();
   await expect(
-    page.locator('button', { hasText: /Normal \(Classic\)|Extreme/i }).first(),
+    page.locator('button', { hasText: /Normal \(Classic\)|Two Tracks/i }).first(),
   ).toBeVisible();
   await expect(page.locator('button', { hasText: /^Auto$/ }).first()).toBeVisible();
 });

@@ -8,10 +8,10 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
  * - Hand Duel (RPS): best-of-3 played until "Wins the Match!"
  * - Who Am I: words collected -> guess -> RESULT verification -> Game Over reveal
  * - Who First: all configured rounds played -> Final Result
- * - Who Know: full insider round with real voting -> Game Results
- * - Sounds Fishy: answers -> eliminate -> Bank Points & End Round -> Round Over
- * - The Mind: Max Level 2 configured, cards played in ascending order -> You Win!
- * - Detective Club: word -> all cards played -> voting -> Round Over + Scoreboard
+ * - Knowguise: full insider round with real voting -> Game Results
+ * - GuiseGuess: answers -> eliminate -> Bank Points & End Round -> Round Over
+ * - Countaline: Max Level 2 configured, cards played in ascending order -> You Win!
+ * - Cluecanvas: word -> all cards played -> voting -> Round Over + Scoreboard
  * - Music Trivia: ready -> song -> buzz/answer -> skip -> End Game -> Game Over!
  * - Saboteur: 3 miners dig to the gold -> gold pick -> all 3 rounds -> Game Over
  * - Banana Thief: 4 players ready -> night -> vote -> full reveal (winner + dice)
@@ -40,7 +40,7 @@ async function waitForAnyVisible(locators: Locator[], timeoutMs = 10000): Promis
   throw new Error('None of the locators became visible within timeout');
 }
 
-/** Returns the lowest enabled numeric card button value on the page (The Mind). */
+/** Returns the lowest enabled numeric card button value on the page (Countaline). */
 async function lowestEnabledCard(page: Page): Promise<number | null> {
   const btns = page.locator('button').filter({ hasText: /^\d+$/ });
   const n = await btns.count();
@@ -390,9 +390,9 @@ test.describe('Full Game Demos', () => {
     await p2Ctx.close();
   });
 
-  // ─── 6. Who Know ─────────────────────────────────────────────────────────
-  test('Who Know Demo', async ({ browser }) => {
-    // Who Know requires minimum 4 players
+  // ─── 6. Knowguise ─────────────────────────────────────────────────────────
+  test('Knowguise Demo', async ({ browser }) => {
+    // Knowguise requires minimum 4 players
     const ctxs = await Promise.all([
       browser.newContext({ recordVideo: { dir: `${videoDir}/whoknow-host` } }),
       browser.newContext({ recordVideo: { dir: `${videoDir}/whoknow-p1` } }),
@@ -401,7 +401,7 @@ test.describe('Full Game Demos', () => {
     ]);
     const [p1, p2, p3, p4] = await Promise.all(ctxs.map((c) => c.newPage()));
 
-    const roomCode = await createRoom(p1, 'Host', 'Who Know');
+    const roomCode = await createRoom(p1, 'Host', 'Knowguise');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'P1');
     await joinRoom(p3, origin, roomCode, 'P2');
@@ -479,7 +479,7 @@ test.describe('Full Game Demos', () => {
     for (const page of [p1, p2, p3, p4]) {
       await expect(page.getByText('Game Results')).toBeVisible({ timeout: 15000 });
     }
-    await expect(p1.getByText(/Insider Wins!|Commoners Win!/i).first()).toBeVisible({
+    await expect(p1.getByText(/Hidden Guide Wins!|Seekers Win!/i).first()).toBeVisible({
       timeout: 10000,
     });
     await p1.waitForTimeout(2500);
@@ -487,9 +487,9 @@ test.describe('Full Game Demos', () => {
     await Promise.all(ctxs.map((c) => c.close()));
   });
 
-  // ─── 7. Sounds Fishy ─────────────────────────────────────────────────────
-  test('Sounds Fishy Demo', async ({ browser }) => {
-    // Sounds Fishy requires minimum 3 players
+  // ─── 7. GuiseGuess ─────────────────────────────────────────────────────
+  test('GuiseGuess Demo', async ({ browser }) => {
+    // GuiseGuess requires minimum 3 players
     const ctxs = await Promise.all([
       browser.newContext({ recordVideo: { dir: `${videoDir}/soundsfishy-host` } }),
       browser.newContext({ recordVideo: { dir: `${videoDir}/soundsfishy-p1` } }),
@@ -497,7 +497,7 @@ test.describe('Full Game Demos', () => {
     ]);
     const [p1, p2, p3] = await Promise.all(ctxs.map((c) => c.newPage()));
 
-    const roomCode = await createRoom(p1, 'FishHost', 'Sounds Fishy');
+    const roomCode = await createRoom(p1, 'FishHost', 'GuiseGuess');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'F1');
     await joinRoom(p3, origin, roomCode, 'F2');
@@ -563,7 +563,7 @@ test.describe('Full Game Demos', () => {
         .first();
       const eliminateBtn = page
         .locator('button')
-        .filter({ hasText: /Eliminate|กำจัด/i })
+        .filter({ hasText: /Reject this answer|คัดคำตอบนี้ออก/i })
         .first();
       if (
         (await revealBtn
@@ -587,7 +587,7 @@ test.describe('Full Game Demos', () => {
 
       const eliminateBtn = pickerPage
         .locator('button')
-        .filter({ hasText: /Eliminate|กำจัด/i })
+        .filter({ hasText: /Reject this answer|คัดคำตอบนี้ออก/i })
         .first();
       await expect(eliminateBtn).toBeVisible({ timeout: 10000 });
       await eliminateBtn.click();
@@ -616,14 +616,14 @@ test.describe('Full Game Demos', () => {
     await Promise.all(ctxs.map((c) => c.close()));
   });
 
-  // ─── 8. The Mind ─────────────────────────────────────────────────────────
-  test('The Mind Demo', async ({ browser }) => {
+  // ─── 8. Countaline ─────────────────────────────────────────────────────────
+  test('Countaline Demo', async ({ browser }) => {
     const p1Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/themind-p1` } });
     const p2Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/themind-p2` } });
     const p1 = await p1Ctx.newPage();
     const p2 = await p2Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'Host', 'The Mind');
+    const roomCode = await createRoom(p1, 'Host', 'Countaline');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'P1');
     await p1.waitForTimeout(1000);
@@ -713,9 +713,9 @@ test.describe('Full Game Demos', () => {
     await p2Ctx.close();
   });
 
-  // ─── 9. Detective Club ───────────────────────────────────────────────────
-  test('Detective Club Demo', async ({ browser }) => {
-    // Detective Club requires minimum 3 players
+  // ─── 9. Cluecanvas ───────────────────────────────────────────────────
+  test('Cluecanvas Demo', async ({ browser }) => {
+    // Cluecanvas requires minimum 3 players
     const ctxs = await Promise.all([
       browser.newContext({ recordVideo: { dir: `${videoDir}/detectiveclub-p1` } }),
       browser.newContext({ recordVideo: { dir: `${videoDir}/detectiveclub-p2` } }),
@@ -723,7 +723,7 @@ test.describe('Full Game Demos', () => {
     ]);
     const [p1, p2, p3] = await Promise.all(ctxs.map((c) => c.newPage()));
 
-    const roomCode = await createRoom(p1, 'DetHost', 'Detective Club');
+    const roomCode = await createRoom(p1, 'DetHost', 'Cluecanvas');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'D1');
     await joinRoom(p3, origin, roomCode, 'D2');
@@ -1197,8 +1197,8 @@ test.describe('Full Game Demos', () => {
     await Promise.all(ctxs.map((c) => c.close()));
   });
 
-  // ─── 12. Coup ────────────────────────────────────────────────────────────
-  test('Coup Demo', async ({ browser }) => {
+  // ─── 12. Golden Sand House ───────────────────────────────────────────────
+  test('Golden Sand House Demo', async ({ browser }) => {
     const p1Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/coup-p1` } });
     const p2Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/coup-p2` } });
     const p3Ctx = await browser.newContext({ recordVideo: { dir: `${videoDir}/coup-p3` } });
@@ -1206,7 +1206,7 @@ test.describe('Full Game Demos', () => {
     const p2 = await p2Ctx.newPage();
     const p3 = await p3Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'Alice', 'Coup');
+    const roomCode = await createRoom(p1, 'Alice', 'Golden Sand House');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'Bob');
     await joinRoom(p3, origin, roomCode, 'Charlie');
@@ -1220,9 +1220,15 @@ test.describe('Full Game Demos', () => {
     await expect(startBtn).toBeVisible({ timeout: 5000 });
     await startBtn.click();
 
-    await expect(p1.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
-    await expect(p3.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
+    await expect(p1.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p2.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p3.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
 
     const pages = [p1, p2, p3];
 
@@ -1244,7 +1250,7 @@ test.describe('Full Game Demos', () => {
         if (!active) await p1.waitForTimeout(300);
       }
       if (active) {
-        const incomeBtn = active.getByRole('button', { name: /Income/i });
+        const incomeBtn = active.getByRole('button', { name: /Polish stairs/i });
         if (await incomeBtn.isVisible().catch(() => false)) {
           await incomeBtn.click();
           await active.waitForTimeout(1000);

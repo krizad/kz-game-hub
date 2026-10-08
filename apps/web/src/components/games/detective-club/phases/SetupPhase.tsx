@@ -41,7 +41,7 @@ export function SetupPhase() {
               >
                 <img
                   src={cardUrl}
-                  alt={`Card ${idx + 1}`}
+                  alt={t('gameDetectiveClub.cardAlt', { number: idx + 1 })}
                   className="w-full h-full object-cover border-4 border-white"
                 />
               </div>
@@ -79,7 +79,7 @@ export function SetupPhase() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center space-y-4 py-6 bg-purple-300 p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - max-w-md mx-auto w-full">
-          <div className="text-4xl animate-bounce drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">🕵️‍♂️</div>
+          <div className="text-4xl animate-bounce drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">🖼️</div>
           <p className="text-black font-black uppercase tracking-widest bg-white px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             {t('gameDetectiveClub.waitingForInformer')}
           </p>

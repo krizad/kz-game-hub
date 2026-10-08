@@ -29,10 +29,10 @@ export function SoundsFishyRules() {
           </li>
           <li className="flex gap-3 bg-white p-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             <span className="mt-0.5 flex-shrink-0 text-2xl leading-none drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-              🐟
+              🔑
             </span>
             <div>
-              <strong className="text-black block mb-1 uppercase tracking-widest bg-blue-300 px-1 border-2 border-black inline-block">
+              <strong className="text-black block mb-1 uppercase tracking-widest bg-amber-200 px-1 border-2 border-black inline-block">
                 {t('rules.soundsFishy.roleBlueFish')}
               </strong>
               <div className="font-bold">{t('rules.soundsFishy.roleBlueFishDesc')}</div>
@@ -40,10 +40,10 @@ export function SoundsFishyRules() {
           </li>
           <li className="flex gap-3 bg-white p-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
             <span className="mt-0.5 flex-shrink-0 text-2xl leading-none drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-              🐠
+              🎭
             </span>
             <div>
-              <strong className="text-black block mb-1 uppercase tracking-widest bg-rose-300 px-1 border-2 border-black inline-block">
+              <strong className="text-black block mb-1 uppercase tracking-widest bg-teal-200 px-1 border-2 border-black inline-block">
                 {t('rules.soundsFishy.roleRedHerring')}
               </strong>
               <div className="font-bold">{t('rules.soundsFishy.roleRedHerringDesc')}</div>
@@ -82,7 +82,7 @@ export function SoundsFishyRules() {
         </h3>
         <ul className="space-y-3">
           <li className="bg-white p-3 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 font-bold ">
-            <span className="text-2xl drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">🎣</span>
+            <span className="text-2xl drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">💬</span>
             <div>{t('rules.soundsFishy.scoreRedHerring')}</div>
           </li>
           <li className="bg-white p-3 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 font-bold -">

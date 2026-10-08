@@ -46,7 +46,7 @@ export function TheMindGameView() {
                   <div
                     key={card}
                     className={`w-16 h-20 font-black text-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center ${
-                      isDownCard ? 'bg-rose-400 text-black' : 'bg-indigo-400 text-white'
+                      isDownCard ? 'bg-[#E6B3A4] text-black' : 'bg-[#F2D7B6] text-[#2C5559]'
                     } ${idx % 2 === 0 ? '' : '-'}`}
                   >
                     {Math.abs(card)}

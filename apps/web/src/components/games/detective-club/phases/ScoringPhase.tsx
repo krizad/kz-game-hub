@@ -15,10 +15,18 @@ export function ScoringPhase() {
   const conspiratorEntry = Object.entries(state.players).find(([, p]) => p.role === 'CONSPIRATOR');
   if (!conspiratorEntry) return null;
   const [conspiratorId] = conspiratorEntry;
-  const conspiratorName = room.players.find((p) => p.socketId === conspiratorId)?.name || 'Unknown';
+  const conspiratorName =
+    room.players.find((p) => p.socketId === conspiratorId)?.name ||
+    t('gameDetectiveClub.unknownRole');
   const votesAgainstConspirator = Object.values(state.players).filter(
-    (p) => p.votedFor === conspiratorId,
+    (p) =>
+      p.votedFor === conspiratorId &&
+      p.id !== state.informerId &&
+      room.players.some(
+        (member) => member.socketId === p.id && member.connected !== false && !member.isViewer,
+      ),
   ).length;
+  const conspiratorEscaped = (state.scoreDeltas?.[conspiratorId] ?? 0) > 0;
 
   return (
     <div className="flex-1 flex flex-col space-y-6 relative font-mono">
@@ -34,7 +42,7 @@ export function ScoringPhase() {
           </span>
         </p>
 
-        {votesAgainstConspirator > 0 ? (
+        {!conspiratorEscaped ? (
           <div className="mt-6 bg-emerald-400 border-4 border-black p-4 inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             <p className="text-black font-black uppercase tracking-widest mb-2 text-xl bg-white px-2 py-1 border-2 border-black">
               {t('gameDetectiveClub.conspiratorCaught')}

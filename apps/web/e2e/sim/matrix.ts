@@ -31,18 +31,18 @@ export interface MatrixEntry {
 }
 
 export const GAME_MATRIX: MatrixEntry[] = [
-  // --- Who Know ---
+  // --- Knowguise ---
   {
     id: 'who-know-4p',
     game: 'WHO_KNOW',
-    lobbyButton: 'Who Know!',
+    lobbyButton: 'Knowguise',
     players: 4,
     description: 'Word reveal, questioning, voting, results',
   },
   {
     id: 'who-know-random',
     game: 'WHO_KNOW',
-    lobbyButton: 'Who Know!',
+    lobbyButton: 'Knowguise',
     players: 4,
     description: 'Random host selection, full round',
     configure: ['who-know-host:RANDOM'],
@@ -50,17 +50,17 @@ export const GAME_MATRIX: MatrixEntry[] = [
   {
     id: 'who-know-fixed',
     game: 'WHO_KNOW',
-    lobbyButton: 'Who Know!',
+    lobbyButton: 'Knowguise',
     players: 4,
     description: 'Room-creator-fixed host, full round',
     configure: ['who-know-host:FIXED'],
   },
 
-  // --- Sounds Fishy ---
+  // --- GuiseGuess ---
   {
     id: 'sounds-fishy-3p',
     game: 'SOUNDS_FISHY',
-    lobbyButton: 'Sounds Fishy',
+    lobbyButton: 'GuiseGuess',
     players: 3,
     description: 'Answer, eliminate, round over scores',
   },
@@ -140,11 +140,11 @@ export const GAME_MATRIX: MatrixEntry[] = [
     configure: ['rps-mode:ALL_AT_ONCE', 'rps-bestof:5'],
   },
 
-  // --- Detective Club ---
+  // --- Cluecanvas ---
   {
     id: 'detective-club-3p',
     game: 'DETECTIVE_CLUB',
-    lobbyButton: 'Detective Club',
+    lobbyButton: 'Cluecanvas',
     players: 3,
     description: 'Setup, 2 playing rounds, discussion, vote, scoring',
     timeout: 240000,
@@ -258,11 +258,11 @@ export const GAME_MATRIX: MatrixEntry[] = [
     configure: ['music-trivia-source:YOUTUBE', 'music-trivia-rounds:5', 'music-trivia-query:Pop'],
   },
 
-  // --- The Mind (variants in lobby) ---
+  // --- Countaline (variants in lobby) ---
   {
     id: 'the-mind-normal',
     game: 'THE_MIND',
-    lobbyButton: 'The Mind',
+    lobbyButton: 'Countaline',
     players: 2,
     description: 'Win all levels to You Win',
     configure: ['the-mind-maxlevel:4'],
@@ -270,7 +270,7 @@ export const GAME_MATRIX: MatrixEntry[] = [
   {
     id: 'the-mind-extreme',
     game: 'THE_MIND',
-    lobbyButton: 'The Mind',
+    lobbyButton: 'Countaline',
     players: 2,
     description: 'Extreme mode, win all levels',
     configure: ['the-mind-extreme', 'the-mind-maxlevel:3'],
@@ -278,7 +278,7 @@ export const GAME_MATRIX: MatrixEntry[] = [
   {
     id: 'the-mind-blind',
     game: 'THE_MIND',
-    lobbyButton: 'The Mind',
+    lobbyButton: 'Countaline',
     players: 2,
     description: 'Blind mode, finish by Game Over',
     configure: ['the-mind-maxlevel:3', 'the-mind-blind'],
@@ -286,7 +286,7 @@ export const GAME_MATRIX: MatrixEntry[] = [
   {
     id: 'the-mind-timeattack',
     game: 'THE_MIND',
-    lobbyButton: 'The Mind',
+    lobbyButton: 'Countaline',
     players: 2,
     description: 'Time Attack countdown, win or Game Over',
     configure: ['the-mind-maxlevel:3', 'the-mind-timeattack'],
@@ -320,18 +320,18 @@ export const GAME_MATRIX: MatrixEntry[] = [
     timeout: 420000,
   },
 
-  // --- Coup (3 players) ---
+  // --- Golden Sand House (3 players; COUP protocol identity) ---
   {
     id: 'coup-3p',
     game: 'COUP',
-    lobbyButton: 'Coup',
+    lobbyButton: 'Golden Sand House',
     players: 3,
     description: 'Income rush, coups until one player remains',
   },
   {
     id: 'coup-3p-aggressive',
     game: 'COUP',
-    lobbyButton: 'Coup',
+    lobbyButton: 'Golden Sand House',
     players: 3,
     description: 'Tax/Steal/Assassinate rush until one player remains',
     timeout: 240000,

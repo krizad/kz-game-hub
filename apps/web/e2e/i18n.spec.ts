@@ -10,7 +10,7 @@ test('lobby defaults to Thai game names', async ({ page }) => {
   await goToLobby(page);
   // Default dictionary is th — Thai-only game labels must be visible
   await expect(page.locator('button:has-text("ลิงขโมยกล้วย")').first()).toBeVisible();
-  await expect(page.locator('button:has-text("จับโกหกปลาเน่า")').first()).toBeVisible();
+  await expect(page.locator('button:has-text("คำตอบพราง")').first()).toBeVisible();
 });
 
 test('switching to English persists across reload', async ({ page }) => {

@@ -2,11 +2,11 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin, waitForAnyVisible } from './helpers';
 
 /**
- * Sounds Fishy: hard assertions at every deterministic gate. Roles are
+ * GuiseGuess: hard assertions at every deterministic gate. Roles are
  * server-random, so completion is asserted as "Round Over reached", never a
  * specific winner (same contract as the sim driver).
  */
-test.describe('Sounds Fishy Gameplay', () => {
+test.describe('GuiseGuess Gameplay', () => {
   test('three players play a full round to Round Over', async ({ browser }) => {
     test.setTimeout(120000);
     const contexts = await Promise.all([
@@ -17,7 +17,7 @@ test.describe('Sounds Fishy Gameplay', () => {
     const [p1, p2, p3] = await Promise.all(contexts.map((c) => c.newPage()));
     const pages: Page[] = [p1, p2, p3];
 
-    const roomCode = await createRoom(p1, 'FishHost', 'Sounds Fishy');
+    const roomCode = await createRoom(p1, 'FishHost', 'GuiseGuess');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'F1');
     await joinRoom(p3, origin, roomCode, 'F2');
@@ -81,7 +81,7 @@ test.describe('Sounds Fishy Gameplay', () => {
             .first(),
           page
             .locator('button')
-            .filter({ hasText: /Eliminate \(Looks Fishy\)/i })
+            .filter({ hasText: /Reject this answer/i })
             .first(),
           page
             .locator('button')
@@ -104,7 +104,7 @@ test.describe('Sounds Fishy Gameplay', () => {
   });
 
   test('can create room and see lobby', async ({ page }) => {
-    await createRoom(page, 'FishTest', 'Sounds Fishy');
+    await createRoom(page, 'FishTest', 'GuiseGuess');
     await expect(page.getByText('FishTest').first()).toBeVisible();
   });
 });

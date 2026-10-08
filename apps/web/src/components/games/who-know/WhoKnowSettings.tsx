@@ -61,8 +61,8 @@ export function WhoKnowSettings() {
           <input
             id="timerMinInput"
             name="timerMin"
-            title="Timer Minutes"
-            aria-label="Timer Minutes"
+            title={t('lobby.timerMinutes')}
+            aria-label={t('lobby.timerMinutes')}
             autoComplete="off"
             type="number"
             min="1"

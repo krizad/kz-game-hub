@@ -14,13 +14,13 @@ test.describe('Lobby Page', () => {
 
   test('create room buttons are disabled without name', async ({ page }) => {
     await goToLobbyInEnglish(page);
-    await expect(page.locator('button:has-text("Who Know")').first()).toBeDisabled();
+    await expect(page.locator('button:has-text("Knowguise")').first()).toBeDisabled();
   });
 
   test('can enter name and enable create buttons', async ({ page }) => {
     await goToLobbyInEnglish(page);
     await page.locator('#lobbyNameInput').fill('TestPlayer');
-    await expect(page.locator('button:has-text("Who Know")').first()).toBeEnabled({
+    await expect(page.locator('button:has-text("Knowguise")').first()).toBeEnabled({
       timeout: 5000,
     });
   });
@@ -56,7 +56,7 @@ test.describe('Lobby Page', () => {
   test('public lobbies list shows created rooms with code', async ({ browser }) => {
     const hostCtx = await browser.newContext();
     const host = await hostCtx.newPage();
-    const roomCode = await createRoom(host, 'LobbyHost', 'Who Know');
+    const roomCode = await createRoom(host, 'LobbyHost', 'Knowguise');
 
     // A fresh visitor sees the public lobby entry for the created room
     const visitor = await browser.newContext();

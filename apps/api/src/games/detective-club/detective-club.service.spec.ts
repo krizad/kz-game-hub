@@ -68,6 +68,22 @@ describe('DetectiveClubService', () => {
     expect(service).toBeDefined();
   });
 
+  it('deals the restored user-generated JPG cards whose public files exist', () => {
+    delete process.env.DETECTIVE_CLUB_CARDS_DIR;
+    service = new DetectiveClubService(privateState);
+    const room = startGame(createRoom(threePlayers()));
+    const publicDir = path.resolve(__dirname, '../../../../web/public');
+
+    for (const player of room.players) {
+      const hand = privateState.get<string[]>(room.code, player.socketId, 'dcHand')!;
+      expect(hand).toHaveLength(5);
+      for (const url of hand) {
+        expect(url).toMatch(/^\/images\/detective-club\/card_\d{3}\.jpg$/);
+        expect(fs.existsSync(path.join(publicDir, url))).toBe(true);
+      }
+    }
+  });
+
   describe('startGame', () => {
     it('should not start game if players < 3', () => {
       const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }]);

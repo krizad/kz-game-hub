@@ -1,0 +1,488 @@
+{
+  "title": "Cluecanvas original vector deck",
+  "source": "scripts/generate-cluecanvas-deck.mjs",
+  "created": "2026-10-08",
+  "provenance": "Code-authored geometric illustrations; no external image files or fonts used. This records the creation method, not a legal clearance.",
+  "cards": [
+    {
+      "filename": "card_001.svg",
+      "subject": "key",
+      "companion": "window",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_002.svg",
+      "subject": "ladder",
+      "companion": "hourglass",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_003.svg",
+      "subject": "umbrella",
+      "companion": "compass",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_004.svg",
+      "subject": "book",
+      "companion": "bridge",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_005.svg",
+      "subject": "balloon",
+      "companion": "tree",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_006.svg",
+      "subject": "window",
+      "companion": "key",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_007.svg",
+      "subject": "bridge",
+      "companion": "boat",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_008.svg",
+      "subject": "boat",
+      "companion": "cloud",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_009.svg",
+      "subject": "mountain",
+      "companion": "ladder",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_010.svg",
+      "subject": "lantern",
+      "companion": "mountain",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_011.svg",
+      "subject": "teapot",
+      "companion": "telescope",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_012.svg",
+      "subject": "moon",
+      "companion": "umbrella",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_013.svg",
+      "subject": "hourglass",
+      "companion": "lantern",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_014.svg",
+      "subject": "tree",
+      "companion": "feather",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_015.svg",
+      "subject": "cloud",
+      "companion": "book",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_016.svg",
+      "subject": "telescope",
+      "companion": "teapot",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_017.svg",
+      "subject": "feather",
+      "companion": "door",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_018.svg",
+      "subject": "door",
+      "companion": "balloon",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_019.svg",
+      "subject": "stairs",
+      "companion": "moon",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_020.svg",
+      "subject": "compass",
+      "companion": "stairs",
+      "setting": "hills"
+    },
+    {
+      "filename": "card_021.svg",
+      "subject": "key",
+      "companion": "mountain",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_022.svg",
+      "subject": "ladder",
+      "companion": "telescope",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_023.svg",
+      "subject": "umbrella",
+      "companion": "umbrella",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_024.svg",
+      "subject": "book",
+      "companion": "lantern",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_025.svg",
+      "subject": "balloon",
+      "companion": "feather",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_026.svg",
+      "subject": "window",
+      "companion": "book",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_027.svg",
+      "subject": "bridge",
+      "companion": "teapot",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_028.svg",
+      "subject": "boat",
+      "companion": "door",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_029.svg",
+      "subject": "mountain",
+      "companion": "balloon",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_030.svg",
+      "subject": "lantern",
+      "companion": "moon",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_031.svg",
+      "subject": "teapot",
+      "companion": "stairs",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_032.svg",
+      "subject": "moon",
+      "companion": "window",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_033.svg",
+      "subject": "hourglass",
+      "companion": "hourglass",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_034.svg",
+      "subject": "tree",
+      "companion": "compass",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_035.svg",
+      "subject": "cloud",
+      "companion": "bridge",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_036.svg",
+      "subject": "telescope",
+      "companion": "tree",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_037.svg",
+      "subject": "feather",
+      "companion": "key",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_038.svg",
+      "subject": "door",
+      "companion": "boat",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_039.svg",
+      "subject": "stairs",
+      "companion": "cloud",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_040.svg",
+      "subject": "compass",
+      "companion": "ladder",
+      "setting": "valley"
+    },
+    {
+      "filename": "card_041.svg",
+      "subject": "key",
+      "companion": "moon",
+      "setting": "water"
+    },
+    {
+      "filename": "card_042.svg",
+      "subject": "ladder",
+      "companion": "stairs",
+      "setting": "water"
+    },
+    {
+      "filename": "card_043.svg",
+      "subject": "umbrella",
+      "companion": "window",
+      "setting": "water"
+    },
+    {
+      "filename": "card_044.svg",
+      "subject": "book",
+      "companion": "hourglass",
+      "setting": "water"
+    },
+    {
+      "filename": "card_045.svg",
+      "subject": "balloon",
+      "companion": "compass",
+      "setting": "water"
+    },
+    {
+      "filename": "card_046.svg",
+      "subject": "window",
+      "companion": "bridge",
+      "setting": "water"
+    },
+    {
+      "filename": "card_047.svg",
+      "subject": "bridge",
+      "companion": "tree",
+      "setting": "water"
+    },
+    {
+      "filename": "card_048.svg",
+      "subject": "boat",
+      "companion": "key",
+      "setting": "water"
+    },
+    {
+      "filename": "card_049.svg",
+      "subject": "mountain",
+      "companion": "boat",
+      "setting": "water"
+    },
+    {
+      "filename": "card_050.svg",
+      "subject": "lantern",
+      "companion": "cloud",
+      "setting": "water"
+    },
+    {
+      "filename": "card_051.svg",
+      "subject": "teapot",
+      "companion": "ladder",
+      "setting": "water"
+    },
+    {
+      "filename": "card_052.svg",
+      "subject": "moon",
+      "companion": "mountain",
+      "setting": "water"
+    },
+    {
+      "filename": "card_053.svg",
+      "subject": "hourglass",
+      "companion": "telescope",
+      "setting": "water"
+    },
+    {
+      "filename": "card_054.svg",
+      "subject": "tree",
+      "companion": "umbrella",
+      "setting": "water"
+    },
+    {
+      "filename": "card_055.svg",
+      "subject": "cloud",
+      "companion": "lantern",
+      "setting": "water"
+    },
+    {
+      "filename": "card_056.svg",
+      "subject": "telescope",
+      "companion": "feather",
+      "setting": "water"
+    },
+    {
+      "filename": "card_057.svg",
+      "subject": "feather",
+      "companion": "book",
+      "setting": "water"
+    },
+    {
+      "filename": "card_058.svg",
+      "subject": "door",
+      "companion": "teapot",
+      "setting": "water"
+    },
+    {
+      "filename": "card_059.svg",
+      "subject": "stairs",
+      "companion": "door",
+      "setting": "water"
+    },
+    {
+      "filename": "card_060.svg",
+      "subject": "compass",
+      "companion": "balloon",
+      "setting": "water"
+    },
+    {
+      "filename": "card_061.svg",
+      "subject": "key",
+      "companion": "cloud",
+      "setting": "city"
+    },
+    {
+      "filename": "card_062.svg",
+      "subject": "ladder",
+      "companion": "ladder",
+      "setting": "city"
+    },
+    {
+      "filename": "card_063.svg",
+      "subject": "umbrella",
+      "companion": "mountain",
+      "setting": "city"
+    },
+    {
+      "filename": "card_064.svg",
+      "subject": "book",
+      "companion": "telescope",
+      "setting": "city"
+    },
+    {
+      "filename": "card_065.svg",
+      "subject": "balloon",
+      "companion": "umbrella",
+      "setting": "city"
+    },
+    {
+      "filename": "card_066.svg",
+      "subject": "window",
+      "companion": "lantern",
+      "setting": "city"
+    },
+    {
+      "filename": "card_067.svg",
+      "subject": "bridge",
+      "companion": "feather",
+      "setting": "city"
+    },
+    {
+      "filename": "card_068.svg",
+      "subject": "boat",
+      "companion": "book",
+      "setting": "city"
+    },
+    {
+      "filename": "card_069.svg",
+      "subject": "mountain",
+      "companion": "teapot",
+      "setting": "city"
+    },
+    {
+      "filename": "card_070.svg",
+      "subject": "lantern",
+      "companion": "door",
+      "setting": "city"
+    },
+    {
+      "filename": "card_071.svg",
+      "subject": "teapot",
+      "companion": "balloon",
+      "setting": "city"
+    },
+    {
+      "filename": "card_072.svg",
+      "subject": "moon",
+      "companion": "moon",
+      "setting": "city"
+    },
+    {
+      "filename": "card_073.svg",
+      "subject": "hourglass",
+      "companion": "stairs",
+      "setting": "city"
+    },
+    {
+      "filename": "card_074.svg",
+      "subject": "tree",
+      "companion": "window",
+      "setting": "city"
+    },
+    {
+      "filename": "card_075.svg",
+      "subject": "cloud",
+      "companion": "hourglass",
+      "setting": "city"
+    },
+    {
+      "filename": "card_076.svg",
+      "subject": "telescope",
+      "companion": "compass",
+      "setting": "city"
+    },
+    {
+      "filename": "card_077.svg",
+      "subject": "feather",
+      "companion": "bridge",
+      "setting": "city"
+    },
+    {
+      "filename": "card_078.svg",
+      "subject": "door",
+      "companion": "tree",
+      "setting": "city"
+    },
+    {
+      "filename": "card_079.svg",
+      "subject": "stairs",
+      "companion": "key",
+      "setting": "city"
+    },
+    {
+      "filename": "card_080.svg",
+      "subject": "compass",
+      "companion": "boat",
+      "setting": "city"
+    }
+  ]
+}

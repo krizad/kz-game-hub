@@ -9,17 +9,17 @@ import { goToLobbyInEnglish } from './helpers';
 // Gobbler / Ultimate have no top-level tabs — they are mode sub-tabs inside
 // the Tic-Tac-Toe tab since the TTT unify (ADR 0006).
 const TABS = [
-  'Who Know',
+  'Knowguise',
   'Tic Tac Toe',
   'Hand Duel',
-  'Sounds Fishy',
+  'GuiseGuess',
   'Who Am I',
-  'Detective Club',
+  'Cluecanvas',
   'Who First',
   'Music Trivia',
-  'The Mind',
+  'Countaline',
   'Saboteur',
-  'Coup',
+  'Golden Sand House',
   'Thai Card Game',
   'Banana Thief',
 ];

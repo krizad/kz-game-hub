@@ -68,7 +68,9 @@ export function VotingPhase() {
         <div className="flex-1 flex flex-col space-y-6 max-w-2xl mx-auto w-full">
           {state.playOrder.map((pid) => {
             const player = state.players[pid];
-            const pName = room.players.find((p) => p.socketId === pid)?.name || 'Unknown';
+            const pName =
+              room.players.find((p) => p.socketId === pid)?.name ||
+              t('gameDetectiveClub.unknownRole');
             const isMe = socketId === pid;
             const isInformerPlayer = state.informerId === pid;
 
@@ -103,7 +105,7 @@ export function VotingPhase() {
                     >
                       <img
                         src={cardUrl}
-                        alt={`Card ${idx}`}
+                        alt={t('gameDetectiveClub.cardAlt', { number: idx + 1 })}
                         className="w-full h-full object-cover border-2 border-white"
                       />
                       <div className="absolute inset-0 bg-black/0 hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">

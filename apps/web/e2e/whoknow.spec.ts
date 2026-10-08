@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from './helpers';
 
-test.describe('Who Know Gameplay', () => {
+test.describe('Knowguise Gameplay', () => {
   test('four players can start game flow', async ({ browser }) => {
-    test.setTimeout(120000); // 2 minutes for Who Know
+    test.setTimeout(120000); // 2 minutes for Knowguise
     const contexts = await Promise.all([
       browser.newContext(),
       browser.newContext(),
@@ -12,7 +12,7 @@ test.describe('Who Know Gameplay', () => {
     ]);
     const [p1, p2, p3, p4] = await Promise.all(contexts.map((c) => c.newPage()));
 
-    const roomCode = await createRoom(p1, 'Host', 'Who Know');
+    const roomCode = await createRoom(p1, 'Host', 'Knowguise');
     const origin = await getOrigin(p1);
 
     await joinRoom(p2, origin, roomCode, 'P1');
@@ -88,7 +88,7 @@ test.describe('Who Know Gameplay', () => {
   });
 
   test('host sees lobby config options', async ({ page }) => {
-    await createRoom(page, 'SoloHost', 'Who Know');
+    await createRoom(page, 'SoloHost', 'Knowguise');
     await expect(page.getByText('SoloHost').first()).toBeVisible();
     await expect(page.getByText('Host Selection').or(page.getByText('การเลือกโฮสต์'))).toBeVisible({
       timeout: 5000,

@@ -5,17 +5,53 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { CoupHelpModal } from './CoupHelpModal';
-import { CoupRole, CoupActionType } from '@repo/types';
+import { CoupRole, CoupActionType, CoupPhase } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useCoupSounds, type CoupSound } from '@/hooks/useCoupSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
 
-const roleEmoji: Record<string, string> = {
-  DUKE: '👑',
-  ASSASSIN: '🗡️',
-  CAPTAIN: '🏴‍☠️',
-  AMBASSADOR: '🤝',
-  CONTESSA: '💃',
+const roleEmoji: Record<CoupRole, string> = {
+  [CoupRole.DUKE]: '👒',
+  [CoupRole.ASSASSIN]: '💢',
+  [CoupRole.CAPTAIN]: '💍',
+  [CoupRole.AMBASSADOR]: '📜',
+  [CoupRole.CONTESSA]: '🧺',
+};
+
+const roleKeys: Record<CoupRole, string> = {
+  [CoupRole.DUKE]: 'gameCoup.roleDuke',
+  [CoupRole.ASSASSIN]: 'gameCoup.roleAssassin',
+  [CoupRole.CAPTAIN]: 'gameCoup.roleCaptain',
+  [CoupRole.AMBASSADOR]: 'gameCoup.roleAmbassador',
+  [CoupRole.CONTESSA]: 'gameCoup.roleContessa',
+};
+
+const roleDescriptionKeys: Record<CoupRole, string> = {
+  [CoupRole.DUKE]: 'gameCoup.roleDukeDesc',
+  [CoupRole.ASSASSIN]: 'gameCoup.roleAssassinDesc',
+  [CoupRole.CAPTAIN]: 'gameCoup.roleCaptainDesc',
+  [CoupRole.AMBASSADOR]: 'gameCoup.roleAmbassadorDesc',
+  [CoupRole.CONTESSA]: 'gameCoup.roleContessaDesc',
+};
+
+const actionKeys: Record<CoupActionType, string> = {
+  [CoupActionType.INCOME]: 'gameCoup.actionIncome',
+  [CoupActionType.FOREIGN_AID]: 'gameCoup.actionForeignAid',
+  [CoupActionType.COUP]: 'gameCoup.actionCoup',
+  [CoupActionType.TAX]: 'gameCoup.actionTax',
+  [CoupActionType.ASSASSINATE]: 'gameCoup.actionAssassinate',
+  [CoupActionType.STEAL]: 'gameCoup.actionSteal',
+  [CoupActionType.EXCHANGE]: 'gameCoup.actionExchange',
+};
+
+const phaseKeys: Record<CoupPhase, string> = {
+  [CoupPhase.LOBBY]: 'gameCoup.phaseLobby',
+  [CoupPhase.PLAYING]: 'gameCoup.phasePlaying',
+  [CoupPhase.AWAITING_CHALLENGE]: 'gameCoup.phaseAwaitingChallenge',
+  [CoupPhase.AWAITING_BLOCK]: 'gameCoup.phaseAwaitingBlock',
+  [CoupPhase.AWAITING_EXCHANGE]: 'gameCoup.phaseAwaitingExchange',
+  [CoupPhase.AWAITING_REVEAL]: 'gameCoup.phaseAwaitingReveal',
+  [CoupPhase.RESULT]: 'gameCoup.phaseResult',
 };
 
 export function CoupView() {
@@ -30,6 +66,8 @@ export function CoupView() {
     coupExchangeSelect,
   } = useGameStore();
   const { t } = useTranslate();
+  const roleLabel = (role: CoupRole) => t(roleKeys[role]);
+  const actionLabel = (action: CoupActionType) => t(actionKeys[action]);
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const playSound = useCoupSounds(soundsEnabled);
   const [coupTarget, setCoupTarget] = useState<string>('');
@@ -97,7 +135,7 @@ export function CoupView() {
 
     lastSeq.current = { pending: pendingKey, influences: influencesKey, winner: winnerKey };
   }, [state, playSound]);
-  if (!room || !state) return <div className="p-6 font-black">Loading Coup...</div>;
+  if (!room || !state) return <div className="p-6 font-black">{t('gameCoup.loading')}</div>;
   const hand = (privateState as any)?.coupHand as CoupRole[] | undefined;
   const exchangeKeepCount = hand ? Math.max(1, hand.length - 2) : 2;
   const isMyTurn = state.currentTurn === socketId;
@@ -127,9 +165,11 @@ export function CoupView() {
   );
 
   return (
-    <div className="flex flex-col gap-4 bg-white border-4 border-black p-4 shadow-[4px_4px_0_0_#000]">
+    <div className="flex flex-col gap-4 bg-[#FFF7E8] border-4 border-[#5B2637] p-4 shadow-[4px_4px_0_0_#5B2637]">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black uppercase tracking-widest">Coup — {state.phase}</h2>
+        <h2 className="text-xl font-black tracking-wide">
+          {t('lobby.gameNames.coup')} — {t(phaseKeys[state.phase])}
+        </h2>
         <div className="flex gap-2">
           <CoupHelpModal />
           {renderSoundToggle()}
@@ -138,7 +178,7 @@ export function CoupView() {
               onClick={() => resetRoom()}
               className="bg-black text-white px-3 py-1 text-xs font-black uppercase"
             >
-              Reset
+              {t('gameCoup.reset')}
             </button>
           )}
         </div>
@@ -160,10 +200,10 @@ export function CoupView() {
           return (
             <div
               key={p.socketId}
-              className={`border-4 p-2 ${isTurn ? 'border-[#EF4444] bg-[#FEF08A]' : 'border-black bg-white'}`}
+              className={`border-4 p-2 ${isTurn ? 'border-[#7B3149] bg-[#F4DEAA]' : 'border-[#5B2637] bg-white'}`}
             >
               <div className="text-xs font-black truncate">
-                {p.name} {isMe && '(YOU)'} {isTurn && '◀'}
+                {p.name} {isMe && `(${t('gameCoup.you')})`} {isTurn && '◀'}
               </div>
               <div className="text-xs font-bold">
                 {t('gameCoup.coins')}: {coins} 💰
@@ -173,7 +213,8 @@ export function CoupView() {
               </div>
               {revealed.length > 0 && (
                 <div className="text-[10px] font-bold">
-                  Revealed: {revealed.map((r) => `${roleEmoji[r] ?? ''} ${r}`).join(', ')}
+                  {t('gameCoup.revealed')}:{' '}
+                  {revealed.map((r) => `${roleEmoji[r]} ${roleLabel(r)}`).join(', ')}
                 </div>
               )}
               <div className="flex gap-1 mt-1">
@@ -190,7 +231,7 @@ export function CoupView() {
                     key={`r-${i}`}
                     className="w-6 h-8 border-2 border-black bg-white flex items-center justify-center text-[10px]"
                   >
-                    {roleEmoji[r] ?? r[0]}
+                    {roleEmoji[r]}
                   </div>
                 ))}
               </div>
@@ -199,7 +240,7 @@ export function CoupView() {
         })}
       </div>
 
-      <div className="border-4 border-black p-3 bg-[#F3F4F6]">
+      <div className="border-4 border-[#5B2637] p-3 bg-[#F7EBD6]">
         <div className="text-xs font-black uppercase mb-1">
           {t('gameCoup.deadPile')}: {state.deadPile.length} {t('gameCoup.cards')}
         </div>
@@ -209,17 +250,19 @@ export function CoupView() {
               key={i}
               className="border-2 border-black px-1 py-0.5 bg-white text-[10px] font-black"
             >
-              {roleEmoji[r] ?? ''} {r}
+              {roleEmoji[r]} {roleLabel(r)}
             </span>
           ))}
-          {state.deadPile.length === 0 && <span className="text-xs opacity-50">— empty —</span>}
+          {state.deadPile.length === 0 && (
+            <span className="text-xs opacity-50">— {t('gameCoup.emptyPile')} —</span>
+          )}
         </div>
         <div className="text-xs font-bold mt-1">
           {t('gameCoup.deck')}: {state.deck.length} {t('gameCoup.cards')}
         </div>
       </div>
 
-      <div className="border-4 border-black p-3 bg-[#E0E7FF]">
+      <div className="border-4 border-[#5B2637] p-3 bg-[#EFE0BC]">
         <div className="text-xs font-black uppercase">
           {t('gameCoup.yourInfluence')} {hand ? `(${hand.length})` : ''}
         </div>
@@ -228,14 +271,18 @@ export function CoupView() {
             {hand.map((r, i) => (
               <div
                 key={i}
-                className="flex-1 border-4 border-black bg-white p-3 text-center font-black"
+                className="flex-1 border-4 border-[#5B2637] bg-white p-3 text-center font-black shadow-[2px_2px_0_0_#5B2637]"
               >
-                {roleEmoji[r] ?? ''} <div className="text-xs">{r}</div>
+                <span className="text-2xl">{roleEmoji[r]}</span>
+                <div className="text-xs mt-1">{roleLabel(r)}</div>
+                <div className="text-[10px] font-bold opacity-70 mt-1">
+                  {t(roleDescriptionKeys[r])}
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-xs opacity-60">No private hand (spectator or not dealt)</div>
+          <div className="text-xs opacity-60">{t('gameCoup.noHand')}</div>
         )}
         <div className="text-xs font-bold mt-2">
           {t('gameCoup.yourCoins')}: {myCoins} 💰{' '}
@@ -248,8 +295,15 @@ export function CoupView() {
       {state.phase === 'AWAITING_CHALLENGE' && state.pendingAction && !state.pendingBlock && (
         <div className="border-4 border-black p-3 bg-[#FECACA]">
           <div className="text-xs font-black uppercase text-center">
-            {room.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name} declares{' '}
-            {state.pendingAction.type} ({state.pendingAction.claimedRole}) — Challenge?
+            {t('gameCoup.declaredAction', {
+              name:
+                room.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name ?? '',
+              action: actionLabel(state.pendingAction.type),
+              role: state.pendingAction.claimedRole
+                ? roleLabel(state.pendingAction.claimedRole)
+                : '',
+            })}{' '}
+            — {t('gameCoup.challengeQuestion')}
           </div>
           {state.pendingAction.actorId !== socketId &&
             (state.influences[socketId]?.count ?? 0) > 0 && (
@@ -257,25 +311,28 @@ export function CoupView() {
                 onClick={() => coupChallenge()}
                 className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase"
               >
-                Challenge!
+                {t('gameCoup.challenge')}
               </button>
             )}
           {state.pendingAction.actorId === socketId && (
             <div className="text-xs text-center mt-1 opacity-70">
-              Waiting for others to challenge (7s)...
+              {t('gameCoup.waitingChallenge')}
             </div>
           )}
-          <div className="text-[10px] text-center mt-1 opacity-60">
-            Auto-resolves in 7s if no challenge
-          </div>
+          <div className="text-[10px] text-center mt-1 opacity-60">{t('gameCoup.autoResolve')}</div>
         </div>
       )}
 
       {state.phase === 'AWAITING_CHALLENGE' && state.pendingBlock && state.pendingAction && (
         <div className="border-4 border-black p-3 bg-[#FDE68A]">
           <div className="text-xs font-black uppercase text-center">
-            {room.players.find((p) => p.socketId === state.pendingBlock!.blockerId)?.name} blocks{' '}
-            {state.pendingAction.type} with {state.pendingBlock.claimedRole} — Challenge block?
+            {t('gameCoup.blocksAction', {
+              name:
+                room.players.find((p) => p.socketId === state.pendingBlock!.blockerId)?.name ?? '',
+              action: actionLabel(state.pendingAction.type),
+              role: roleLabel(state.pendingBlock.claimedRole),
+            })}{' '}
+            — {t('gameCoup.challengeBlockQuestion')}
           </div>
           {state.pendingBlock.blockerId !== socketId &&
             (state.influences[socketId]?.count ?? 0) > 0 && (
@@ -283,20 +340,18 @@ export function CoupView() {
                 onClick={() => coupChallenge()}
                 className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase"
               >
-                Challenge Block!
+                {t('gameCoup.challengeBlock')}
               </button>
             )}
-          <div className="text-[10px] text-center mt-1 opacity-60">
-            Block challenge auto-resolves in 7s
-          </div>
+          <div className="text-[10px] text-center mt-1 opacity-60">{t('gameCoup.autoResolve')}</div>
         </div>
       )}
 
       {state.phase === 'AWAITING_BLOCK' && state.pendingAction && (
         <div className="border-4 border-black p-3 bg-[#BFDBFE]">
           <div className="text-xs font-black uppercase text-center">
-            {room.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name} did{' '}
-            {state.pendingAction!.type} — Block?
+            {room.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name}{' '}
+            {actionLabel(state.pendingAction.type)} — {t('gameCoup.blockQuestion')}
           </div>
           {(() => {
             const isForeignAid = state.pendingAction!.type === 'FOREIGN_AID';
@@ -321,13 +376,13 @@ export function CoupView() {
                     onClick={() => coupBlock(CoupRole.CAPTAIN)}
                     className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
                   >
-                    Captain
+                    {roleLabel(CoupRole.CAPTAIN)}
                   </button>
                   <button
                     onClick={() => coupBlock(CoupRole.AMBASSADOR)}
                     className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
                   >
-                    Ambassador
+                    {roleLabel(CoupRole.AMBASSADOR)}
                   </button>
                 </div>
               );
@@ -338,12 +393,14 @@ export function CoupView() {
                   onClick={() => coupBlock()}
                   className="mt-2 w-full bg-white border-4 border-black font-black py-2 text-xs uppercase"
                 >
-                  Block!
+                  {t('gameCoup.block')}
                 </button>
               );
             }
             return (
-              <div className="text-xs text-center mt-1 opacity-60">Waiting for block (7s)...</div>
+              <div className="text-xs text-center mt-1 opacity-60">
+                {t('gameCoup.waitingBlock')}
+              </div>
             );
           })()}
         </div>
@@ -352,7 +409,7 @@ export function CoupView() {
       {state.phase === 'AWAITING_EXCHANGE' && state.pendingAction && (
         <div className="border-4 border-black p-3 bg-[#FDE68A]">
           <div className="text-xs font-black uppercase text-center">
-            Exchange — pick {exchangeKeepCount} to keep
+            {t('gameCoup.exchangeChoose', { count: exchangeKeepCount })}
           </div>
           {state.pendingAction.actorId === socketId && hand && hand.length >= 3 ? (
             <>
@@ -373,7 +430,7 @@ export function CoupView() {
                       }
                       className={`border-4 p-2 text-xs font-black ${selected ? 'bg-[#A3E635] border-black' : 'bg-white border-black'}`}
                     >
-                      {roleEmoji[r] ?? ''} {r}
+                      {roleEmoji[r]} {roleLabel(r)}
                     </button>
                   );
                 })}
@@ -386,14 +443,18 @@ export function CoupView() {
                 }}
                 className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase disabled:bg-gray-300"
               >
-                Keep Selected ({exchangeKeepCount})
+                {t('gameCoup.keepSelected', { count: exchangeKeepCount })}
               </button>
             </>
           ) : (
             <div className="text-xs text-center mt-1 opacity-60">
               {state.pendingAction.actorId === socketId
-                ? 'Loading...'
-                : `Waiting for ${room.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name} to choose...`}
+                ? t('gameCoup.loading')
+                : t('gameCoup.waitingExchange', {
+                    name:
+                      room.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name ??
+                      '',
+                  })}
             </div>
           )}
         </div>
@@ -406,28 +467,28 @@ export function CoupView() {
               ? t('gameCoup.yourTurn')
               : `${t('gameCoup.waitingFor')} ${room.players.find((p) => p.socketId === state.currentTurn)?.name ?? '...'}`}{' '}
             {forcedCoup && isMyTurn && (
-              <span className="bg-red-500 text-white px-1">Must Coup (10+)</span>
+              <span className="bg-red-500 text-white px-1">{t('gameCoup.mustCoup')}</span>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
               disabled={!isMyTurn || forcedCoup}
               onClick={() => coupDeclare(CoupActionType.INCOME)}
-              className="border-4 border-black bg-[#A3E635] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+              className="border-4 border-black bg-[#E8D9BE] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
             >
               {t('gameCoup.actionIncome')}
             </button>
             <button
               disabled={!isMyTurn || forcedCoup}
               onClick={() => coupDeclare(CoupActionType.FOREIGN_AID)}
-              className="border-4 border-black bg-[#60A5FA] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+              className="border-4 border-black bg-[#C9D7CF] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
             >
               {t('gameCoup.actionForeignAid')}
             </button>
             <button
               disabled={!isMyTurn || forcedCoup}
               onClick={() => coupDeclare(CoupActionType.TAX)}
-              className="border-4 border-black bg-[#FBBF24] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+              className="border-4 border-black bg-[#D9B475] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
             >
               {t('gameCoup.actionTax')}
             </button>
@@ -438,7 +499,7 @@ export function CoupView() {
                 disabled={!isMyTurn}
                 className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
               >
-                <option value="">target</option>
+                <option value="">{t('gameCoup.target')}</option>
                 {aliveTargets.map((p) => (
                   <option key={p.socketId} value={p.socketId}>
                     {p.name}
@@ -449,12 +510,12 @@ export function CoupView() {
                 disabled={!isMyTurn || !assassinateTargetValid || myCoins < 3 || forcedCoup}
                 onClick={() => {
                   if (!assassinateTargetValid) {
-                    toast.error('Pick target');
+                    toast.error(t('gameCoup.pickTarget'));
                     return;
                   }
                   coupDeclare(CoupActionType.ASSASSINATE, assassinateTarget);
                 }}
-                className="bg-[#A855F7] border-4 border-black text-white disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+                className="bg-[#9B6073] border-4 border-black text-white disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
               >
                 {t('gameCoup.actionAssassinate')} (3)
               </button>
@@ -466,7 +527,7 @@ export function CoupView() {
                 disabled={!isMyTurn}
                 className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
               >
-                <option value="">steal target</option>
+                <option value="">{t('gameCoup.target')}</option>
                 {aliveTargets.map((p) => (
                   <option key={p.socketId} value={p.socketId}>
                     {p.name}
@@ -477,12 +538,12 @@ export function CoupView() {
                 disabled={!isMyTurn || !stealTargetValid || forcedCoup}
                 onClick={() => {
                   if (!stealTargetValid) {
-                    toast.error('Pick target');
+                    toast.error(t('gameCoup.pickTarget'));
                     return;
                   }
                   coupDeclare(CoupActionType.STEAL, stealTarget);
                 }}
-                className="bg-[#34D399] border-4 border-black text-white disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+                className="bg-[#C9A997] border-4 border-black text-black disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
               >
                 {t('gameCoup.actionSteal')}
               </button>
@@ -490,7 +551,7 @@ export function CoupView() {
             <button
               disabled={!isMyTurn || forcedCoup}
               onClick={() => coupDeclare(CoupActionType.EXCHANGE)}
-              className="col-span-2 border-4 border-black bg-[#F472B6] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+              className="col-span-2 border-4 border-black bg-[#E3C6A6] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
             >
               {t('gameCoup.actionExchange')}
             </button>
@@ -501,7 +562,7 @@ export function CoupView() {
                 disabled={!isMyTurn}
                 className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
               >
-                <option value="">coup target</option>
+                <option value="">{t('gameCoup.target')}</option>
                 {aliveTargets.map((p) => (
                   <option key={p.socketId} value={p.socketId}>
                     {p.name}
@@ -512,12 +573,12 @@ export function CoupView() {
                 disabled={!isMyTurn || !coupTargetValid || myCoins < 7}
                 onClick={() => {
                   if (!coupTargetValid) {
-                    toast.error('Pick target');
+                    toast.error(t('gameCoup.pickTarget'));
                     return;
                   }
                   coupDeclare(CoupActionType.COUP, coupTarget);
                 }}
-                className="bg-[#EF4444] border-4 border-black text-white disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
+                className="bg-[#6B213C] border-4 border-black text-white disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
               >
                 {t('gameCoup.actionCoup')} (7)
               </button>
@@ -525,7 +586,7 @@ export function CoupView() {
           </div>
           {forcedCoup && isMyTurn && (
             <div className="text-[10px] font-bold text-red-600 mt-1">
-              You have 10+ coins — you must Coup!
+              {t('gameCoup.mustCoupHint')}
             </div>
           )}
         </div>
@@ -533,7 +594,9 @@ export function CoupView() {
 
       {state.winnerId && (
         <div className="border-4 border-black bg-[#A7F3D0] p-3 text-center font-black">
-          Winner: {room.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId}
+          {t('gameCoup.winner', {
+            name: room.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId,
+          })}
         </div>
       )}
 

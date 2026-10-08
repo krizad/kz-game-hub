@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from './helpers';
 
-test.describe('Coup Game Flow', () => {
-  test('player can create room and see Coup lobby', async ({ page }) => {
-    const roomCode = await createRoom(page, 'HostDuke', 'Coup');
+test.describe('Golden Sand House Game Flow', () => {
+  test('player can create room and see Golden Sand House lobby', async ({ page }) => {
+    const roomCode = await createRoom(page, 'HostDuke', 'Golden Sand House');
     expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
     await expect(page.getByText('HostDuke').first()).toBeVisible({ timeout: 5000 });
   });
@@ -16,7 +16,7 @@ test.describe('Coup Game Flow', () => {
     const p2 = await p2Ctx.newPage();
     const p3 = await p3Ctx.newPage();
 
-    const roomCode = await createRoom(p1, 'Alice', 'Coup');
+    const roomCode = await createRoom(p1, 'Alice', 'Golden Sand House');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'Bob');
     await joinRoom(p3, origin, roomCode, 'Charlie');
@@ -30,10 +30,16 @@ test.describe('Coup Game Flow', () => {
     await expect(startBtn).toBeVisible({ timeout: 5000 });
     await startBtn.click();
 
-    // Verify Coup view renders with PLAYING phase
-    await expect(p1.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
-    await expect(p3.getByText(/Coup — PLAYING/i)).toBeVisible({ timeout: 10000 });
+    // Verify the mansion view renders with the active phase
+    await expect(p1.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p2.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p3.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
 
     // Identify which player has the current turn (poll until one of them shows it)
     const pages = [p1, p2, p3];
@@ -62,7 +68,7 @@ test.describe('Coup Game Flow', () => {
     const turnPage = activePage!;
 
     // Active player takes Income
-    const incomeBtn = turnPage.getByRole('button', { name: /Income/i });
+    const incomeBtn = turnPage.getByRole('button', { name: /Polish stairs/i });
     await expect(incomeBtn).toBeEnabled({ timeout: 5000 });
     await incomeBtn.click();
 

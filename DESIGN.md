@@ -9,37 +9,42 @@ A high-energy, playful Neo-brutalist party game arcade. High-contrast solid bord
 ## 2. Color Palette & Roles
 
 ### Primary Foundation
+
 - **Canary Arcade Yellow (`#FEF08A`)**: Primary viewport canvas background and lively party game backdrop.
 - **Warm Cream (`#FEFCE8`)**: Secondary subtle base background (amber-50) for loading states and dialog backings.
 - **Card White (`#FFFFFF`)**: High-contrast foreground container surfaces, input backgrounds, and modal bases.
 - **Obsidian Black (`#000000`)**: Structural framing, 4px and 2px architectural borders, heavy text, and crisp 0-blur drop shadows.
 
 ### Accent & Interactive
+
 - **Electric Purple (`#A855F7`)**: Primary action button fill (`hover: #9333EA`), room join triggers, and highlight focus rings (`#8B5CF6`).
 - **Indigo Spark (`#818CF8`)**: Secondary actions, phase badges, and active state indicators (`hover: #6366F1`).
 - **Neutral Stone (`#F3F4F6` to `#E5E7EB`)**: Button hover states and secondary interactive pill surfaces.
 
 ### Game Identity Badges & Cards
-- **Insider / Who Know (`#818CF8`)**: Mysterious indigo with white typography.
-- **Sounds Fishy (`#C084FC`)**: Vibrant lilac with white typography.
+
+- **รู้แล้วเนียน / Knowguise (`#818CF8`)**: Indigo with white typography and a mask symbol.
+- **คำตอบพราง / GuiseGuess (`#D6E7DA`)**: Sage with black typography and a speech symbol. Answer Keeper and Fabricator use amber and teal accents.
 - **Hand Duel / RPS (`#FBBF24`)**: Warm amber with black typography.
-- **Detective Club (`#FDE047`)**: Bright detective yellow with black typography.
+- **รหัสภาพ / Cluecanvas (`#FDE047`)**: Yellow with black typography and an image symbol. Uses the original vector scene deck recorded in its asset manifest.
 - **Who Am I (`#F472B6`)**: Playful candy pink with white typography.
 - **Who First (`#34D399`)**: High-contrast emerald buzzer green with white typography.
-- **The Mind (`#22D3EE`)**: Telepathic cyan with black typography.
+- **นับในใจ / Countaline (`#F2D7B6`)**: Warm paper with black typography and an hourglass symbol. Breath Breaks use a wind symbol.
 - **Saboteur (`#F97316`)**: Explosive mining orange with white typography.
-- **Coup (`#EF4444`)**: Deceptive royal red with white typography.
+- **บ้านทรายทอง / Golden Sand House (`#F3D9A4`)**: Sand and burgundy mansion theme. Display name remains pending rights review.
 - **Card Game / Pok Deng (`#F59E0B`)**: Casino felt gold with black typography.
 - **Banana Thief (`#EAB308`)**: Jungle monkey yellow with black typography.
 - **Tic-Tac-Toe / Gobbler (`#A1A1AA`)**: Minimalist slate zinc with white typography.
 
 ### Typography & Text Hierarchy
+
 - **Deep Black (`#000000`)**: Primary headings, labels, button labels, and high-emphasis uppercase titles.
 - **Slate Ink (`#1E293B`)**: High-legibility body copy and description blocks.
 - **Muted Slate (`#64748B`)**: Secondary metadata, room code hints, and timestamps.
 - **Inverted White (`#FFFFFF`)**: High-contrast button text over dark/vibrant action fills.
 
 ### Functional States
+
 - **Success (`#10B981`)**: Connected status indicators, correct guesses, winning states.
 - **Warning / Pending (`#F59E0B`)**: Timer countdowns, secret word setting phase.
 - **Destructive / Alert (`#EF4444`)**: Leave room, eliminate player, error banners.

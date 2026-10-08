@@ -55,7 +55,7 @@ async function assertTogglePersisted(page: Page, testId: string) {
 
 test('coup sound toggle flips and persists', async ({ page }) => {
   const { guests, cleanup } = await spawnGuests(page.context().browser()!, 2);
-  await startRoom(page, guests, 'Coup');
+  await startRoom(page, guests, 'Golden Sand House');
   await assertTogglePersisted(page, 'coup-sound-toggle');
   await cleanup();
 });
@@ -69,7 +69,7 @@ test('saboteur sound toggle flips and persists', async ({ page }) => {
 
 test('detective club sound toggle flips and persists', async ({ page }) => {
   const { guests, cleanup } = await spawnGuests(page.context().browser()!, 2);
-  await startRoom(page, guests, 'Detective Club');
+  await startRoom(page, guests, 'Cluecanvas');
   await assertTogglePersisted(page, 'dc-sound-toggle');
   await cleanup();
 });

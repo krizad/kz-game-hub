@@ -51,12 +51,15 @@ export class DetectiveClubService {
       for (const imagesDir of candidates) {
         if (fs.existsSync(imagesDir)) {
           const files = fs.readdirSync(imagesDir);
-          this.availableCards = files.filter(
-            (file) =>
-              file.toLowerCase().endsWith('.jpg') ||
-              file.toLowerCase().endsWith('.png') ||
-              file.toLowerCase().endsWith('.jpeg'),
-          );
+          const isCustomDeck = imagesDir === process.env.DETECTIVE_CLUB_CARDS_DIR;
+          this.availableCards = files
+            .filter((file) =>
+              isCustomDeck
+                ? /\.(svg|jpg|png|jpeg)$/i.test(file)
+                : /^card_\d{3}\.(jpg|png|jpeg)$/i.test(file),
+            )
+            .sort();
+          if (this.availableCards.length === 0) continue;
           this.logger.log(
             `Loaded ${this.availableCards.length} detective club cards from ${imagesDir}`,
           );

@@ -66,7 +66,7 @@ export function SoundsFishyView() {
           </p>
           <div className="flex items-center gap-2 justify-center sm:justify-start">
             <span
-              className={`text-xl font-black border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isPicker ? 'bg-purple-300 text-black ' : isBlueFish ? 'bg-blue-300 text-black -' : 'bg-rose-300 text-black '}`}
+              className={`text-xl font-black border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isPicker ? 'bg-purple-300 text-black ' : isBlueFish ? 'bg-amber-200 text-black -' : 'bg-teal-200 text-black '}`}
             >
               {isPicker
                 ? t('gameSoundsFishy.rolePicker')
@@ -121,7 +121,7 @@ export function SoundsFishyView() {
           {/* Action Area */}
           {isPicker ? (
             <div className="flex flex-col items-center justify-center space-y-4 bg-purple-300 p-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
-              <div className="text-4xl animate-bounce">🎣</div>
+              <div className="text-4xl animate-bounce">💬</div>
               <p className="text-black font-black uppercase tracking-widest">
                 {t('gameSoundsFishy.waitingForFish')}
               </p>
@@ -281,7 +281,7 @@ export function SoundsFishyView() {
                       <button
                         onClick={() => soundsFishyEliminatePlayer(p.socketId)}
                         disabled={actionLoading}
-                        className="mt-6 bg-rose-400 hover:bg-rose-300 text-black font-black px-4 py-3 border-4 border-black transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
+                        className="mt-6 bg-rose-400 hover:bg-teal-200 text-black font-black px-4 py-3 border-4 border-black transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
                       >
                         {t('gameSoundsFishy.eliminateLooksFishy')}
                       </button>

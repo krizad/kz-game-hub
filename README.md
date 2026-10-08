@@ -7,17 +7,17 @@ Built as a modern web application within a Turborepo.
 
 ## 🚀 Available Games
 
-- **Who Know!:** A social deduction game based on the board game "Insider". Who knows the secret? Who's acting sus?
+- **Knowguise:** Ask yes/no questions to find a secret word, then identify the Hidden Guide who helped the group.
 - **Tic-Tac-Toe:** One game, three modes the host picks in the waiting room — **Classic** (X's and O's, also vs a bot), **Gobbler** (bigger pieces gobble smaller ones), and **Ultimate** (a 3x3 grid of sub-boards).
 - **Hand Duel:** A competitive Rock-Paper-Scissors game with multiple modes (1v1 Round Robin, All At Once) and Best-Of mechanics.
-- **Sounds Fishy:** A trivia bluffing game — one player knows the real answer, others make up convincing fakes. Can you spot the truth?
-- **Detective Club:** A social deduction card game — play cards to match a secret clue word, but one player is the spy who doesn't know it!
+- **GuiseGuess:** A trivia bluffing game — one player knows the real answer, others make up convincing fakes. Can you spot the truth?
+- **Cluecanvas:** A social deduction card game — play cards to match a secret clue word, but one player is the spy who doesn't know it!
 - **Who Am I:** A classic guessing game — players write words about a category, then try to deduce each other's identity. Can you be the last one standing?
 - **Who First:** A fast-paced reaction and reflex buzzer game — test who reacts fastest when the signal changes!
 - **Music Trivia:** A music guessing game — listen to synchronized song previews from iTunes, Spotify, YouTube, Deezer, or SoundCloud and guess the title and artist (typing or game-master mode).
-- **The Mind:** A cooperative game where players must play numbered cards in ascending order without communicating!
+- **Countaline:** A cooperative game where players must play numbered cards in ascending order without communicating!
 - **Saboteur:** A social deduction game where gold miners dig tunnels towards hidden treasures while saboteurs try to secretly derail them.
-- **Coup:** A high-stakes game of deception, bluffing, and manipulation — eliminate all rival influences to take control.
+- **Golden Sand House (บ้านทรายทอง):** A fictional mansion feud where players claim household roles, bluff for an allowance, and reveal the real will to outlast their rivals.
 - **Thai Card Game (เกมไพ่ไทย):** Classic Thai card games with virtual chips — **Pok Deng** (ป๊อกเด้ง) and **Slave** (ไพ่ตกน้ำ), with host-editable advanced rules.
 - **Banana Thief (ลิงขโมยกล้วย):** A nighttime social deduction game — one player is the thief who secretly steals the banana while mice wake at their die-roll hours to peek and investigate, then everyone votes. Host-tunable followers, optional special roles (Detective, Twins, Sycophant, Scapegoat), and a live player-requirement calculator in the lobby.
 

@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 import { GameType, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 
-import { Play, Heart, Star, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
+import { Play, Heart, Wind, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
 
 const THE_MIND_RESULT_TOAST_ID = 'the-mind-result';
 
@@ -256,7 +256,7 @@ export function TheMindView() {
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
                   <label className="flex items-center gap-2 text-black font-black uppercase tracking-widest">
-                    <Star className="w-5 h-5 text-indigo-500" />
+                    <Wind className="w-5 h-5 text-indigo-500" />
                     {t('gameTheMind.lobby.startingShurikens')}
                   </label>
                   <input
@@ -297,7 +297,7 @@ export function TheMindView() {
                       { value: 'EXTREME', label: t('gameTheMind.lobby.modeExtreme') || 'Extreme' },
                     ]}
                     onChange={(val) => updateConfig({ theMindMode: val as 'NORMAL' | 'EXTREME' })}
-                    className="bg-rose-400 w-32"
+                    className="bg-[#E6B3A4] w-32"
                   />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
@@ -411,12 +411,12 @@ export function TheMindView() {
           {t('gameTheMind.game.level')} {state.level}/{state.maxLevel}
         </h2>
         <div className="flex items-center justify-between gap-4 w-full">
-          <div className="w-full flex items-center justify-center gap-2 bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3">
+          <div className="w-full flex items-center justify-center gap-2 bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3">
             <Heart className="w-6 h-6 text-black" />
             <span className="font-black text-2xl text-black">{state.lives}</span>
           </div>
-          <div className="w-full flex items-center justify-center gap-2 bg-indigo-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3">
-            <Star className="w-6 h-6 text-black" />
+          <div className="w-full flex items-center justify-center gap-2 bg-[#D6E7DA] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3">
+            <Wind className="w-6 h-6 text-black" />
             <span className="font-black text-2xl text-black">{state.shuriken}</span>
           </div>
         </div>
@@ -458,12 +458,12 @@ export function TheMindView() {
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 bg-rose-400 border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+          <div className="flex items-center gap-1.5 bg-[#E6B3A4] border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
             <Heart className="w-5 h-5 text-black fill-black" />
             <span className="font-black text-lg text-black">{state.lives}</span>
           </div>
-          <div className="flex items-center gap-1.5 bg-indigo-400 border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
-            <Star className="w-5 h-5 text-black fill-black" />
+          <div className="flex items-center gap-1.5 bg-[#D6E7DA] border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+            <Wind className="w-5 h-5 text-black fill-black" />
             <span className="font-black text-lg text-black">{state.shuriken}</span>
           </div>
         </div>
@@ -527,7 +527,7 @@ export function TheMindView() {
                 theMindPlayCard(selectedExtremeCard, 'DOWN');
               }
             }}
-            className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-rose-400 hover:bg-rose-300 cursor-pointer active:translate-y-1 active:shadow-none ' : 'bg-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-[#E6B3A4] hover:bg-rose-300 cursor-pointer active:translate-y-1 active:shadow-none ' : 'bg-slate-200 opacity-70 cursor-not-allowed'}`}
           >
             <p className="text-[10px] font-black text-black uppercase tracking-widest mb-1 bg-white inline-block px-1 border-2 border-black -">
               {t('gameTheMind.game.redPileDown')}
@@ -553,7 +553,9 @@ export function TheMindView() {
           {state.pileTopPlayerId && !room.config?.theMindBlindMode && (
             <p className="mt-2 text-sm text-black font-black uppercase tracking-widest bg-white border-2 border-black inline-block px-2 py-1 ">
               {t('gameTheMind.game.playedBy', {
-                name: room.players.find((p) => p.id === state.pileTopPlayerId)?.name || 'Unknown',
+                name:
+                  room.players.find((p) => p.id === state.pileTopPlayerId)?.name ||
+                  t('lobby.unknownHost'),
               })}
             </p>
           )}
@@ -570,12 +572,13 @@ export function TheMindView() {
             className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
           >
             {state.playedCards.map((pc, idx) => {
-              const playerName = room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
+              const playerName =
+                room.players.find((p) => p.id === pc.playerId)?.name || t('lobby.unknownHost');
               const isDown = pc.pile === 'DOWN';
               return (
                 <div
                   key={idx}
-                  className={`flex-shrink-0 border-4 border-black p-2 text-center min-w-[60px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${room.config?.theMindBlindMode ? 'bg-slate-300' : isDown ? 'bg-rose-400' : 'bg-cyan-300'}`}
+                  className={`flex-shrink-0 border-4 border-black p-2 text-center min-w-[60px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${room.config?.theMindBlindMode ? 'bg-slate-300' : isDown ? 'bg-[#E6B3A4]' : 'bg-cyan-300'}`}
                 >
                   {!room.config?.theMindBlindMode && (
                     <div
@@ -648,7 +651,7 @@ export function TheMindView() {
           <Button
             onClick={() => theMindProposeShuriken()}
             variant="outline"
-            className="bg-indigo-400 text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-indigo-300 font-black px-6 py-6 text-lg uppercase tracking-widest active:translate-y-1 active:shadow-none"
+            className="bg-[#D6E7DA] text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#D6E7DA] font-black px-6 py-6 text-lg uppercase tracking-widest active:translate-y-1 active:shadow-none"
           >
             <Zap className="w-5 h-5 mr-2 stroke-[3]" />
             {t('gameTheMind.game.useShuriken')} ({state.shuriken})
@@ -658,7 +661,7 @@ export function TheMindView() {
           <Button
             onClick={() => resetRoom()}
             variant="outline"
-            className="bg-rose-400 text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-rose-300 font-black px-6 py-6 text-lg uppercase tracking-widest - active:translate-y-1 active:shadow-none"
+            className="bg-[#E6B3A4] text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-rose-300 font-black px-6 py-6 text-lg uppercase tracking-widest - active:translate-y-1 active:shadow-none"
           >
             <RotateCcw className="w-5 h-5 mr-2 stroke-[3]" />
             {t('gameTheMind.game.exitGame')}
@@ -670,7 +673,7 @@ export function TheMindView() {
 
   const renderShurikenVote = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
-      <div className="w-full bg-indigo-400 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
+      <div className="w-full bg-[#D6E7DA] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-black text-black uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 - shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <Zap className="w-6 h-6 inline-block mr-2 stroke-[3]" />
@@ -683,7 +686,8 @@ export function TheMindView() {
               ? t('gameTheMind.game.youProposedShuriken')
               : t('gameTheMind.game.shurikenProposedBy', {
                   name:
-                    room.players.find((p) => p.id === state.shurikenProposerId)?.name || 'Unknown',
+                    room.players.find((p) => p.id === state.shurikenProposerId)?.name ||
+                    t('lobby.unknownHost'),
                 })}
           </p>
           <p className="text-center text-sm text-black font-bold border-2 border-black p-2 bg-yellow-300 ">
@@ -701,7 +705,7 @@ export function TheMindView() {
               <Button
                 onClick={() => theMindVoteShuriken(false)}
                 variant="outline"
-                className="bg-rose-400 hover:bg-rose-300 text-black font-black py-4 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest"
+                className="bg-[#E6B3A4] hover:bg-rose-300 text-black font-black py-4 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest"
               >
                 <X className="w-6 h-6 mr-2 stroke-[3]" />
                 {t('gameTheMind.game.disagree')}
@@ -738,7 +742,7 @@ export function TheMindView() {
 
   const renderShurikenResult = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
-      <div className="w-full bg-indigo-400 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - overflow-hidden p-6">
+      <div className="w-full bg-[#D6E7DA] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - overflow-hidden p-6">
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-black text-black uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <Zap className="w-6 h-6 inline-block mr-2 stroke-[3]" />
@@ -758,7 +762,7 @@ export function TheMindView() {
                   className="flex items-center justify-between text-sm bg-white border-2 border-black px-2 py-1 -"
                 >
                   <span className="font-black text-black uppercase tracking-widest">
-                    {player?.name || 'Unknown'}
+                    {player?.name || t('lobby.unknownHost')}
                   </span>
                   <span className="text-black font-black text-lg">[{cards.join(', ')}]</span>
                 </div>
@@ -797,7 +801,8 @@ export function TheMindView() {
           >
             {state.playedCards.map((pc, idx) => {
               const isRevealed = idx < revealedCount;
-              const playerName = room.players.find((p) => p.id === pc.playerId)?.name || 'Unknown';
+              const playerName =
+                room.players.find((p) => p.id === pc.playerId)?.name || t('lobby.unknownHost');
               const isMistake =
                 isRevealed && !state.result?.success && blindMistakeIndexes.has(idx);
 
@@ -849,7 +854,7 @@ export function TheMindView() {
         </div>
 
         {revealFinished && !state.result.success && (
-          <div className="bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 text-center animate-in fade-in zoom-in duration-500 ">
+          <div className="bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 text-center animate-in fade-in zoom-in duration-500 ">
             <p className="text-2xl font-black text-black mb-1 uppercase tracking-widest bg-white inline-block px-2 border-2 border-black -">
               {t('gameTheMind.game.mistake')}
             </p>
@@ -872,7 +877,7 @@ export function TheMindView() {
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
       <div className="w-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
         <div
-          className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${state.result?.success ? 'bg-emerald-400' : 'bg-rose-400'}`}
+          className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${state.result?.success ? 'bg-emerald-400' : 'bg-[#E6B3A4]'}`}
         >
           <h2 className={`text-2xl font-black text-black uppercase tracking-widest`}>
             {state.result?.success
@@ -885,7 +890,7 @@ export function TheMindView() {
         <div className="space-y-6">
           {state.result && !state.result.success && !room.config?.theMindBlindMode && (
             <div className="space-y-6">
-              <div className="bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-center ">
+              <div className="bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-center ">
                 <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black -">
                   {t('gameTheMind.game.mistakeBy', {
                     name:
@@ -913,7 +918,7 @@ export function TheMindView() {
                           className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 "
                         >
                           <span className="font-black text-black uppercase tracking-widest">
-                            {player?.name || 'Unknown'}:
+                            {player?.name || t('lobby.unknownHost')}:
                           </span>
                           <span className="text-black font-black text-lg">
                             [{cards.map((c) => Math.abs(c)).join(', ')}]
@@ -940,7 +945,7 @@ export function TheMindView() {
                           className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 -"
                         >
                           <span className="font-black text-black uppercase tracking-widest">
-                            {player?.name || 'Unknown'}:
+                            {player?.name || t('lobby.unknownHost')}:
                           </span>
                           <span className="text-black font-black text-lg">
                             [{cards.join(', ')}]
@@ -985,7 +990,7 @@ export function TheMindView() {
       <div className="w-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
         <div
           className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${
-            state.level >= state.maxLevel ? 'bg-emerald-400' : 'bg-rose-400'
+            state.level >= state.maxLevel ? 'bg-emerald-400' : 'bg-[#E6B3A4]'
           }`}
         >
           <h2 className={`text-4xl font-black text-black uppercase tracking-widest`}>
@@ -1000,12 +1005,12 @@ export function TheMindView() {
               {t('gameTheMind.game.levelReached', { level: state.level, max: state.maxLevel })}
             </p>
             <div className="flex items-center justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2 bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2 -">
+              <div className="flex items-center gap-2 bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2 -">
                 <Heart className="w-6 h-6 text-black fill-black" />
                 <span className="font-black text-2xl text-black">{state.lives}</span>
               </div>
-              <div className="flex items-center gap-2 bg-indigo-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2 ">
-                <Star className="w-6 h-6 text-black fill-black" />
+              <div className="flex items-center gap-2 bg-[#D6E7DA] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2 ">
+                <Wind className="w-6 h-6 text-black fill-black" />
                 <span className="font-black text-2xl text-black">{state.shuriken}</span>
               </div>
             </div>
@@ -1013,7 +1018,7 @@ export function TheMindView() {
 
           {state.result && !state.result.success && !room.config?.theMindBlindMode && (
             <div className="space-y-6">
-              <div className="bg-rose-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-center -">
+              <div className="bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-center -">
                 <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black ">
                   {t('gameTheMind.game.mistakeBy', {
                     name:
@@ -1041,7 +1046,7 @@ export function TheMindView() {
                           className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 -"
                         >
                           <span className="font-black text-black uppercase tracking-widest">
-                            {player?.name || 'Unknown'}:
+                            {player?.name || t('lobby.unknownHost')}:
                           </span>
                           <span className="text-black font-black text-lg">
                             [{cards.map((c) => Math.abs(c)).join(', ')}]

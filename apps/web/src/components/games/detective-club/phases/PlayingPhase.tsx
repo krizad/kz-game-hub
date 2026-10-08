@@ -21,7 +21,8 @@ export function PlayingPhase() {
   const secretWord = privateState.dcWord as string | undefined;
 
   const activePlayerName =
-    room.players.find((p) => p.socketId === state.activePlayerId)?.name || 'Unknown';
+    room.players.find((p) => p.socketId === state.activePlayerId)?.name ||
+    t('gameDetectiveClub.unknownRole');
 
   return (
     <div className="flex-1 flex flex-col space-y-6 relative font-mono">
@@ -57,7 +58,9 @@ export function PlayingPhase() {
         <div className="flex flex-wrap gap-6 justify-center items-center">
           {state.playOrder.map((pid) => {
             const player = state.players[pid];
-            const pName = room.players.find((p) => p.socketId === pid)?.name || 'Unknown';
+            const pName =
+              room.players.find((p) => p.socketId === pid)?.name ||
+              t('gameDetectiveClub.unknownRole');
             const isActive = state.activePlayerId === pid;
             return (
               <div
@@ -78,7 +81,7 @@ export function PlayingPhase() {
                     >
                       <img
                         src={cardUrl}
-                        alt="Played Card"
+                        alt={t('gameDetectiveClub.playedCardAlt')}
                         className="w-full h-full object-cover border-4 border-white"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -130,7 +133,7 @@ export function PlayingPhase() {
             >
               <img
                 src={cardUrl}
-                alt="Hand Card"
+                alt={t('gameDetectiveClub.handCardAlt')}
                 className="w-full h-full object-cover border-4 border-white"
               />
 
@@ -151,7 +154,7 @@ export function PlayingPhase() {
                   setViewCardUrl(cardUrl);
                 }}
                 className="absolute top-2 right-2 p-2 bg-white text-black border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-300"
-                title="View larger"
+                title={t('gameDetectiveClub.viewLarger')}
               >
                 <ZoomIn className="w-5 h-5" />
               </button>
@@ -177,7 +180,7 @@ export function PlayingPhase() {
               <div className="w-40 h-56 border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
                 <img
                   src={myHand[confirmPlayIndex]}
-                  alt="Selected Card"
+                  alt={t('gameDetectiveClub.selectedCardAlt')}
                   className="w-full h-full object-cover border-4 border-white"
                 />
               </div>

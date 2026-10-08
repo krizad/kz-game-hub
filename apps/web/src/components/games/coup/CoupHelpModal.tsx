@@ -6,13 +6,22 @@ import { useTranslate } from '@/hooks/useTranslate';
 export function CoupHelpModal() {
   const [open, setOpen] = useState(false);
   const { t } = useTranslate();
+  const actionKeys = [
+    'actionIncome',
+    'actionForeignAid',
+    'actionTax',
+    'actionAssassinate',
+    'actionSteal',
+    'actionExchange',
+    'actionCoup',
+  ];
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         className="bg-white border-4 border-black px-3 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-        aria-label="help"
+        aria-label={t('gameCoup.helpButton')}
       >
         ? {t('gameCoup.helpButton')}
       </button>
@@ -22,7 +31,7 @@ export function CoupHelpModal() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white border-4 border-black shadow-[8px_8px_0_0_#000] max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
+            className="bg-[#FFF7E8] border-4 border-[#5B2637] shadow-[8px_8px_0_0_#5B2637] max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -39,21 +48,15 @@ export function CoupHelpModal() {
 
             <h3 className="font-black text-sm uppercase mb-2">{t('gameCoup.actionsTitle')}</h3>
             <div className="space-y-1 text-xs font-bold mb-4">
-              <div className="flex justify-between border-2 border-black px-2 py-1 bg-[#FEF08A]">
-                <span>{t('gameCoup.actionIncome')}</span>
-                <span>—</span>
-              </div>
-              <div className="flex justify-between border-2 border-black px-2 py-1">
-                <span>{t('gameCoup.actionForeignAid')}</span>
-                <span>Duke blocks</span>
-              </div>
-              <div className="flex justify-between border-2 border-black px-2 py-1 bg-red-100">
-                <span>{t('gameCoup.actionCoup')}</span>
-                <span>no block</span>
-              </div>
+              {actionKeys.map((key) => (
+                <div key={key} className="border-2 border-black px-2 py-1 bg-[#FFF7E8]">
+                  <div className="font-black">{t(`gameCoup.${key}`)}</div>
+                  <div className="opacity-80">{t(`rules.coup.${key}`)}</div>
+                </div>
+              ))}
             </div>
 
-            <h3 className="font-black text-sm uppercase mb-2">Roles</h3>
+            <h3 className="font-black text-sm uppercase mb-2">{t('gameCoup.rolesTitle')}</h3>
             <div className="grid gap-2 text-xs">
               <div className="border-2 border-black p-2 bg-[#E0E7FF]">
                 <div className="font-black">{t('gameCoup.roleDuke')}</div>
@@ -81,7 +84,7 @@ export function CoupHelpModal() {
               onClick={() => setOpen(false)}
               className="mt-4 w-full bg-black text-white font-black py-2 uppercase"
             >
-              Close
+              {t('gameCoup.close')}
             </button>
           </div>
         </div>

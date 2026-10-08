@@ -164,8 +164,20 @@ export interface Dictionary {
       roleCaptain: string;
       roleAmbassador: string;
       roleContessa: string;
+      actionsTitle: string;
+      actionIncome: string;
+      actionForeignAid: string;
+      actionTax: string;
+      actionAssassinate: string;
+      actionSteal: string;
+      actionExchange: string;
+      actionCoup: string;
+      challengeTitle: string;
+      challengeDesc: string;
       flowTitle: string;
       flowDesc: string;
+      endTitle: string;
+      endDesc: string;
     };
     bananaThief: {
       setupTitle: string;
@@ -461,6 +473,13 @@ export interface Dictionary {
     submitGuess: string;
   };
   gameDetectiveClub: {
+    cardAlt: string;
+    handCardAlt: string;
+    playedCardAlt: string;
+    selectedCardAlt: string;
+    enlargedCardAlt: string;
+    viewLarger: string;
+    close: string;
     soundOn: string;
     soundOff: string;
     loading: string;
@@ -1037,6 +1056,19 @@ export interface Dictionary {
     };
   };
   gameCoup: {
+    loading: string;
+    reset: string;
+    you: string;
+    revealed: string;
+    emptyPile: string;
+    noHand: string;
+    phaseLobby: string;
+    phasePlaying: string;
+    phaseAwaitingChallenge: string;
+    phaseAwaitingBlock: string;
+    phaseAwaitingExchange: string;
+    phaseAwaitingReveal: string;
+    phaseResult: string;
     soundOn: string;
     soundOff: string;
     yourCoins: string;
@@ -1051,6 +1083,8 @@ export interface Dictionary {
     cards: string;
     helpTitle: string;
     helpButton: string;
+    rolesTitle: string;
+    close: string;
     roleDuke: string;
     roleDukeDesc: string;
     roleAssassin: string;
@@ -1069,6 +1103,25 @@ export interface Dictionary {
     actionAssassinate: string;
     actionSteal: string;
     actionExchange: string;
+    declaredAction: string;
+    challengeQuestion: string;
+    challenge: string;
+    challengeBlockQuestion: string;
+    challengeBlock: string;
+    waitingChallenge: string;
+    autoResolve: string;
+    blocksAction: string;
+    blockQuestion: string;
+    block: string;
+    waitingBlock: string;
+    exchangeChoose: string;
+    keepSelected: string;
+    waitingExchange: string;
+    target: string;
+    pickTarget: string;
+    mustCoup: string;
+    mustCoupHint: string;
+    winner: string;
     lobbyHint: string;
     need3Players: string;
     spectating: string;
@@ -1194,6 +1247,20 @@ export interface Dictionary {
     settingsVote: string;
   };
   gameWhoKnow: {
+    roleCard: {
+      title: string;
+      host: string;
+      seeker: string;
+      waiting: string;
+      show: string;
+      hide: string;
+      tapToReveal: string;
+      targetWord: string;
+      hostDesc: string;
+      guideDesc: string;
+      seekerDesc: string;
+      secretHint: string;
+    };
     wordSettingHost: string;
     wordSettingWaiting: string;
     questioningPhase: string;

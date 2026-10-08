@@ -41,7 +41,9 @@ export function DiscussionPhase() {
         <div className="flex flex-wrap gap-6 justify-center items-center">
           {state.playOrder.map((pid) => {
             const player = state.players[pid];
-            const pName = room.players.find((p) => p.socketId === pid)?.name || 'Unknown';
+            const pName =
+              room.players.find((p) => p.socketId === pid)?.name ||
+              t('gameDetectiveClub.unknownRole');
             const isMe = socketId === pid;
             return (
               <div
@@ -62,7 +64,7 @@ export function DiscussionPhase() {
                     >
                       <img
                         src={cardUrl}
-                        alt="Played Card"
+                        alt={t('gameDetectiveClub.playedCardAlt')}
                         className="w-full h-full object-cover border-4 border-white"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">

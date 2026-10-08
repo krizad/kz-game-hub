@@ -10,7 +10,7 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 
 export const metadata: Metadata = {
   title: 'KZ Game Hub',
-  description: 'Real-time Insider Game Controller',
+  description: 'KZ Game Hub — play party games together in real time.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

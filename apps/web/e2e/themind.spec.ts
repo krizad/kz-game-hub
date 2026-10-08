@@ -3,18 +3,18 @@ import { createRoom, getOrigin, joinRoom, waitForAnyVisible } from './helpers';
 import { applyLobbyConfig } from './sim/play';
 
 /**
- * The Mind: hard-asserts the deal, then plays cards ascending across both
+ * Countaline: hard-asserts the deal, then plays cards ascending across both
  * players to a real completion (You Win or Game Over — lives are finite, so
  * Game Over is an achievable end and NOT swallowed like the old spec did).
  */
-test.describe('The Mind Gameplay', () => {
+test.describe('Countaline Gameplay', () => {
   test('two players can start and play until game over', async ({ browser }) => {
     test.setTimeout(120000);
     const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
     const [p1, p2] = await Promise.all(contexts.map((c) => c.newPage()));
     const pages: Page[] = [p1, p2];
 
-    const roomCode = await createRoom(p1, 'Host', 'The Mind');
+    const roomCode = await createRoom(p1, 'Host', 'Countaline');
     const origin = await getOrigin(p1);
     await joinRoom(p2, origin, roomCode, 'P1');
     // Keep the match short: default is 12 levels, far beyond the loop budget

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface CardViewerModalProps {
   cardUrl: string | null;
@@ -7,6 +8,7 @@ interface CardViewerModalProps {
 }
 
 export function CardViewerModal({ cardUrl, onClose }: CardViewerModalProps) {
+  const { t } = useTranslate();
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -35,13 +37,13 @@ export function CardViewerModal({ cardUrl, onClose }: CardViewerModalProps) {
         <button
           onClick={onClose}
           className="absolute -top-12 right-0 p-2 bg-amber-100 hover:bg-amber-200 text-slate-800 rounded-full transition-colors z-10 "
-          aria-label="Close"
+          aria-label={t('gameDetectiveClub.close')}
         >
           <X className="w-6 h-6" />
         </button>
         <img
           src={cardUrl}
-          alt="Card enlarged"
+          alt={t('gameDetectiveClub.enlargedCardAlt')}
           className="max-w-[95vw] max-h-[85vh] object-contain border border-amber-300/50"
         />
       </div>
