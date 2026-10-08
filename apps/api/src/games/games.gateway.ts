@@ -41,10 +41,7 @@ import {
 
 /** Server string the client localizes via i18n/serverErrors. */
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
-import {
-  MusicTriviaActionResult,
-  MusicTriviaTimerCommand,
-} from './music-trivia/music-trivia.service';
+import { MusicTriviaTimerCommand } from './music-trivia/music-trivia.service';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway({
@@ -331,11 +328,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     // existing members (reconnecting) may always return to their room. After a
     // browser refresh the socket id is new, so also honor a valid session token.
     const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
+    if (!targetRoom) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
+      return;
+    }
     const isSeatedMember =
-      (targetRoom?.players.some((p) => p.socketId === client.id) ?? false) ||
+      targetRoom.players.some((p) => p.socketId === client.id) ||
       (!!data.reconnectToken &&
         this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
-    if (targetRoom && !isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
+    if (!isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
       client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
       return;
     }
@@ -376,7 +377,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       }
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
-        message: 'Room not found or player name is already in use',
+        message: 'Player name is already in use',
       });
     }
   }

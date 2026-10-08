@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { createRoom, getOrigin, joinRoom, waitForAnyVisible } from './helpers';
 import { applyLobbyConfig } from './sim/play';
 

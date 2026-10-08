@@ -7,13 +7,13 @@ describe('PlayerSessionService', () => {
     service = new PlayerSessionService();
   });
 
-  it('issues a private token that can only be consumed once', () => {
+  it('allows the same private token to reconnect repeatedly until rotated', () => {
     service.issue('ABCDEF', 'player-1', 'socket-1');
     const token = service.takePendingToken('socket-1');
 
     expect(token).toBeTruthy();
     expect(service.consume('ABCDEF', token!)).toBe('player-1');
-    expect(service.consume('ABCDEF', token!)).toBeNull();
+    expect(service.consume('ABCDEF', token!)).toBe('player-1');
   });
 
   it('rotates the token when issuing a replacement session', () => {
@@ -27,14 +27,14 @@ describe('PlayerSessionService', () => {
     expect(service.consume('ABCDEF', secondToken)).toBe('player-1');
   });
 
-  it('verify does not consume the token', () => {
+  it('verify and consume both preserve the token for reconnects', () => {
     service.issue('ABCDEF', 'player-1', 'socket-1');
     const token = service.takePendingToken('socket-1')!;
 
     expect(service.verify('ABCDEF', token)).toBe('player-1');
     expect(service.verify('ABCDEF', token)).toBe('player-1');
     expect(service.consume('ABCDEF', token)).toBe('player-1');
-    expect(service.verify('ABCDEF', token)).toBeNull();
+    expect(service.verify('ABCDEF', token)).toBe('player-1');
   });
 
   it('consume ignores unknown tokens without revoking others', () => {

@@ -38,7 +38,6 @@ describe('GamesService', () => {
   let theMindService: jest.Mocked<TheMindService>;
   let saboteurService: jest.Mocked<SaboteurService>;
   let coupService: jest.Mocked<CoupService>;
-  let ultimateTicTacToeService: jest.Mocked<UltimateTicTacToeService>;
   let cardGameService: jest.Mocked<CardGameService>;
   let playerSessionService: PlayerSessionService;
   let privateStateService: PrivateStateService;
@@ -243,9 +242,6 @@ describe('GamesService', () => {
     theMindService = module.get(TheMindService) as jest.Mocked<TheMindService>;
     saboteurService = module.get(SaboteurService) as jest.Mocked<SaboteurService>;
     coupService = module.get(CoupService) as jest.Mocked<CoupService>;
-    ultimateTicTacToeService = module.get(
-      UltimateTicTacToeService,
-    ) as jest.Mocked<UltimateTicTacToeService>;
     cardGameService = module.get(CardGameService) as jest.Mocked<CardGameService>;
     playerSessionService = module.get(PlayerSessionService);
     privateStateService = module.get(PrivateStateService);
@@ -460,6 +456,22 @@ describe('GamesService', () => {
       expect(updatedRoom!.players).toHaveLength(1);
       expect(updatedRoom!.players[0].socketId).toBe('newSock');
       expect(updatedRoom!.players[0].connected).toBe(true);
+    });
+
+    it('should keep host ownership when refresh reconnect races the old socket disconnect', () => {
+      const room = service.createRoom('host-old');
+      service.joinRoom(room.code, { id: 'host-old', name: 'Host', socketId: 'host-old' });
+      const reconnectToken = service.getReconnectToken(room.code, 'host-old')!;
+
+      service.joinRoom(
+        room.code,
+        { id: 'host-new', name: 'Host', socketId: 'host-new' },
+        reconnectToken,
+      );
+
+      expect(service.leaveRoom('host-old', false).outcome).toBe('NOT_IN_ROOM');
+      expect(service.getRoom(room.code)?.roomHostId).toBe('host-new');
+      expect(service.getRoom(room.code)?.players[0].connected).toBe(true);
     });
 
     it('should update host socketId on reconnection if player was host', () => {

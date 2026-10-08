@@ -27,15 +27,10 @@ export class PlayerSessionService {
   }
 
   consume(roomCode: string, token: string): string | null {
-    const roomSessions = this.sessions.get(roomCode);
-    if (!roomSessions) return null;
-
-    const tokenHash = this.hash(token);
-    const session = roomSessions.get(tokenHash);
-    if (!session) return null;
-    roomSessions.delete(tokenHash);
-    if (session.expiresAt <= Date.now()) return null;
-    return session.playerId;
+    // Reconnect tokens are stable for the lifetime of the session. A refresh
+    // can race the SESSION_ASSIGNED response that rotates a one-shot token,
+    // leaving the browser with a token the server has already consumed.
+    return this.verify(roomCode, token);
   }
 
   verify(roomCode: string, token: string): string | null {
@@ -47,6 +42,7 @@ export class PlayerSessionService {
     if (!session) return null;
     if (session.expiresAt <= Date.now()) {
       roomSessions.delete(tokenHash);
+      if (roomSessions.size === 0) this.sessions.delete(roomCode);
       return null;
     }
     return session.playerId;

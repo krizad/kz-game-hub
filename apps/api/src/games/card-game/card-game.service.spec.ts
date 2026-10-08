@@ -69,8 +69,12 @@ describe('CardGameService', () => {
   });
 
   const fixedDeal = (popOrder: PlayingCard[] = DEAL_P1_BEATS_P2): void => {
-    (service as any).createDeck = jest.fn(() => deckFor(popOrder));
-    (service as any).shuffle = jest.fn((deck: PlayingCard[]) => deck);
+    const internals = service as unknown as {
+      createDeck: jest.Mock;
+      shuffle: jest.Mock;
+    };
+    internals.createDeck = jest.fn(() => deckFor(popOrder));
+    internals.shuffle = jest.fn((deck: PlayingCard[]) => deck);
   };
 
   const startRound = (target: RoomState, popOrder?: PlayingCard[]): RoomState => {
@@ -138,7 +142,7 @@ describe('CardGameService', () => {
       card('5-HEARTS', '5', 'HEARTS'),
       ...Array.from({ length: 24 }, (_, index) => card(`pad-${index}`, '5', 'CLUBS')),
     ];
-    (service as any).cardRuntimes = {
+    (service as unknown as { cardRuntimes: Record<string, SlaveRuntime> }).cardRuntimes = {
       SLAVE: new SlaveRuntime(privateState, () => [...popOrder].reverse()),
     };
     const target = room();

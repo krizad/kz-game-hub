@@ -2,7 +2,6 @@
 
 import {
   SaboteurActionKind,
-  SaboteurCardDef,
   SaboteurGoalContent,
   SaboteurTool,
   saboteurGetCardDef,
@@ -307,12 +306,6 @@ export function PathTileSvg({ cardId, rotation = 0, className }: PathTileSvgProp
   );
 }
 
-const TOOL_ICONS: Record<SaboteurTool, string> = {
-  [SaboteurTool.LANTERN]: '🔦',
-  [SaboteurTool.CART]: '🛒',
-  [SaboteurTool.PICKAXE]: '⛏️',
-};
-
 /** 3D icon art from thiings.co (free AI-generated icon library). */
 export const SABOTEUR_IMG = {
   goldIngot: '/images/saboteur/gold-ingot.png',
@@ -341,7 +334,6 @@ export function saboteurToolImg(tool: SaboteurTool): string {
 /** Inline tool image (replaces the old emoji icons). */
 export function ToolImg({ tool, className }: { tool: SaboteurTool; className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={saboteurToolImg(tool)}
       alt={tool}
@@ -520,7 +512,6 @@ export function GoldNuggetValue({ value, className }: { value: number; className
       style={{ background: 'linear-gradient(160deg,#fde68a 0%,#f59e0b 55%,#b45309 100%)' }}
     >
       <span className="absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(255,255,255,0.55),transparent_55%)]" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={SABOTEUR_IMG.goldIngot}
         alt="gold"

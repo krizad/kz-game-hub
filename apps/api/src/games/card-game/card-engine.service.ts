@@ -1,7 +1,6 @@
 import { randomInt } from 'crypto';
 import {
   ActionPolicy,
-  CardActionKind,
   CardDecision,
   CardGameAction,
   CardGameConfig,

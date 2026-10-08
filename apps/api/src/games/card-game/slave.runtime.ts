@@ -153,7 +153,7 @@ export class SlaveRuntime {
    * and lead the smallest legal single when holding an empty trick (passing an
    * empty trick is illegal, so playing is the only non-stalling auto-action).
    */
-  autoAction(room: RoomState, socketId: string, config: CardGameConfig): CardGameAction {
+  autoAction(room: RoomState, socketId: string): CardGameAction {
     const state = room.cardGameState!;
     const following = Boolean(state.trick && state.trick.playedById !== null);
     if (following) return { type: 'PASS' };

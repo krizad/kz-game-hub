@@ -50,8 +50,12 @@ describe('Pok Deng preset flow', () => {
   });
 
   const fixedDeal = (popOrder: PlayingCard[]): void => {
-    (service as any).createDeck = jest.fn(() => deckFor(popOrder));
-    (service as any).shuffle = jest.fn((deck: PlayingCard[]) => deck);
+    const internals = service as unknown as {
+      createDeck: jest.Mock;
+      shuffle: jest.Mock;
+    };
+    internals.createDeck = jest.fn(() => deckFor(popOrder));
+    internals.shuffle = jest.fn((deck: PlayingCard[]) => deck);
   };
 
   const startRound = (target: RoomState, popOrder: PlayingCard[]): RoomState => {

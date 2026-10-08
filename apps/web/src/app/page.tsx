@@ -28,6 +28,22 @@ function GameLobby() {
     connect();
   }, [connect]);
 
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Read persisted session too: after a reload begins, React state may be
+      // empty while the player is still seated and reconnecting to this room.
+      const hasRoomSession = !!localStorage.getItem('kz-roomCode');
+      if (!useGameStore.getState().room && !hasRoomSession) return;
+
+      event.preventDefault();
+      // Browsers show their own localized confirmation text.
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, []);
+
   if (!connected) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6 md:p-24 bg-amber-50">

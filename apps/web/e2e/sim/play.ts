@@ -1254,7 +1254,7 @@ async function playSaboteur(s: SimSession): Promise<void> {
   }
   // A full match = 3 rounds. ROUND_END shows "Next Round" (host); after round 3
   // the GAME_OVER overlay shows "Back to lobby" which returns everyone to lobby.
-  let startVisible = () =>
+  const startVisible = () =>
     host
       .locator('button')
       .filter({ hasText: /^Start Game|เริ่มเกม/ })
@@ -1532,7 +1532,7 @@ async function playBananaThief(s: SimSession, entry: MatrixEntry): Promise<void>
 /** Thai Card Game: Pok Deng (one full round) or Slave (all cards played). */
 async function playCardGame(s: SimSession, entry: MatrixEntry): Promise<void> {
   const { host, players } = s;
-  const [p1, p2] = players;
+  const [, p2] = players;
   if (entry.id === 'card-slave') {
     await host.getByTestId('card-game-preset-slave').click();
     await expect(host.getByTestId('card-game-preset-slave')).toHaveClass(/bg-lime-300/);

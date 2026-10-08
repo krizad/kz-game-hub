@@ -45,7 +45,7 @@ interface CardRuntimeAdapter {
     config: CardGameConfig,
   ): RoomState | null;
   /** The action the server takes on the active player's behalf when their deadline expires. */
-  autoAction(room: RoomState, socketId: string, config: CardGameConfig): CardGameAction;
+  autoAction(room: RoomState, socketId: string): CardGameAction;
 }
 
 @Injectable()
@@ -304,7 +304,7 @@ export class CardGameService {
     const config = this.configFor(room);
     const runtime = this.cardRuntimes[state.preset];
     const action = runtime
-      ? runtime.autoAction(room, state.activePlayerId, config)
+      ? runtime.autoAction(room, state.activePlayerId)
       : autoActionFor(config.actions);
     return action ? { playerId: state.activePlayerId, action } : null;
   }

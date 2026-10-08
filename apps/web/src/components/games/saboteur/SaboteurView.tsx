@@ -223,12 +223,6 @@ export function SaboteurView() {
     resetSelection();
   };
 
-  const handleGoalBadgeClick = (goalIndex: number) => {
-    if (!isMyTurn || actionLoading || targeting !== 'MAP' || selectedCardIndex === null) return;
-    saboteurPlayAction({ cardIndex: selectedCardIndex, goalIndex });
-    resetSelection();
-  };
-
   // ---------- Sub renders ----------
 
   const renderBoard = () => {
@@ -466,7 +460,6 @@ export function SaboteurView() {
             ❔
           </span>
         ) : (
-          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={miner ? SABOTEUR_IMG.pickaxe : SABOTEUR_IMG.dynamite}
             alt={miner ? 'miner' : 'saboteur'}

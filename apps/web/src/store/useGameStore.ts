@@ -393,13 +393,23 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
-        if (message.startsWith('Room not found')) {
+        let redirectedFromMissingInviteRoom = false;
+        if (message === 'Room not found') {
           localStorage.removeItem(STORAGE_KEYS.roomCode);
           localStorage.removeItem(STORAGE_KEYS.reconnectToken);
           set({ room: null, isSpectator: false, playerId: '' });
+          if (
+            typeof window !== 'undefined' &&
+            new URLSearchParams(window.location.search).has('room')
+          ) {
+            redirectedFromMissingInviteRoom = true;
+            window.location.replace('/');
+          }
         }
         set({ isLoading: false, actionLoading: false });
-        toast.error(translateError(message));
+        if (!redirectedFromMissingInviteRoom) {
+          toast.error(translateError(message));
+        }
       });
 
       socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_TRACK_ANSWER, (data: MusicTriviaTrackAnswerPayload) => {

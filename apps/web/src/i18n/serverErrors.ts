@@ -15,6 +15,7 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     'Please enter your name first': 'กรุณากรอกชื่อก่อน',
     'Room not found or player name is already in use': 'ไม่พบห้องนี้ หรือมีคนใช้ชื่อนี้แล้ว',
     'Room not found': 'ไม่พบห้องที่ระบุ',
+    'Player name is already in use': 'มีผู้เล่นใช้ชื่อนี้แล้ว',
     'Internal server error': 'เกิดข้อผิดพลาดในระบบ',
     'Invalid request payload': 'ข้อมูลไม่ถูกต้อง',
     'Failed to submit vote.': 'ส่งผลโหวตไม่สำเร็จ',

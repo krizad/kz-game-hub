@@ -7,7 +7,6 @@ import { GameType, RoomState, RoomStatus, CoupRole, CoupActionType } from '@repo
 describe('CoupService (01 scaffold)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
-  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,14 +22,13 @@ describe('CoupService (01 scaffold)', () => {
 
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
-    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
     const players = [
-      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
     ];
     return {
       id: 'r1',
@@ -71,7 +69,7 @@ describe('CoupService (01 scaffold)', () => {
     expect(service.startGame(room, 's2')).toBeNull(); // not host
     const room2 = makeRoom({ players: makeRoom().players.slice(0, 2) });
     expect(service.startGame(room2, 's1')).toBeNull(); // 2 < min 3
-    const room3 = makeRoom({ status: RoomStatus.PLAYING } as any);
+    const room3 = makeRoom({ status: RoomStatus.PLAYING });
     expect(service.startGame(room3, 's1')).toBeNull();
   });
 
@@ -102,7 +100,7 @@ describe('CoupService (01 scaffold)', () => {
     state.currentTurn = 's2';
     service.remapSocketId(state, 's2', 's2-new2');
     // currentTurn should have been remapped from s2 to s2-new before, now test again
-    const state2 = { ...state, currentTurn: 's2-new' } as any;
+    const state2 = { ...state, currentTurn: 's2-new' };
     service.remapSocketId(state2, 's2-new', 's2-final');
     expect(state2.currentTurn).toBe('s2-final');
   });
@@ -111,7 +109,6 @@ describe('CoupService (01 scaffold)', () => {
 describe('CoupService (02 core economy)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
-  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -126,14 +123,13 @@ describe('CoupService (02 core economy)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
-    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
     const players = [
-      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
     ];
     return {
       id: 'r1',
@@ -194,7 +190,6 @@ describe('CoupService (02 core economy)', () => {
     // give s1 enough coins
     room.coupState!.coins['s1'] = 7;
     const beforeDead = room.coupState!.deadPile.length;
-    const handBefore = [...privateState.get<CoupRole[]>(room.code, 's2', 'coupHand')!];
     const r = service.declareAction(room, 's1', CoupActionType.COUP, 's2');
     expect(r).not.toBeNull();
     expect(r!.coupState!.coins['s1']).toBe(0);
@@ -255,7 +250,6 @@ describe('CoupService (02 core economy)', () => {
 describe('CoupService (03 challenge)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
-  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -270,14 +264,13 @@ describe('CoupService (03 challenge)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
-    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
     const players = [
-      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
     ];
     return {
       id: 'r1',
@@ -305,7 +298,6 @@ describe('CoupService (03 challenge)', () => {
     const deckLen = room.coupState!.deck.length;
     const r = service.declareAction(room, 's1', CoupActionType.TAX);
     expect(r!.coupState!.phase).toBe('AWAITING_CHALLENGE');
-    const challengerHandBefore = privateState.get<CoupRole[]>(room.code, 's2', 'coupHand')!.length;
     const result = service.challenge(room, 's2');
     expect(result).not.toBeNull();
     // challenger lost 1
@@ -346,7 +338,6 @@ describe('CoupService (03 challenge)', () => {
 describe('CoupService (04 block)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
-  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -361,14 +352,13 @@ describe('CoupService (04 block)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
-    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
     const players = [
-      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
     ];
     return {
       id: 'r1',
@@ -458,7 +448,6 @@ describe('CoupService (04 block)', () => {
 describe('CoupService (05 steal & exchange)', () => {
   let service: CoupService;
   let privateState: PrivateStateService;
-  let roomTimer: { clearRoom: jest.Mock; schedule: jest.Mock; cancel: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -473,14 +462,13 @@ describe('CoupService (05 steal & exchange)', () => {
     }).compile();
     service = module.get(CoupService);
     privateState = module.get(PrivateStateService);
-    roomTimer = module.get(RoomTimerService);
   });
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
     const players = [
-      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
     ];
     return {
       id: 'r1',
@@ -667,9 +655,9 @@ describe('CoupService (06 disconnect)', () => {
 
   function makeRoom(overrides: Partial<RoomState> = {}): RoomState {
     const players = [
-      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true } as any,
-      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true } as any,
+      { id: '1', name: 'A', socketId: 's1', score: 0, roomId: 'r1', connected: true },
+      { id: '2', name: 'B', socketId: 's2', score: 0, roomId: 'r1', connected: true },
+      { id: '3', name: 'C', socketId: 's3', score: 0, roomId: 'r1', connected: true },
     ];
     return {
       id: 'r1',

@@ -100,7 +100,7 @@ describe('SlaveRuntime', () => {
     const runtime = runtimeFor(popOrder);
     runtime.startRound(target, config, ['p1', 'p2']);
 
-    expect(runtime.autoAction(target, 'p1', config)).toEqual({
+    expect(runtime.autoAction(target, 'p1')).toEqual({
       type: 'PLAY',
       cards: ['3-CLUBS'],
     });
@@ -113,7 +113,7 @@ describe('SlaveRuntime', () => {
     runtime.startRound(target, config, ['p1', 'p2']);
     runtime.handleAction(target, 'p1', { type: 'PLAY', cards: ['3-CLUBS'] }, config);
 
-    expect(runtime.autoAction(target, 'p2', config)).toEqual({ type: 'PASS' });
+    expect(runtime.autoAction(target, 'p2')).toEqual({ type: 'PASS' });
   });
 
   it('auto-plays the lowest single when the trick is cleared and the leader idles', () => {
@@ -125,7 +125,7 @@ describe('SlaveRuntime', () => {
     runtime.handleAction(target, 'p2', { type: 'PASS' }, config);
 
     expect(target.cardGameState!.activePlayerId).toBe('p1');
-    expect(runtime.autoAction(target, 'p1', config)).toEqual({
+    expect(runtime.autoAction(target, 'p1')).toEqual({
       type: 'PLAY',
       cards: ['pad-0'],
     });

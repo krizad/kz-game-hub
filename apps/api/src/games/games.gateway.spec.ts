@@ -100,14 +100,26 @@ describe('GamesGateway payload guard', () => {
     const joinRoom = jest.fn(() => null);
     const findRoomCodeBySocketId = jest.fn(() => 'OLD123');
     const gateway = new GamesGateway(
-      { leaveRoom, joinRoom, findRoomCodeBySocketId, getRoom: jest.fn(() => undefined) } as never,
+      {
+        leaveRoom,
+        joinRoom,
+        findRoomCodeBySocketId,
+        getRoom: jest.fn(() => ({ code: 'ABC123', gameType: GameType.WHO_KNOW, players: [] })),
+        isGameEnabled: jest.fn(() => true),
+      } as never,
       {} as never,
       {} as never,
       {} as never,
       gameSettingsStub() as never,
       artistPresetsStub() as never,
     );
-    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
+    const client = {
+      id: 'sock1',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      data: {},
+    } as never;
 
     gateway.handleJoinRoom({ code: 'abc123', name: 'Player' }, client);
 
@@ -121,14 +133,26 @@ describe('GamesGateway payload guard', () => {
     const joinRoom = jest.fn(() => null);
     const findRoomCodeBySocketId = jest.fn(() => 'ABC123');
     const gateway = new GamesGateway(
-      { leaveRoom, joinRoom, findRoomCodeBySocketId, getRoom: jest.fn(() => undefined) } as never,
+      {
+        leaveRoom,
+        joinRoom,
+        findRoomCodeBySocketId,
+        getRoom: jest.fn(() => ({ code: 'ABC123', gameType: GameType.WHO_KNOW, players: [] })),
+        isGameEnabled: jest.fn(() => true),
+      } as never,
       {} as never,
       {} as never,
       {} as never,
       gameSettingsStub() as never,
       artistPresetsStub() as never,
     );
-    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
+    const client = {
+      id: 'sock1',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      data: {},
+    } as never;
 
     gateway.handleJoinRoom({ code: 'abc123', name: 'Player' }, client);
 
@@ -154,7 +178,13 @@ describe('GamesGateway payload guard', () => {
       gameSettingsStub() as never,
       artistPresetsStub() as never,
     );
-    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() } as never;
+    const client = {
+      id: 'sock1',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      data: {},
+    } as never;
 
     gateway.handleCreateRoom({ name: 'Host' }, client);
 
@@ -285,7 +315,7 @@ describe('GamesGateway payload guard', () => {
       gameSettingsStub() as never,
       artistPresetsStub() as never,
     );
-    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() };
+    const client = { id: 'sock1', join: jest.fn(), leave: jest.fn(), emit: jest.fn(), data: {} };
 
     gateway.handleCreateRoom({ name: 'Host', gameType: GameType.COUP }, client as never);
 
@@ -316,8 +346,14 @@ describe('GamesGateway payload guard', () => {
       gameSettingsStub() as never,
       artistPresetsStub() as never,
     );
-    const newcomer = { id: 'newcomer', join: jest.fn(), emit: jest.fn() };
-    const member = { id: 'member1', join: jest.fn(), emit: jest.fn() };
+    const newcomer = {
+      id: 'newcomer',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      data: {},
+    };
+    const member = { id: 'member1', join: jest.fn(), leave: jest.fn(), emit: jest.fn(), data: {} };
 
     gateway.handleJoinRoom({ code: 'abc123', name: 'Newcomer' }, newcomer as never);
     expect(joinRoom).not.toHaveBeenCalled();
@@ -339,7 +375,7 @@ describe('GamesGateway payload guard', () => {
       { load: jest.fn(), snapshot: jest.fn(() => ({})), setEnabled, isEnabled: jest.fn() } as never,
       artistPresetsStub() as never,
     );
-    const client = { id: 'sock1', join: jest.fn(), emit: jest.fn() };
+    const client = { id: 'sock1', join: jest.fn(), leave: jest.fn(), emit: jest.fn(), data: {} };
     const previousSecret = process.env.ADMIN_SECRET;
     delete process.env.ADMIN_SECRET;
 

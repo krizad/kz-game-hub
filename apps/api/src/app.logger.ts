@@ -12,32 +12,38 @@ export class AppLogger implements LoggerService {
     this.logPath = join(logDirectory, 'app.log');
   }
 
-  log(message: any, ...optionalParams: any[]): void {
+  log(...args: Parameters<LoggerService['log']>): void {
+    const [message, ...optionalParams] = args;
     this.consoleLogger.log(message, ...optionalParams);
     this.write('LOG', message, optionalParams);
   }
 
-  error(message: any, ...optionalParams: any[]): void {
+  error(...args: Parameters<LoggerService['error']>): void {
+    const [message, ...optionalParams] = args;
     this.consoleLogger.error(message, ...optionalParams);
     this.write('ERROR', message, optionalParams);
   }
 
-  warn(message: any, ...optionalParams: any[]): void {
+  warn(...args: Parameters<LoggerService['warn']>): void {
+    const [message, ...optionalParams] = args;
     this.consoleLogger.warn(message, ...optionalParams);
     this.write('WARN', message, optionalParams);
   }
 
-  debug(message: any, ...optionalParams: any[]): void {
+  debug(...args: Parameters<LoggerService['debug']>): void {
+    const [message, ...optionalParams] = args;
     this.consoleLogger.debug(message, ...optionalParams);
     this.write('DEBUG', message, optionalParams);
   }
 
-  verbose(message: any, ...optionalParams: any[]): void {
+  verbose(...args: Parameters<LoggerService['verbose']>): void {
+    const [message, ...optionalParams] = args;
     this.consoleLogger.verbose(message, ...optionalParams);
     this.write('VERBOSE', message, optionalParams);
   }
 
-  fatal(message: any, ...optionalParams: any[]): void {
+  fatal(...args: Parameters<LoggerService['fatal']>): void {
+    const [message, ...optionalParams] = args;
     this.consoleLogger.fatal(message, ...optionalParams);
     this.write('FATAL', message, optionalParams);
   }

@@ -56,11 +56,12 @@ export class ITunesAdapter implements MusicSourceAdapter {
       }
 
       data = await response.json();
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('iTunes API request timed out after 5 seconds');
       }
-      throw new Error(`Failed to fetch from iTunes: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to fetch from iTunes: ${message}`);
     } finally {
       clearTimeout(timeoutId);
     }

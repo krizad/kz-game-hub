@@ -318,7 +318,7 @@ describe('MusicTriviaService', () => {
         },
       };
       expect(service.startGame(room, 'host-1')).not.toBeNull();
-      (service as any).sourceFactory.register({
+      service['sourceFactory'].register({
         sourceType: 'ITUNES',
         search: jest.fn().mockResolvedValue([
           {
@@ -336,7 +336,7 @@ describe('MusicTriviaService', () => {
         ]),
       });
 
-      const actionResult = await (service as any).configureSource(room, 'host-1', {
+      const actionResult = await service['configureSource'](room, 'host-1', {
         type: 'CONFIGURE_SOURCE',
         query: 'test',
       });
