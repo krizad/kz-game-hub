@@ -6,7 +6,7 @@ import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, BananaThiefChooseFollowerPayload } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, BananaThiefChooseFollowerPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -73,6 +73,10 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleCardGameAction(data: {
         code: string;
         action: CardGameAction;
+    }, client: Socket): void;
+    handlePokerAction(data: {
+        code: string;
+        action: PokerAction;
     }, client: Socket): void;
     handleTTTJoinSide(data: {
         code: string;
@@ -305,6 +309,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncSaboteurTimer;
     private syncCardGameTimer;
     private syncBananaThiefTimer;
+    private syncPokerTimer;
     private emitPrivateStates;
     private emitSessionToken;
     private applyMusicTriviaTimers;

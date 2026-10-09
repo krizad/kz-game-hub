@@ -1,4 +1,4 @@
-import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig } from '@repo/types';
+import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -17,6 +17,7 @@ import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
+import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
 export type LeaveRoomResult = {
     outcome: 'ROOM_CLOSED';
@@ -56,13 +57,14 @@ export declare class GamesService {
     private readonly privateStateService;
     private readonly roomTimerService;
     private readonly cardGameService;
+    private readonly pokerService;
     private readonly gameSettings;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, gameSettings: GameSettingsService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, gameSettings: GameSettingsService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
@@ -113,6 +115,11 @@ export declare class GamesService {
     resolveCardGameAutoAction(code: string): {
         playerId: string;
         action: CardGameAction;
+    } | null;
+    pokerAction(code: string, clientId: string, action: PokerAction): RoomState | null;
+    resolvePokerAutoAction(code: string): {
+        playerId: string;
+        action: PokerAction;
     } | null;
     saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number;
     clearSaboteurTurnDeadline(code: string): void;

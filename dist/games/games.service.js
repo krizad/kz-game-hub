@@ -32,12 +32,13 @@ const player_session_service_1 = require("./player-session.service");
 const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
 const card_game_service_1 = require("./card-game/card-game.service");
+const poker_service_1 = require("./poker/poker.service");
 const game_settings_service_1 = require("./game-settings.service");
 const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, gameSettings) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, gameSettings) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -56,6 +57,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.privateStateService = privateStateService;
         this.roomTimerService = roomTimerService;
         this.cardGameService = cardGameService;
+        this.pokerService = pokerService;
         this.gameSettings = gameSettings;
         this.rooms = new Map();
         this.secretWords = new Map();
@@ -192,6 +194,15 @@ let GamesService = GamesService_1 = class GamesService {
             room.cardGameConfig = presets_1.CARD_GAME_PRESETS[presetId].defaultConfig;
             room.cardGameAllowedOptions = presets_1.CARD_GAME_PRESETS[presetId].allowed;
         }
+        else if (gameType === types_1.GameType.POKER) {
+            room.config.pokerMode = room.config.pokerMode ?? 'ONLINE';
+            room.config.pokerSmallBlind = room.config.pokerSmallBlind ?? 10;
+            room.config.pokerBigBlind = room.config.pokerBigBlind ?? 20;
+            room.config.pokerStartingStack = room.config.pokerStartingStack ?? 1000;
+            room.config.pokerAnte = room.config.pokerAnte ?? 0;
+            room.config.pokerTurnTimerEnabled = room.config.pokerTurnTimerEnabled ?? true;
+            room.config.pokerTurnTimerSeconds = room.config.pokerTurnTimerSeconds ?? 30;
+        }
         else if (gameType === types_1.GameType.BANANA_THIEF) {
             room.config.bananaThiefNarrator = 'AUTO';
             room.config.bananaThiefDlc = false;
@@ -283,6 +294,9 @@ let GamesService = GamesService_1 = class GamesService {
                     if (entry.actorId === oldSocketId)
                         entry.actorId = user.socketId;
                 }
+            }
+            if (room.pokerState) {
+                this.pokerService.remapSocketId(room.pokerState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -414,6 +428,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.cardGameChips) {
             delete room.cardGameChips[player.socketId];
+        }
+        if (room.pokerState) {
+            this.pokerService.handlePlayerDisconnect(room, player.socketId);
         }
         this.runDisconnectHooks(code, room, player.socketId);
     }
@@ -687,6 +704,13 @@ let GamesService = GamesService_1 = class GamesService {
             const validSpecials = Object.values(types_1.BananaThiefSpecial);
             result.bananaThiefSelectedSpecials = config.bananaThiefSelectedSpecials.filter((s) => validSpecials.includes(s));
         }
+        copyEnum('pokerMode', ['ONLINE', 'CHIPS_LEDGER']);
+        copyInteger('pokerSmallBlind', 1, 100_000);
+        copyInteger('pokerBigBlind', 1, 100_000);
+        copyInteger('pokerStartingStack', 10, 10_000_000);
+        copyInteger('pokerAnte', 0, 100_000);
+        copyBoolean('pokerTurnTimerEnabled');
+        copyInteger('pokerTurnTimerSeconds', 5, 300);
         return result;
     }
     isViewerClient(room, socketId) {
@@ -781,6 +805,10 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.bananaThiefService.startRound(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.POKER) {
+            const startedRoom = this.withRoom(code, (r) => this.pokerService.startMatch(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
         }
@@ -843,6 +871,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (room.gameType === types_1.GameType.COUP) {
             return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
         }
+        if (room.gameType === types_1.GameType.POKER) {
+            return this.withRoom(code, (r) => this.pokerService.resetMatch(r, requesterId));
+        }
         switch (room.gameType) {
             case types_1.GameType.WHO_KNOW:
                 return this.withRoom(code, (r) => this.whoKnowService.resetGame(r, requesterId, this.secretWords));
@@ -891,6 +922,17 @@ let GamesService = GamesService_1 = class GamesService {
         if (!room)
             return null;
         return this.cardGameService.resolveAutoAction(room);
+    }
+    pokerAction(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.pokerService.handleAction(room, clientId, action));
+    }
+    resolvePokerAutoAction(code) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        return this.pokerService.resolveAutoAction(room);
     }
     saboteurTurnDeadline(code, activePlayerId, seconds) {
         const current = this.saboteurTurnDeadlines.get(code);
@@ -1299,6 +1341,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         private_state_service_1.PrivateStateService,
         room_timer_service_1.RoomTimerService,
         card_game_service_1.CardGameService,
+        poker_service_1.PokerService,
         game_settings_service_1.GameSettingsService])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map
