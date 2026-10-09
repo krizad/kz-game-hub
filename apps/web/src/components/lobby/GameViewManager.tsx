@@ -17,6 +17,8 @@ import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
 import { PokDengView } from '@/components/games/card-game/PokDengView';
 import { SlaveView } from '@/components/games/card-game/SlaveView';
 import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
+import { PokerView } from '@/components/games/poker/PokerView';
+import { PokerSettings } from '@/components/games/poker/PokerSettings';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -122,6 +124,16 @@ function getGameStatus(room: RoomState, socketId: string) {
           room.cardGameState.phase === 'PLAYER_TURNS' ? room.cardGameState.activePlayerId : null;
       }
       break;
+    case GameType.POKER:
+      if (room.pokerState) {
+        phase = room.pokerState.phase;
+        activePlayerId =
+          room.pokerState.activePlayerId &&
+          ['PREFLOP', 'FLOP', 'TURN', 'RIVER'].includes(room.pokerState.phase)
+            ? room.pokerState.activePlayerId
+            : null;
+      }
+      break;
     case GameType.WHO_KNOW:
       if (room.status === RoomStatus.WORD_SETTING) {
         promptKey =
@@ -164,6 +176,7 @@ function getGameStatus(room: RoomState, socketId: string) {
     [GameType.SABOTEUR]: 'bg-orange-500',
     [GameType.COUP]: 'bg-rose-200',
     [GameType.CARD_GAME]: 'bg-amber-500',
+    [GameType.POKER]: 'bg-emerald-300',
     [GameType.BANANA_THIEF]: 'bg-lime-400',
   };
 
@@ -206,6 +219,9 @@ export function GameViewManager() {
       if (preset === 'SLAVE') return <SlaveView />;
       return <PokDengView />;
     }
+    if (room.gameType === GameType.POKER && room.status !== RoomStatus.LOBBY) {
+      return <PokerView />;
+    }
 
     return (
       <div className="flex-1 flex flex-col bg-white border-4 border-black p-2 sm:p-4 shadow-[4px_4px_0_0_#000] min-h-[300px] overflow-y-auto">
@@ -216,6 +232,7 @@ export function GameViewManager() {
             </h4>
             <GameSettingsManager />
             {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
+            {room.gameType === GameType.POKER && <PokerSettings />}
             <LobbyStartButton />
           </div>
         )}

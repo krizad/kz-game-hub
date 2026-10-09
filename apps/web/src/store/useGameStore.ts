@@ -22,6 +22,7 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
+  PokerAction,
   TttModeFlag,
   ArtistPresetSummary,
   GetArtistPresetsPayload,
@@ -153,6 +154,7 @@ interface GameState {
   bananaThiefReset: () => void;
   bananaThiefReaction: (emoji: string) => void;
   cardGameAction: (action: CardGameAction) => void;
+  pokerAction: (action: PokerAction) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -498,6 +500,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
     cardGameAction: (action: CardGameAction) => {
       emitGameAction(SOCKET_EVENTS.CARD_GAME_ACTION, { payload: () => ({ action }) });
+    },
+
+    pokerAction: (action: PokerAction) => {
+      emitGameAction(SOCKET_EVENTS.POKER_ACTION, { payload: () => ({ action }) });
     },
 
     tttJoinSide: (side: 'X' | 'O') => {

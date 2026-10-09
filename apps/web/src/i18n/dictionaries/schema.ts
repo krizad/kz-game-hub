@@ -28,6 +28,7 @@ export interface Dictionary {
       pokDeng: string;
       cardGame: string;
       bananaThief: string;
+      poker: string;
     };
     gameCards: {
       whoKnow: { category: string; description: string; players: string };
@@ -43,6 +44,7 @@ export interface Dictionary {
       coup: { category: string; description: string; players: string };
       cardGame: { category: string; description: string; players: string };
       bananaThief: { category: string; description: string; players: string };
+      poker: { category: string; description: string; players: string };
     };
     or: string;
     roomCodePlaceholder: string;
@@ -156,6 +158,7 @@ export interface Dictionary {
         coup: string;
         pokDeng: string;
         bananaThief: string;
+        poker: string;
       };
       closeBtn: string;
     };
@@ -1320,5 +1323,97 @@ export interface Dictionary {
     votes: string;
     vote: string;
     playAgain: string;
+  };
+  poker: {
+    modeTitle: string;
+    modeOnline: string;
+    modeLedger: string;
+    modeHintOnline: string;
+    modeHintLedger: string;
+    settingsSmallBlind: string;
+    settingsBigBlind: string;
+    settingsStack: string;
+    settingsAnte: string;
+    settingsTimer: string;
+    settingsTimerSeconds: string;
+    table: {
+      hand: string;
+      pot: string;
+      dealer: string;
+      folded: string;
+      allIn: string;
+      out: string;
+      waiting: string;
+      yourTurn: string;
+      toCall: string;
+      yourCards: string;
+      seconds: string;
+      rankings: string;
+      phase: {
+        PREFLOP: string;
+        FLOP: string;
+        TURN: string;
+        RIVER: string;
+        SHOWDOWN: string;
+        HAND_RESULT: string;
+      };
+    };
+    action: {
+      fold: string;
+      check: string;
+      call: string;
+      bet: string;
+      raiseTo: string;
+      min: string;
+      half: string;
+      pot: string;
+      allIn: string;
+    };
+    showdown: {
+      show: string;
+      muck: string;
+      awaiting: string;
+      winner: string;
+      splitPot: string;
+      uncalled: string;
+      awardPrompt: string;
+      award: string;
+    };
+    result: {
+      nextHand: string;
+      endMatch: string;
+      confirmEnd: string;
+      standings: string;
+      backToLobby: string;
+    };
+    host: {
+      tools: string;
+      rebuy: string;
+      adjust: string;
+      apply: string;
+    };
+    handNames: {
+      HIGH_CARD: string;
+      ONE_PAIR: string;
+      TWO_PAIR: string;
+      THREE_OF_A_KIND: string;
+      STRAIGHT: string;
+      FLUSH: string;
+      FULL_HOUSE: string;
+      FOUR_OF_A_KIND: string;
+      STRAIGHT_FLUSH: string;
+      ROYAL_FLUSH: string;
+    };
+    rules: {
+      onlineTitle: string;
+      onlineBody: string;
+      ledgerTitle: string;
+      ledgerBody: string;
+      bettingTitle: string;
+      bettingBody: string;
+      hostTitle: string;
+      hostBody: string;
+      handsTitle: string;
+    };
   };
 }

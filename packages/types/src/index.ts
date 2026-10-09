@@ -14,4 +14,5 @@ export * from './coup';
 export * from './banana-thief';
 export * from './ultimate-tic-tac-toe';
 export * from './card-game';
+export * from './poker';
 export * from './utils';

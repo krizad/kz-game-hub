@@ -24,6 +24,7 @@ import {
   CardGamePreset,
   CardGamePublicState,
 } from './card-game';
+import { PokerMode, PokerPublicState } from './poker';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -52,6 +53,7 @@ export enum GameType {
   COUP = 'COUP',
   CARD_GAME = 'CARD_GAME',
   BANANA_THIEF = 'BANANA_THIEF',
+  POKER = 'POKER',
 }
 
 /**
@@ -172,6 +174,8 @@ export const SOCKET_EVENTS = {
   BANANA_THIEF_REACTION: 'banana_thief_reaction',
   BANANA_THIEF_CHOOSE_FOLLOWER: 'banana_thief_choose_follower',
   BANANA_THIEF_ROLL_DIE: 'banana_thief_roll_die',
+  // Poker (ADR 0009): one shared betting engine, ONLINE + CHIPS_LEDGER modes
+  POKER_ACTION: 'poker_action',
 } as const;
 
 export interface UserState {
@@ -261,6 +265,14 @@ export interface RoomConfig {
   bananaThiefFollowerCount?: number;
   /** Specifically selected DLC specials (Detective, Twins, Sycophant, Scapegoat). */
   bananaThiefSelectedSpecials?: BananaThiefSpecial[];
+  // Poker config (ADR 0009)
+  pokerMode?: PokerMode;
+  pokerSmallBlind?: number;
+  pokerBigBlind?: number;
+  pokerStartingStack?: number;
+  pokerAnte?: number;
+  pokerTurnTimerEnabled?: boolean;
+  pokerTurnTimerSeconds?: number;
 }
 
 export interface RoomState {
@@ -299,6 +311,8 @@ export interface RoomState {
   cardGameChips?: Record<string, number>;
   /** Public-safe card-game action log entries (no hidden card identities, ADR 0002). */
   cardGameLog?: CardGameLogEntry[];
+  /** Poker hand state — deck order and hole cards live in private state only. */
+  pokerState?: PokerPublicState;
 }
 
 export interface AvailableRoom {

@@ -29,6 +29,7 @@ import {
   CoupRole,
   CardGameAction,
   CardGameConfig,
+  PokerAction,
   DeleteArtistPayload,
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
@@ -415,6 +416,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         msg = 'Cannot start game. Need at least 3 players.';
       } else if (gameType === GameType.COUP) {
         msg = 'Cannot start game. Need 3-6 players for Coup.';
+      } else if (gameType === GameType.POKER) {
+        msg = 'Cannot start game. Need at least 2 players.';
       } else if (gameType === GameType.BANANA_THIEF) {
         msg = 'Cannot start game. Need at least 4 players.';
       }
@@ -526,6 +529,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         'who-first',
         'saboteur',
         'card-game',
+        'poker',
         'coup-challenge',
         'coup-block',
         'music-trivia-countdown',
@@ -582,6 +586,21 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid card game action.' });
+    }
+  }
+
+  // --- Poker Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.POKER_ACTION)
+  handlePokerAction(
+    @MessageBody() data: { code: string; action: PokerAction },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.pokerAction(data.code, client.id, data.action);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid poker action.' });
     }
   }
 
@@ -1557,6 +1576,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.CARD_GAME) {
       this.syncCardGameTimer(room);
     }
+    if (room.gameType === GameType.POKER) {
+      this.syncPokerTimer(room);
+    }
     if (room.gameType === GameType.BANANA_THIEF) {
       this.syncBananaThiefTimer(room);
     }
@@ -1739,6 +1761,41 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       if (updated) {
         this.broadcastRoomState(updated);
         this.maybeRecordGameResult(updated);
+      }
+    });
+  }
+
+  /** Per-turn auto-action timer for poker (config-gated). */
+  private syncPokerTimer(room: RoomState): void {
+    const state = room.pokerState;
+    const activePlayerId = state?.activePlayerId ?? null;
+    const deadline = state?.turnDeadline ?? null;
+
+    if (!state || !activePlayerId || !deadline) {
+      this.roomTimerService.cancel(room.code, 'poker');
+      return;
+    }
+
+    this.roomTimerService.schedule(room.code, 'poker', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      const currentState = currentRoom?.pokerState;
+      if (
+        !currentRoom ||
+        !currentState ||
+        currentState.activePlayerId !== activePlayerId ||
+        (currentState.turnDeadline ?? null) !== deadline
+      ) {
+        return; // turn already advanced elsewhere
+      }
+      const auto = this.gamesService.resolvePokerAutoAction(currentRoom.code);
+      if (!auto) return;
+      const updatedRoom = this.gamesService.pokerAction(
+        currentRoom.code,
+        auto.playerId,
+        auto.action,
+      );
+      if (updatedRoom) {
+        this.broadcastRoomState(updatedRoom);
       }
     });
   }
@@ -1938,6 +1995,33 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         !Array.isArray(data.action) &&
         typeof (data.action as Record<string, unknown>).type === 'string'
       );
+    }
+    if (event === SOCKET_EVENTS.POKER_ACTION) {
+      if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
+        return false;
+      }
+      const action = data.action as Record<string, unknown>;
+      if (typeof action.type !== 'string') return false;
+      if (action.type === 'BET') {
+        return typeof action.amount === 'number' && Number.isInteger(action.amount);
+      }
+      if (action.type === 'REBUY' || action.type === 'ADJUST_CHIPS') {
+        return (
+          typeof action.targetId === 'string' &&
+          action.targetId.length <= 64 &&
+          (action.type === 'REBUY' ||
+            (typeof action.amount === 'number' && Number.isInteger(action.amount)))
+        );
+      }
+      if (action.type === 'POT_AWARD') {
+        return (
+          Array.isArray(action.targetIds) &&
+          action.targetIds.length >= 1 &&
+          action.targetIds.length <= 10 &&
+          action.targetIds.every((id: unknown) => typeof id === 'string' && id.length <= 64)
+        );
+      }
+      return true;
     }
     const isSmallInt = (v: unknown): v is number =>
       typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;

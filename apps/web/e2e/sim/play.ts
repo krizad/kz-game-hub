@@ -274,6 +274,10 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         await page.locator(`[data-testid="card-game-timer-${value}"]`).click();
         break;
       }
+      case 'poker-mode': {
+        await page.locator(`[data-testid="poker-mode-${value}"]`).click();
+        break;
+      }
       case 'banana-thief-fast': {
         // Banana Thief pacing: fastest night clock (3s per hour).
         const tickSelect = page.locator('#bananaThiefTickSelect');
@@ -1585,6 +1589,62 @@ async function playCardGame(s: SimSession, entry: MatrixEntry): Promise<void> {
   await expect(host.getByTestId('card-game-result')).toBeVisible({ timeout: 20000 });
 }
 
+/** Poker: check/call down to showdown, then settle (show/muck or host award). */
+async function playPoker(s: SimSession, entry: MatrixEntry): Promise<void> {
+  const { host, players } = s;
+  await startGame(host);
+  await expect(host.getByTestId('poker-table')).toBeVisible({ timeout: 15000 });
+
+  const isLedger = entry.id.includes('ledger');
+  const everyone = [host, ...players];
+
+  for (let i = 0; i < 80; i++) {
+    if (await anyVisible(everyone, (p) => p.getByTestId('poker-hand-result'))) break;
+
+    // Reveal choice at an ONLINE showdown: any surviving player may still pick.
+    const revealer = await anyVisible(everyone, (p) => p.getByTestId('poker-reveal-panel'));
+    if (revealer) {
+      await revealer
+        .getByTestId('poker-show')
+        .click()
+        .catch(() => {});
+      await host.waitForTimeout(STEP);
+      continue;
+    }
+
+    // LEDGER showdown: the host awards the pending pot to the first candidate.
+    if (isLedger) {
+      const confirm = host.getByTestId('poker-award-confirm');
+      if (await confirm.isVisible().catch(() => false)) {
+        if (await confirm.isEnabled()) {
+          await confirm.click().catch(() => {});
+          await host.waitForTimeout(STEP);
+          continue;
+        }
+      }
+    }
+
+    // Whoever's turn it is checks when possible, otherwise calls.
+    const actor = await anyVisible(everyone, (p) => p.getByTestId('poker-action-panel'));
+    if (!actor) {
+      await host.waitForTimeout(STEP);
+      continue;
+    }
+    const check = actor.getByTestId('poker-check');
+    const call = actor.getByTestId('poker-call');
+    if (await check.isVisible().catch(() => false)) {
+      await check.click().catch(() => {});
+    } else if (await call.isVisible().catch(() => false)) {
+      await call.click().catch(() => {});
+    }
+    await host.waitForTimeout(STEP);
+  }
+
+  await expect(host.getByTestId('poker-hand-result')).toBeVisible({ timeout: 20000 });
+  // ONLINE: every show/muck choice lands the hand in HAND_RESULT with pots.
+  await expect(host.getByTestId('poker-pot')).toBeVisible();
+}
+
 /* ------------------------------------------------------------------ */
 /* Dispatch                                                            */
 /* ------------------------------------------------------------------ */
@@ -1618,6 +1678,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playBananaThief(s, entry);
     case 'CARD_GAME':
       return playCardGame(s, entry);
+    case 'POKER':
+      return playPoker(s, entry);
     default:
       throw new Error(`No driver for game ${entry.game}`);
   }

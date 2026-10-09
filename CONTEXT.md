@@ -19,7 +19,7 @@ This document defines the shared vocabulary and boundaries for the configurable 
 | Preset                    | A versioned, system-owned rule definition such as Pok Deng or Slave. It supplies a safe default configuration and phase template.                                                                                                                                         |
 | Advanced Rules            | Host-editable, allow-listed policies exposed by a preset. They cannot introduce arbitrary executable rules.                                                                                                                                                               |
 | Rule configuration        | The validated values selected for one room from a preset's allowed policies.                                                                                                                                                                                              |
-| Deck                      | The ordered, server-owned collection of cards used by a round.                                                                                                                                                                                                            |
+| Deck                      | The ordered, server-owned collection of cards used by a round. In Chips ledger mode the server owns no deck; the physical table's deck is outside the application.                                                                                                        |
 | Stock                     | A face-down draw pile.                                                                                                                                                                                                                                                    |
 | Discard pile              | A face-up pile receiving discarded cards.                                                                                                                                                                                                                                 |
 | Hand                      | Cards owned by one player. Card identities are private unless a visibility policy reveals them.                                                                                                                                                                           |
@@ -38,6 +38,20 @@ This document defines the shared vocabulary and boundaries for the configurable 
 | Live typing               | In-progress answer text. The server relays it privately to every member except the picker, and it is never placed in public room state.                                                                                                                                   |
 | Allowed options           | The allow-listed policy variants of the active preset, projected to clients so Advanced Rules controls offer only selectable values.                                                                                                                                      |
 | Forfeit prompt            | Informational, host-configured end-of-round text. It has no effect outside the application and never requires proof of an offline action.                                                                                                                                 |
+
+## Poker (โป๊กเกอร์) vocabulary
+
+| Term              | Definition                                                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Poker table       | A room whose `gameType` is `POKER` — No-Limit Texas Hold'em offered in Online and Chips ledger modes, both driven by one shared betting engine. _Avoid_: Pocker. |
+| Online mode       | Poker mode where the server deals private hole cards, runs every betting round, and evaluates showdowns itself.                                                  |
+| Chips ledger mode | Poker mode played with a physical table's real deck: the server owns no cards and the application is only the chip ledger running the shared betting engine.     |
+| Dealer button     | The rotating marker naming the nominal dealer of a hand; the two seats to its left post the blinds (heads-up: the button posts the small blind).                 |
+| Street            | One betting round within a hand: preflop, flop, turn, river.                                                                                                     |
+| Side pot          | A separate pot created when an all-in cannot match the current bet; each pot is awarded independently to the eligible player with the best hand.                 |
+| Muck              | A player's choice, after a showdown has resolved, not to reveal their hole cards. The choice never changes the payout.                                           |
+| Pot award         | The host's declaration in Chips ledger mode that gives a contested pot to a player, because the deciding cards live on the physical table. _Avoid_: Banker call. |
+| Rebuy             | A host-granted top-up to the starting stack for a busted or short player during a match.                                                                         |
 
 ## Music Trivia (ทายเพลง) vocabulary
 

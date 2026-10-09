@@ -16,6 +16,7 @@ import { CoupService } from './coup/coup.service';
 import { BananaThiefService } from './banana-thief/banana-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { CardGameService } from './card-game/card-game.service';
+import { PokerService } from './poker/poker.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
 import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
@@ -187,6 +188,14 @@ describe('GamesService', () => {
       cancelRound: jest.fn(),
       remapSocketId: CardGameService.prototype.remapSocketId,
     },
+    poker: {
+      startMatch: jest.fn(),
+      resetMatch: jest.fn(),
+      handleAction: jest.fn(),
+      resolveAutoAction: jest.fn(),
+      remapSocketId: jest.fn(),
+      handlePlayerDisconnect: jest.fn(),
+    },
     bananaThief: {
       startRound: jest.fn(),
       tick: jest.fn(),
@@ -222,6 +231,7 @@ describe('GamesService', () => {
         { provide: BananaThiefService, useValue: mockGameServices.bananaThief },
         { provide: UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
         { provide: CardGameService, useValue: mockGameServices.cardGame },
+        { provide: PokerService, useValue: mockGameServices.poker },
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

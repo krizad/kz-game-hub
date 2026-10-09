@@ -59,7 +59,9 @@ export function RoomHeader() {
                                       )
                                     : room.gameType === GameType.BANANA_THIEF
                                       ? t('lobby.gameNames.bananaThief')
-                                      : t('lobby.gameNames.whoKnow')}
+                                      : room.gameType === GameType.POKER
+                                        ? t('lobby.gameNames.poker')
+                                        : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

@@ -462,6 +462,25 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: 'Slave: play all cards until RESULT',
     timeout: 180000,
   },
+
+  // --- Poker (ADR 0009: one game, ONLINE + CHIPS_LEDGER modes) ---
+  {
+    id: 'poker-online',
+    game: 'POKER',
+    lobbyButton: 'Poker',
+    players: 2,
+    description: 'Heads-up Hold’em checked down to showdown with reveal choices',
+    timeout: 240000,
+  },
+  {
+    id: 'poker-ledger',
+    game: 'POKER',
+    lobbyButton: 'Poker',
+    players: 2,
+    description: 'Chips ledger for a real deck: streets advance, host awards the pot',
+    configure: ['poker-mode:CHIPS_LEDGER'],
+    timeout: 240000,
+  },
 ];
 
 export function filterMatrix(idsOrPrefixes: string[]): MatrixEntry[] {

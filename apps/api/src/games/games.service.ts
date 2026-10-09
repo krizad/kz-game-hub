@@ -18,6 +18,7 @@ import {
   CardGameAction,
   CardGameConfig,
   BananaThiefSpecial,
+  PokerAction,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -38,6 +39,7 @@ import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
+import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
@@ -89,6 +91,7 @@ export class GamesService {
     private readonly privateStateService: PrivateStateService,
     private readonly roomTimerService: RoomTimerService,
     private readonly cardGameService: CardGameService,
+    private readonly pokerService: PokerService,
     private readonly gameSettings: GameSettingsService,
   ) {}
 
@@ -232,6 +235,14 @@ export class GamesService {
       const presetId = room.config.cardGamePreset ?? 'POK_DENG';
       room.cardGameConfig = CARD_GAME_PRESETS[presetId].defaultConfig;
       room.cardGameAllowedOptions = CARD_GAME_PRESETS[presetId].allowed;
+    } else if (gameType === GameType.POKER) {
+      room.config.pokerMode = room.config.pokerMode ?? 'ONLINE';
+      room.config.pokerSmallBlind = room.config.pokerSmallBlind ?? 10;
+      room.config.pokerBigBlind = room.config.pokerBigBlind ?? 20;
+      room.config.pokerStartingStack = room.config.pokerStartingStack ?? 1000;
+      room.config.pokerAnte = room.config.pokerAnte ?? 0;
+      room.config.pokerTurnTimerEnabled = room.config.pokerTurnTimerEnabled ?? true;
+      room.config.pokerTurnTimerSeconds = room.config.pokerTurnTimerSeconds ?? 30;
     } else if (gameType === GameType.BANANA_THIEF) {
       room.config.bananaThiefNarrator = 'AUTO';
       room.config.bananaThiefDlc = false;
@@ -343,6 +354,9 @@ export class GamesService {
         for (const entry of room.cardGameLog) {
           if (entry.actorId === oldSocketId) entry.actorId = user.socketId;
         }
+      }
+      if (room.pokerState) {
+        this.pokerService.remapSocketId(room.pokerState, oldSocketId, user.socketId);
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
@@ -510,6 +524,9 @@ export class GamesService {
     }
     if (room.cardGameChips) {
       delete room.cardGameChips[player.socketId];
+    }
+    if (room.pokerState) {
+      this.pokerService.handlePlayerDisconnect(room, player.socketId);
     }
 
     this.runDisconnectHooks(code, room, player.socketId);
@@ -830,6 +847,13 @@ export class GamesService {
         (s): s is BananaThiefSpecial => validSpecials.includes(s as BananaThiefSpecial),
       );
     }
+    copyEnum('pokerMode', ['ONLINE', 'CHIPS_LEDGER']);
+    copyInteger('pokerSmallBlind', 1, 100_000);
+    copyInteger('pokerBigBlind', 1, 100_000);
+    copyInteger('pokerStartingStack', 10, 10_000_000);
+    copyInteger('pokerAnte', 0, 100_000);
+    copyBoolean('pokerTurnTimerEnabled');
+    copyInteger('pokerTurnTimerSeconds', 5, 300);
 
     return result;
   }
@@ -972,6 +996,11 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.POKER) {
+      const startedRoom = this.withRoom(code, (r) => this.pokerService.startMatch(r, requesterId));
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     if (room.gameType === GameType.WHO_KNOW) {
       return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
@@ -1049,6 +1078,10 @@ export class GamesService {
       return this.withRoom(code, (r) => this.coupService.resetGame(r, requesterId));
     }
 
+    if (room.gameType === GameType.POKER) {
+      return this.withRoom(code, (r) => this.pokerService.resetMatch(r, requesterId));
+    }
+
     switch (room.gameType) {
       case GameType.WHO_KNOW:
         return this.withRoom(code, (r) =>
@@ -1100,6 +1133,19 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     return this.cardGameService.resolveAutoAction(room);
+  }
+
+  // --- Poker Actions ---
+
+  pokerAction(code: string, clientId: string, action: PokerAction): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.pokerService.handleAction(room, clientId, action));
+  }
+
+  resolvePokerAutoAction(code: string): { playerId: string; action: PokerAction } | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    return this.pokerService.resolveAutoAction(room);
   }
 
   saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number {

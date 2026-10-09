@@ -34,6 +34,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return t('lobby.gameNames.coup').toUpperCase();
     case GameType.CARD_GAME:
       return t('lobby.gameNames.cardGame').toUpperCase();
+    case GameType.POKER:
+      return t('lobby.gameNames.poker').toUpperCase();
     case GameType.BANANA_THIEF:
       return t('lobby.gameNames.bananaThief').toUpperCase();
     default:
@@ -145,6 +147,13 @@ export function HomeView() {
       name: t('lobby.gameNames.bananaThief'),
       catalogKey: 'bananaThief',
       color: 'bg-lime-400',
+    },
+    {
+      type: GameType.POKER,
+      icon: '🅰️',
+      name: t('lobby.gameNames.poker'),
+      catalogKey: 'poker',
+      color: 'bg-emerald-400',
     },
   ];
 

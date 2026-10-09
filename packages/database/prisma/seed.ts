@@ -66,6 +66,7 @@ async function main() {
     'COUP',
     'CARD_GAME',
     'BANANA_THIEF',
+    'POKER',
     // Tic-Tac-Toe mode flags (gate individual modes, not whole games)
     'GOBBLER_MODE',
     'ULTIMATE_MODE',

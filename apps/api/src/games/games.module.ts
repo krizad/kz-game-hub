@@ -20,6 +20,7 @@ import { PlayerSessionService } from './player-session.service';
 import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { CardGameService } from './card-game/card-game.service';
+import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 
@@ -46,6 +47,7 @@ import { ArtistPresetService } from './artist-preset.service';
     RoomTimerService,
     PrivateStateService,
     CardGameService,
+    PokerService,
     GameSettingsService,
     ArtistPresetService,
   ],
