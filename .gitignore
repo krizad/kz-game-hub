@@ -68,3 +68,12 @@ DELIVERY/
 
 # Stitch capture artifacts
 .stitch/
+
+# Mimosa security-scan hook state (local-only)
+.mimosa/
+
+# video2code capture artifacts (local-only)
+.v2c/
+
+# Playwright MCP debug artifacts (local-only)
+.playwright-mcp/
