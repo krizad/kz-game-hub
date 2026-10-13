@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { useGameStore } from '@/store/useGameStore';
 
-import { MusicTriviaAction, MusicTriviaActionType } from '@repo/types';
+import { MusicTriviaAction, MusicTriviaActionType, MusicTriviaSyncPlayPayload } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function MusicTriviaView() {
@@ -20,6 +20,7 @@ export function MusicTriviaView() {
   const [isLocalPaused, setIsLocalPaused] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastAppliedSyncPlayRef = useRef<MusicTriviaSyncPlayPayload | null>(null);
   const reactPlayerRef = useRef<any>(null);
   const [hasTestedAudio, setHasTestedAudio] = useState(false);
 
@@ -60,16 +61,21 @@ export function MusicTriviaView() {
         musicTriviaSyncPlay.sourceType !== 'YOUTUBE' &&
         musicTriviaSyncPlay.sourceType !== 'SOUNDCLOUD'
       ) {
+        const isNewTrack =
+          !audioRef.current || audioRef.current.src !== musicTriviaSyncPlay.previewUrl;
         if (!audioRef.current) {
           audioRef.current = new Audio(musicTriviaSyncPlay.previewUrl);
         } else if (audioRef.current.src !== musicTriviaSyncPlay.previewUrl) {
           audioRef.current.src = musicTriviaSyncPlay.previewUrl;
-          // Only seek to elapsed time when track changes
+        }
+        if (isNewTrack || lastAppliedSyncPlayRef.current !== musicTriviaSyncPlay) {
+          // New playback signals, including reconnects, resume at the server's position.
           const now = Date.now();
           const elapsed = (now - musicTriviaSyncPlay.playStartTime) / 1000;
           if (elapsed > 0 && elapsed < musicTriviaSyncPlay.durationMs / 1000) {
-            audioRef.current.currentTime = elapsed;
+            audioRef.current!.currentTime = elapsed;
           }
+          lastAppliedSyncPlayRef.current = musicTriviaSyncPlay;
         }
         audioRef.current.volume = volume;
 

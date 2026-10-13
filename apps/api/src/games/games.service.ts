@@ -1522,6 +1522,20 @@ export class GamesService {
 
   // --- Music Trivia Logic ---
 
+  musicTriviaCurrentSyncPlay(code: string) {
+    const room = this.rooms.get(code);
+    return room?.gameType === GameType.MUSIC_TRIVIA
+      ? this.musicTriviaService.getCurrentSyncPlay(room)
+      : null;
+  }
+
+  musicTriviaCurrentHostAnswer(code: string, socketId: string) {
+    const room = this.rooms.get(code);
+    return room?.gameType === GameType.MUSIC_TRIVIA
+      ? this.musicTriviaService.getCurrentHostAnswer(room, socketId)
+      : null;
+  }
+
   async musicTriviaGameAction(
     code: string,
     clientId: string,

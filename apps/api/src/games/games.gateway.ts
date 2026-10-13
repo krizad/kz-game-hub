@@ -355,6 +355,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       client.join(room.code);
       this.emitSessionToken(client, room.code);
       this.broadcastRoomState(room);
+      this.emitMusicTriviaSyncPlay(room.code, client);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -1555,6 +1556,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     client.join(room.code);
     client.data.spectatingRoomCode = room.code;
     client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
+    this.emitMusicTriviaSyncPlay(room.code, client);
   }
 
   // --- Private helpers ---
@@ -1562,6 +1564,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   private broadcastRoomState(room: RoomState): void {
     this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
     this.emitPrivateStates(room);
+    if (room.gameType === GameType.MUSIC_TRIVIA) {
+      const answer = this.gamesService.musicTriviaCurrentHostAnswer(room.code, room.roomHostId);
+      if (answer) {
+        this.server.to(room.roomHostId).emit(SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, answer);
+      }
+    }
     this.maybeRecordGameResult(room);
     if (room.gameType === GameType.WHO_KNOW) {
       this.revealSecretWordIfResult(room);
@@ -1582,6 +1590,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.BANANA_THIEF) {
       this.syncBananaThiefTimer(room);
     }
+  }
+
+  private emitMusicTriviaSyncPlay(code: string, client: Socket): void {
+    const syncPlay = this.gamesService.musicTriviaCurrentSyncPlay(code);
+    if (syncPlay) client.emit(SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, syncPlay);
   }
 
   /**

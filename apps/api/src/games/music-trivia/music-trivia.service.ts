@@ -7,6 +7,7 @@ import {
   MusicTriviaRound,
   MusicTriviaRoundHistory,
   MusicTriviaState,
+  MusicTriviaHostAnswerPayload,
   MusicTriviaSyncPlayPayload,
   RoomState,
   RoomStatus,
@@ -192,6 +193,51 @@ export class MusicTriviaService {
 
   deleteRoomData(roomCode: string): void {
     this.privateState.clearRoom(roomCode);
+  }
+
+  /** Rebuild the public playback signal for a listener joining mid-song. */
+  getCurrentSyncPlay(room: RoomState): MusicTriviaSyncPlayPayload | null {
+    const state = room.musicTriviaState;
+    const startedAt = state?.playStartTime;
+    const durationMs = state?.currentRound?.track.durationMs;
+    const now = Date.now();
+    if (
+      room.status !== RoomStatus.PLAYING ||
+      state?.phase !== 'PLAYING' ||
+      !startedAt ||
+      !durationMs ||
+      startedAt > now ||
+      now - startedAt >= durationMs
+    ) {
+      return null;
+    }
+    return this.buildSyncPlay(room);
+  }
+
+  /** The current GM host may recover the private hint after joining or a host transfer. */
+  getCurrentHostAnswer(room: RoomState, socketId: string): MusicTriviaHostAnswerPayload | null {
+    const state = room.musicTriviaState;
+    if (
+      room.status !== RoomStatus.PLAYING ||
+      state?.mode !== 'GAME_MASTER' ||
+      state.hostPlays ||
+      !['GET_READY', 'COUNTDOWN', 'PLAYING', 'BUZZED', 'ANSWERING'].includes(state.phase) ||
+      room.roomHostId !== socketId ||
+      !room.players.some(
+        (player) => player.socketId === socketId && player.connected !== false && !player.isViewer,
+      ) ||
+      !state.currentRound
+    ) {
+      return null;
+    }
+    const answer = this.getTrackAnswer(room, state.currentRound.roundNumber);
+    if (!answer) return null;
+    return {
+      title: answer.title,
+      artist: answer.artist,
+      artworkUrl: state.currentRound.track.artworkUrl,
+      trackViewUrl: answer.trackViewUrl,
+    };
   }
 
   /**

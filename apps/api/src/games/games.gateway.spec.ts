@@ -1,4 +1,4 @@
-import { GameType, RoomState, SOCKET_EVENTS } from '@repo/types';
+import { GameType, RoomState, RoomStatus, SOCKET_EVENTS } from '@repo/types';
 import { GamesGateway } from './games.gateway';
 
 const gameSettingsStub = () => ({
@@ -391,5 +391,134 @@ describe('GamesGateway payload guard', () => {
 
     expect(setEnabled).not.toHaveBeenCalled();
     expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+  });
+});
+
+describe('GamesGateway Music Trivia reconnect', () => {
+  const syncPlay = {
+    roundNumber: 2,
+    playStartTime: Date.now() - 5_000,
+    previewUrl: 'https://example.com/clip.m4a',
+    sourceType: 'ITUNES',
+    durationMs: 30_000,
+  };
+  const hostAnswer = { title: 'Current song', artist: 'Current artist' };
+  const room = {
+    code: 'ABC123',
+    gameType: GameType.MUSIC_TRIVIA,
+    status: RoomStatus.PLAYING,
+    roomHostId: 'host',
+    players: [
+      { id: 'host-player', socketId: 'host', name: 'Host', connected: true },
+      { id: 'guest-player', socketId: 'guest', name: 'Guest', connected: true },
+    ],
+  } as RoomState;
+
+  const makeHarness = () => {
+    const events: { target: string; event: string; payload: unknown }[] = [];
+    const gamesService = {
+      findRoomCodeBySocketId: jest.fn(() => null),
+      getRoom: jest.fn(() => room),
+      joinRoom: jest.fn(() => room),
+      getReconnectToken: jest.fn(() => null),
+      getPlayerRole: jest.fn(() => null),
+      getAvailableRooms: jest.fn(() => []),
+      isGameEnabled: jest.fn(() => true),
+      musicTriviaCurrentSyncPlay: jest.fn(() => syncPlay),
+      musicTriviaCurrentHostAnswer: jest.fn((_code: string, socketId: string) =>
+        socketId === room.roomHostId ? hostAnswer : null,
+      ),
+      leaveRoom: jest.fn(() => ({ outcome: 'PLAYER_LEFT', room })),
+    };
+    const gateway = new GamesGateway(
+      gamesService as never,
+      {} as never,
+      {} as never,
+      { getSocketData: jest.fn(() => ({})) } as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+    gateway.server = {
+      to: jest.fn((target: string) => ({
+        emit: (event: string, payload: unknown) => events.push({ target, event, payload }),
+      })),
+      emit: jest.fn(),
+    } as never;
+    const client = (id: string) => ({
+      id,
+      join: jest.fn(),
+      leave: jest.fn(),
+      data: {},
+      emit: jest.fn((event: string, payload: unknown) =>
+        events.push({ target: id, event, payload }),
+      ),
+    });
+    return { gateway, gamesService, events, client };
+  };
+
+  beforeEach(() => {
+    room.roomHostId = 'host';
+    room.players[0].connected = true;
+    room.players[1].connected = true;
+  });
+
+  it('sends the current clip after the room state to a rejoining player, with the host hint sent only to the host', () => {
+    const { gateway, events, client } = makeHarness();
+    gateway.handleJoinRoom({ code: room.code, name: 'Guest' }, client('guest') as never);
+
+    const roomIndex = events.findIndex((entry) => entry.event === SOCKET_EVENTS.ROOM_STATE_UPDATED);
+    const syncIndex = events.findIndex(
+      (entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY,
+    );
+    expect(roomIndex).toBeGreaterThanOrEqual(0);
+    expect(syncIndex).toBeGreaterThan(roomIndex);
+    expect(events.filter((entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY)).toEqual([
+      { target: 'guest', event: SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, payload: syncPlay },
+    ]);
+    expect(
+      events.filter((entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER),
+    ).toEqual([
+      { target: 'host', event: SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, payload: hostAnswer },
+    ]);
+  });
+
+  it('sends public playback to a spectator without sending the private answer', () => {
+    const { gateway, events, client, gamesService } = makeHarness();
+    gateway.handleSpectateJoin({ code: room.code, name: 'Observer' }, client('observer') as never);
+
+    expect(events.map(({ event }) => event)).toEqual([
+      SOCKET_EVENTS.ROOM_STATE_UPDATED,
+      SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY,
+    ]);
+    expect(events[1].target).toBe('observer');
+    expect(gamesService.musicTriviaCurrentHostAnswer).not.toHaveBeenCalled();
+  });
+
+  it('rehydrates the new host after rotation without sending playback to the room', () => {
+    const { gateway, events, client } = makeHarness();
+    room.players[0].connected = false;
+    room.roomHostId = 'guest';
+    gateway.handleDisconnect(client('host') as never);
+
+    expect(
+      events.filter((entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER),
+    ).toEqual([
+      { target: 'guest', event: SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, payload: hostAnswer },
+    ]);
+    expect(events.some((entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY)).toBe(
+      false,
+    );
+
+    events.length = 0;
+    room.players[0].connected = true;
+    gateway.handleJoinRoom({ code: room.code, name: 'Host' }, client('host') as never);
+    expect(
+      events.filter((entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER),
+    ).toEqual([
+      { target: 'guest', event: SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, payload: hostAnswer },
+    ]);
+    expect(events.filter((entry) => entry.event === SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY)).toEqual([
+      { target: 'host', event: SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, payload: syncPlay },
+    ]);
   });
 });

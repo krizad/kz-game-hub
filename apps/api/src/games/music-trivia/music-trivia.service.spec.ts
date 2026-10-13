@@ -6,6 +6,7 @@ import { RoomState, RoomStatus, GameType } from '@repo/types';
 
 describe('MusicTriviaService', () => {
   let service: MusicTriviaService;
+  let privateState: PrivateStateService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,6 +18,7 @@ describe('MusicTriviaService', () => {
     }).compile();
 
     service = module.get<MusicTriviaService>(MusicTriviaService);
+    privateState = module.get<PrivateStateService>(PrivateStateService);
   });
 
   it('should be defined', () => {
@@ -435,5 +437,129 @@ describe('MusicTriviaService', () => {
     expect(room.status).toBe(RoomStatus.PLAYING);
 
     expect(service.startGame(room, 'host-1')).toBeNull();
+  });
+
+  describe('reconnect snapshots', () => {
+    let room: RoomState;
+
+    beforeEach(() => {
+      room = {
+        id: 'room-1',
+        code: 'ABC123',
+        gameType: GameType.MUSIC_TRIVIA,
+        status: RoomStatus.PLAYING,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: { hostSelection: 'FIXED', timerMin: 5 },
+        musicTriviaState: {
+          phase: 'PLAYING',
+          mode: 'GAME_MASTER',
+          sourceType: 'ITUNES',
+          totalRounds: 2,
+          currentRound: {
+            roundNumber: 2,
+            track: {
+              id: 'track-2',
+              previewUrl: 'https://example.com/clip.m4a',
+              sourceType: 'ITUNES',
+              durationMs: 30_000,
+              artworkUrl: 'https://example.com/art.jpg',
+            },
+            buzzerPresses: [],
+            currentBuzzerId: null,
+            struckOutIds: [],
+            answeredCorrectly: false,
+            winnerId: null,
+          },
+          roundHistory: [],
+          readyPlayerIds: [],
+          scores: {},
+          hostPlays: false,
+          answerTimeoutMs: 15_000,
+          playStartTime: Date.now() - 5_000,
+        },
+      };
+      privateState.set(room.code, '__ROOM__', 'mtTrackAnswers', [
+        { id: 'track-1', title: 'Old song', artist: 'Old artist' },
+        {
+          id: 'track-2',
+          title: 'Current song',
+          artist: 'Current artist',
+          trackViewUrl: 'https://example.com/track-2',
+        },
+      ]);
+    });
+
+    it('restores only a live PLAYING clip with its original timestamp', () => {
+      const stateBefore = JSON.stringify(room.musicTriviaState);
+      expect(service.getCurrentSyncPlay(room)).toEqual({
+        roundNumber: 2,
+        playStartTime: room.musicTriviaState!.playStartTime,
+        previewUrl: 'https://example.com/clip.m4a',
+        sourceType: 'ITUNES',
+        durationMs: 30_000,
+        artworkUrl: 'https://example.com/art.jpg',
+      });
+      expect(JSON.stringify(room.musicTriviaState)).toBe(stateBefore);
+
+      room.musicTriviaState!.phase = 'BUZZED';
+      expect(service.getCurrentSyncPlay(room)).toBeNull();
+      room.musicTriviaState!.phase = 'PLAYING';
+      room.musicTriviaState!.playStartTime = Date.now() - 30_000;
+      expect(service.getCurrentSyncPlay(room)).toBeNull();
+      room.musicTriviaState!.playStartTime = Date.now() + 1_000;
+      expect(service.getCurrentSyncPlay(room)).toBeNull();
+      room.musicTriviaState!.playStartTime = undefined;
+      expect(service.getCurrentSyncPlay(room)).toBeNull();
+    });
+
+    it('restores a private hint only for the current eligible host and round', () => {
+      expect(service.getCurrentHostAnswer(room, 'host-1')).toEqual({
+        title: 'Current song',
+        artist: 'Current artist',
+        artworkUrl: 'https://example.com/art.jpg',
+        trackViewUrl: 'https://example.com/track-2',
+      });
+      expect(service.getCurrentHostAnswer(room, 'player-2')).toBeNull();
+
+      room.roomHostId = 'player-2';
+      expect(service.getCurrentHostAnswer(room, 'host-1')).toBeNull();
+      expect(service.getCurrentHostAnswer(room, 'player-2')?.title).toBe('Current song');
+      room.players[1].isViewer = true;
+      expect(service.getCurrentHostAnswer(room, 'player-2')).toBeNull();
+    });
+
+    it('withholds hints outside an active GM round', () => {
+      for (const phase of ['GET_READY', 'COUNTDOWN', 'PLAYING', 'BUZZED', 'ANSWERING'] as const) {
+        room.musicTriviaState!.phase = phase;
+        expect(service.getCurrentHostAnswer(room, 'host-1')?.title).toBe('Current song');
+      }
+      room.musicTriviaState!.phase = 'REVEAL';
+      expect(service.getCurrentHostAnswer(room, 'host-1')).toBeNull();
+      room.musicTriviaState!.phase = 'PLAYING';
+      room.musicTriviaState!.hostPlays = true;
+      expect(service.getCurrentHostAnswer(room, 'host-1')).toBeNull();
+      room.musicTriviaState!.hostPlays = false;
+      room.musicTriviaState!.mode = 'TYPING';
+      expect(service.getCurrentHostAnswer(room, 'host-1')).toBeNull();
+    });
   });
 });
