@@ -6,17 +6,41 @@ async function run(args, captureList = false) {
   const child = spawn('pnpm', args, {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
     env: process.env,
+    detached: process.platform !== 'win32',
     stdio: captureList ? ['inherit', 'pipe', 'inherit'] : 'inherit',
   });
+  let interrupted;
+  const stop = (signal) => {
+    interrupted = signal;
+    if (process.platform === 'win32') child.kill(signal);
+    else {
+      try {
+        process.kill(-child.pid, signal);
+      } catch (error) {
+        if (error.code !== 'ESRCH') throw error;
+      }
+    }
+  };
+  const onInterrupt = () => stop('SIGINT');
+  const onTerminate = () => stop('SIGTERM');
+  process.on('SIGINT', onInterrupt);
+  process.on('SIGTERM', onTerminate);
   let output = '';
   child.stdout?.on('data', (data) => {
     output += data.toString();
     process.stdout.write(data);
   });
-  const exitCode = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code) => resolve(code ?? 1));
-  });
+  let exitCode;
+  try {
+    exitCode = await new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code) => resolve(code ?? 1));
+    });
+  } finally {
+    process.off('SIGINT', onInterrupt);
+    process.off('SIGTERM', onTerminate);
+  }
+  if (interrupted) exitCode = interrupted === 'SIGINT' ? 130 : 143;
   if (exitCode !== 0 || (captureList && /Total:\s*0 tests/.test(output))) {
     process.exitCode = exitCode || 1;
     return false;
