@@ -23,7 +23,7 @@ jobs:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: kz_game_hub
+          MYSQL_DATABASE: kz_game_hub_test
         ports:
           - 3306:3306
         options: >-
@@ -34,7 +34,8 @@ jobs:
 
     env:
       # Local service DB only — NEVER the repo .env (production MySQL).
-      DATABASE_URL: mysql://root:root@127.0.0.1:3306/kz_game_hub
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/kz_game_hub_test
+      TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/kz_game_hub_test
       ADMIN_SECRET: e2e-dummy-secret
       # No DISABLE_GAME_SETTINGS_DB here: it is injected per-server by both
       # playwright configs' webServer commands. Setting it job-wide also hits
@@ -64,6 +65,7 @@ jobs:
         run: |
           pnpm db:push
           pnpm db:seed
+          pnpm -F api exec node scripts/seed-e2e-artist.mjs
 
       - name: Jest (API)
         run: pnpm -F api test

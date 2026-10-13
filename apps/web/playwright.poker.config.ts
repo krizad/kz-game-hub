@@ -1,8 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
-import path from 'path';
+import { configureTestDatabase } from '../../scripts/test-database.mjs';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+configureTestDatabase();
 
 /**
  * Copy of playwright.config.ts on ports 3200/3201 for local runs when the
@@ -21,13 +20,13 @@ export default defineConfig({
       command:
         'pnpm -F @repo/database build && pnpm -F @repo/types build && DISABLE_GAME_SETTINGS_DB=1 PORT=3201 pnpm -F api dev',
       url: 'http://127.0.0.1:3201/health',
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 120000,
     },
     {
       command: 'NEXT_PUBLIC_API_URL=http://127.0.0.1:3201 pnpm exec next dev -p 3200',
       url: 'http://127.0.0.1:3200',
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 120000,
     },
   ],

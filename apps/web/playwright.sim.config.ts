@@ -1,8 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
-import path from 'path';
+import { configureTestDatabase } from '../../scripts/test-database.mjs';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+configureTestDatabase();
 
 /**
  * Play-to-completion simulation config. Runs only apps/web/e2e/sim.
@@ -25,13 +24,13 @@ export default defineConfig({
       command:
         'pnpm -F @repo/database build && pnpm -F @repo/types build && DISABLE_GAME_SETTINGS_DB=1 PORT=3101 pnpm -F api dev',
       url: 'http://127.0.0.1:3101/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120000,
     },
     {
       command: 'NEXT_PUBLIC_API_URL=http://127.0.0.1:3101 pnpm exec next dev -p 3100',
       url: 'http://127.0.0.1:3100',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120000,
     },
   ],

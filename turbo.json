@@ -1,6 +1,18 @@
 {
   "$schema": "https://v2-9-18.turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": ["DATABASE_URL", "NEXT_PUBLIC_API_URL"],
+  "globalPassThroughEnv": [
+    "PORT",
+    "TEST_DATABASE_URL",
+    "DISABLE_GAME_SETTINGS_DB",
+    "CORS_ORIGIN",
+    "ADMIN_SECRET",
+    "GEMINI_API_KEY",
+    "SPOTIFY_CLIENT_ID",
+    "SPOTIFY_CLIENT_SECRET",
+    "DETECTIVE_CLUB_CARDS_DIR"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
