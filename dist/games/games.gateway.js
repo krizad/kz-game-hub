@@ -249,6 +249,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.join(room.code);
             this.emitSessionToken(client, room.code);
             this.broadcastRoomState(room);
+            this.emitMusicTriviaSyncPlay(room.code, client);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
             const player = room.players.find((p) => p.socketId === client.id);
             const playerRole = this.gamesService.getPlayerRole(room.code, client.id);
@@ -1058,10 +1059,17 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         client.join(room.code);
         client.data.spectatingRoomCode = room.code;
         client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
+        this.emitMusicTriviaSyncPlay(room.code, client);
     }
     broadcastRoomState(room) {
         this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
         this.emitPrivateStates(room);
+        if (room.gameType === types_1.GameType.MUSIC_TRIVIA) {
+            const answer = this.gamesService.musicTriviaCurrentHostAnswer(room.code, room.roomHostId);
+            if (answer) {
+                this.server.to(room.roomHostId).emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, answer);
+            }
+        }
         this.maybeRecordGameResult(room);
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             this.revealSecretWordIfResult(room);
@@ -1082,6 +1090,11 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.BANANA_THIEF) {
             this.syncBananaThiefTimer(room);
         }
+    }
+    emitMusicTriviaSyncPlay(code, client) {
+        const syncPlay = this.gamesService.musicTriviaCurrentSyncPlay(code);
+        if (syncPlay)
+            client.emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, syncPlay);
     }
     publicRoomView(room) {
         if (room.gameType === types_1.GameType.COUP && room.coupState) {

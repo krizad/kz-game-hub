@@ -126,6 +126,42 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
     deleteRoomData(roomCode) {
         this.privateState.clearRoom(roomCode);
     }
+    getCurrentSyncPlay(room) {
+        const state = room.musicTriviaState;
+        const startedAt = state?.playStartTime;
+        const durationMs = state?.currentRound?.track.durationMs;
+        const now = Date.now();
+        if (room.status !== types_1.RoomStatus.PLAYING ||
+            state?.phase !== 'PLAYING' ||
+            !startedAt ||
+            !durationMs ||
+            startedAt > now ||
+            now - startedAt >= durationMs) {
+            return null;
+        }
+        return this.buildSyncPlay(room);
+    }
+    getCurrentHostAnswer(room, socketId) {
+        const state = room.musicTriviaState;
+        if (room.status !== types_1.RoomStatus.PLAYING ||
+            state?.mode !== 'GAME_MASTER' ||
+            state.hostPlays ||
+            !['GET_READY', 'COUNTDOWN', 'PLAYING', 'BUZZED', 'ANSWERING'].includes(state.phase) ||
+            room.roomHostId !== socketId ||
+            !room.players.some((player) => player.socketId === socketId && player.connected !== false && !player.isViewer) ||
+            !state.currentRound) {
+            return null;
+        }
+        const answer = this.getTrackAnswer(room, state.currentRound.roundNumber);
+        if (!answer)
+            return null;
+        return {
+            title: answer.title,
+            artist: answer.artist,
+            artworkUrl: state.currentRound.track.artworkUrl,
+            trackViewUrl: answer.trackViewUrl,
+        };
+    }
     remapSocketId(state, oldId, newId) {
         if (state.scores[oldId] !== undefined) {
             state.scores[newId] = state.scores[oldId];

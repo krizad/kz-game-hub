@@ -1182,6 +1182,18 @@ let GamesService = GamesService_1 = class GamesService {
     whoAmIStartHostInput(code, clientId, playerWords) {
         return this.withRoom(code, (room) => this.whoAmIService.startGameHostInput(room, clientId, playerWords));
     }
+    musicTriviaCurrentSyncPlay(code) {
+        const room = this.rooms.get(code);
+        return room?.gameType === types_1.GameType.MUSIC_TRIVIA
+            ? this.musicTriviaService.getCurrentSyncPlay(room)
+            : null;
+    }
+    musicTriviaCurrentHostAnswer(code, socketId) {
+        const room = this.rooms.get(code);
+        return room?.gameType === types_1.GameType.MUSIC_TRIVIA
+            ? this.musicTriviaService.getCurrentHostAnswer(room, socketId)
+            : null;
+    }
     async musicTriviaGameAction(code, clientId, action) {
         if (this.rejectViewer(code, clientId))
             return null;

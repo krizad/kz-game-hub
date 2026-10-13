@@ -184,6 +184,8 @@ export declare class GamesService {
     whoFirstSetActive(code: string): RoomState | null;
     whoAmICategoriesList(lang?: string): Promise<WordCategory[]>;
     whoAmIStartHostInput(code: string, clientId: string, playerWords: Record<string, string>): RoomState | null;
+    musicTriviaCurrentSyncPlay(code: string): import("@repo/types").MusicTriviaSyncPlayPayload;
+    musicTriviaCurrentHostAnswer(code: string, socketId: string): import("@repo/types").MusicTriviaHostAnswerPayload;
     musicTriviaGameAction(code: string, clientId: string, action: {
         type: string;
         payload?: unknown;

@@ -49,18 +49,6 @@ const RANK_VALUES = {
     K: 13,
     A: 14,
 };
-const CATEGORY_ORDER = [
-    'HIGH_CARD',
-    'ONE_PAIR',
-    'TWO_PAIR',
-    'THREE_OF_A_KIND',
-    'STRAIGHT',
-    'FLUSH',
-    'FULL_HOUSE',
-    'FOUR_OF_A_KIND',
-    'STRAIGHT_FLUSH',
-    'ROYAL_FLUSH',
-];
 function compareEvaluations(a, b) {
     if (a.catIndex !== b.catIndex)
         return a.catIndex - b.catIndex;
@@ -128,7 +116,7 @@ function evaluateFive(cards) {
         };
     }
     if (isFlush) {
-        return { category: 'FLUSH', catIndex: 5, tiebreak: values, best: byValueDesc(cards, values) };
+        return { category: 'FLUSH', catIndex: 5, tiebreak: values, best: byValueDesc(cards) };
     }
     if (straightHigh !== null) {
         return {
@@ -166,7 +154,7 @@ function evaluateFive(cards) {
             best: groupedOrder(cards, counts, [pairs[0][0], ...kickers]),
         };
     }
-    return { category: 'HIGH_CARD', catIndex: 0, tiebreak: values, best: byValueDesc(cards, values) };
+    return { category: 'HIGH_CARD', catIndex: 0, tiebreak: values, best: byValueDesc(cards) };
 }
 function straightHighCard(valuesDesc) {
     const unique = [...new Set(valuesDesc)].sort((a, b) => b - a);
@@ -185,7 +173,7 @@ function straightHighCard(valuesDesc) {
     }
     return null;
 }
-function byValueDesc(cards, valuesDesc) {
+function byValueDesc(cards) {
     return [...cards].sort((a, b) => RANK_VALUES[b.rank] - RANK_VALUES[a.rank]);
 }
 function straightOrder(cards, high) {
@@ -229,7 +217,7 @@ function buildSidePots(seats) {
             amount += Math.min(seat.totalBet, level) - Math.min(seat.totalBet, previous);
         }
         const eligible = entries
-            .filter(([id, seat]) => seat.status !== 'FOLDED' && seat.status !== 'OUT' && seat.totalBet >= level)
+            .filter(([, seat]) => seat.status !== 'FOLDED' && seat.status !== 'OUT' && seat.totalBet >= level)
             .map(([id]) => id);
         if (amount > 0) {
             if (eligible.length > 0) {
@@ -328,12 +316,12 @@ function legalMoves(state, playerId) {
     const maxRaiseTo = seat.chips + seat.bet;
     const canCheck = toCall === 0;
     const othersActive = state.playerOrder.some((id) => id !== playerId && state.seats[id].status === 'ACTIVE');
-    const minRaiseTo = Math.min(Math.max(state.minRaiseTo, state.currentBet + 1), maxRaiseTo);
+    const minRaiseTo = Math.max(state.minRaiseTo, state.currentBet + 1);
     return {
         canFold: true,
         canCheck,
         callAmount,
-        canBet: othersActive && maxRaiseTo > state.currentBet,
+        canBet: othersActive && !seat.raiseLocked && maxRaiseTo >= minRaiseTo,
         minRaiseTo,
         maxRaiseTo,
         isAllInCall: toCall > seat.chips,

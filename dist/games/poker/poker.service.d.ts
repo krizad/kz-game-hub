@@ -15,6 +15,7 @@ export declare class PokerService {
     cancelHand(room: RoomState): void;
     private dealHand;
     private applyBettingAction;
+    private recordRaise;
     private closeStreet;
     private dealCommunity;
     private enterShowdown;

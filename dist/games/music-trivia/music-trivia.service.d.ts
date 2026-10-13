@@ -1,6 +1,6 @@
 import { PrivateStateService } from '../private-state.service';
 import { ArtistPresetService } from '../artist-preset.service';
-import { MusicTriviaAction, MusicTriviaLevel, MusicTriviaState, MusicTriviaSyncPlayPayload, RoomState } from '@repo/types';
+import { MusicTriviaAction, MusicTriviaLevel, MusicTriviaState, MusicTriviaHostAnswerPayload, MusicTriviaSyncPlayPayload, RoomState } from '@repo/types';
 import { TrackResult } from './music-source-adapter';
 export type MusicTriviaTimerName = 'music-trivia-countdown' | 'music-trivia-answer';
 export type MusicTriviaTimerCommand = {
@@ -41,6 +41,8 @@ export declare class MusicTriviaService {
     handleGameAction(room: RoomState, clientId: string, action: MusicTriviaAction): Promise<MusicTriviaActionResult | null>;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
     deleteRoomData(roomCode: string): void;
+    getCurrentSyncPlay(room: RoomState): MusicTriviaSyncPlayPayload | null;
+    getCurrentHostAnswer(room: RoomState, socketId: string): MusicTriviaHostAnswerPayload | null;
     remapSocketId(state: MusicTriviaState, oldId: string, newId: string): void;
     private playerReady;
     private startCountdown;
