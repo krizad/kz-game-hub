@@ -230,7 +230,6 @@ export function GameViewManager() {
             <h4 className="text-lg font-black uppercase text-black tracking-widest bg-white px-4 py-2 rounded-lg border-4 border-black shadow-[4px_4px_0_0_#000]">
               {t('lobby.waitingRoom')}
             </h4>
-            <GameSettingsManager />
             {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
             {room.gameType === GameType.POKER && <PokerSettings />}
             <LobbyStartButton />
@@ -252,6 +251,11 @@ export function GameViewManager() {
 
       {/* Right: Game Area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {room.status === RoomStatus.LOBBY && (
+          <div className="flex justify-center mb-2">
+            <GameSettingsManager />
+          </div>
+        )}
         {room.status !== RoomStatus.LOBBY && (
           <GameStatusHeader {...getGameStatus(room, socketId)} />
         )}

@@ -169,6 +169,8 @@ export class GamesService {
         rpsBestOf: 3,
         rpsMode: '1V1_ROUND_ROBIN',
         language: 'th',
+        visibility: 'UNLISTED',
+        allowSpectators: false,
       },
     };
 
@@ -591,7 +593,11 @@ export class GamesService {
   }[] {
     const availableRooms = [];
     for (const room of this.rooms.values()) {
-      if (room.status === RoomStatus.LOBBY && this.gameSettings.isEnabled(room.gameType)) {
+      if (
+        room.status === RoomStatus.LOBBY &&
+        (room.config.visibility ?? 'PUBLIC') === 'PUBLIC' &&
+        this.gameSettings.isEnabled(room.gameType)
+      ) {
         availableRooms.push({
           code: room.code,
           gameType: room.gameType,
@@ -776,6 +782,8 @@ export class GamesService {
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
     copyEnum('language', ['en', 'th']);
+    copyEnum('visibility', ['PUBLIC', 'UNLISTED']);
+    copyBoolean('allowSpectators');
     copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE']);
     copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
     copyBoolean('ticTacToeVsBot');

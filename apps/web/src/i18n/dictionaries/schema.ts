@@ -64,6 +64,13 @@ export interface Dictionary {
     roomCodePlaceholder: string;
     join: string;
     publicLobbies: string;
+    roomVisibility: string;
+    publicRoom: string;
+    unlistedRoom: string;
+    visibilityHint: string;
+    spectatorPolicy: string;
+    spectatorsAllowed: string;
+    spectatorsDisabled: string;
     host: string;
     playersInRoom: string;
     roomHost: string;

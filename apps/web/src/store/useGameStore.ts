@@ -441,6 +441,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
         let redirectedFromMissingInviteRoom = false;
+        if (message === 'SPECTATORS_DISABLED') clearRoomSession();
         if (message === 'Room not found') {
           localStorage.removeItem(STORAGE_KEYS.roomCode);
           localStorage.removeItem(STORAGE_KEYS.reconnectToken);

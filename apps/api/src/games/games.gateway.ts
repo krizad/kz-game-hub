@@ -324,7 +324,6 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; name: string; reconnectToken?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    this.leavePreviousRoom(client, data.code.toUpperCase());
     // Block new entries into a disabled game, but never strand a seated player:
     // existing members (reconnecting) may always return to their room. After a
     // browser refresh the socket id is new, so also honor a valid session token.
@@ -337,10 +336,21 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       targetRoom.players.some((p) => p.socketId === client.id) ||
       (!!data.reconnectToken &&
         this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
+    // A fresh join after play starts becomes a viewer. Keep that path subject
+    // to the same policy as SPECTATE_JOIN, without locking out seated reconnects.
+    if (
+      !isSeatedMember &&
+      targetRoom.status !== RoomStatus.LOBBY &&
+      targetRoom.config?.allowSpectators === false
+    ) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
+      return;
+    }
     if (!isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
       client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
       return;
     }
+    this.leavePreviousRoom(client, data.code.toUpperCase());
     const room = this.gamesService.joinRoom(
       data.code.toUpperCase(),
       {
@@ -570,6 +580,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
     if (room) {
       this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
     } else {
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Not authorized to update config or invalid state.',
@@ -1549,6 +1563,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const room = this.gamesService.getRoom(data.code.toUpperCase());
     if (!room) {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
+      return;
+    }
+    if (room.config?.allowSpectators === false) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
       return;
     }
 

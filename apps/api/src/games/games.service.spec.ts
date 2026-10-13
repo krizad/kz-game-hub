@@ -286,6 +286,8 @@ describe('GamesService', () => {
         rpsBestOf: 3,
         rpsMode: '1V1_ROUND_ROBIN',
         language: 'th',
+        visibility: 'UNLISTED',
+        allowSpectators: false,
       });
     });
 
@@ -1046,11 +1048,35 @@ describe('GamesService', () => {
   });
 
   describe('getAvailableRooms', () => {
+    it('defaults new rooms to unlisted with spectators disabled, while legacy rooms remain public', () => {
+      const newRoom = service.createRoom('host1');
+      expect(newRoom.config).toMatchObject({ visibility: 'UNLISTED', allowSpectators: false });
+      expect(service.getAvailableRooms()).toEqual([]);
+
+      delete newRoom.config.visibility;
+      delete newRoom.config.allowSpectators;
+      expect(service.getAvailableRooms().map((room) => room.code)).toEqual([newRoom.code]);
+    });
+
+    it('lists public rooms and keeps unlisted rooms joinable by code', () => {
+      const publicRoom = service.createRoom('host1', GameType.WHO_KNOW, {
+        visibility: 'PUBLIC',
+      });
+      const unlistedRoom = service.createRoom('host2');
+      expect(service.getAvailableRooms().map((room) => room.code)).toEqual([publicRoom.code]);
+      expect(
+        service.joinRoom(unlistedRoom.code, { id: 'guest', name: 'Guest', socketId: 'guest' })
+          ?.players[0].name,
+      ).toBe('Guest');
+    });
+
     it('should return only LOBBY rooms', () => {
-      const lobbyRoom = service.createRoom('host1');
+      const lobbyRoom = service.createRoom('host1', GameType.WHO_KNOW, { visibility: 'PUBLIC' });
       service.joinRoom(lobbyRoom.code, { id: 'host1', name: 'Host', socketId: 'host1' });
 
-      const playingRoom = service.createRoom('host2');
+      const playingRoom = service.createRoom('host2', GameType.WHO_KNOW, {
+        visibility: 'PUBLIC',
+      });
       playingRoom.status = RoomStatus.PLAYING;
       (service as any).rooms.set(playingRoom.code, playingRoom);
 
@@ -1062,7 +1088,7 @@ describe('GamesService', () => {
     });
 
     it('should show Unknown for host name if host not in players', () => {
-      service.createRoom('host1');
+      service.createRoom('host1', GameType.WHO_KNOW, { visibility: 'PUBLIC' });
       const available = service.getAvailableRooms();
       expect(available[0].hostName).toBe('Unknown');
     });
@@ -1073,6 +1099,35 @@ describe('GamesService', () => {
   });
 
   describe('updateConfig', () => {
+    it('lets only the lobby host change visibility and spectator policy', () => {
+      const room = service.createRoom('host1');
+      expect(
+        service.updateConfig(room.code, 'guest', { visibility: 'PUBLIC', allowSpectators: true }),
+      ).toBeNull();
+      expect(room.config.visibility).toBe('UNLISTED');
+      expect(
+        service.updateConfig(room.code, 'host1', { visibility: 'PUBLIC', allowSpectators: true })
+          ?.config,
+      ).toMatchObject({ visibility: 'PUBLIC', allowSpectators: true });
+      room.status = RoomStatus.PLAYING;
+      expect(service.updateConfig(room.code, 'host1', { visibility: 'UNLISTED' })).toBeNull();
+      expect(room.config.visibility).toBe('PUBLIC');
+    });
+
+    it('ignores malformed policy values from untrusted config payloads', () => {
+      const room = service.createRoom('host1', GameType.WHO_KNOW, {
+        visibility: 'SECRET',
+        allowSpectators: 'false',
+      } as unknown as Partial<RoomState['config']>);
+      expect(room.config).toMatchObject({ visibility: 'UNLISTED', allowSpectators: false });
+
+      service.updateConfig(room.code, 'host1', {
+        visibility: 'SECRET',
+        allowSpectators: 'true',
+      } as unknown as Partial<RoomState['config']>);
+      expect(room.config).toMatchObject({ visibility: 'UNLISTED', allowSpectators: false });
+    });
+
     it('should update room config', () => {
       const room = service.createRoom('host1');
       const updated = service.updateConfig(room.code, 'host1', { timerMin: 10, language: 'en' });
@@ -1800,7 +1855,9 @@ describe('GamesService', () => {
     it('hides available rooms of disabled games from the lobby list', () => {
       const room = service.createRoom('host1', GameType.COUP);
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
-      const enabledRoom = service.createRoom('host2', GameType.THE_MIND);
+      const enabledRoom = service.createRoom('host2', GameType.THE_MIND, {
+        visibility: 'PUBLIC',
+      });
       service.joinRoom(enabledRoom.code, { id: 'host2', name: 'Host2', socketId: 'host2' });
 
       (service as any).gameSettings.enabled.set(GameType.COUP, false);

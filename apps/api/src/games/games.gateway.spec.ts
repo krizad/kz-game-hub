@@ -53,6 +53,80 @@ describe('GamesGateway payload guard', () => {
     expect(isValid(SOCKET_EVENTS.START_GAME, { code: 'abc123' })).toBe(true);
   });
 
+  it('rejects spectator entry when disabled and permits legacy and enabled rooms', () => {
+    const room = { code: 'ABC123', config: { allowSpectators: false }, players: [] };
+    const getRoom = jest.fn(() => room);
+    const spectatorGateway = new GamesGateway(
+      {
+        getRoom,
+        findRoomCodeBySocketId: jest.fn(() => null),
+        musicTriviaCurrentSyncPlay: jest.fn(() => null),
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+    const client = { id: 'observer', join: jest.fn(), emit: jest.fn(), data: {} };
+
+    spectatorGateway.handleSpectateJoin({ code: room.code, name: 'Observer' }, client as never);
+    expect(client.join).not.toHaveBeenCalled();
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'SPECTATORS_DISABLED',
+    });
+
+    delete (room.config as { allowSpectators?: boolean }).allowSpectators;
+    spectatorGateway.handleSpectateJoin({ code: room.code, name: 'Observer' }, client as never);
+    expect(client.join).toHaveBeenCalledWith(room.code);
+
+    client.join.mockClear();
+    room.config.allowSpectators = true;
+    spectatorGateway.handleSpectateJoin({ code: room.code, name: 'Observer' }, client as never);
+    expect(client.join).toHaveBeenCalledWith(room.code);
+  });
+
+  it('rejects fresh late code joins that would become viewers while preserving seated reconnects', () => {
+    const room = {
+      code: 'ABC123',
+      gameType: GameType.WHO_KNOW,
+      status: RoomStatus.PLAYING,
+      config: { allowSpectators: false },
+      players: [],
+    };
+    const joinRoom = jest.fn(() => null);
+    const hasSeatedSession = jest.fn(() => false);
+    const admissionGateway = new GamesGateway(
+      {
+        getRoom: jest.fn(() => room),
+        findRoomCodeBySocketId: jest.fn(() => null),
+        isGameEnabled: jest.fn(() => true),
+        hasSeatedSession,
+        joinRoom,
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+    const client = { id: 'fresh', join: jest.fn(), emit: jest.fn(), data: {} };
+
+    admissionGateway.handleJoinRoom({ code: room.code, name: 'Fresh' }, client as never);
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'SPECTATORS_DISABLED',
+    });
+    expect(joinRoom).not.toHaveBeenCalled();
+
+    hasSeatedSession.mockReturnValue(true);
+    admissionGateway.handleJoinRoom(
+      { code: room.code, name: 'Returning', reconnectToken: 'valid' },
+      client as never,
+    );
+    expect(hasSeatedSession).toHaveBeenCalledWith(room.code, 'valid');
+    expect(joinRoom).toHaveBeenCalled();
+  });
+
   it('accepts exchange selections of any small size and rejects malformed ones', () => {
     expect(isValid(SOCKET_EVENTS.COUP_EXCHANGE_SELECT, { code: 'abc123', keepIndices: [0] })).toBe(
       true,

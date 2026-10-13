@@ -196,6 +196,10 @@ export interface UserState {
 export interface RoomConfig {
   hostSelection: 'ROUND_ROBIN' | 'RANDOM' | 'FIXED';
   timerMin: number;
+  /** Missing on pre-policy rooms means PUBLIC. */
+  visibility?: 'PUBLIC' | 'UNLISTED';
+  /** Missing on pre-policy rooms means spectators are allowed. */
+  allowSpectators?: boolean;
   rpsBestOf?: number; // e.g., 1, 3, 5
   rpsMode?: '1V1_ROUND_ROBIN' | 'ALL_AT_ONCE';
   language?: 'en' | 'th';
