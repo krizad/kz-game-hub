@@ -166,15 +166,16 @@ export function CoupView() {
 
   return (
     <div className="flex flex-col gap-4 bg-[#FFF7E8] border-4 border-[#5B2637] p-4 shadow-[4px_4px_0_0_#5B2637]">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black tracking-wide">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+        <h2 className="min-w-0 text-xl font-black tracking-wide">
           {t('lobby.gameNames.coup')} — {t(phaseKeys[state.phase])}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap shrink-0 gap-2">
           <CoupHelpModal />
           {renderSoundToggle()}
           {room.roomHostId === socketId && (
             <button
+              data-testid="coup-return-lobby"
               onClick={() => resetRoom()}
               className="bg-black text-white px-3 py-1 text-xs font-black uppercase"
             >
@@ -492,12 +493,12 @@ export function CoupView() {
             >
               {t('gameCoup.actionTax')}
             </button>
-            <div className="flex gap-1">
+            <div className="col-span-2 flex min-w-0 flex-col gap-2 sm:flex-row">
               <select
                 value={assassinateTarget}
                 onChange={(e) => setAssassinateTarget(e.target.value)}
                 disabled={!isMyTurn}
-                className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
+                className="min-w-0 flex-1 min-h-11 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
               >
                 <option value="">{t('gameCoup.target')}</option>
                 {aliveTargets.map((p) => (
@@ -507,6 +508,7 @@ export function CoupView() {
                 ))}
               </select>
               <button
+                data-testid="coup-action-assassinate"
                 disabled={!isMyTurn || !assassinateTargetValid || myCoins < 3 || forcedCoup}
                 onClick={() => {
                   if (!assassinateTargetValid) {
@@ -520,12 +522,12 @@ export function CoupView() {
                 {t('gameCoup.actionAssassinate')} (3)
               </button>
             </div>
-            <div className="flex gap-1">
+            <div className="col-span-2 flex min-w-0 flex-col gap-2 sm:flex-row">
               <select
                 value={stealTarget}
                 onChange={(e) => setStealTarget(e.target.value)}
                 disabled={!isMyTurn}
-                className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
+                className="min-w-0 flex-1 min-h-11 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
               >
                 <option value="">{t('gameCoup.target')}</option>
                 {aliveTargets.map((p) => (
@@ -555,12 +557,12 @@ export function CoupView() {
             >
               {t('gameCoup.actionExchange')}
             </button>
-            <div className="flex gap-1 col-span-2">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row col-span-2">
               <select
                 value={coupTarget}
                 onChange={(e) => setCoupTarget(e.target.value)}
                 disabled={!isMyTurn}
-                className="flex-1 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
+                className="min-w-0 flex-1 min-h-11 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
               >
                 <option value="">{t('gameCoup.target')}</option>
                 {aliveTargets.map((p) => (

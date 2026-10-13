@@ -2,8 +2,22 @@ import { REBRANDED_TITLES } from '../game-titles';
 import { Dictionary } from './schema';
 
 export const th: Dictionary = {
+  connection: {
+    connecting: 'กำลังเชื่อมต่อ...',
+    connected: 'เชื่อมต่อแล้ว',
+    reconnecting: 'กำลังเชื่อมต่อกลับห้อง…',
+    failed: 'การเชื่อมต่อขัดข้อง',
+    room: 'ห้อง {code}',
+    help: 'ระบบกำลังเชื่อมต่อกลับและพักที่นั่งไว้ชั่วคราว หากยังเชื่อมต่อไม่ได้ให้กดลองใหม่',
+    initialHelp: 'ตรวจการเชื่อมต่ออินเทอร์เน็ต แล้วกดลองใหม่หากหน้ายังไม่พร้อมใช้งาน',
+    retry: 'ลองเชื่อมต่อใหม่',
+  },
   lobby: {
     connecting: 'กำลังเชื่อมต่อ...',
+    musicQueryMissing: 'ใส่ชื่อเพลงหรือศิลปินก่อนเริ่ม',
+    musicPresetUnavailable: 'รายการศิลปินนี้ยังใช้งานไม่ได้ เลือกรายการอื่นหรือค้นหาเพลงเอง',
+    musicPresetEmpty: 'รายการนี้ไม่มีเพลงในระดับที่เลือก',
+    wordCategoryMissing: 'เลือกหมวดคำก่อนเริ่ม',
     invited: 'คุณได้รับคำเชิญ!',
     joinRoomInfo: 'เข้าร่วมห้อง',
     displayName: 'ชื่อที่แสดง',
@@ -183,6 +197,12 @@ export const th: Dictionary = {
       ROUND_RESULT: 'ผลรอบนี้',
       RESULT: 'เฉลยผล',
       FINISHED: 'จบเกม',
+      PREFLOP: 'พรีฟลอป',
+      FLOP: 'ฟลอป',
+      TURN: 'เทิร์น',
+      RIVER: 'ริเวอร์',
+      SHOWDOWN: 'เปิดไพ่',
+      HAND_RESULT: 'ผลมือนี้',
       COLLECTING_WORDS: 'ส่งคำ',
       AWAITING_HOST_INPUT: 'รอโฮสต์ตั้งคำ',
       ASKING: 'ถามคำถาม',
@@ -265,6 +285,7 @@ export const th: Dictionary = {
         poker: 'โป๊กเกอร์',
       },
       closeBtn: 'เข้าใจแล้ว ลุยกันเลย!',
+      closeLabel: 'ปิดกติกา',
     },
     lobby: {
       welcomeTitle: 'ยินดีต้อนรับสู่ KZ Game Hub',
@@ -1566,6 +1587,9 @@ export const th: Dictionary = {
       call: 'คอล',
       bet: 'เดิมพัน',
       raiseTo: 'เรซเป็น',
+      ante: 'แอนเต้',
+      smallBlind: 'สมอลบลายด์',
+      bigBlind: 'บิ๊กบลายด์',
       min: 'ต่ำสุด',
       half: 'ครึ่งพอต',
       pot: 'พอตเต็ม',

@@ -224,12 +224,13 @@ export function HomeView() {
                     joinRoom(joinCode);
                   }
                 }}
-                className="flex-1 bg-white border-4 border-black px-4 py-3 text-black focus:outline-none focus:ring-4 focus:ring-[#8B5CF6] transition-all uppercase font-black text-center shadow-[4px_4px_0_0_#000]"
+                className="min-w-0 w-0 flex-1 bg-white border-4 border-black px-4 py-3 text-black focus:outline-none focus:ring-4 focus:ring-[#8B5CF6] transition-all uppercase font-black text-center shadow-[4px_4px_0_0_#000]"
                 placeholder={t('lobby.roomCodePlaceholder')}
                 maxLength={6}
               />
               <button
                 type="button"
+                data-testid="hub-join-room"
                 onClick={() => joinRoom(joinCode)}
                 disabled={!myName || joinCode.length < 4}
                 className="bg-[#A855F7] hover:bg-[#9333EA] disabled:bg-gray-400 text-white font-black px-6 transition-all shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] border-4 border-black uppercase tracking-widest disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"

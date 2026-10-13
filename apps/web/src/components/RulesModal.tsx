@@ -18,6 +18,7 @@ import { PokerRules } from './games/poker/PokerRules';
 import { BananaThiefRules } from './games/banana-thief/BananaThiefRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
+import { GameDialog } from './core/GameDialog';
 
 interface RulesModalProps {
   defaultGameType?: GameType;
@@ -112,7 +113,7 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 p-2 pt-4 sm:p-4 text-left overflow-y-auto">
+        <GameDialog open={isOpen} onClose={() => setIsOpen(false)} title={t('rules.modal.title')}>
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 pb-2 border-b-4 border-black flex justify-between items-center bg-white z-10 shrink-0">
               <h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
@@ -136,7 +137,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-slate-500 hover:text-slate-700 hover:bg-amber-100 p-2 rounded-full transition-colors"
-                aria-label="Close rules"
+                data-testid="rules-close"
+                aria-label={t('rules.modal.closeLabel')}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -291,7 +293,7 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
               </button>
             </div>
           </div>
-        </div>
+        </GameDialog>
       )}
     </>
   );

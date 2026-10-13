@@ -38,13 +38,13 @@ test('rules modal follows the active language', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: 'Banana Thief', exact: true }).first(),
   ).toBeVisible();
-  await page.getByLabel('Close rules').click();
+  await page.getByTestId('rules-close').click();
 
   // Thai tab set (the Rules button itself is Thai-labelled now)
   await page.getByRole('button', { name: 'TH', exact: true }).click();
   await page.getByRole('button', { name: 'กฎกติกา', exact: true }).first().click();
   await expect(page.getByRole('button', { name: 'ภาพรวม', exact: true })).toBeVisible();
-  await page.getByLabel('Close rules').click();
+  await page.getByTestId('rules-close').click();
 });
 
 test('goToLobbyInEnglish helper leaves the lobby in English', async ({ page }) => {

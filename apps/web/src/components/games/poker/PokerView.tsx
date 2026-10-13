@@ -5,6 +5,7 @@ import { Crown, Hourglass, ScrollText, Settings2, Spade } from 'lucide-react';
 import {
   GameType,
   PokerAction,
+  PokerLastAction,
   PokerHandCategory,
   PokerPhase,
   PokerPublicState,
@@ -17,6 +18,17 @@ import { CardHand } from '@/components/games/card-game/CardHand';
 import { PokerHandRankings } from './PokerHandRankings';
 
 const POKER_STREETS: PokerPhase[] = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
+const LAST_ACTION_KEYS: Record<PokerLastAction, string> = {
+  ANTE: 'ante',
+  SMALL_BLIND: 'smallBlind',
+  BIG_BLIND: 'bigBlind',
+  CHECK: 'check',
+  CALL: 'call',
+  BET: 'bet',
+  RAISE: 'raiseTo',
+  ALL_IN: 'allIn',
+  FOLD: 'fold',
+};
 const isPokerStreet = (phase: PokerPhase): boolean => POKER_STREETS.includes(phase);
 
 /** Client mirror of the engine's min raise-to (the server re-validates). */
@@ -32,7 +44,7 @@ function seatBadgeLabel(seat: PokerSeat): string | null {
 }
 
 export function PokerView() {
-  const { room, socketId, pokerAction, resetRoom } = useGameStore();
+  const { room, socketId, pokerAction, resetRoom, actionLoading } = useGameStore();
   const { t } = useTranslate();
   const [now, setNow] = useState(() => Date.now());
   const [betAmount, setBetAmount] = useState<number | null>(null);
@@ -41,6 +53,9 @@ export function PokerView() {
   const [showRankings, setShowRankings] = useState(false);
 
   const state = room?.pokerState;
+  useEffect(() => {
+    setBetAmount(null);
+  }, [state?.handNumber, state?.phase, state?.activePlayerId]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);
@@ -62,6 +77,13 @@ export function PokerView() {
   const toCall = mySeat ? Math.max(0, state.currentBet - mySeat.bet) : 0;
   const raiseMin = minRaiseTo(state);
   const myMax = mySeat ? mySeat.chips + mySeat.bet : 0;
+  const callAmount = Math.min(toCall, mySeat?.chips ?? 0);
+  const othersActive = state.playerOrder.some(
+    (id) => id !== socketId && state.seats[id].status === 'ACTIVE',
+  );
+  const canRaise = !!mySeat && !mySeat.raiseLocked && othersActive && myMax >= raiseMin;
+  const canShortRaise =
+    !!mySeat && !mySeat.raiseLocked && othersActive && myMax > state.currentBet && myMax < raiseMin;
   const awaitingMyReveal =
     state.phase === 'SHOWDOWN' && !!state.showdown?.awaitingRevealIds.includes(socketId);
   const pendingPot = state.showdown?.pendingPots[0];
@@ -81,7 +103,7 @@ export function PokerView() {
       value: toCall + Math.ceil((state.pot + state.currentBet) / 2),
     },
     { key: 'pot', value: toCall + state.pot + state.currentBet },
-    { key: 'allin', value: myMax },
+    { key: 'allIn', value: myMax },
   ].map((quick) => ({ ...quick, value: Math.min(Math.max(quick.value, raiseMin), myMax) }));
 
   const standings = [...room.players].filter((p) => !p.isViewer).sort((a, b) => b.score - a.score);
@@ -149,7 +171,10 @@ export function PokerView() {
 
       {/* Community board (ONLINE) */}
       {mode === 'ONLINE' && (
-        <div className="flex items-center gap-2" data-testid="poker-board">
+        <div
+          className="flex min-w-0 overflow-x-auto items-center gap-2 pb-2"
+          data-testid="poker-board"
+        >
           {Array.from({ length: 5 }).map((_, index) => {
             const card = state.board[index];
             if (card) {
@@ -201,10 +226,7 @@ export function PokerView() {
                 )}
                 {seat.lastAction && seat.status !== 'OUT' && (
                   <span className="px-1 bg-amber-100 border border-black font-bold text-[10px] uppercase">
-                    {t(`poker.action.${seat.lastAction.toLowerCase()}`) !==
-                    `poker.action.${seat.lastAction.toLowerCase()}`
-                      ? t(`poker.action.${seat.lastAction.toLowerCase()}`)
-                      : seat.lastAction}
+                    {t(`poker.action.${LAST_ACTION_KEYS[seat.lastAction]}`)}
                     {seat.lastActionAmount && seat.lastActionAmount > 0
                       ? ` ${seat.lastActionAmount}`
                       : ''}
@@ -282,7 +304,7 @@ export function PokerView() {
 
       {/* Show / muck choice */}
       {awaitingMyReveal && (
-        <div className="flex gap-2" data-testid="poker-reveal-panel">
+        <fieldset disabled={actionLoading} className="flex gap-2" data-testid="poker-reveal-panel">
           <button
             type="button"
             data-testid="poker-show"
@@ -299,7 +321,7 @@ export function PokerView() {
           >
             {t('poker.showdown.muck')}
           </button>
-        </div>
+        </fieldset>
       )}
       {state.phase === 'SHOWDOWN' &&
         !!state.showdown?.awaitingRevealIds.length &&
@@ -309,7 +331,8 @@ export function PokerView() {
 
       {/* Betting action bar */}
       {isMyTurn && mySeat && (
-        <div
+        <fieldset
+          disabled={actionLoading}
           className="border-4 border-black bg-yellow-200 p-3 shadow-[4px_4px_0_0_#000] flex flex-col gap-2"
           data-testid="poker-action-panel"
         >
@@ -341,18 +364,19 @@ export function PokerView() {
                 onClick={() => act({ type: 'CALL' })}
                 className="flex-1 min-w-[80px] bg-sky-300 hover:bg-sky-200 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none"
               >
-                {t('poker.action.call')} {toCall}
+                {t('poker.action.call')} {callAmount}
+                {callAmount < toCall ? ` · ${t('poker.action.allIn')}` : ''}
               </button>
             )}
           </div>
-          {myMax > state.currentBet && (
+          {canRaise && (
             <div className="flex flex-col gap-2">
               <div className="flex gap-2 flex-wrap">
                 {quickAmounts.map((quick) => (
                   <button
                     key={quick.key}
                     type="button"
-                    data-testid={`poker-quick-${quick.key}`}
+                    data-testid={`poker-quick-${quick.key === 'allIn' ? 'allin' : quick.key}`}
                     onClick={() => setBetAmount(quick.value)}
                     className={`px-2 py-1 border-2 border-black font-black text-xs uppercase ${
                       amount === quick.value ? 'bg-lime-300' : 'bg-white hover:bg-amber-100'
@@ -362,7 +386,7 @@ export function PokerView() {
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex min-w-0 flex-wrap gap-2 items-center">
                 <span className="font-black text-xs uppercase">{t('poker.action.raiseTo')}</span>
                 <input
                   type="number"
@@ -376,7 +400,9 @@ export function PokerView() {
                 <button
                   type="button"
                   data-testid="poker-bet-confirm"
-                  onClick={() => act({ type: 'BET', amount })}
+                  onClick={() =>
+                    act(amount === myMax ? { type: 'ALL_IN' } : { type: 'BET', amount })
+                  }
                   className="ml-auto bg-lime-300 hover:bg-lime-200 border-4 border-black font-black uppercase px-4 py-2 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none"
                 >
                   {state.currentBet === 0 ? t('poker.action.bet') : t('poker.action.raiseTo')}{' '}
@@ -385,7 +411,17 @@ export function PokerView() {
               </div>
             </div>
           )}
-        </div>
+          {canShortRaise && (
+            <button
+              type="button"
+              data-testid="poker-short-allin"
+              onClick={() => act({ type: 'ALL_IN' })}
+              className="min-h-11 bg-lime-300 border-4 border-black px-4 py-2 font-black"
+            >
+              {t('poker.action.allIn')} {myMax}
+            </button>
+          )}
+        </fieldset>
       )}
 
       {/* Status line */}

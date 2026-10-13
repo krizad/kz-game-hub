@@ -53,19 +53,6 @@ const RANK_VALUES: Record<PlayingCard['rank'], number> = {
   A: 14,
 };
 
-const CATEGORY_ORDER: PokerHandCategory[] = [
-  'HIGH_CARD',
-  'ONE_PAIR',
-  'TWO_PAIR',
-  'THREE_OF_A_KIND',
-  'STRAIGHT',
-  'FLUSH',
-  'FULL_HOUSE',
-  'FOUR_OF_A_KIND',
-  'STRAIGHT_FLUSH',
-  'ROYAL_FLUSH',
-];
-
 export interface HandEvaluation {
   category: PokerHandCategory;
   /** Category index (0=HIGH_CARD … 9=ROYAL_FLUSH) for numeric comparison. */
@@ -149,7 +136,7 @@ function evaluateFive(cards: PlayingCard[]): HandEvaluation {
   }
 
   if (isFlush) {
-    return { category: 'FLUSH', catIndex: 5, tiebreak: values, best: byValueDesc(cards, values) };
+    return { category: 'FLUSH', catIndex: 5, tiebreak: values, best: byValueDesc(cards) };
   }
 
   if (straightHigh !== null) {
@@ -192,7 +179,7 @@ function evaluateFive(cards: PlayingCard[]): HandEvaluation {
     };
   }
 
-  return { category: 'HIGH_CARD', catIndex: 0, tiebreak: values, best: byValueDesc(cards, values) };
+  return { category: 'HIGH_CARD', catIndex: 0, tiebreak: values, best: byValueDesc(cards) };
 }
 
 /** Highest straight top card in the (sorted desc) value list, wheel included; null if none. */
@@ -216,7 +203,7 @@ function straightHighCard(valuesDesc: number[]): number | null {
   return null;
 }
 
-function byValueDesc(cards: PlayingCard[], valuesDesc: number[]): PlayingCard[] {
+function byValueDesc(cards: PlayingCard[]): PlayingCard[] {
   return [...cards].sort((a, b) => RANK_VALUES[b.rank] - RANK_VALUES[a.rank]);
 }
 
@@ -278,7 +265,7 @@ export function buildSidePots(seats: Record<string, PokerSeat>): PokerPot[] {
     }
     const eligible = entries
       .filter(
-        ([id, seat]) => seat.status !== 'FOLDED' && seat.status !== 'OUT' && seat.totalBet >= level,
+        ([, seat]) => seat.status !== 'FOLDED' && seat.status !== 'OUT' && seat.totalBet >= level,
       )
       .map(([id]) => id);
     if (amount > 0) {

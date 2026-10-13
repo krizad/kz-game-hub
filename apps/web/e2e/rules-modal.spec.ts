@@ -32,7 +32,7 @@ async function openRules(page: import('@playwright/test').Page) {
 
 /** Tab buttons share names with lobby game buttons — scope to the modal. */
 function modal(page: import('@playwright/test').Page) {
-  return page.locator('div.fixed.inset-0.z-50');
+  return page.getByRole('dialog');
 }
 
 test('every game tab opens in the rules modal', async ({ page }) => {

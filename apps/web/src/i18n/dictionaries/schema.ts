@@ -1,6 +1,20 @@
 export interface Dictionary {
+  connection: {
+    connecting: string;
+    connected: string;
+    reconnecting: string;
+    failed: string;
+    room: string;
+    help: string;
+    initialHelp: string;
+    retry: string;
+  };
   lobby: {
     connecting: string;
+    musicQueryMissing: string;
+    musicPresetUnavailable: string;
+    musicPresetEmpty: string;
+    wordCategoryMissing: string;
     invited: string;
     joinRoomInfo: string;
     displayName: string;
@@ -161,6 +175,7 @@ export interface Dictionary {
         poker: string;
       };
       closeBtn: string;
+      closeLabel: string;
     };
     lobby: {
       welcomeTitle: string;
@@ -1364,6 +1379,9 @@ export interface Dictionary {
       call: string;
       bet: string;
       raiseTo: string;
+      ante: string;
+      smallBlind: string;
+      bigBlind: string;
       min: string;
       half: string;
       pot: string;

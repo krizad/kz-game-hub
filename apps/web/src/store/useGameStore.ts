@@ -56,6 +56,8 @@ const translateError = (message: string) => {
 interface GameState {
   socket: Socket | null;
   connected: boolean;
+  connectionStatus: 'connecting' | 'connected' | 'reconnecting' | 'failed';
+  retryConnection: () => void;
   isSpectator: boolean;
   room: RoomState | null;
   myRole: Role | null;
@@ -173,8 +175,8 @@ export const useGameStore = create<GameState>((set, get) => {
     event: string,
     options: { loading?: boolean; payload?: (room: RoomState) => Record<string, unknown> } = {},
   ): boolean => {
-    const { socket, room, actionLoading } = get();
-    if (!socket || !room) return false;
+    const { socket, room, actionLoading, connected, connectionStatus } = get();
+    if (!socket?.connected || !connected || connectionStatus !== 'connected' || !room) return false;
     const withLoading = options.loading ?? true;
     if (withLoading && actionLoading) return false;
     if (withLoading) set({ actionLoading: true });
@@ -198,6 +200,17 @@ export const useGameStore = create<GameState>((set, get) => {
   return {
     socket: null,
     connected: false,
+    connectionStatus: 'connecting',
+    retryConnection: () => {
+      const socket = get().socket;
+      if (!socket) {
+        get().connect();
+        return;
+      }
+      set({ connectionStatus: get().room ? 'reconnecting' : 'connecting' });
+      if (socket.connected) socket.disconnect();
+      socket.connect();
+    },
     isSpectator: false,
     room: null,
     myRole: null,
@@ -270,13 +283,23 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ socket });
 
       socket.on('connect', () => {
-        set({ connected: true, socketId: socket.id });
-
         // Auto-reconnect if session exists
         const savedCode = localStorage.getItem(STORAGE_KEYS.roomCode);
         const savedName = localStorage.getItem(STORAGE_KEYS.name);
         const reconnectToken = localStorage.getItem(STORAGE_KEYS.reconnectToken);
-        if (savedCode && savedName) {
+        const spectatingRoom = get().isSpectator ? get().room : null;
+        set({
+          connected: true,
+          socketId: socket.id,
+          connectionStatus:
+            (savedCode && savedName) || spectatingRoom ? 'reconnecting' : 'connected',
+        });
+        if (spectatingRoom)
+          socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, {
+            code: spectatingRoom.code,
+            name: get().myName,
+          });
+        else if (savedCode && savedName) {
           set({ myName: savedName });
           socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
             code: savedCode,
@@ -304,7 +327,28 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on('disconnect', () => {
-        set({ connected: false, socketId: '' });
+        set({
+          connected: false,
+          socketId: '',
+          connectionStatus: get().room ? 'reconnecting' : 'connecting',
+          isLoading: false,
+          actionLoading: false,
+          myRole: null,
+          secretWord: null,
+          privateState: {},
+          musicTriviaHostAnswer: null,
+          musicTriviaTrackAnswer: null,
+          musicTriviaSyncPlay: null,
+        });
+      });
+      socket.on('connect_error', () => {
+        set({
+          connected: false,
+          socketId: '',
+          connectionStatus: 'failed',
+          isLoading: false,
+          actionLoading: false,
+        });
       });
 
       socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
@@ -314,6 +358,7 @@ export const useGameStore = create<GameState>((set, get) => {
         // If we're not in the room's player list, ignore this update
         // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
         if (!isMe && !get().isSpectator) return;
+        set({ connectionStatus: 'connected' });
 
         if (room.status === RoomStatus.LOBBY) {
           set({
@@ -399,7 +444,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (message === 'Room not found') {
           localStorage.removeItem(STORAGE_KEYS.roomCode);
           localStorage.removeItem(STORAGE_KEYS.reconnectToken);
-          set({ room: null, isSpectator: false, playerId: '' });
+          clearRoomSession();
           if (
             typeof window !== 'undefined' &&
             new URLSearchParams(window.location.search).has('room')
@@ -409,6 +454,8 @@ export const useGameStore = create<GameState>((set, get) => {
           }
         }
         set({ isLoading: false, actionLoading: false });
+        if (get().connectionStatus === 'reconnecting')
+          set({ connectionStatus: get().room ? 'failed' : 'connected' });
         if (!redirectedFromMissingInviteRoom) {
           toast.error(translateError(message));
         }
@@ -485,10 +532,11 @@ export const useGameStore = create<GameState>((set, get) => {
     leaveRoom: () => {
       const { socket } = get();
       if (socket) {
-        socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
+        if (socket.connected) socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
         localStorage.removeItem(STORAGE_KEYS.roomCode);
         localStorage.removeItem(STORAGE_KEYS.reconnectToken);
         clearRoomSession();
+        set({ connectionStatus: socket.connected ? 'connected' : 'connecting' });
       }
     },
 

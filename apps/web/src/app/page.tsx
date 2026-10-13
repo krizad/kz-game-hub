@@ -14,15 +14,14 @@ import { RoomHeader } from '@/components/lobby/RoomHeader';
 import { GameViewManager } from '@/components/lobby/GameViewManager';
 import { SecretWordModal } from '@/components/lobby/SecretWordModal';
 import { LoadingFallback } from '@/components/lobby/LoadingFallback';
-import { useTranslate } from '@/hooks/useTranslate';
+import { ConnectionStatus } from '@/components/core/ConnectionStatus';
 
 // Components extracted to separate files
 
 function GameLobby() {
-  const { connect, connected, room, myRole, secretWord } = useGameStore();
+  const { connect, connected, connectionStatus, room, myRole, secretWord } = useGameStore();
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room');
-  const { t } = useTranslate();
 
   useEffect(() => {
     connect();
@@ -44,10 +43,10 @@ function GameLobby() {
     return () => window.removeEventListener('beforeunload', warnBeforeUnload);
   }, []);
 
-  if (!connected) {
+  if (!connected || connectionStatus !== 'connected') {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6 md:p-24 bg-amber-50">
-        <h1 className="text-4xl font-bold animate-pulse text-slate-600">{t('lobby.connecting')}</h1>
+        <ConnectionStatus />
       </main>
     );
   }
@@ -74,7 +73,6 @@ function GameLobby() {
 
         {/* Main Content Area */}
         <GameViewManager />
-
       </div>
 
       {/* Secret Word Setting Modal Handle */}

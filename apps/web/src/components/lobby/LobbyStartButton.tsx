@@ -6,7 +6,7 @@ import { GameType, getBananaThiefRequiredPlayerCount } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function LobbyStartButton() {
-  const { room, startGame, submitWordsWhoAmI, isLoading } = useGameStore();
+  const { room, startGame, submitWordsWhoAmI, isLoading, artistPresets } = useGameStore();
   const { t } = useTranslate();
   const [showHostWordModal, setShowHostWordModal] = useState(false);
   const [hostWordInputs, setHostWordInputs] = useState<Record<string, string>>({});
@@ -40,20 +40,39 @@ export function LobbyStartButton() {
       case GameType.BANANA_THIEF:
         return getBananaThiefRequiredPlayerCount(room.config).min;
       case GameType.WHO_AM_I:
+        return room.config.wordMode === 'HOST_INPUT' ? 3 : 2;
       default:
         return 2;
     }
   };
 
   const minPlayers = getMinPlayers();
-  const notEnoughPlayers = room.players.length < minPlayers;
+  const notEnoughPlayers =
+    room.players.filter((p) => !p.isViewer && p.connected !== false).length < minPlayers;
+  const presetId = room.config.musicTriviaArtistPresetId;
+  const preset = artistPresets.find((p) => p.id === presetId);
+  const level = (room.config.musicTriviaLevel ?? 'EASY').toLowerCase() as
+    | 'easy'
+    | 'medium'
+    | 'hard';
+  const startReason =
+    room.gameType === GameType.MUSIC_TRIVIA
+      ? presetId
+        ? !preset?.enabled
+          ? 'lobby.musicPresetUnavailable'
+          : preset.trackCounts[level] === 0
+            ? 'lobby.musicPresetEmpty'
+            : undefined
+        : !room.config.musicTriviaQuery?.trim()
+          ? 'lobby.musicQueryMissing'
+          : undefined
+      : room.gameType === GameType.WHO_AM_I &&
+          room.config.wordMode === 'RANDOM' &&
+          !room.config.wordCategory
+        ? 'lobby.wordCategoryMissing'
+        : undefined;
 
-  const isDisabled =
-    notEnoughPlayers ||
-    (room.gameType === GameType.MUSIC_TRIVIA && !room.config?.musicTriviaQuery?.trim()) ||
-    (room.gameType === GameType.WHO_AM_I &&
-      room.config?.wordMode === 'RANDOM' &&
-      !room.config?.wordCategory);
+  const isDisabled = notEnoughPlayers || isLoading || !!startReason;
 
   const getButtonText = () => {
     if (notEnoughPlayers) {
@@ -83,6 +102,8 @@ export function LobbyStartButton() {
   return (
     <>
       <button
+        data-testid="lobby-start-game"
+        aria-describedby={startReason ? 'lobby-start-reason' : undefined}
         onClick={handleStart}
         disabled={isDisabled}
         className={`w-full max-w-xs text-white border-4 border-black font-black text-lg py-4 transition-all uppercase tracking-widest ${
@@ -93,6 +114,15 @@ export function LobbyStartButton() {
       >
         {getButtonText()}
       </button>
+      {startReason && (
+        <p
+          id="lobby-start-reason"
+          data-testid="lobby-start-reason"
+          className="max-w-sm text-sm text-center font-bold"
+        >
+          {t(startReason)}
+        </p>
+      )}
 
       {/* Host Word Modal for Who Am I */}
       {showHostWordModal && (

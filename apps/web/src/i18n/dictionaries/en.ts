@@ -2,8 +2,23 @@ import { REBRANDED_TITLES } from '../game-titles';
 import { Dictionary } from './schema';
 
 export const en: Dictionary = {
+  connection: {
+    connecting: 'Connecting...',
+    connected: 'Connected',
+    reconnecting: 'Reconnecting to your room...',
+    failed: 'Connection interrupted',
+    room: 'Room {code}',
+    help: 'Your seat is held while we reconnect. Retry if the connection does not return.',
+    initialHelp: 'Check your connection and retry if the page does not load.',
+    retry: 'Retry connection',
+  },
   lobby: {
     connecting: 'Connecting...',
+    musicQueryMissing: 'Enter a song or artist before starting.',
+    musicPresetUnavailable:
+      'This artist preset is unavailable. Choose another preset or use free search.',
+    musicPresetEmpty: 'This preset has no tracks at the selected level.',
+    wordCategoryMissing: 'Select a word category before starting.',
     invited: "You've been invited!",
     joinRoomInfo: 'Join room',
     displayName: 'Display Name',
@@ -184,6 +199,12 @@ export const en: Dictionary = {
       ROUND_RESULT: 'Round result',
       RESULT: 'Reveal',
       FINISHED: 'Game over',
+      PREFLOP: 'Pre-flop',
+      FLOP: 'Flop',
+      TURN: 'Turn',
+      RIVER: 'River',
+      SHOWDOWN: 'Showdown',
+      HAND_RESULT: 'Hand result',
       COLLECTING_WORDS: 'Submit words',
       AWAITING_HOST_INPUT: 'Waiting for host to set a word',
       ASKING: 'Ask questions',
@@ -266,6 +287,7 @@ export const en: Dictionary = {
         poker: 'Poker',
       },
       closeBtn: "Got it, let's play!",
+      closeLabel: 'Close rules',
     },
     lobby: {
       welcomeTitle: 'Welcome to KZ Game Hub',
@@ -1606,6 +1628,9 @@ export const en: Dictionary = {
       call: 'Call',
       bet: 'Bet',
       raiseTo: 'Raise to',
+      ante: 'Ante',
+      smallBlind: 'Small blind',
+      bigBlind: 'Big blind',
       min: 'Min',
       half: '\u00bd pot',
       pot: 'Pot',
