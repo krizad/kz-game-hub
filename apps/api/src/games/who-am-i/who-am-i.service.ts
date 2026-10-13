@@ -122,12 +122,17 @@ export class WhoAmIService {
     if (room.config.wordMode !== 'HOST_INPUT') return null;
 
     // Host does NOT play in HOST_INPUT mode
-    const gamePlayers = room.players.filter((p) => p.socketId !== requesterId);
+    const gamePlayers = room.players.filter(
+      (p) => p.socketId !== requesterId && !p.isViewer && p.connected !== false,
+    );
     if (gamePlayers.length < 2) return null;
 
-    // Verify words provided for all non-host players
+    // Verify words provided for all non-host players without stale/extra keys
+    if (Object.keys(playerWords).length !== gamePlayers.length) return null;
+
     const trimmedWords: Record<string, string> = {};
     for (const p of gamePlayers) {
+      if (!Object.prototype.hasOwnProperty.call(playerWords, p.socketId)) return null;
       const word = playerWords[p.socketId]?.trim();
       if (!word || word.length > MAX_WORD_LENGTH) return null;
       trimmedWords[p.socketId] = word;

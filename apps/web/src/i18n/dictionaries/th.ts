@@ -638,6 +638,12 @@ export const th: Dictionary = {
       aiPrompt: 'ข้อความคำสั่ง AI (Prompt) / หัวข้อ',
       aiPromptPlaceholder: 'เช่น ผีไทย, อาหารแปลกๆ...',
       randomTopic: 'สุ่มหัวข้อ',
+      hostWordModalTitle: '📝 กำหนดคำลับ',
+      hostWordModalDesc:
+        'กำหนดคำให้ผู้เล่นแต่ละคน คุณ (หัวหน้าห้อง) จะไม่ได้รับคำ และจะทำหน้าที่เป็นผู้ดำเนินเกมในตานี้',
+      hostWordPlaceholder: 'ใส่ชื่อตัวละคร สัตว์ หรือสิ่งของ...',
+      hostWordCancel: 'ยกเลิก',
+      hostWordStart: 'เริ่มเกม',
     },
     submitYourWord: 'ส่งคำปริศนาของคุณ',
     category: 'หมวดหมู่',

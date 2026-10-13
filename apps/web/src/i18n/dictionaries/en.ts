@@ -662,6 +662,12 @@ export const en: Dictionary = {
       aiPrompt: 'AI Prompt / Topic',
       aiPromptPlaceholder: 'e.g. Ghost, Strange Food...',
       randomTopic: 'Random Topic',
+      hostWordModalTitle: '📝 Set Words',
+      hostWordModalDesc:
+        "Assign a word to each player. You (Host) won't get a word and will act as a spectator/moderator for this match.",
+      hostWordPlaceholder: 'Enter a character, animal, object...',
+      hostWordCancel: 'Cancel',
+      hostWordStart: 'Start Game',
     },
     submitYourWord: 'Submit Your Word',
     category: 'Category',

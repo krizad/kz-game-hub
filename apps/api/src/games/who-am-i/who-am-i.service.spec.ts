@@ -150,6 +150,47 @@ describe('WhoAmIService', () => {
       expect(service.startGameHostInput(room, 'host1', { p1: 'Word' })).toBeNull();
       expect(service.startGameHostInput(room, 'host1', { p1: 'Word', p2: '  ' })).toBeNull();
     });
+
+    it('should return null if playerWords has extra or stale socket IDs', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      expect(
+        service.startGameHostInput(room, 'host1', {
+          p1: 'Apple',
+          p2: 'Banana',
+          staleSocket: 'Orange',
+        }),
+      ).toBeNull();
+    });
+
+    it('should exclude spectators and disconnected players from required players', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [
+          { socketId: 'host1' },
+          { socketId: 'p1' },
+          { socketId: 'p2' },
+          { socketId: 'viewer1', isViewer: true },
+          { socketId: 'disconnected1', connected: false },
+        ],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      const result = service.startGameHostInput(room, 'host1', {
+        p1: 'Apple',
+        p2: 'Banana',
+      });
+      expect(result).not.toBeNull();
+      expect(result!.whoAmIState).toBeDefined();
+    });
   });
 
   describe('startGameRandom', () => {

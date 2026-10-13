@@ -465,6 +465,11 @@ export interface Dictionary {
       aiPrompt: string;
       aiPromptPlaceholder: string;
       randomTopic: string;
+      hostWordModalTitle: string;
+      hostWordModalDesc: string;
+      hostWordPlaceholder: string;
+      hostWordCancel: string;
+      hostWordStart: string;
     };
     submitYourWord: string;
     category: string;
