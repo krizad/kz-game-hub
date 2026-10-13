@@ -268,7 +268,6 @@ export class PokerService {
     this.commit(room, sbId, Math.min(state.smallBlind, state.seats[sbId].chips), 'SMALL_BLIND');
     this.commit(room, bbId, Math.min(bigBlind, state.seats[bbId].chips), 'BIG_BLIND');
     state.currentBet = bigBlind;
-    state.minRaiseTo = bigBlind;
 
     if (state.mode === 'ONLINE') {
       for (const id of eligible) {
@@ -310,23 +309,11 @@ export class PokerService {
       }
       case 'BET': {
         if (!moves.canBet || !Number.isInteger(action.amount)) return false;
-        if (seat.raiseLocked) return false;
-        const betBefore = seat.bet;
-        const raiseTo = Math.min(Math.max(action.amount, moves.minRaiseTo), moves.maxRaiseTo);
-        // A raise is short only when the stack cannot reach a full raise.
-        const isFullRaise = raiseTo >= moves.minRaiseTo;
-        const isShortAllIn = raiseTo === moves.maxRaiseTo && !isFullRaise;
-        this.commit(room, socketId, raiseTo - seat.bet, state.currentBet === 0 ? 'BET' : 'RAISE');
-        state.currentBet = raiseTo;
-        if (isFullRaise) {
-          const raiseSize = raiseTo - betBefore;
-          state.minRaiseTo = raiseTo + raiseSize;
-          for (const id of state.playerOrder) state.seats[id].raiseLocked = false;
-        } else if (isShortAllIn) {
-          for (const id of state.playerOrder) {
-            if (id !== socketId && state.seats[id].hasActed) state.seats[id].raiseLocked = true;
-          }
-        }
+        const raiseTo = action.amount;
+        if (raiseTo < moves.minRaiseTo || raiseTo > moves.maxRaiseTo) return false;
+        const previousBet = state.currentBet;
+        this.commit(room, socketId, raiseTo - seat.bet, previousBet === 0 ? 'BET' : 'RAISE');
+        this.recordRaise(state, socketId, raiseTo, previousBet);
         break;
       }
       case 'ALL_IN': {
@@ -334,19 +321,15 @@ export class PokerService {
         const target = moves.maxRaiseTo;
         const isRaise = target > state.currentBet;
         if (isRaise && seat.raiseLocked) return false;
-        const betBefore = seat.bet;
+        if (
+          isRaise &&
+          !state.playerOrder.some((id) => id !== socketId && state.seats[id].status === 'ACTIVE')
+        )
+          return false;
+        const previousBet = state.currentBet;
         this.commit(room, socketId, target - seat.bet, 'ALL_IN');
         if (isRaise) {
-          state.currentBet = target;
-          if (target >= moves.minRaiseTo) {
-            const raiseSize = target - betBefore;
-            state.minRaiseTo = target + raiseSize;
-            for (const id of state.playerOrder) state.seats[id].raiseLocked = false;
-          } else {
-            for (const id of state.playerOrder) {
-              if (id !== socketId && state.seats[id].hasActed) state.seats[id].raiseLocked = true;
-            }
-          }
+          this.recordRaise(state, socketId, target, previousBet);
         }
         break;
       }
@@ -382,6 +365,29 @@ export class PokerService {
       this.setActive(room, this.nextToAct(state, socketId));
     }
     return true;
+  }
+
+  /** Track the last full increment while short all-ins accumulate above it. */
+  private recordRaise(
+    state: PokerPublicState,
+    raiserId: string,
+    raiseTo: number,
+    previousBet: number,
+  ): void {
+    const fullIncrement = Math.max(1, state.minRaiseTo - previousBet);
+    const increment = raiseTo - previousBet;
+    state.currentBet = raiseTo;
+    state.minRaiseTo = raiseTo + (increment >= fullIncrement ? increment : fullIncrement);
+    if (increment >= fullIncrement) {
+      for (const id of state.playerOrder) state.seats[id].raiseLocked = false;
+    } else {
+      for (const id of state.playerOrder) {
+        if (id === raiserId) continue;
+        const seat = state.seats[id];
+        if (seat.status !== 'ACTIVE' || (!seat.hasActed && !seat.raiseLocked)) continue;
+        seat.raiseLocked = raiseTo - seat.bet < fullIncrement;
+      }
+    }
   }
 
   private closeStreet(room: RoomState): void {

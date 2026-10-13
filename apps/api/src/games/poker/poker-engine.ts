@@ -398,7 +398,7 @@ export interface PokerLegalMoves {
   canCheck: boolean;
   callAmount: number;
   canBet: boolean;
-  /** Legal raise-TO range (inclusive) for the current street. */
+  /** Full raise-TO minimum; may exceed maxRaiseTo for a short stack. */
   minRaiseTo: number;
   maxRaiseTo: number;
   isAllInCall: boolean;
@@ -416,12 +416,12 @@ export function legalMoves(state: PokerPublicState, playerId: string): PokerLega
   const othersActive = state.playerOrder.some(
     (id) => id !== playerId && state.seats[id].status === 'ACTIVE',
   );
-  const minRaiseTo = Math.min(Math.max(state.minRaiseTo, state.currentBet + 1), maxRaiseTo);
+  const minRaiseTo = Math.max(state.minRaiseTo, state.currentBet + 1);
   return {
     canFold: true,
     canCheck,
     callAmount,
-    canBet: othersActive && maxRaiseTo > state.currentBet,
+    canBet: othersActive && !seat.raiseLocked && maxRaiseTo >= minRaiseTo,
     minRaiseTo,
     maxRaiseTo,
     isAllInCall: toCall > seat.chips,

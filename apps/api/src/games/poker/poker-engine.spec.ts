@@ -180,7 +180,7 @@ describe('poker-engine legal moves', () => {
     expect(moves!.canBet).toBe(false);
   });
 
-  it('caps the min raise at the short stack (all-in below min raise)', () => {
+  it('keeps the full raise minimum when the stack can only call all-in', () => {
     const state = makeState({
       a: seat({ chips: 60, bet: 0, totalBet: 40 }),
       b: seat({ chips: 900, bet: 100, totalBet: 100 }),
@@ -188,8 +188,22 @@ describe('poker-engine legal moves', () => {
     state.currentBet = 100;
     state.minRaiseTo = 200;
     const moves = legalMoves(state, 'a');
-    expect(moves!.minRaiseTo).toBe(60); // short all-in: min raise-to equals max
+    expect(moves!.minRaiseTo).toBe(200);
     expect(moves!.maxRaiseTo).toBe(60);
+    expect(moves!.canBet).toBe(false);
     expect(moves!.isAllInCall).toBe(true);
+  });
+
+  it('does not offer a raise to a seat locked by a short all-in', () => {
+    const state = makeState({
+      a: seat({ chips: 500, bet: 40, totalBet: 40, raiseLocked: true }),
+      b: seat({ chips: 500, bet: 50, totalBet: 50 }),
+    });
+    state.currentBet = 50;
+    state.minRaiseTo = 70;
+    const moves = legalMoves(state, 'a')!;
+    expect(moves.callAmount).toBe(10);
+    expect(moves.minRaiseTo).toBe(70);
+    expect(moves.canBet).toBe(false);
   });
 });

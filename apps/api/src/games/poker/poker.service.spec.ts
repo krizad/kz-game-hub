@@ -78,6 +78,7 @@ describe('PokerService', () => {
     expect(state.mode).toBe('ONLINE');
     expect(state.handNumber).toBe(1);
     expect(state.currentBet).toBe(20);
+    expect(legalMoves(state, state.activePlayerId!)!.minRaiseTo).toBe(40);
     expect(state.activePlayerId).toBeTruthy();
     expect(Object.values(state.seats).filter((s) => s.lastAction === 'SMALL_BLIND')).toHaveLength(
       1,
@@ -90,6 +91,110 @@ describe('PokerService', () => {
     // Chips on the table: blinds only
     const committed = Object.values(state.seats).reduce((sum, s) => sum + s.bet, 0);
     expect(committed).toBe(30);
+  });
+
+  describe.each(['ONLINE', 'CHIPS_LEDGER'] as const)('%s betting rules', (mode) => {
+    it('uses the previous table bet for full raise increments and rejects invalid BET amounts unchanged', () => {
+      const room = makeRoom(mode);
+      service.startMatch(room, 's1');
+      const state = room.pokerState!;
+      const first = state.activePlayerId!;
+      expect(legalMoves(state, first)!.minRaiseTo).toBe(40);
+
+      for (const amount of [0, 20, 39, 1001, NaN, Infinity, 40.5]) {
+        const before = JSON.stringify(state);
+        expect(service.handleAction(room, first, { type: 'BET', amount })).toBeNull();
+        expect(JSON.stringify(state)).toBe(before);
+        expect(totalChips(state)).toBe(3000);
+      }
+
+      expect(service.handleAction(room, first, { type: 'BET', amount: 40 })).not.toBeNull();
+      expect(state.currentBet).toBe(40);
+      expect(state.minRaiseTo).toBe(60);
+      const second = state.activePlayerId!;
+      expect(legalMoves(state, second)!.minRaiseTo).toBe(60);
+      expect(service.handleAction(room, second, { type: 'BET', amount: 100 })).not.toBeNull();
+      expect(state.currentBet).toBe(100);
+      expect(state.minRaiseTo).toBe(160);
+      expect(legalMoves(state, state.activePlayerId!)!.minRaiseTo).toBe(160);
+      expect(totalChips(state)).toBe(3000);
+    });
+
+    it('keeps prior actors locked after a short all-in, then reopens after cumulative short raises', () => {
+      const room = makeRoom(mode);
+      room.players.push({
+        id: '4',
+        name: 'D',
+        socketId: 's4',
+        score: 0,
+        roomId: 'r1',
+        connected: true,
+      } as RoomState['players'][number]);
+      service.startMatch(room, 's1');
+      const state = room.pokerState!;
+      const raiser = state.activePlayerId!;
+      expect(service.handleAction(room, raiser, { type: 'BET', amount: 40 })).not.toBeNull();
+
+      const firstShort = state.activePlayerId!;
+      state.seats[firstShort].chips = 50 - state.seats[firstShort].bet;
+      expect(service.handleAction(room, firstShort, { type: 'ALL_IN' })).not.toBeNull();
+      expect(state.currentBet).toBe(50);
+      expect(state.minRaiseTo).toBe(70);
+      expect(state.seats[raiser].raiseLocked).toBe(true);
+      const secondShort = state.activePlayerId!;
+      state.seats[secondShort].chips = 60 - state.seats[secondShort].bet;
+      expect(service.handleAction(room, secondShort, { type: 'ALL_IN' })).not.toBeNull();
+      expect(state.currentBet).toBe(60);
+      expect(state.minRaiseTo).toBe(80);
+      expect(state.seats[raiser].raiseLocked).toBe(false);
+      expect(state.seats[firstShort].status).toBe('ALL_IN');
+      expect(state.seats[secondShort].status).toBe('ALL_IN');
+    });
+
+    it('allows a locked actor to call all-in but never raise', () => {
+      const room = makeRoom(mode);
+      service.startMatch(room, 's1');
+      const state = room.pokerState!;
+      const raiser = state.activePlayerId!;
+      expect(service.handleAction(room, raiser, { type: 'BET', amount: 40 })).not.toBeNull();
+      const short = state.activePlayerId!;
+      state.seats[short].chips = 50 - state.seats[short].bet;
+      expect(service.handleAction(room, short, { type: 'ALL_IN' })).not.toBeNull();
+      const next = state.activePlayerId!;
+      expect(service.handleAction(room, next, { type: 'CALL' })).not.toBeNull();
+      expect(state.activePlayerId).toBe(raiser);
+      expect(state.seats[raiser].raiseLocked).toBe(true);
+      expect(legalMoves(state, raiser)!.canBet).toBe(false);
+      const before = JSON.stringify(state);
+      expect(service.handleAction(room, raiser, { type: 'BET', amount: 70 })).toBeNull();
+      expect(JSON.stringify(state)).toBe(before);
+      expect(service.handleAction(room, raiser, { type: 'ALL_IN' })).toBeNull();
+      expect(JSON.stringify(state)).toBe(before);
+      state.seats[raiser].chips = 10;
+      expect(service.handleAction(room, raiser, { type: 'ALL_IN' })).not.toBeNull();
+      expect(state.seats[raiser].status).toBe('ALL_IN');
+      expect(state.seats[raiser].lastAction).toBe('ALL_IN');
+      expect(state.seats[raiser].lastActionAmount).toBe(10);
+    });
+
+    it('reopens prior actors after a full raise over a short all-in', () => {
+      const room = makeRoom(mode);
+      service.startMatch(room, 's1');
+      const state = room.pokerState!;
+      const raiser = state.activePlayerId!;
+      expect(service.handleAction(room, raiser, { type: 'BET', amount: 40 })).not.toBeNull();
+      const short = state.activePlayerId!;
+      state.seats[short].chips = 50 - state.seats[short].bet;
+      expect(service.handleAction(room, short, { type: 'ALL_IN' })).not.toBeNull();
+      expect(state.seats[raiser].raiseLocked).toBe(true);
+      const reraiser = state.activePlayerId!;
+      expect(legalMoves(state, reraiser)!.minRaiseTo).toBe(70);
+      expect(service.handleAction(room, reraiser, { type: 'BET', amount: 90 })).not.toBeNull();
+      expect(state.minRaiseTo).toBe(130);
+      expect(state.seats[raiser].raiseLocked).toBe(false);
+      expect(state.activePlayerId).toBe(raiser);
+      expect(legalMoves(state, raiser)!.canBet).toBe(true);
+    });
   });
 
   it('rejects start from non-host or with too few players', () => {
