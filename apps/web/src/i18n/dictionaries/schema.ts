@@ -947,6 +947,22 @@ export interface Dictionary {
       getReadyStartBtn: string;
       countdownTitle: string;
       nowPlaying: string;
+      playbackStatus: {
+        loading: string;
+        ready: string;
+        playing: string;
+        blocked: string;
+        error: string;
+      };
+      playbackReason: {
+        AUTOPLAY_BLOCKED: string;
+        NETWORK_OR_PROVIDER: string;
+        EXPIRED_CLIP: string;
+      };
+      enableAudio: string;
+      retryPlayback: string;
+      muteAudio: string;
+      unmuteAudio: string;
       listenCarefully: string;
       cantHearMusic: string;
       hostCannotBuzz: string;
