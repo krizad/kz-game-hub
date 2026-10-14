@@ -6,8 +6,22 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function TicTacToeView() {
-  const { room, socketId, tttJoinSide, tttMakeMove, tttReset, actionLoading } = useGameStore();
+  const {
+    room,
+    socketId,
+    tttJoinSide,
+    tttMakeMove,
+    tttReset,
+    actionLoading,
+    pendingActions,
+    dismissPendingAction,
+  } = useGameStore();
   const { t } = useTranslate();
+
+  const unknownPendingAction = Object.entries(pendingActions).find(
+    ([_, a]) => a.status === 'unknown',
+  );
+  const showActionOverlay = actionLoading || !!unknownPendingAction;
 
   if (!room || !room.ticTacToeState) return null;
   const ttt = room.ticTacToeState;
@@ -34,7 +48,14 @@ export function TicTacToeView() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative font-mono h-full overflow-y-auto overflow-x-hidden w-full">
-      {actionLoading && <ActionLoadingOverlay />}
+      {showActionOverlay && (
+        <ActionLoadingOverlay
+          status={unknownPendingAction ? 'unknown' : 'pending'}
+          onDismiss={
+            unknownPendingAction ? () => dismissPendingAction(unknownPendingAction[0]) : undefined
+          }
+        />
+      )}
       {room.status === RoomStatus.LOBBY ? (
         <div className="flex flex-col items-center gap-6">
           <h2 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">

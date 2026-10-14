@@ -28,10 +28,18 @@ import {
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
   DeleteArtistPayload,
+  ActionReceipt,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
 import { translateServerError } from '@/i18n/serverErrors';
+
+export interface PendingAction {
+  event: string;
+  createdAt: number;
+  status: 'pending' | 'accepted' | 'rejected' | 'unknown';
+  reason?: string;
+}
 
 /**
  * Room config patch. `musicTriviaArtistPresetId: null` explicitly leaves
@@ -163,10 +171,21 @@ interface GameState {
   musicTriviaSyncPlay: MusicTriviaSyncPlayPayload | null;
   /** Latest room-wide emoji reaction (Banana Thief sound board). */
   lastBananaThiefReaction: { fromName: string; emoji: string; seq: number } | null;
+  pendingActions: Record<string, PendingAction>;
+  dismissPendingAction: (requestId: string) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => {
   let pendingSpectatorJoin: { code: string; previousIsSpectator: boolean } | null = null;
+  const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+  const clearAllActionTimeouts = () => {
+    actionTimeouts.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    actionTimeouts.clear();
+  };
+
   /**
    * Standard game-action emitter: guards on socket/room/loading state,
    * flips `actionLoading`, and sends `{ code, ...payload }`.
@@ -174,21 +193,63 @@ export const useGameStore = create<GameState>((set, get) => {
    */
   const emitGameAction = (
     event: string,
-    options: { loading?: boolean; payload?: (room: RoomState) => Record<string, unknown> } = {},
+    options: {
+      loading?: boolean;
+      trackReceipt?: boolean;
+      payload?: (room: RoomState) => Record<string, unknown>;
+    } = {},
   ): boolean => {
     const { socket, room, actionLoading, connected, connectionStatus } = get();
+    // Offline check: "offline ไม่ queue"
     if (!socket?.connected || !connected || connectionStatus !== 'connected' || !room) return false;
     const withLoading = options.loading ?? true;
     if (withLoading && actionLoading) return false;
+
+    const shouldTrackReceipt =
+      options.trackReceipt ??
+      (event === SOCKET_EVENTS.TTT_MAKE_MOVE || event === SOCKET_EVENTS.RPS_MAKE_CHOICE);
+
+    let requestId: string | undefined;
+    if (shouldTrackReceipt) {
+      requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const timeoutId = setTimeout(() => {
+        actionTimeouts.delete(requestId!);
+        const current = get().pendingActions[requestId!];
+        if (current && current.status === 'pending') {
+          const updated = { ...get().pendingActions };
+          updated[requestId!] = { ...current, status: 'unknown' };
+          const hasOtherPending = Object.values(updated).some((a) => a.status === 'pending');
+          set({
+            pendingActions: updated,
+            actionLoading: hasOtherPending,
+          });
+        }
+      }, 5000);
+
+      actionTimeouts.set(requestId, timeoutId);
+      set({
+        pendingActions: {
+          ...get().pendingActions,
+          [requestId]: {
+            event,
+            createdAt: Date.now(),
+            status: 'pending',
+          },
+        },
+      });
+    }
+
     if (withLoading) set({ actionLoading: true });
     socket.emit(event, {
       code: room.code,
       ...(options.payload ? options.payload(room) : {}),
+      ...(requestId ? { requestId } : {}),
     });
     return true;
   };
 
-  const clearRoomSession = () =>
+  const clearRoomSession = () => {
+    clearAllActionTimeouts();
     set({
       room: null,
       myRole: null,
@@ -196,7 +257,10 @@ export const useGameStore = create<GameState>((set, get) => {
       privateState: {},
       isSpectator: false,
       playerId: '',
+      pendingActions: {},
+      actionLoading: false,
     });
+  };
 
   return {
     socket: null,
@@ -228,6 +292,18 @@ export const useGameStore = create<GameState>((set, get) => {
     privateState: {},
     musicTriviaHostAnswer: null,
     actionLoading: false,
+    pendingActions: {},
+    dismissPendingAction: (requestId: string) => {
+      const timeout = actionTimeouts.get(requestId);
+      if (timeout) {
+        clearTimeout(timeout);
+        actionTimeouts.delete(requestId);
+      }
+      const updated = { ...get().pendingActions };
+      delete updated[requestId];
+      const hasOtherPending = Object.values(updated).some((a) => a.status === 'pending');
+      set({ pendingActions: updated, actionLoading: hasOtherPending });
+    },
     musicTriviaTrackAnswer: null,
     musicTriviaSyncPlay: null,
     lastBananaThiefReaction: null,
@@ -328,12 +404,14 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on('disconnect', () => {
+        clearAllActionTimeouts();
         set({
           connected: false,
           socketId: '',
           connectionStatus: get().room ? 'reconnecting' : 'connecting',
           isLoading: false,
           actionLoading: false,
+          pendingActions: {},
           myRole: null,
           secretWord: null,
           privateState: {},
@@ -343,12 +421,14 @@ export const useGameStore = create<GameState>((set, get) => {
         });
       });
       socket.on('connect_error', () => {
+        clearAllActionTimeouts();
         set({
           connected: false,
           socketId: '',
           connectionStatus: 'failed',
           isLoading: false,
           actionLoading: false,
+          pendingActions: {},
         });
       });
 
@@ -362,6 +442,10 @@ export const useGameStore = create<GameState>((set, get) => {
         if (!isMe && !get().isSpectator) return;
         set({ connectionStatus: 'connected' });
 
+        const hasPendingAction = Object.values(get().pendingActions).some(
+          (a) => a.status === 'pending',
+        );
+
         if (room.status === RoomStatus.LOBBY) {
           set({
             room,
@@ -369,7 +453,7 @@ export const useGameStore = create<GameState>((set, get) => {
             secretWord: null,
             privateState: {},
             isLoading: false,
-            actionLoading: false,
+            actionLoading: hasPendingAction,
           });
         } else {
           // Clear host answer when state updates (if not GAME_MASTER playing)
@@ -381,12 +465,35 @@ export const useGameStore = create<GameState>((set, get) => {
             set({ musicTriviaHostAnswer: null });
           }
 
-          set({ room, isLoading: false, actionLoading: false });
+          set({ room, isLoading: false, actionLoading: hasPendingAction });
         }
 
         if (!get().isSpectator) {
           localStorage.setItem(STORAGE_KEYS.roomCode, room.code);
           localStorage.setItem(STORAGE_KEYS.name, get().myName);
+        }
+      });
+
+      socket.on(SOCKET_EVENTS.ACTION_RECEIPT, (receipt: ActionReceipt) => {
+        const timeout = actionTimeouts.get(receipt.requestId);
+        if (timeout) {
+          clearTimeout(timeout);
+          actionTimeouts.delete(receipt.requestId);
+        }
+
+        const pending = get().pendingActions[receipt.requestId];
+        if (!pending) return;
+
+        const updated = { ...get().pendingActions };
+        delete updated[receipt.requestId];
+        const hasOtherPending = Object.values(updated).some((a) => a.status === 'pending');
+        set({
+          pendingActions: updated,
+          actionLoading: hasOtherPending,
+        });
+
+        if (receipt.status === 'rejected' && receipt.reason) {
+          toast.error(translateError(receipt.reason));
         }
       });
 

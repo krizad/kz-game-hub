@@ -7,12 +7,14 @@ import type { Language } from './dictionaries';
 const SERVER_ERRORS: Record<Language, Record<string, string>> = {
   en: {
     SPECTATORS_DISABLED: 'This room does not allow spectators.',
+    REQUEST_ID_REUSED: 'Request ID already used with different payload.',
     'Cannot propose shuriken.': 'Cannot propose a Breath Break.',
     'Cannot vote on shuriken.': 'Cannot vote on a Breath Break.',
     'Cannot cancel shuriken proposal.': 'Cannot cancel the Breath Break proposal.',
   },
   th: {
     SPECTATORS_DISABLED: 'ห้องนี้ไม่อนุญาตให้เข้าชม',
+    REQUEST_ID_REUSED: 'คำขอนี้ถูกส่งซ้ำด้วยข้อมูลที่ต่างกัน',
     'The Room Host has left. Room has been closed.': 'โฮสต์ออก ห้องถูกปิดลงแล้ว',
     'Please enter your name first': 'กรุณากรอกชื่อก่อน',
     'Room not found or player name is already in use': 'ไม่พบห้องนี้ หรือมีคนใช้ชื่อนี้แล้ว',

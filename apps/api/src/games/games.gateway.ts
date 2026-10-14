@@ -16,9 +16,11 @@ import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
+import { ActionReceiptService } from './action-receipt.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import {
   SOCKET_EVENTS,
+  ActionReceipt,
   RoomState,
   RoomStatus,
   Role,
@@ -68,6 +70,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     private readonly privateStateService: PrivateStateService,
     private readonly gameSettingsService: GameSettingsService,
     private readonly artistPresetService: ArtistPresetService,
+    private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
   ) {}
 
   afterInit(): void {
@@ -642,9 +645,81 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   @SubscribeMessage(SOCKET_EVENTS.TTT_MAKE_MOVE)
   handleTTTMakeMove(
-    @MessageBody() data: { code: string; index: number },
+    @MessageBody() data: { code: string; index: number; requestId?: string },
     @ConnectedSocket() client: Socket,
   ) {
+    if (data.requestId !== undefined) {
+      if (!this.actionReceiptService.isValidRequestId(data.requestId)) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid requestId' });
+        return;
+      }
+      const room = this.gamesService.getRoom(data.code);
+      if (!room || room.gameType !== GameType.TIC_TAC_TOE) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found or wrong game type' });
+        return;
+      }
+      const player = room.players.find((p) => p.socketId === client.id);
+      if (!player) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Not a member of this room' });
+        return;
+      }
+      const checkResult = this.actionReceiptService.check(
+        data.code,
+        player.id,
+        SOCKET_EVENTS.TTT_MAKE_MOVE,
+        data.requestId,
+        data,
+      );
+      if (checkResult.kind === 'HIT' || checkResult.kind === 'CONFLICT') {
+        client.emit(SOCKET_EVENTS.ACTION_RECEIPT, checkResult.receipt);
+        return;
+      }
+
+      const updatedRoom = this.gamesService.tttMakeMove(data.code, client.id, data.index);
+      const now = Date.now();
+      if (updatedRoom) {
+        const receipt: ActionReceipt = {
+          code: data.code.toUpperCase(),
+          requestId: data.requestId,
+          event: SOCKET_EVENTS.TTT_MAKE_MOVE,
+          status: 'accepted',
+          serverNow: now,
+        };
+        this.actionReceiptService.record(
+          data.code,
+          player.id,
+          SOCKET_EVENTS.TTT_MAKE_MOVE,
+          data.requestId,
+          data,
+          receipt,
+          now,
+        );
+        client.emit(SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+        this.broadcastRoomState(updatedRoom);
+      } else {
+        const receipt: ActionReceipt = {
+          code: data.code.toUpperCase(),
+          requestId: data.requestId,
+          event: SOCKET_EVENTS.TTT_MAKE_MOVE,
+          status: 'rejected',
+          reason: 'Invalid move.',
+          serverNow: now,
+        };
+        this.actionReceiptService.record(
+          data.code,
+          player.id,
+          SOCKET_EVENTS.TTT_MAKE_MOVE,
+          data.requestId,
+          data,
+          receipt,
+          now,
+        );
+        client.emit(SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
+      }
+      return;
+    }
+
     const room = this.gamesService.tttMakeMove(data.code, client.id, data.index);
     if (room) {
       this.broadcastRoomState(room);
@@ -742,9 +817,82 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   @SubscribeMessage(SOCKET_EVENTS.RPS_MAKE_CHOICE)
   handleRPSMakeChoice(
-    @MessageBody() data: { code: string; choice: RPSChoice },
+    @MessageBody() data: { code: string; choice: RPSChoice; requestId?: string },
     @ConnectedSocket() client: Socket,
   ) {
+    if (data.requestId !== undefined) {
+      if (!this.actionReceiptService.isValidRequestId(data.requestId)) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid requestId' });
+        return;
+      }
+      const room = this.gamesService.getRoom(data.code);
+      if (!room || room.gameType !== GameType.RPS) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found or wrong game type' });
+        return;
+      }
+      const player = room.players.find((p) => p.socketId === client.id);
+      if (!player) {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Not a member of this room' });
+        return;
+      }
+      const checkResult = this.actionReceiptService.check(
+        data.code,
+        player.id,
+        SOCKET_EVENTS.RPS_MAKE_CHOICE,
+        data.requestId,
+        data,
+      );
+      if (checkResult.kind === 'HIT' || checkResult.kind === 'CONFLICT') {
+        client.emit(SOCKET_EVENTS.ACTION_RECEIPT, checkResult.receipt);
+        return;
+      }
+
+      const updatedRoom = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
+      const now = Date.now();
+      if (updatedRoom) {
+        const receipt: ActionReceipt = {
+          code: data.code.toUpperCase(),
+          requestId: data.requestId,
+          event: SOCKET_EVENTS.RPS_MAKE_CHOICE,
+          status: 'accepted',
+          serverNow: now,
+        };
+        this.actionReceiptService.record(
+          data.code,
+          player.id,
+          SOCKET_EVENTS.RPS_MAKE_CHOICE,
+          data.requestId,
+          data,
+          receipt,
+          now,
+        );
+        client.emit(SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+        this.broadcastRoomState(updatedRoom);
+        this.maybeRecordGameResult(updatedRoom);
+      } else {
+        const receipt: ActionReceipt = {
+          code: data.code.toUpperCase(),
+          requestId: data.requestId,
+          event: SOCKET_EVENTS.RPS_MAKE_CHOICE,
+          status: 'rejected',
+          reason: 'Invalid choice or not your turn.',
+          serverNow: now,
+        };
+        this.actionReceiptService.record(
+          data.code,
+          player.id,
+          SOCKET_EVENTS.RPS_MAKE_CHOICE,
+          data.requestId,
+          data,
+          receipt,
+          now,
+        );
+        client.emit(SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid choice or not your turn.' });
+      }
+      return;
+    }
+
     const room = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
     if (room) {
       this.broadcastRoomState(room);
@@ -2006,6 +2154,14 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
     }
     if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code)) return false;
+    if (
+      data.requestId !== undefined &&
+      (typeof data.requestId !== 'string' ||
+        data.requestId.length < 1 ||
+        data.requestId.length > 64)
+    ) {
+      return false;
+    }
     if (event === SOCKET_EVENTS.JOIN_ROOM || event === SOCKET_EVENTS.SPECTATE_JOIN) {
       return (
         this.isValidName(data.name) &&

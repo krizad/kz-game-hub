@@ -26,6 +26,7 @@ import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { GameSettingsService } from './game-settings.service';
 import { RoomStartGuardService } from './room-start-guard.service';
+import { ActionReceiptService } from './action-receipt.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -240,6 +241,7 @@ describe('GamesService', () => {
         RoomTimerService,
         GameSettingsService,
         RoomStartGuardService,
+        ActionReceiptService,
       ],
     }).compile();
 

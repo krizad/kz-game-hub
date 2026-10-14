@@ -24,10 +24,12 @@ import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { RoomStartGuardService } from './room-start-guard.service';
+import { ActionReceiptService } from './action-receipt.service';
 
 @Module({
   providers: [
     RoomStartGuardService,
+    ActionReceiptService,
     GamesGateway,
     GamesService,
     WhoKnowService,

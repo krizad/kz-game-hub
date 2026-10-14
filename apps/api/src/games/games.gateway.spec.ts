@@ -648,3 +648,316 @@ describe('GamesGateway Music Trivia reconnect', () => {
     ]);
   });
 });
+
+describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
+  let gateway: GamesGateway;
+  let gamesService: {
+    getRoom: jest.Mock;
+    tttMakeMove: jest.Mock;
+    rpsMakeChoice: jest.Mock;
+  };
+  let client: { id: string; emit: jest.Mock };
+  let server: { to: jest.Mock; emit: jest.Mock };
+
+  beforeEach(() => {
+    gamesService = {
+      getRoom: jest.fn(),
+      tttMakeMove: jest.fn(),
+      rpsMakeChoice: jest.fn(),
+    };
+    client = {
+      id: 'sock-player-1',
+      emit: jest.fn(),
+    };
+    server = {
+      to: jest.fn(() => ({ emit: jest.fn() })),
+      emit: jest.fn(),
+    };
+    gateway = new GamesGateway(
+      gamesService as never,
+      { recordGameResult: jest.fn() } as never,
+      { cancel: jest.fn(), schedule: jest.fn() } as never,
+      { getSocketData: jest.fn(() => ({})) } as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+    gateway.server = server as never;
+  });
+
+  const isValid = (event: string, payload: unknown): boolean =>
+    (
+      gateway as unknown as {
+        isValidPayload: (event: string, payload: unknown) => boolean;
+      }
+    ).isValidPayload(event, payload);
+
+  it('validates requestId length 1-64 and rejects malformed requestId in isValidPayload', () => {
+    expect(
+      isValid(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: 'ABC123', index: 0, requestId: 'req-1' }),
+    ).toBe(true);
+    expect(isValid(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: 'ABC123', index: 0, requestId: '' })).toBe(
+      false,
+    );
+    expect(
+      isValid(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: 'ABC123', index: 0, requestId: 'a'.repeat(65) }),
+    ).toBe(false);
+    expect(
+      isValid(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: 'ABC123', index: 0, requestId: 12345 }),
+    ).toBe(false);
+    expect(isValid(SOCKET_EVENTS.TTT_MAKE_MOVE, { code: 'ABC123', index: 0 })).toBe(true);
+  });
+
+  describe('TTT_MAKE_MOVE', () => {
+    const tttRoom = {
+      code: 'TTT001',
+      gameType: GameType.TIC_TAC_TOE,
+      status: RoomStatus.PLAYING,
+      players: [{ id: 'seat-uuid-p1', name: 'Alice', socketId: 'sock-player-1' }],
+    };
+
+    it('emits accepted receipt and broadcasts state on valid move with requestId', () => {
+      gamesService.getRoom.mockReturnValue(tttRoom);
+      const updatedRoom = { ...tttRoom, ticTacToeState: { board: ['X'] } };
+      gamesService.tttMakeMove.mockReturnValue(updatedRoom);
+
+      gateway.handleTTTMakeMove(
+        { code: 'TTT001', index: 0, requestId: 'req-ttt-01' },
+        client as never,
+      );
+
+      expect(gamesService.tttMakeMove).toHaveBeenCalledWith('TTT001', 'sock-player-1', 0);
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'TTT001',
+          requestId: 'req-ttt-01',
+          event: SOCKET_EVENTS.TTT_MAKE_MOVE,
+          status: 'accepted',
+        }),
+      );
+      expect(server.to).toHaveBeenCalledWith('TTT001');
+    });
+
+    it('returns cached receipt on duplicate requestId without applying move a second time', () => {
+      gamesService.getRoom.mockReturnValue(tttRoom);
+      const updatedRoom = { ...tttRoom, ticTacToeState: { board: ['X'] } };
+      gamesService.tttMakeMove.mockReturnValue(updatedRoom);
+
+      // First call
+      gateway.handleTTTMakeMove(
+        { code: 'TTT001', index: 0, requestId: 'req-ttt-dup' },
+        client as never,
+      );
+      expect(gamesService.tttMakeMove).toHaveBeenCalledTimes(1);
+
+      client.emit.mockClear();
+
+      // Duplicate call with identical requestId and payload
+      gateway.handleTTTMakeMove(
+        { code: 'TTT001', index: 0, requestId: 'req-ttt-dup' },
+        client as never,
+      );
+      // tttMakeMove NOT called again!
+      expect(gamesService.tttMakeMove).toHaveBeenCalledTimes(1);
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'TTT001',
+          requestId: 'req-ttt-dup',
+          event: SOCKET_EVENTS.TTT_MAKE_MOVE,
+          status: 'accepted',
+        }),
+      );
+    });
+
+    it('rejects with REQUEST_ID_REUSED when same requestId is used with conflicting payload', () => {
+      gamesService.getRoom.mockReturnValue(tttRoom);
+      const updatedRoom = { ...tttRoom, ticTacToeState: { board: ['X'] } };
+      gamesService.tttMakeMove.mockReturnValue(updatedRoom);
+
+      // First call with index 0
+      gateway.handleTTTMakeMove(
+        { code: 'TTT001', index: 0, requestId: 'req-ttt-conflict' },
+        client as never,
+      );
+
+      client.emit.mockClear();
+
+      // Conflicting call with index 1 on same requestId
+      gateway.handleTTTMakeMove(
+        { code: 'TTT001', index: 1, requestId: 'req-ttt-conflict' },
+        client as never,
+      );
+      expect(gamesService.tttMakeMove).toHaveBeenCalledTimes(1);
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'TTT001',
+          requestId: 'req-ttt-conflict',
+          event: SOCKET_EVENTS.TTT_MAKE_MOVE,
+          status: 'rejected',
+          reason: 'REQUEST_ID_REUSED',
+        }),
+      );
+    });
+
+    it('emits rejected receipt and does not broadcast success when move is invalid', () => {
+      gamesService.getRoom.mockReturnValue(tttRoom);
+      gamesService.tttMakeMove.mockReturnValue(null);
+
+      gateway.handleTTTMakeMove(
+        { code: 'TTT001', index: 4, requestId: 'req-ttt-invalid' },
+        client as never,
+      );
+
+      expect(gamesService.tttMakeMove).toHaveBeenCalledWith('TTT001', 'sock-player-1', 4);
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'TTT001',
+          requestId: 'req-ttt-invalid',
+          event: SOCKET_EVENTS.TTT_MAKE_MOVE,
+          status: 'rejected',
+          reason: 'Invalid move.',
+        }),
+      );
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
+      expect(server.to).not.toHaveBeenCalled();
+    });
+
+    it('handles legacy payloads without requestId by executing without emitting receipt', () => {
+      gamesService.tttMakeMove.mockReturnValue({ ...tttRoom });
+
+      gateway.handleTTTMakeMove({ code: 'TTT001', index: 2 }, client as never);
+
+      expect(gamesService.tttMakeMove).toHaveBeenCalledWith('TTT001', 'sock-player-1', 2);
+      expect(client.emit).not.toHaveBeenCalledWith(SOCKET_EVENTS.ACTION_RECEIPT, expect.anything());
+      expect(server.to).toHaveBeenCalledWith('TTT001');
+    });
+  });
+
+  describe('RPS_MAKE_CHOICE', () => {
+    const rpsRoom = {
+      code: 'RPS001',
+      gameType: GameType.RPS,
+      status: RoomStatus.PLAYING,
+      players: [{ id: 'seat-uuid-rps', name: 'Bob', socketId: 'sock-player-1' }],
+    };
+
+    it('emits accepted receipt on valid choice with requestId', () => {
+      gamesService.getRoom.mockReturnValue(rpsRoom);
+      gamesService.rpsMakeChoice.mockReturnValue({ ...rpsRoom });
+
+      gateway.handleRPSMakeChoice(
+        { code: 'RPS001', choice: 'ROCK', requestId: 'req-rps-01' },
+        client as never,
+      );
+
+      expect(gamesService.rpsMakeChoice).toHaveBeenCalledWith('RPS001', 'sock-player-1', 'ROCK');
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'RPS001',
+          requestId: 'req-rps-01',
+          event: SOCKET_EVENTS.RPS_MAKE_CHOICE,
+          status: 'accepted',
+        }),
+      );
+      expect(server.to).toHaveBeenCalledWith('RPS001');
+    });
+
+    it('returns cached receipt on duplicate RPS choice without applying a second time', () => {
+      gamesService.getRoom.mockReturnValue(rpsRoom);
+      gamesService.rpsMakeChoice.mockReturnValue({ ...rpsRoom });
+
+      gateway.handleRPSMakeChoice(
+        { code: 'RPS001', choice: 'PAPER', requestId: 'req-rps-dup' },
+        client as never,
+      );
+      expect(gamesService.rpsMakeChoice).toHaveBeenCalledTimes(1);
+
+      client.emit.mockClear();
+
+      gateway.handleRPSMakeChoice(
+        { code: 'RPS001', choice: 'PAPER', requestId: 'req-rps-dup' },
+        client as never,
+      );
+      expect(gamesService.rpsMakeChoice).toHaveBeenCalledTimes(1);
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'RPS001',
+          requestId: 'req-rps-dup',
+          status: 'accepted',
+        }),
+      );
+    });
+
+    it('rejects with REQUEST_ID_REUSED on conflicting RPS choice', () => {
+      gamesService.getRoom.mockReturnValue(rpsRoom);
+      gamesService.rpsMakeChoice.mockReturnValue({ ...rpsRoom });
+
+      gateway.handleRPSMakeChoice(
+        { code: 'RPS001', choice: 'ROCK', requestId: 'req-rps-reused' },
+        client as never,
+      );
+
+      client.emit.mockClear();
+
+      gateway.handleRPSMakeChoice(
+        { code: 'RPS001', choice: 'SCISSORS', requestId: 'req-rps-reused' },
+        client as never,
+      );
+      expect(gamesService.rpsMakeChoice).toHaveBeenCalledTimes(1);
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'RPS001',
+          requestId: 'req-rps-reused',
+          status: 'rejected',
+          reason: 'REQUEST_ID_REUSED',
+        }),
+      );
+    });
+
+    it('emits rejected receipt when choice is invalid or not players turn', () => {
+      gamesService.getRoom.mockReturnValue(rpsRoom);
+      gamesService.rpsMakeChoice.mockReturnValue(null);
+
+      gateway.handleRPSMakeChoice(
+        { code: 'RPS001', choice: 'SCISSORS', requestId: 'req-rps-bad' },
+        client as never,
+      );
+
+      expect(gamesService.rpsMakeChoice).toHaveBeenCalledWith(
+        'RPS001',
+        'sock-player-1',
+        'SCISSORS',
+      );
+      expect(client.emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.ACTION_RECEIPT,
+        expect.objectContaining({
+          code: 'RPS001',
+          requestId: 'req-rps-bad',
+          event: SOCKET_EVENTS.RPS_MAKE_CHOICE,
+          status: 'rejected',
+          reason: 'Invalid choice or not your turn.',
+        }),
+      );
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+        message: 'Invalid choice or not your turn.',
+      });
+      expect(server.to).not.toHaveBeenCalled();
+    });
+
+    it('preserves legacy RPS payload behavior without emitting receipt', () => {
+      gamesService.rpsMakeChoice.mockReturnValue({ ...rpsRoom });
+
+      gateway.handleRPSMakeChoice({ code: 'RPS001', choice: 'ROCK' }, client as never);
+
+      expect(gamesService.rpsMakeChoice).toHaveBeenCalledWith('RPS001', 'sock-player-1', 'ROCK');
+      expect(client.emit).not.toHaveBeenCalledWith(SOCKET_EVENTS.ACTION_RECEIPT, expect.anything());
+      expect(server.to).toHaveBeenCalledWith('RPS001');
+    });
+  });
+});

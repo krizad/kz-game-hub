@@ -10,3 +10,9 @@ export interface TicTacToeState {
   winner?: 'X' | 'O' | 'DRAW';
   winningLine?: number[]; // indices of the winning line
 }
+
+export interface TTTMakeMovePayload {
+  code: string;
+  index: number;
+  requestId?: string;
+}

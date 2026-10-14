@@ -6,9 +6,22 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function RPSView() {
-  const { room, socketId, privateState, rpsMakeChoice, rpsNextRound, actionLoading } =
-    useGameStore();
+  const {
+    room,
+    socketId,
+    privateState,
+    rpsMakeChoice,
+    rpsNextRound,
+    actionLoading,
+    pendingActions,
+    dismissPendingAction,
+  } = useGameStore();
   const { t } = useTranslate();
+
+  const unknownPendingAction = Object.entries(pendingActions).find(
+    ([_, a]) => a.status === 'unknown',
+  );
+  const showActionOverlay = actionLoading || !!unknownPendingAction;
 
   if (!room || !room.rpsState) return null;
   const rps = room.rpsState;
@@ -89,7 +102,14 @@ export function RPSView() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative font-mono h-full overflow-y-auto overflow-x-hidden w-full">
-      {actionLoading && <ActionLoadingOverlay />}
+      {showActionOverlay && (
+        <ActionLoadingOverlay
+          status={unknownPendingAction ? 'unknown' : 'pending'}
+          onDismiss={
+            unknownPendingAction ? () => dismissPendingAction(unknownPendingAction[0]) : undefined
+          }
+        />
+      )}
       <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none p-6 relative my-auto">
         {/* Header */}
         <div className="flex flex-wrap justify-center w-full items-center gap-4 mb-4">

@@ -176,7 +176,20 @@ export const SOCKET_EVENTS = {
   BANANA_THIEF_ROLL_DIE: 'banana_thief_roll_die',
   // Poker (ADR 0009): one shared betting engine, ONLINE + CHIPS_LEDGER modes
   POKER_ACTION: 'poker_action',
+  // Shared gameplay receipt (TASK-SH-002)
+  ACTION_RECEIPT: 'action_receipt',
 } as const;
+
+export type ActionReceiptStatus = 'accepted' | 'rejected';
+
+export interface ActionReceipt {
+  code: string;
+  requestId: string;
+  event: string;
+  status: ActionReceiptStatus;
+  reason?: string;
+  serverNow: number;
+}
 
 export interface UserState {
   id: string;
