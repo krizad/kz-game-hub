@@ -875,7 +875,7 @@ export const en: Dictionary = {
     cellOccupied: '{size} {side}',
     disabledNotYourTurn: 'Not your turn',
     disabledSelectPieceFirst: 'Select a piece to place or move',
-    disabledCannotGobble: 'Cannot place smaller piece on larger piece',
+    disabledCannotGobble: 'Choose a larger piece to cover this piece',
     disabledViewer: 'Spectating',
     disabledGameOver: 'Game over',
   },

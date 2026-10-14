@@ -50,7 +50,7 @@ async function tabTo(page: Page, testId: string) {
 for (const { mode, viewport, language, cellPrefix, firstCell, secondCell } of modes) {
   test(`${mode}: keyboard moves, unique localized names, and disabled non-player controls`, async ({
     browser,
-  }) => {
+  }, testInfo) => {
     const host = await browser.newPage({ viewport });
     const guest = await browser.newPage({ viewport });
     const observer = await browser.newPage({ viewport });
@@ -150,6 +150,12 @@ for (const { mode, viewport, language, cellPrefix, firstCell, secondCell } of mo
       if (mode === 'GOBBLER') {
         await expect(guest.getByTestId(secondCell)).toBeDisabled();
         await guest.getByTestId('gobbler-inventory-O-stack-2').click();
+        // O's large piece cannot cover X's equal-size large piece.
+        await expect(guest.getByTestId(firstCell)).toBeDisabled();
+        await expect(guest.getByTestId(firstCell)).toHaveAccessibleName(
+          'Row 1, Column 1: Large X (Choose a larger piece to cover this piece)',
+        );
+        await guest.screenshot({ path: testInfo.outputPath('gobbler-equal-size-en-390x844.png') });
       }
       await expect(guest.getByTestId(secondCell)).toBeEnabled();
     } finally {
