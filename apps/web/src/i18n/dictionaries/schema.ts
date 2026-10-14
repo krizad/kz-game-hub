@@ -831,11 +831,16 @@ export interface Dictionary {
     ready: string;
     choosing: string;
     draw: string;
+    drawExplanation: string;
     winsMatch: string;
     winsRound: string;
     playAgain: string;
     nextRound: string;
+    waitingHostNextRound: string;
+    waitingHostPlayAgain: string;
     queue: string;
+    yourTurnIn: string;
+    you: string;
     rock: string;
     paper: string;
     scissors: string;

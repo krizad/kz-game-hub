@@ -107,4 +107,97 @@ test.describe('RPS Experience (TASK-RP-001)', () => {
     await p1Ctx.close();
     await p2Ctx.close();
   });
+
+  test('displays round outcome, draw explanation, host/guest CTAs, and responsive 1v1 queue (TASK-RP-002)', async ({
+    browser,
+  }) => {
+    test.setTimeout(120000);
+    const p1Ctx = await browser.newContext();
+    const p2Ctx = await browser.newContext();
+    const p3Ctx = await browser.newContext();
+
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+    const p3 = await p3Ctx.newPage();
+
+    await p1.setViewportSize({ width: 1280, height: 900 });
+    await p3.setViewportSize({ width: 390, height: 844 }); // Mobile player in queue
+
+    const roomCode = await createRoom(p1, 'Host1', 'Hand Duel');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Fighter2');
+    await joinRoom(p3, origin, roomCode, 'Queued3');
+
+    // Host starts 1v1 Round Robin game
+    const startBtn = p1.getByTestId('lobby-start-game');
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    await startBtn.click();
+
+    // 1. Verify responsive queue on mobile player (P3)
+    await expect(p3.getByTestId('rps-queue-banner')).toBeVisible({ timeout: 10000 });
+    await expect(p3.getByTestId('rps-queue-turn-notice')).toContainText('Your turn in round #1');
+    await expect(p3.getByTestId('rps-spectator-waiting')).toBeVisible();
+
+    // 2. Play Round 1: Both P1 and P2 pick Rock -> DRAW
+    const p1Rock = p1.getByRole('button', { name: 'Rock', exact: true });
+    const p2Rock = p2.getByRole('button', { name: 'Rock', exact: true });
+
+    await expect(p1Rock).toBeVisible({ timeout: 10000 });
+    await expect(p2Rock).toBeVisible({ timeout: 10000 });
+
+    await p1Rock.click();
+    await p2Rock.click();
+
+    // 3. Verify DRAW outcome and explanation (Task RP-2 requirement)
+    const p1Outcome = p1.getByTestId('rps-round-outcome');
+    await expect(p1Outcome).toBeVisible({ timeout: 10000 });
+    await expect(p1Outcome).toContainText(/draw|wins/i);
+    await expect(p1Outcome).toContainText("It's a Draw!");
+    await expect(p1Outcome).toContainText('Draw! No points awarded this round.');
+
+    // 4. Verify Host CTA and Guest waiting status
+    const hostNextBtn = p1.getByTestId('rps-next-round-btn');
+    await expect(hostNextBtn).toBeVisible({ timeout: 5000 });
+    await expect(hostNextBtn).toContainText('Next Round');
+
+    const guestWaiting = p2.getByTestId('rps-guest-waiting');
+    await expect(guestWaiting).toBeVisible({ timeout: 5000 });
+    await expect(guestWaiting).toContainText('Waiting for host to start next round');
+
+    // Capture screenshots of Draw outcome across viewports
+    await p1.screenshot({
+      path: '../../docs/qa/private-friends-2026-10-14/rps/outcome-1280-en.png',
+    });
+    await p1.setViewportSize({ width: 390, height: 844 });
+    await p1.screenshot({
+      path: '../../docs/qa/private-friends-2026-10-14/rps/outcome-390-en.png',
+    });
+    await p1.setViewportSize({ width: 360, height: 800 });
+    await p1.screenshot({
+      path: '../../docs/qa/private-friends-2026-10-14/rps/outcome-360-en.png',
+    });
+
+    // 5. Host advances to next round
+    await p1.setViewportSize({ width: 1280, height: 900 });
+    await hostNextBtn.click();
+
+    // 6. Round 2: P1 chooses Scissors, P2 chooses Paper -> P1 wins round
+    const p1Scissors = p1.getByRole('button', { name: 'Scissors', exact: true });
+    const p2Paper = p2.getByRole('button', { name: 'Paper', exact: true });
+
+    await expect(p1Scissors).toBeVisible({ timeout: 10000 });
+    await expect(p2Paper).toBeVisible({ timeout: 10000 });
+
+    await p1Scissors.click();
+    await p2Paper.click();
+
+    // 7. Verify Wins Round outcome
+    await expect(p1Outcome).toBeVisible({ timeout: 10000 });
+    await expect(p1Outcome).toContainText(/draw|wins/i);
+    await expect(p1Outcome).toContainText('Host1 Wins the Round!');
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+    await p3Ctx.close();
+  });
 });

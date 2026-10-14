@@ -30,6 +30,7 @@ export function RPSView() {
   const myChoice = privateState.rpsChoice as string | undefined;
   const isMyChoiceLocked = !!myChoice || (isMyTurn && rps.choicesMade.includes(socketId));
   const isHost = room.roomHostId === socketId;
+  const myQueueIndex = rps.queue.indexOf(socketId);
 
   const bestOf = room.config.rpsBestOf || 3;
   const targetScore = Math.floor(bestOf / 2) + 1;
@@ -241,44 +242,112 @@ export function RPSView() {
         {/* Results & Transitions */}
         {room.status === RoomStatus.RESULT && (
           <div className="flex flex-col items-center gap-6 animate-in zoom-in slide-in-from-bottom-4 w-full mt-8">
-            {rps.roundWinner === 'DRAW' ? (
-              <div className="text-2xl sm:text-3xl font-black text-black bg-gray-300 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
-                {t('gameRps.draw')}
-              </div>
-            ) : rps.gameWinner ? (
-              <div className="text-xl sm:text-3xl text-center font-black px-4 sm:px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-black bg-yellow-300 - w-full break-words">
-                🏆 {t('gameRps.winsMatch', { winner: getWinnerNames(rps.gameWinner) })} 🏆
-              </div>
-            ) : (
-              <div className="text-lg sm:text-2xl text-center font-black px-4 sm:px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black bg-cyan-300 w-full break-words">
-                {t('gameRps.winsRound', { winner: getWinnerNames(rps.roundWinner) })}
-              </div>
-            )}
+            <div
+              data-testid="rps-round-outcome"
+              className="w-full flex flex-col items-center gap-2"
+            >
+              {rps.roundWinner === 'DRAW' ? (
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="text-2xl sm:text-3xl font-black text-black bg-gray-300 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    {t('gameRps.draw')}
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-gray-800 bg-white border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    {t('gameRps.drawExplanation')}
+                  </p>
+                </div>
+              ) : rps.gameWinner ? (
+                <div className="text-xl sm:text-3xl text-center font-black px-4 sm:px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-black bg-yellow-300 - w-full break-words">
+                  🏆 {t('gameRps.winsMatch', { winner: getWinnerNames(rps.gameWinner) })} 🏆
+                </div>
+              ) : (
+                <div className="text-lg sm:text-2xl text-center font-black px-4 sm:px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black bg-cyan-300 w-full break-words">
+                  {t('gameRps.winsRound', { winner: getWinnerNames(rps.roundWinner) })}
+                </div>
+              )}
+            </div>
 
-            {isHost && (
+            {isHost ? (
               <button
+                data-testid="rps-next-round-btn"
                 onClick={rpsNextRound}
                 disabled={actionLoading}
                 className={`font-black px-10 py-4 border-4 border-black mt-2 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ${rps.gameWinner ? 'bg-pink-300 hover:bg-pink-400 text-black -' : 'bg-emerald-300 hover:bg-emerald-400 text-black '}`}
               >
                 {rps.gameWinner ? t('gameRps.playAgain') : t('gameRps.nextRound')}
               </button>
+            ) : (
+              <div
+                data-testid="rps-guest-waiting"
+                className="text-xs sm:text-sm font-bold text-black bg-amber-100 border-2 border-black px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-center mt-2"
+              >
+                {rps.gameWinner
+                  ? t('gameRps.waitingHostPlayAgain')
+                  : t('gameRps.waitingHostNextRound')}
+              </div>
             )}
           </div>
         )}
 
-        {/* 1V1 Queue Display */}
+        {/* 1V1 Queue Display (Responsive) */}
+        {room.config.rpsMode === '1V1_ROUND_ROBIN' && rps.queue.length > 0 && (
+          <div
+            data-testid="rps-queue-banner"
+            className="w-full flex flex-col items-center gap-2 mt-6 bg-amber-50/80 p-3 border-2 border-black"
+          >
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <span className="text-xs font-black uppercase tracking-wider text-black bg-yellow-300 px-2.5 py-0.5 border border-black">
+                {t('gameRps.queue')}
+              </span>
+              {myQueueIndex !== -1 && (
+                <span
+                  data-testid="rps-queue-turn-notice"
+                  className="text-xs font-bold text-indigo-700 bg-white border border-indigo-400 px-2 py-0.5"
+                >
+                  {t('gameRps.yourTurnIn', { count: myQueueIndex + 1 })}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {rps.queue.map((id, idx) => {
+                const p = room.players.find((candidate) => candidate.socketId === id);
+                if (!p) return null;
+                const isMe = id === socketId;
+                return (
+                  <span
+                    key={`queue-chip-${id}`}
+                    data-testid={`rps-queue-item-${id}`}
+                    className={`text-xs px-2.5 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 ${
+                      isMe
+                        ? 'bg-indigo-200 text-indigo-950 font-black'
+                        : 'bg-white text-black font-bold'
+                    }`}
+                  >
+                    <span className="font-mono text-[10px] bg-black text-white px-1 rounded-sm">
+                      #{idx + 1}
+                    </span>
+                    <span className="truncate max-w-[90px]">
+                      {p.name}
+                      {isMe ? ` (${t('gameRps.you')})` : ''}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 1V1 Queue Display (Desktop Floating) */}
         {room.config.rpsMode === '1V1_ROUND_ROBIN' && rps.queue.length > 0 && (
           <div className="absolute -left-6 top-1/2 -translate-y-1/2 -translate-x-full hidden xl:flex flex-col gap-2">
             <h4 className="text-sm font-black text-black bg-white border-2 border-black px-2 py-1 uppercase tracking-widest inline-block self-end">
               {t('gameRps.queue')}
             </h4>
             {rps.queue.map((id, idx) => {
-              const p = room.players.find((p) => p.socketId === id);
+              const p = room.players.find((candidate) => candidate.socketId === id);
               if (!p) return null;
               return (
                 <div
-                  key={`queue-${id}`}
+                  key={`queue-desktop-${id}`}
                   className="bg-yellow-300 border-4 border-black px-4 py-2 text-sm font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between min-w-[120px] "
                 >
                   <span className="truncate max-w-[80px]">{p.name}</span>
