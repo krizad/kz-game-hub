@@ -58,7 +58,7 @@ test.describe('Cluecanvas Gameplay', () => {
     }
 
     // Drive both playing rounds, discussion, and voting like the sim driver:
-    // force-click a hand card on the active player, confirm, start the vote,
+    // select a hand card on the active player, confirm, start the vote,
     // pick a candidate and confirm. Scoring is the guaranteed end state.
     for (let i = 0; i < 60; i++) {
       const scoringBtn = p1
@@ -73,9 +73,10 @@ test.describe('Cluecanvas Gameplay', () => {
           .catch(() => false);
         const hand = page.locator('img[alt="Hand Card"]').first();
         if (myTurn && (await hand.isVisible({ timeout: 150 }).catch(() => false))) {
-          // force click: the hover overlay covers the img and blocks
-          // actionability, but still fires the overlay's onClick
-          await hand.click({ force: true, timeout: 2000 }).catch(() => {});
+          await page
+            .getByRole('button', { name: 'Play card 1' })
+            .click({ timeout: 2000 })
+            .catch(() => {});
           const confirm = page
             .locator('button')
             .filter({ hasText: /^Play Card$/i })

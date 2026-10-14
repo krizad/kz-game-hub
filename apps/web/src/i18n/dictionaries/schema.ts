@@ -558,6 +558,9 @@ export interface Dictionary {
     waitingFor: string;
     yourHand: string;
     play: string;
+    inspectHandCard: string;
+    selectHandCard: string;
+    inspectPlayedCard: string;
     confirmCardPlay: string;
     confirmPlayDescription: string;
     cancel: string;

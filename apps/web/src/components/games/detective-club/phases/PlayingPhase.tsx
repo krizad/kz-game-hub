@@ -5,6 +5,7 @@ import { ZoomIn } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardViewerModal } from '../CardViewerModal';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { GameDialog } from '@/components/core/GameDialog';
 
 export function PlayingPhase() {
   const { room, socketId, privateState, detectiveClubPlayCard, actionLoading } = useGameStore();
@@ -74,20 +75,26 @@ export function PlayingPhase() {
                 </span>
                 <div className="flex gap-3 min-h-[140px]">
                   {player.playedCards.map((cardUrl, idx) => (
-                    <div
+                    <button
+                      type="button"
                       key={idx}
-                      className="relative group w-20 h-28 sm:w-24 sm:h-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-2 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer bg-white"
+                      className="relative group w-20 h-28 sm:w-24 sm:h-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-2 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all bg-white"
                       onClick={() => setViewCardUrl(cardUrl)}
+                      aria-label={t('gameDetectiveClub.inspectPlayedCard', {
+                        name: pName,
+                        number: idx + 1,
+                      })}
                     >
                       <img
                         src={cardUrl}
                         alt={t('gameDetectiveClub.playedCardAlt')}
                         className="w-full h-full object-cover border-4 border-white"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <ZoomIn className="text-white w-8 h-8 drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
-                      </div>
-                    </div>
+                      <ZoomIn
+                        aria-hidden="true"
+                        className="absolute right-1 top-1 h-6 w-6 border border-black bg-white p-0.5 text-black"
+                      />
+                    </button>
                   ))}
                   {Array.from({
                     length:
@@ -125,39 +132,39 @@ export function PlayingPhase() {
           {myHand.map((cardUrl, idx) => (
             <div
               key={idx}
-              className={`relative group flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 border-4 border-black transition-all bg-white ${
+              className={`relative flex-shrink-0 w-32 border-4 border-black transition-all bg-white ${
                 isMyTurn
-                  ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] '
-                  : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] opacity-70 grayscale hover:grayscale-0'
+                  ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
               }`}
             >
               <img
                 src={cardUrl}
                 alt={t('gameDetectiveClub.handCardAlt')}
-                className="w-full h-full object-cover border-4 border-white"
+                className="w-full h-36 sm:h-44 object-cover border-4 border-white"
               />
-
-              {isMyTurn && (
-                <div
-                  className="absolute inset-0 bg-transparent group-hover:bg-black/40 transition-colors flex items-center justify-center cursor-pointer"
-                  onClick={() => setConfirmPlayIndex(idx)}
+              <div className="flex flex-col gap-1 p-1">
+                <button
+                  type="button"
+                  onClick={() => setViewCardUrl(cardUrl)}
+                  className="flex min-h-11 items-center justify-center gap-1 bg-white text-black border-2 border-black font-bold text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500"
+                  aria-label={t('gameDetectiveClub.inspectHandCard', { number: idx + 1 })}
                 >
-                  <span className="opacity-0 group-hover:opacity-100 bg-yellow-300 text-black text-sm font-black uppercase tracking-widest px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform - hover:scale-110 transition-all">
+                  <ZoomIn aria-hidden="true" className="w-5 h-5" />
+                  {t('gameDetectiveClub.viewLarger')}
+                </button>
+                {isMyTurn && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmPlayIndex(idx)}
+                    disabled={actionLoading}
+                    className="min-h-11 bg-yellow-300 text-black border-2 border-black font-black uppercase text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500 disabled:opacity-50"
+                    aria-label={t('gameDetectiveClub.selectHandCard', { number: idx + 1 })}
+                  >
                     {t('gameDetectiveClub.play')}
-                  </span>
-                </div>
-              )}
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setViewCardUrl(cardUrl);
-                }}
-                className="absolute top-2 right-2 p-2 bg-white text-black border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-300"
-                title={t('gameDetectiveClub.viewLarger')}
-              >
-                <ZoomIn className="w-5 h-5" />
-              </button>
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -165,14 +172,12 @@ export function PlayingPhase() {
 
       {/* Confirmation Modal */}
       {confirmPlayIndex !== null && (
-        <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
-          onClick={() => setConfirmPlayIndex(null)}
+        <GameDialog
+          open={confirmPlayIndex !== null}
+          onClose={() => setConfirmPlayIndex(null)}
+          title={t('gameDetectiveClub.confirmCardPlay')}
         >
-          <div
-            className="bg-white border-8 border-black max-w-sm w-full p-8 text-center shadow-[16px_16px_0px_0px_rgba(255,255,255,1)] transform "
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="bg-white border-8 border-black max-w-sm w-full p-8 text-center shadow-[16px_16px_0px_0px_rgba(255,255,255,1)]">
             <h2 className="text-2xl font-black text-black mb-6 uppercase tracking-widest bg-yellow-300 px-4 py-2 border-4 border-black inline-block -">
               {t('gameDetectiveClub.confirmCardPlay')}
             </h2>
@@ -190,12 +195,14 @@ export function PlayingPhase() {
             </p>
             <div className="flex gap-4">
               <button
+                type="button"
                 onClick={() => setConfirmPlayIndex(null)}
                 className="flex-1 py-4 px-4 bg-gray-300 hover:bg-gray-400 text-black font-black border-4 border-black transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest text-lg"
               >
                 {t('gameDetectiveClub.cancel')}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   detectiveClubPlayCard(confirmPlayIndex);
                   setConfirmPlayIndex(null);
@@ -207,7 +214,7 @@ export function PlayingPhase() {
               </button>
             </div>
           </div>
-        </div>
+        </GameDialog>
       )}
 
       <CardViewerModal cardUrl={viewCardUrl} onClose={() => setViewCardUrl(null)} />
