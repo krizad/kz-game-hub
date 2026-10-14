@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { goToLobby, extractRoomCode, getOrigin } from './helpers';
+import { goToLobby, extractRoomCode, getOrigin, switchToEnglish } from './helpers';
 
 async function selectWordMode(page: Page, labelRegex: RegExp) {
   const trigger = page
@@ -56,6 +56,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
 
     const dialog = p1.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5000 });
+    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/1280-th.png' });
 
     // Assert Thai copy
     await expect(dialog.getByText('📝 กำหนดคำลับ')).toBeVisible();
@@ -74,10 +75,32 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     const thaiInputs = dialog.getByPlaceholder('ใส่ชื่อตัวละคร สัตว์ หรือสิ่งของ...');
     await expect(thaiInputs).toHaveCount(2);
 
+    // Focus cycles between the first and last enabled controls inside the dialog.
+    await thaiInputs.first().focus();
+    await p1.keyboard.press('Shift+Tab');
+    await expect(dialog.getByRole('button', { name: 'ยกเลิก' })).toBeFocused();
+    await p1.keyboard.press('Tab');
+    await expect(thaiInputs.first()).toBeFocused();
+
     // 5. Test Escape closes dialog and restores focus to trigger button
     await p1.keyboard.press('Escape');
     await expect(dialog).toBeHidden({ timeout: 3000 });
     await expect(startBtn).toBeFocused();
+
+    await switchToEnglish(p1);
+    await startBtn.click();
+    await expect(dialog.getByText('📝 Set Words')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Start Game' })).toBeVisible();
+    await expect(dialog.getByPlaceholder('Enter a character, animal, object...')).toHaveCount(2);
+    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/1280-en.png' });
+    for (const width of [390, 360]) {
+      await p1.setViewportSize({ width, height: width === 390 ? 844 : 800 });
+      await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInViewport();
+      await p1.screenshot({
+        path: `../../docs/qa/private-friends-2026-10-14/who-am-i/${width}-en.png`,
+      });
+    }
 
     await p1Ctx.close();
     await p2Ctx.close();
@@ -93,6 +116,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     const p1 = await p1Ctx.newPage(); // Host
     const p2 = await p2Ctx.newPage(); // Guest 1 (Bob)
     const p3 = await p3Ctx.newPage(); // Guest 2 (Cara)
+    await p1.setViewportSize({ width: 390, height: 844 });
 
     await goToLobby(p1);
     await p1.locator('#lobbyNameInput').fill('HostAmy');
@@ -118,6 +142,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
 
     const dialog = p1.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5000 });
+    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/390-th.png' });
 
     // Fill in word for Bob and Cara
     const bobInput = dialog.locator('input').nth(0);
@@ -140,9 +165,78 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
 
     // Verify game started
     await expect(dialog).toBeHidden({ timeout: 5000 });
+    await expect
+      .poll(() =>
+        p1.evaluate(() => (window as any).__useGameStore.getState().room?.whoAmIState?.phase),
+      )
+      .toBe('ASKING');
 
     await p1Ctx.close();
     await p2Ctx.close();
     await p3Ctx.close();
+  });
+
+  test('departed draft cannot fill a replacement player and viewers need no word', async ({
+    browser,
+  }) => {
+    const host = await browser.newPage();
+    const bob = await browser.newPage();
+    const cara = await browser.newPage();
+    const replacement = await browser.newPage();
+    const viewer = await browser.newPage();
+    await host.setViewportSize({ width: 360, height: 800 });
+    await goToLobby(host);
+    await host.locator('#lobbyNameInput').fill('HostAmy');
+    await host.locator('button:has-text("ฉันคือใคร")').first().click();
+    const roomCode = await extractRoomCode(host);
+    const origin = await getOrigin(host);
+    for (const [page, name] of [
+      [bob, 'Bob'],
+      [cara, 'Cara'],
+    ] as const) {
+      await page.goto(`${origin}/?room=${roomCode}`);
+      await page.locator('#inviteNameInput').fill(name);
+      await page.locator('#inviteNameInput').press('Enter');
+      await page.locator('#inviteNameInput').waitFor({ state: 'hidden' });
+    }
+    await selectWordMode(host, /โฮสต์เป็นคนตั้ง/);
+    await host.getByRole('button', { name: 'อนุญาต', exact: true }).click();
+    await goToLobby(viewer);
+    await viewer.evaluate((code) => {
+      const store = (window as any).__useGameStore.getState();
+      store.setName('Observer');
+      store.spectateJoin(code);
+    }, roomCode);
+    await expect
+      .poll(() => viewer.evaluate(() => (window as any).__useGameStore.getState().isSpectator))
+      .toBe(true);
+
+    await host.getByTestId('lobby-start-game').click();
+    const dialog = host.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await host.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/360-th.png' });
+    await expect(dialog.locator('input')).toHaveCount(2);
+    await dialog.getByLabel('Bob').fill('Old Bob word');
+    await dialog.getByLabel('Cara').fill('Cara word');
+
+    await bob.evaluate(() => (window as any).__useGameStore.getState().leaveRoom());
+    await expect(dialog.getByLabel('Bob')).toHaveCount(0);
+    await expect(dialog.locator('input')).toHaveCount(1);
+
+    await replacement.goto(`${origin}/?room=${roomCode}`);
+    await replacement.locator('#inviteNameInput').fill('Dave');
+    await replacement.locator('#inviteNameInput').press('Enter');
+    await replacement.locator('#inviteNameInput').waitFor({ state: 'hidden' });
+    await expect(dialog.locator('input')).toHaveCount(2);
+    await expect(dialog.getByLabel('Dave')).toHaveValue('');
+    await expect(dialog.getByRole('button', { name: 'เริ่มเกม' })).toBeDisabled();
+    await dialog.getByLabel('Dave').fill('Fresh Dave word');
+    await dialog.getByRole('button', { name: 'เริ่มเกม' }).click();
+    await expect
+      .poll(() =>
+        host.evaluate(() => (window as any).__useGameStore.getState().room?.whoAmIState?.phase),
+      )
+      .toBe('ASKING');
+    await Promise.all([host, bob, cara, replacement, viewer].map((page) => page.close()));
   });
 });

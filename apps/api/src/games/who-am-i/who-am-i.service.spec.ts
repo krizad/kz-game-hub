@@ -169,6 +169,27 @@ describe('WhoAmIService', () => {
       ).toBeNull();
     });
 
+    it('should reject malformed host word payloads without throwing', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      expect(
+        service.startGameHostInput(room, 'host1', null as unknown as Record<string, string>),
+      ).toBeNull();
+      expect(
+        service.startGameHostInput(room, 'host1', {
+          p1: 42 as unknown as string,
+          p2: 'Banana',
+        }),
+      ).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+    });
+
     it('should exclude spectators and disconnected players from required players', () => {
       const room = {
         code: 'test-room',

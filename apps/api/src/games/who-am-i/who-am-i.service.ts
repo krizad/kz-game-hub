@@ -128,12 +128,15 @@ export class WhoAmIService {
     if (gamePlayers.length < 2) return null;
 
     // Verify words provided for all non-host players without stale/extra keys
+    if (!playerWords || typeof playerWords !== 'object' || Array.isArray(playerWords)) return null;
     if (Object.keys(playerWords).length !== gamePlayers.length) return null;
 
     const trimmedWords: Record<string, string> = {};
     for (const p of gamePlayers) {
       if (!Object.prototype.hasOwnProperty.call(playerWords, p.socketId)) return null;
-      const word = playerWords[p.socketId]?.trim();
+      const rawWord = playerWords[p.socketId];
+      if (typeof rawWord !== 'string') return null;
+      const word = rawWord.trim();
       if (!word || word.length > MAX_WORD_LENGTH) return null;
       trimmedWords[p.socketId] = word;
     }
