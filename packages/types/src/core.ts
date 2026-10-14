@@ -176,7 +176,32 @@ export const SOCKET_EVENTS = {
   BANANA_THIEF_ROLL_DIE: 'banana_thief_roll_die',
   // Poker (ADR 0009): one shared betting engine, ONLINE + CHIPS_LEDGER modes
   POKER_ACTION: 'poker_action',
+  // Shared gameplay receipt (TASK-SH-002)
+  ACTION_RECEIPT: 'action_receipt',
+  // Server clock sync (TASK-SH-001)
+  SERVER_TIME_REQUEST: 'server_time_request',
+  SERVER_TIME_RESPONSE: 'server_time_response',
 } as const;
+
+export interface ServerTimeRequestPayload {
+  clientSentAt: number;
+}
+
+export interface ServerTimeResponsePayload {
+  clientSentAt: number;
+  serverNow: number;
+}
+
+export type ActionReceiptStatus = 'accepted' | 'rejected';
+
+export interface ActionReceipt {
+  code: string;
+  requestId: string;
+  event: string;
+  status: ActionReceiptStatus;
+  reason?: string;
+  serverNow: number;
+}
 
 export interface UserState {
   id: string;
@@ -196,6 +221,10 @@ export interface UserState {
 export interface RoomConfig {
   hostSelection: 'ROUND_ROBIN' | 'RANDOM' | 'FIXED';
   timerMin: number;
+  /** Missing on pre-policy rooms means PUBLIC. */
+  visibility?: 'PUBLIC' | 'UNLISTED';
+  /** Missing on pre-policy rooms means spectators are allowed. */
+  allowSpectators?: boolean;
   rpsBestOf?: number; // e.g., 1, 3, 5
   rpsMode?: '1V1_ROUND_ROBIN' | 'ALL_AT_ONCE';
   language?: 'en' | 'th';

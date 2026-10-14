@@ -41,6 +41,8 @@ import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
+import { RoomStartGuardService } from './room-start-guard.service';
+import { ActionReceiptService } from './action-receipt.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 
@@ -93,6 +95,8 @@ export class GamesService {
     private readonly cardGameService: CardGameService,
     private readonly pokerService: PokerService,
     private readonly gameSettings: GameSettingsService,
+    private readonly roomStartGuardService: RoomStartGuardService,
+    private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
   ) {}
 
   setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void {
@@ -121,6 +125,10 @@ export class GamesService {
     return this.rooms.get(code);
   }
 
+  getServerTime(): number {
+    return Date.now();
+  }
+
   isGameEnabled(gameType: GameType): boolean {
     return this.gameSettings.isEnabled(gameType);
   }
@@ -134,16 +142,15 @@ export class GamesService {
   }
 
   /**
-   * Whether a reconnect token belongs to a player still seated in the room.
-   * Used by the disabled-game gate so a refreshed browser (new socket id) can
-   * still reclaim its seat instead of being locked out of its own room.
+   * Whether a token and name identify a player who joinRoom can actually
+   * restore. The disabled-game and spectator gates use this before admission.
    */
-  hasSeatedSession(code: string, reconnectToken: string): boolean {
+  hasSeatedSession(code: string, reconnectToken: string, name: string): boolean {
     const room = this.rooms.get(code);
     if (!room) return false;
     const playerId = this.playerSessionService.verify(code, reconnectToken);
     if (!playerId) return false;
-    return room.players.some((player) => player.id === playerId);
+    return room.players.some((player) => player.id === playerId && player.name === name);
   }
 
   createRoom(
@@ -169,6 +176,8 @@ export class GamesService {
         rpsBestOf: 3,
         rpsMode: '1V1_ROUND_ROBIN',
         language: 'th',
+        visibility: 'UNLISTED',
+        allowSpectators: false,
       },
     };
 
@@ -581,6 +590,8 @@ export class GamesService {
     this.playerSessionService.clearRoom(code);
     this.musicTriviaService.deleteRoomData(code);
     this.privateStateService.clearRoom(code);
+    this.roomStartGuardService.invalidate(code);
+    this.actionReceiptService.clearRoom(code);
   }
 
   getAvailableRooms(): {
@@ -591,7 +602,11 @@ export class GamesService {
   }[] {
     const availableRooms = [];
     for (const room of this.rooms.values()) {
-      if (room.status === RoomStatus.LOBBY && this.gameSettings.isEnabled(room.gameType)) {
+      if (
+        room.status === RoomStatus.LOBBY &&
+        (room.config.visibility ?? 'PUBLIC') === 'PUBLIC' &&
+        this.gameSettings.isEnabled(room.gameType)
+      ) {
         availableRooms.push({
           code: room.code,
           gameType: room.gameType,
@@ -776,6 +791,8 @@ export class GamesService {
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
     copyEnum('language', ['en', 'th']);
+    copyEnum('visibility', ['PUBLIC', 'UNLISTED']);
+    copyBoolean('allowSpectators');
     copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE']);
     copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
     copyBoolean('ticTacToeVsBot');
@@ -925,7 +942,7 @@ export class GamesService {
   async assignRoles(
     code: string,
     requesterId: string,
-  ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
+  ): Promise<{ room: RoomState; roles: Record<string, Role>; error?: string } | null> {
     const room = this.rooms.get(code);
     if (!room) return null;
 

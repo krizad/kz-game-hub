@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { BOT_PLAYER_NAME, BOT_SOCKET_ID, GameType, RoomState, RoomStatus } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { TicTacToeUnifiedView } from '@/components/games/tic-tac-toe/TicTacToeUnifiedView';
@@ -24,12 +25,16 @@ import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameStatusHeader } from '@/components/games/GameStatusHeader';
+import { getGamePrompt } from '@/components/games/game-prompts';
 
-function getGameStatus(room: RoomState, socketId: string) {
+function getGameStatus(
+  room: RoomState,
+  socketId: string,
+  privateState: Record<string, unknown> = {},
+) {
   let phase: string = room.status;
   let activePlayerId: string | null | undefined;
   let progress: { current: number; total: number } | undefined;
-  let promptKey: string | undefined;
 
   switch (room.gameType) {
     case GameType.TIC_TAC_TOE: {
@@ -134,29 +139,13 @@ function getGameStatus(room: RoomState, socketId: string) {
             : null;
       }
       break;
-    case GameType.WHO_KNOW:
-      if (room.status === RoomStatus.WORD_SETTING) {
-        promptKey =
-          socketId === room.hostPlayerId
-            ? 'gameWhoKnow.wordSettingHost'
-            : 'gameWhoKnow.wordSettingWaiting';
-      } else if (room.status === RoomStatus.QUESTIONING) {
-        promptKey =
-          socketId === room.hostPlayerId
-            ? 'gameWhoKnow.questioningHost'
-            : 'gameWhoKnow.questioningPlayers';
-      } else if (room.status === RoomStatus.VOTING) {
-        promptKey =
-          socketId === room.hostPlayerId
-            ? 'gameWhoKnow.votingHostWait'
-            : 'gameWhoKnow.votingPrompt';
-      } else if (room.status === RoomStatus.RESULT) {
-        promptKey = 'gameWhoKnow.resultPrompt';
-      }
-      break;
     default:
       break;
   }
+
+  const prompt = getGamePrompt(room, socketId, privateState);
+  const promptKey = prompt.key;
+  const promptParams = prompt.params;
 
   const activePlayerName = activePlayerId
     ? activePlayerId === BOT_SOCKET_ID
@@ -187,12 +176,14 @@ function getGameStatus(room: RoomState, socketId: string) {
     progress,
     accentClass: accentClass[room.gameType],
     promptKey,
+    promptParams,
   };
 }
 
 export function GameViewManager() {
-  const { room, socketId } = useGameStore();
+  const { room, socketId, privateState } = useGameStore();
   const { t } = useTranslate();
+  const [showPlayersMobile, setShowPlayersMobile] = useState(false);
 
   if (!room) return null;
 
@@ -230,7 +221,6 @@ export function GameViewManager() {
             <h4 className="text-lg font-black uppercase text-black tracking-widest bg-white px-4 py-2 rounded-lg border-4 border-black shadow-[4px_4px_0_0_#000]">
               {t('lobby.waitingRoom')}
             </h4>
-            <GameSettingsManager />
             {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
             {room.gameType === GameType.POKER && <PokerSettings />}
             <LobbyStartButton />
@@ -243,17 +233,52 @@ export function GameViewManager() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-2 sm:gap-4 relative w-full">
-      {/* Left: Players Table (Hidden on mobile/tablet during active game, visible on PC always) */}
+      {/* Mobile toggle for secondary players panel during active gameplay */}
+      {room.status !== RoomStatus.LOBBY && (
+        <div className="lg:hidden flex items-center justify-end">
+          <button
+            data-testid="toggle-players-panel-btn"
+            onClick={() => setShowPlayersMobile(!showPlayersMobile)}
+            aria-expanded={showPlayersMobile}
+            className="text-xs font-black bg-white border-2 border-black px-2.5 py-1 shadow-[2px_2px_0_0_#000] active:translate-y-0.5 active:shadow-none flex items-center gap-1.5"
+          >
+            <span>👥</span>
+            <span>
+              {t('lobby.players')} ({room.players.length})
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">
+              {showPlayersMobile ? '▲' : '▼'}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Players Table (Secondary Panel):
+          - In Lobby: always visible.
+          - During Active Game: folded on mobile/tablet unless showPlayersMobile is true; always visible on desktop (lg+).
+      */}
       <div
-        className={`${room.status === RoomStatus.LOBBY ? 'flex' : 'hidden lg:flex'} lg:flex-none lg:w-72 xl:w-80 flex-col min-h-0 h-fit max-h-[40vh] lg:max-h-full`}
+        data-testid="game-players-panel"
+        className={`${
+          room.status === RoomStatus.LOBBY
+            ? 'flex'
+            : showPlayersMobile
+              ? 'flex mb-2'
+              : 'hidden lg:flex'
+        } lg:flex-none lg:w-72 xl:w-80 flex-col min-h-0 h-fit max-h-[40vh] lg:max-h-full`}
       >
         <PlayerGrid />
       </div>
 
-      {/* Right: Game Area */}
+      {/* Right: Primary Game Area (Status header -> Board/Hand -> Action area) */}
       <div className="flex-1 flex flex-col min-w-0">
+        {room.status === RoomStatus.LOBBY && (
+          <div className="flex justify-center mb-2">
+            <GameSettingsManager />
+          </div>
+        )}
         {room.status !== RoomStatus.LOBBY && (
-          <GameStatusHeader {...getGameStatus(room, socketId)} />
+          <GameStatusHeader {...getGameStatus(room, socketId, privateState)} />
         )}
         {renderGameView()}
       </div>

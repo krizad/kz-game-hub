@@ -146,8 +146,8 @@ test.describe('Who Am I Gameplay', () => {
     await expect(continueBtn).toBeVisible({ timeout: 5000 });
     await continueBtn.click();
 
-    await expect(p1.getByText('Game Over')).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText('Game Over')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 5000 });
 
     // Words are revealed on the final screen
     await expect(p1.getByText('Elephant').first()).toBeVisible();
@@ -253,8 +253,8 @@ test.describe('Who Am I Gameplay', () => {
 
     await p1.getByRole('button', { name: /Continue/i }).click();
 
-    await expect(p1.getByText('Game Over')).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText('Game Over')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 5000 });
     await expect(p1.getByText(/WINS!/i)).toBeVisible();
 
     await cleanup();
@@ -316,9 +316,9 @@ test.describe('Who Am I Gameplay', () => {
 
     await p1.getByRole('button', { name: /Continue/i }).click();
 
-    await expect(p1.getByText('Game Over')).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText('Game Over')).toBeVisible({ timeout: 5000 });
-    await expect(p3.getByText('Game Over')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(p3.getByText('Game Over', { exact: true })).toBeVisible({ timeout: 5000 });
     await expect(p1.getByText('Pirate').first()).toBeVisible();
     await expect(p1.getByText('Astronaut').first()).toBeVisible();
 

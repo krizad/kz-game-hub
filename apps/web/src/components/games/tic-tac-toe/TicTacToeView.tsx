@@ -1,13 +1,27 @@
 'use client';
 
 import { useGameStore } from '@/store/useGameStore';
-import { BOT_SOCKET_ID, RoomStatus } from '@repo/types';
+import { BOT_SOCKET_ID, GameType, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { FirstRoundGuide } from '@/components/lobby/FirstRoundGuide';
 
 export function TicTacToeView() {
-  const { room, socketId, tttJoinSide, tttMakeMove, tttReset, actionLoading } = useGameStore();
+  const {
+    room,
+    socketId,
+    tttJoinSide,
+    tttMakeMove,
+    tttReset,
+    actionLoading,
+    pendingActions,
+    dismissPendingAction,
+  } = useGameStore();
   const { t } = useTranslate();
+
+  const [unknownActionId, unknownPendingAction] =
+    Object.entries(pendingActions).find(([, a]) => a.status === 'unknown') ?? [];
+  const showActionOverlay = actionLoading || !!unknownPendingAction;
 
   if (!room || !room.ticTacToeState) return null;
   const ttt = room.ticTacToeState;
@@ -34,7 +48,12 @@ export function TicTacToeView() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative font-mono h-full overflow-y-auto overflow-x-hidden w-full">
-      {actionLoading && <ActionLoadingOverlay />}
+      {showActionOverlay && (
+        <ActionLoadingOverlay
+          status={unknownPendingAction ? 'unknown' : 'pending'}
+          onDismiss={unknownActionId ? () => dismissPendingAction(unknownActionId) : undefined}
+        />
+      )}
       {room.status === RoomStatus.LOBBY ? (
         <div className="flex flex-col items-center gap-6">
           <h2 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
@@ -84,6 +103,7 @@ export function TicTacToeView() {
           <p className="text-black font-bold bg-white border-2 border-black px-4 py-1 mt-4">
             {isVsBot ? t('gameTicTacToe.bot.playVsBotAs') : t('gameTicTacToe.waitingJoin')}
           </p>
+          <FirstRoundGuide gameType={GameType.TIC_TAC_TOE} />
         </div>
       ) : (
         <div className="flex flex-col items-center gap-6 w-full max-w-md">
@@ -131,11 +151,33 @@ export function TicTacToeView() {
           <div className="grid grid-cols-3 gap-2 bg-black p-2 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
             {ttt.board.map((cell, index) => {
               const isWinningCell = ttt.winningLine?.includes(index);
+              const row = Math.floor(index / 3) + 1;
+              const col = (index % 3) + 1;
+              const status = cell ? cell : t('gameTicTacToe.cellEmpty');
+
+              let disabledReason = '';
+              if (room.status !== RoomStatus.PLAYING) {
+                disabledReason = t('gameTicTacToe.disabledGameOver');
+              } else if (!mySide) {
+                disabledReason = t('gameTicTacToe.disabledViewer');
+              } else if (!isMyTurn) {
+                disabledReason = t('gameTicTacToe.disabledNotYourTurn');
+              } else if (actionLoading) {
+                disabledReason = t('gameTicTacToe.disabledBusy');
+              } else if (cell !== null) {
+                disabledReason = t('gameTicTacToe.disabledOccupied', { owner: cell });
+              }
+
+              const ariaLabel = disabledReason
+                ? `${t('gameTicTacToe.cellAria', { row, col, status })} (${disabledReason})`
+                : t('gameTicTacToe.cellAria', { row, col, status });
 
               return (
                 <button
+                  type="button"
                   key={index}
                   data-testid={`ttt-cell-${index}`}
+                  aria-label={ariaLabel}
                   disabled={
                     room.status !== RoomStatus.PLAYING ||
                     !isMyTurn ||

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, WhoAmIGameState } from '@repo/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { GameDialog } from '@/components/core/GameDialog';
 
 export function WhoAmIView() {
   const { room, socketId, privateState, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
@@ -26,6 +27,31 @@ export function WhoAmIView() {
   const isSpectator = !me || !!me.isViewer;
   const isMyTurn =
     !isSpectator && gameState.currentTurn === socketId && room.status === RoomStatus.PLAYING;
+
+  useEffect(() => {
+    if (gameState.phase !== 'COLLECTING_WORDS') {
+      setPlayerWordInput('');
+    }
+  }, [gameState.phase]);
+
+  useEffect(() => {
+    if (gameState.turnStatus === 'RESULT') {
+      setShowGuessModal(false);
+      setGuessInput('');
+    }
+  }, [gameState.turnStatus]);
+
+  const handleSubmitPlayerWord = () => {
+    const trimmed = playerWordInput.trim();
+    if (!trimmed || actionLoading) return;
+    submitPlayerWordWhoAmI(trimmed);
+  };
+
+  const handleSubmitGuess = () => {
+    const trimmed = guessInput.trim();
+    if (!trimmed || actionLoading) return;
+    gameActionWhoAmI({ type: 'GUESS_WORD', guess: trimmed });
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-[#fdf8e6] border-4 border-black p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] h-full overflow-y-auto overflow-x-hidden font-mono w-full">
@@ -67,22 +93,21 @@ export function WhoAmIView() {
                     autoComplete="off"
                     type="text"
                     value={playerWordInput}
+                    disabled={actionLoading}
                     onChange={(e) => setPlayerWordInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && playerWordInput.trim()) {
-                        submitPlayerWordWhoAmI(playerWordInput.trim());
-                        setPlayerWordInput('');
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSubmitPlayerWord();
                       }
                     }}
-                    className="w-full bg-white border-b-4 border-black border-dashed px-4 py-4 text-black text-center text-3xl font-black focus:outline-none focus:border-solid transition-all placeholder:text-black/30 placeholder:text-xl placeholder:font-bold"
+                    className="w-full bg-white border-b-4 border-black border-dashed px-4 py-4 text-black text-center text-3xl font-black focus:outline-none focus:border-solid transition-all placeholder:text-black/30 placeholder:text-xl placeholder:font-bold disabled:opacity-50"
                     placeholder={t('gameWhoAmI.typeYourWord')}
                     autoFocus
                   />
                   <button
-                    onClick={() => {
-                      submitPlayerWordWhoAmI(playerWordInput.trim());
-                      setPlayerWordInput('');
-                    }}
+                    type="button"
+                    onClick={handleSubmitPlayerWord}
                     disabled={!playerWordInput.trim() || actionLoading}
                     className="w-full bg-blue-500 hover:bg-blue-400 active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xl py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-widest mt-4"
                   >
@@ -120,12 +145,12 @@ export function WhoAmIView() {
           {gameState.phase === 'AWAITING_HOST_INPUT' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4">
               <h4 className="text-xl sm:text-2xl font-black uppercase text-black bg-pink-300 px-6 py-3 border-4 border-black rotate-[2deg] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mx-auto self-start">
-                Secret Word Selection
+                {t('gameWhoAmI.lobby.hostWordModalTitle')}
               </h4>
               {socketId === room.roomHostId ? (
                 <div className="w-full max-w-md space-y-8">
                   <p className="text-black font-bold text-center bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
-                    Enter a secret word for each player. They will NOT see their own word.
+                    {t('gameWhoAmI.lobby.hostWordModalDesc')}
                   </p>
                   {/* Input for each non-host player */}
                   {room.players
@@ -173,7 +198,7 @@ export function WhoAmIView() {
                 <div className="flex flex-col items-center justify-center space-y-4 py-6">
                   <div className="w-12 h-12 rounded-full border border-indigo-500 border-t-transparent animate-spin"></div>
                   <p className="text-slate-500 font-medium animate-pulse">
-                    Waiting for Host to submit secret words...
+                    {t('gameWhoAmI.waitingForHostWords')}
                   </p>
                 </div>
               )}
@@ -413,7 +438,6 @@ export function WhoAmIView() {
                           ) : (
                             <button
                               onClick={() => {
-                                setGuessInput('');
                                 setShowGuessModal(true);
                               }}
                               disabled={actionLoading}
@@ -545,7 +569,10 @@ export function WhoAmIView() {
                           </button>
                         </div>
                         {gameState.votes[socketId] && (
-                          <p className="text-emerald-600 bg-emerald-200 border-2 border-black px-4 py-1 font-black text-center mt-4 max-w-xs mx-auto">
+                          <p
+                            data-testid="whoami-guess-status"
+                            className="text-emerald-600 bg-emerald-200 border-2 border-black px-4 py-1 font-black text-center mt-4 max-w-xs mx-auto"
+                          >
                             {t('gameWhoAmI.voteCast')}
                           </p>
                         )}
@@ -554,8 +581,11 @@ export function WhoAmIView() {
 
                     {/* Active player waits */}
                     {isMyTurn && (
-                      <p className="text-black bg-white border-2 border-black px-4 py-2 text-sm mb-4 animate-pulse font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-xs mx-auto ">
-                        {t('gameWhoAmI.waitingForVerify')}
+                      <p
+                        data-testid="whoami-guess-status"
+                        className="text-black bg-white border-2 border-black px-4 py-2 text-sm mb-4 animate-pulse font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-xs mx-auto "
+                      >
+                        {t('gameWhoAmI.guessSubmittedWaiting')}
                       </p>
                     )}
 
@@ -668,65 +698,68 @@ export function WhoAmIView() {
       )}
 
       {/* GUESS MODAL */}
-      <AnimatePresence>
-        {showGuessModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-yellow-300 border-4 border-black w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative "
-            >
-              <div className="p-6 md:p-8 flex flex-col gap-4 text-center">
-                <div className="text-5xl mb-2">🤔</div>
-                <h3 className="text-2xl font-black text-black uppercase tracking-widest leading-tight border-b-4 border-black border-dashed pb-2">
-                  {t('gameWhoAmI.whoAreYou')}
-                </h3>
-                <p className="text-black font-bold text-sm mb-2">
-                  {t('gameWhoAmI.takeAGuessDesc')}
-                </p>
+      <GameDialog
+        open={showGuessModal}
+        onClose={() => setShowGuessModal(false)}
+        title={t('gameWhoAmI.whoAreYou')}
+      >
+        <div className="bg-yellow-300 border-4 border-black w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-6 md:p-8 flex flex-col gap-4 text-center">
+            <div className="text-5xl mb-2">🤔</div>
+            <h3 className="text-2xl font-black text-black uppercase tracking-widest leading-tight border-b-4 border-black border-dashed pb-2">
+              {t('gameWhoAmI.whoAreYou')}
+            </h3>
+            <p className="text-black font-bold text-sm mb-2">{t('gameWhoAmI.takeAGuessDesc')}</p>
 
-                <input
-                  id="guessWordInput"
-                  name="guessWord"
-                  autoComplete="off"
-                  type="text"
-                  value={guessInput}
-                  onChange={(e) => setGuessInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && guessInput.trim()) {
-                      setShowGuessModal(false);
-                      gameActionWhoAmI({ type: 'GUESS_WORD', guess: guessInput.trim() });
-                    }
-                  }}
-                  className="w-full bg-white border-4 border-black px-4 py-4 text-black focus:outline-none transition-all font-black text-center text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 -"
-                  placeholder={t('gameWhoAmI.typeYourGuess')}
-                  autoFocus
-                />
+            <input
+              id="guessWordInput"
+              name="guessWord"
+              autoComplete="off"
+              type="text"
+              value={guessInput}
+              disabled={actionLoading}
+              onChange={(e) => setGuessInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmitGuess();
+                }
+              }}
+              className="w-full bg-white border-4 border-black px-4 py-4 text-black focus:outline-none transition-all font-black text-center text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 - disabled:opacity-50"
+              placeholder={t('gameWhoAmI.typeYourGuess')}
+              autoFocus
+            />
 
-                <div className="flex gap-4 mt-2">
-                  <button
-                    onClick={() => setShowGuessModal(false)}
-                    className="flex-1 bg-white hover:bg-gray-200 text-black font-black py-3 px-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none"
-                  >
-                    {t('gameWhoAmI.cancel')}
-                  </button>
-                  <button
-                    disabled={!guessInput.trim() || actionLoading}
-                    onClick={() => {
-                      setShowGuessModal(false);
-                      gameActionWhoAmI({ type: 'GUESS_WORD', guess: guessInput.trim() });
-                    }}
-                    className="flex-1 bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white font-black py-3 px-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none"
-                  >
-                    {t('gameWhoAmI.submitGuess')}
-                  </button>
-                </div>
+            {actionLoading && (
+              <div
+                data-testid="whoami-guess-status"
+                className="text-black font-black text-xs uppercase bg-white border-2 border-black p-2 animate-pulse"
+              >
+                {t('gameWhoAmI.guessSubmittedWaiting')}
               </div>
-            </motion.div>
+            )}
+
+            <div className="flex gap-4 mt-2">
+              <button
+                type="button"
+                onClick={() => setShowGuessModal(false)}
+                disabled={actionLoading}
+                className="flex-1 bg-white hover:bg-gray-200 disabled:opacity-50 text-black font-black py-3 px-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none"
+              >
+                {t('gameWhoAmI.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={!guessInput.trim() || actionLoading}
+                onClick={handleSubmitGuess}
+                className="flex-1 bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white font-black py-3 px-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none"
+              >
+                {t('gameWhoAmI.submitGuess')}
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </GameDialog>
     </div>
   );
 }

@@ -90,7 +90,9 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-700 sm:text-xs">
                       {t('gameWhoKnow.roleCard.targetWord')}
                     </span>
-                    <span className="break-words text-xl font-black text-black sm:text-2xl">{word}</span>
+                    <span className="break-words text-xl font-black text-black sm:text-2xl">
+                      {word}
+                    </span>
                   </div>
                 )}
               </div>

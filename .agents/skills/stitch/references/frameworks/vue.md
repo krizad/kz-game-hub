@@ -8,7 +8,7 @@ Extract design tokens, theme plugin configs, and Single-File Component (`*.vue`)
 2. **`assets/css/main.css` or `src/assets/main.css`**: Global `:root` custom properties, resets, and font imports.
 3. **`tailwind.config.js`**: When Tailwind is present, follow [react-tailwind.md](react-tailwind.md).
 4. **`app.vue`, `layouts/default.vue`, and `composables/`**: Root layout shell, surface classes, and `useTheme` or `useColorMode` theme state.
-5. **`components/**/*.vue`**: `<style scoped>` blocks, `var(--*)` token references, and BEM class structures across 5 to 8 core components.
+5. **`components/**/_.vue`**: `<style scoped>`blocks,`var(--_)` token references, and BEM class structures across 5 to 8 core components.
 
 ## Component library overrides
 

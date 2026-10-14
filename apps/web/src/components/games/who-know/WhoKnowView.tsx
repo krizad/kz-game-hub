@@ -340,14 +340,14 @@ export function WhoKnowView() {
                           </span>
                           <span className="border-2 border-black bg-white px-2 py-1 text-xs font-black text-black">
                             {voterIds.length}{' '}
-                            {voterIds.length === 1
-                              ? t('gameWhoKnow.vote')
-                              : t('gameWhoKnow.votes')}
+                            {voterIds.length === 1 ? t('gameWhoKnow.vote') : t('gameWhoKnow.votes')}
                           </span>
                         </div>
                         <p className="mt-2 flex flex-wrap gap-1.5">
                           {voterIds.map((voterId) => {
-                            const voter = room.players.find((player) => player.socketId === voterId);
+                            const voter = room.players.find(
+                              (player) => player.socketId === voterId,
+                            );
                             return voter ? (
                               <span
                                 key={voterId}

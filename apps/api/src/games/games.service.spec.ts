@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GamesService, RoomLifecycleEvent } from './games.service';
+import { GamesGateway } from './games.gateway';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -19,11 +20,13 @@ import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
-import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
+import { RoomState, RoomStatus, GameType, Role, SOCKET_EVENTS } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { GameSettingsService } from './game-settings.service';
+import { RoomStartGuardService } from './room-start-guard.service';
+import { ActionReceiptService } from './action-receipt.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -43,6 +46,7 @@ describe('GamesService', () => {
   let playerSessionService: PlayerSessionService;
   let privateStateService: PrivateStateService;
   let roomTimerService: RoomTimerService;
+  let roomStartGuardService: RoomStartGuardService;
 
   const mockGameServices = {
     whoKnow: {
@@ -236,6 +240,8 @@ describe('GamesService', () => {
         PrivateStateService,
         RoomTimerService,
         GameSettingsService,
+        RoomStartGuardService,
+        ActionReceiptService,
       ],
     }).compile();
 
@@ -256,6 +262,7 @@ describe('GamesService', () => {
     playerSessionService = module.get(PlayerSessionService);
     privateStateService = module.get(PrivateStateService);
     roomTimerService = module.get(RoomTimerService);
+    roomStartGuardService = module.get(RoomStartGuardService);
 
     // Real implementation so leave-mid-round tests exercise actual cancellation
     const cardGameInstance = new CardGameService(privateStateService);
@@ -286,6 +293,8 @@ describe('GamesService', () => {
         rpsBestOf: 3,
         rpsMode: '1V1_ROUND_ROBIN',
         language: 'th',
+        visibility: 'UNLISTED',
+        allowSpectators: false,
       });
     });
 
@@ -466,6 +475,39 @@ describe('GamesService', () => {
       expect(updatedRoom!.players).toHaveLength(1);
       expect(updatedRoom!.players[0].socketId).toBe('newSock');
       expect(updatedRoom!.players[0].connected).toBe(true);
+    });
+
+    it('recognizes a seated reconnect only when the token and player name both match', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'oldSock', name: 'Original', socketId: 'oldSock' });
+      const reconnectToken = service.getReconnectToken(room.code, 'oldSock')!;
+
+      expect(service.hasSeatedSession(room.code, reconnectToken, 'Original')).toBe(true);
+      expect(service.hasSeatedSession(room.code, reconnectToken, 'Changed')).toBe(false);
+    });
+
+    it('does not create a late viewer when a real seated token is used with a new name', () => {
+      const room = service.createRoom('oldSock');
+      service.joinRoom(room.code, { id: 'oldSock', name: 'Original', socketId: 'oldSock' });
+      const reconnectToken = service.getReconnectToken(room.code, 'oldSock')!;
+      room.status = RoomStatus.PLAYING;
+      const gateway = new GamesGateway(
+        service,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+      const client = { id: 'newSock', emit: jest.fn(), data: {} };
+
+      gateway.handleJoinRoom({ code: room.code, name: 'Changed', reconnectToken }, client as never);
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+        message: 'SPECTATORS_DISABLED',
+      });
+      expect(room.players).toHaveLength(1);
+      expect(room.players[0].name).toBe('Original');
+      expect(room.players[0].isViewer).toBeUndefined();
     });
 
     it('should keep host ownership when refresh reconnect races the old socket disconnect', () => {
@@ -1046,11 +1088,35 @@ describe('GamesService', () => {
   });
 
   describe('getAvailableRooms', () => {
+    it('defaults new rooms to unlisted with spectators disabled, while legacy rooms remain public', () => {
+      const newRoom = service.createRoom('host1');
+      expect(newRoom.config).toMatchObject({ visibility: 'UNLISTED', allowSpectators: false });
+      expect(service.getAvailableRooms()).toEqual([]);
+
+      delete newRoom.config.visibility;
+      delete newRoom.config.allowSpectators;
+      expect(service.getAvailableRooms().map((room) => room.code)).toEqual([newRoom.code]);
+    });
+
+    it('lists public rooms and keeps unlisted rooms joinable by code', () => {
+      const publicRoom = service.createRoom('host1', GameType.WHO_KNOW, {
+        visibility: 'PUBLIC',
+      });
+      const unlistedRoom = service.createRoom('host2');
+      expect(service.getAvailableRooms().map((room) => room.code)).toEqual([publicRoom.code]);
+      expect(
+        service.joinRoom(unlistedRoom.code, { id: 'guest', name: 'Guest', socketId: 'guest' })
+          ?.players[0].name,
+      ).toBe('Guest');
+    });
+
     it('should return only LOBBY rooms', () => {
-      const lobbyRoom = service.createRoom('host1');
+      const lobbyRoom = service.createRoom('host1', GameType.WHO_KNOW, { visibility: 'PUBLIC' });
       service.joinRoom(lobbyRoom.code, { id: 'host1', name: 'Host', socketId: 'host1' });
 
-      const playingRoom = service.createRoom('host2');
+      const playingRoom = service.createRoom('host2', GameType.WHO_KNOW, {
+        visibility: 'PUBLIC',
+      });
       playingRoom.status = RoomStatus.PLAYING;
       (service as any).rooms.set(playingRoom.code, playingRoom);
 
@@ -1062,7 +1128,7 @@ describe('GamesService', () => {
     });
 
     it('should show Unknown for host name if host not in players', () => {
-      service.createRoom('host1');
+      service.createRoom('host1', GameType.WHO_KNOW, { visibility: 'PUBLIC' });
       const available = service.getAvailableRooms();
       expect(available[0].hostName).toBe('Unknown');
     });
@@ -1073,6 +1139,35 @@ describe('GamesService', () => {
   });
 
   describe('updateConfig', () => {
+    it('lets only the lobby host change visibility and spectator policy', () => {
+      const room = service.createRoom('host1');
+      expect(
+        service.updateConfig(room.code, 'guest', { visibility: 'PUBLIC', allowSpectators: true }),
+      ).toBeNull();
+      expect(room.config.visibility).toBe('UNLISTED');
+      expect(
+        service.updateConfig(room.code, 'host1', { visibility: 'PUBLIC', allowSpectators: true })
+          ?.config,
+      ).toMatchObject({ visibility: 'PUBLIC', allowSpectators: true });
+      room.status = RoomStatus.PLAYING;
+      expect(service.updateConfig(room.code, 'host1', { visibility: 'UNLISTED' })).toBeNull();
+      expect(room.config.visibility).toBe('PUBLIC');
+    });
+
+    it('ignores malformed policy values from untrusted config payloads', () => {
+      const room = service.createRoom('host1', GameType.WHO_KNOW, {
+        visibility: 'SECRET',
+        allowSpectators: 'false',
+      } as unknown as Partial<RoomState['config']>);
+      expect(room.config).toMatchObject({ visibility: 'UNLISTED', allowSpectators: false });
+
+      service.updateConfig(room.code, 'host1', {
+        visibility: 'SECRET',
+        allowSpectators: 'true',
+      } as unknown as Partial<RoomState['config']>);
+      expect(room.config).toMatchObject({ visibility: 'UNLISTED', allowSpectators: false });
+    });
+
     it('should update room config', () => {
       const room = service.createRoom('host1');
       const updated = service.updateConfig(room.code, 'host1', { timerMin: 10, language: 'en' });
@@ -1800,7 +1895,9 @@ describe('GamesService', () => {
     it('hides available rooms of disabled games from the lobby list', () => {
       const room = service.createRoom('host1', GameType.COUP);
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
-      const enabledRoom = service.createRoom('host2', GameType.THE_MIND);
+      const enabledRoom = service.createRoom('host2', GameType.THE_MIND, {
+        visibility: 'PUBLIC',
+      });
       service.joinRoom(enabledRoom.code, { id: 'host2', name: 'Host2', socketId: 'host2' });
 
       (service as any).gameSettings.enabled.set(GameType.COUP, false);
@@ -1838,6 +1935,20 @@ describe('GamesService', () => {
         expect(service.saboteurTurnDeadline(room.code, 'p1', 60)).toBe(65_000);
       } finally {
         jest.useRealTimers();
+      }
+    });
+
+    it('invalidates in-flight start tickets when the room is deleted', () => {
+      const room = service.createRoom('host1', GameType.SOUNDS_FISHY);
+      const ticket = roomStartGuardService.begin(room.code, room);
+      expect(ticket).not.toBe('START_BUSY');
+      expect(roomStartGuardService.isBusy(room.code)).toBe(true);
+
+      service.deleteRoom(room.code);
+
+      expect(roomStartGuardService.isBusy(room.code)).toBe(false);
+      if (ticket !== 'START_BUSY') {
+        expect(roomStartGuardService.isCurrent(ticket, room)).toBe(false);
       }
     });
   });

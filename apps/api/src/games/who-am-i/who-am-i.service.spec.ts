@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WhoAmIService } from './who-am-i.service';
-import { RoomState, RoomStatus, GameType, WhoAmIGameState } from '@repo/types';
+import { RoomState, RoomStatus, GameType, WhoAmIGameState, UserState } from '@repo/types';
 
 jest.mock('@repo/database', () => ({
   prisma: {
@@ -13,15 +13,22 @@ jest.mock('@repo/database', () => ({
 
 import { prisma } from '@repo/database';
 import { PrivateStateService } from '../private-state.service';
+import { RoomStartGuardService } from '../room-start-guard.service';
 
 describe('WhoAmIService', () => {
   let service: WhoAmIService;
   let privateState: PrivateStateService;
+  let startGuard: RoomStartGuardService;
 
   beforeEach(async () => {
     privateState = new PrivateStateService();
+    startGuard = new RoomStartGuardService();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [WhoAmIService, { provide: PrivateStateService, useValue: privateState }],
+      providers: [
+        WhoAmIService,
+        { provide: PrivateStateService, useValue: privateState },
+        { provide: RoomStartGuardService, useValue: startGuard },
+      ],
     }).compile();
 
     service = module.get<WhoAmIService>(WhoAmIService);
@@ -149,6 +156,68 @@ describe('WhoAmIService', () => {
 
       expect(service.startGameHostInput(room, 'host1', { p1: 'Word' })).toBeNull();
       expect(service.startGameHostInput(room, 'host1', { p1: 'Word', p2: '  ' })).toBeNull();
+    });
+
+    it('should return null if playerWords has extra or stale socket IDs', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      expect(
+        service.startGameHostInput(room, 'host1', {
+          p1: 'Apple',
+          p2: 'Banana',
+          staleSocket: 'Orange',
+        }),
+      ).toBeNull();
+    });
+
+    it('should reject malformed host word payloads without throwing', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      expect(
+        service.startGameHostInput(room, 'host1', null as unknown as Record<string, string>),
+      ).toBeNull();
+      expect(
+        service.startGameHostInput(room, 'host1', {
+          p1: 42 as unknown as string,
+          p2: 'Banana',
+        }),
+      ).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+    });
+
+    it('should exclude spectators and disconnected players from required players', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [
+          { socketId: 'host1' },
+          { socketId: 'p1' },
+          { socketId: 'p2' },
+          { socketId: 'viewer1', isViewer: true },
+          { socketId: 'disconnected1', connected: false },
+        ],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 5 },
+      } as unknown as RoomState;
+
+      const result = service.startGameHostInput(room, 'host1', {
+        p1: 'Apple',
+        p2: 'Banana',
+      });
+      expect(result).not.toBeNull();
+      expect(result!.whoAmIState).toBeDefined();
     });
   });
 
@@ -283,6 +352,241 @@ describe('WhoAmIService', () => {
       const words = Object.fromEntries(privateState.getRoomData('test-room', 'waiMyWord'));
       expect(Object.values(words)).toContain('🍕 Pizza');
       expect(Object.values(words)).toContain('Sushi');
+    });
+
+    it('should reject concurrent double-start while DB query is in flight', async () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'RANDOM', wordCategory: 'Food' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const firstCallPromise = service.startGameRandom(room, 'host1');
+      const secondCallResult = await service.startGameRandom(room, 'host1');
+      expect(secondCallResult).toBeNull();
+
+      resolveFindMany!([
+        { word: 'Pizza', emoji: '🍕' },
+        { word: 'Sushi', emoji: null },
+      ]);
+      const firstCallResult = await firstCallPromise;
+      expect(firstCallResult).not.toBeNull();
+      expect(firstCallResult!.status).toBe(RoomStatus.PLAYING);
+    });
+
+    it('should abort and write no words if config changes during async fetch', async () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'RANDOM', wordCategory: 'Food', language: 'th' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.startGameRandom(room, 'host1');
+
+      // Config changed
+      room.config = { ...room.config, language: 'en' };
+
+      resolveFindMany!([
+        { word: 'Pizza', emoji: '🍕' },
+        { word: 'Sushi', emoji: null },
+      ]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get('test-room', 'host1', 'waiMyWord')).toBeUndefined();
+    });
+
+    it('should abort and write no words if host rotates during async fetch', async () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'RANDOM', wordCategory: 'Food' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.startGameRandom(room, 'host1');
+
+      // Host rotates to p1
+      room.roomHostId = 'p1';
+
+      resolveFindMany!([
+        { word: 'Pizza', emoji: '🍕' },
+        { word: 'Sushi', emoji: null },
+      ]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get('test-room', 'host1', 'waiMyWord')).toBeUndefined();
+    });
+
+    it('should abort and write no words if a player leaves during async fetch', async () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'RANDOM', wordCategory: 'Food' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.startGameRandom(room, 'host1');
+
+      // Player p2 leaves
+      room.players = [{ socketId: 'host1' }, { socketId: 'p1' }] as unknown as UserState[];
+
+      resolveFindMany!([
+        { word: 'Pizza', emoji: '🍕' },
+        { word: 'Sushi', emoji: null },
+        { word: 'Taco', emoji: '🌮' },
+      ]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get('test-room', 'host1', 'waiMyWord')).toBeUndefined();
+    });
+  });
+
+  describe('startGameAiGenerated', () => {
+    it('should fall back to DB words when GEMINI_API_KEY is not set', async () => {
+      const room = {
+        code: 'ai-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'AI_GENERATED', wordCategory: 'Animals' },
+      } as unknown as RoomState;
+
+      (prisma.word.findMany as jest.Mock).mockResolvedValue([
+        { word: 'Tiger', emoji: '🐯' },
+        { word: 'Lion', emoji: '🦁' },
+      ]);
+
+      const result = await service.startGameAiGenerated(room, 'host1');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.whoAmIState).toBeDefined();
+    });
+
+    it('should reject concurrent double-start with START_BUSY while generation is in flight', async () => {
+      const room = {
+        code: 'ai-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'AI_GENERATED', wordCategory: 'Animals' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const firstCallPromise = service.startGameAiGenerated(room, 'host1');
+      const secondCallResult = await service.startGameAiGenerated(room, 'host1');
+      expect(secondCallResult).toBeNull();
+
+      resolveFindMany!([
+        { word: 'Tiger', emoji: '🐯' },
+        { word: 'Lion', emoji: '🦁' },
+      ]);
+      const firstCallResult = await firstCallPromise;
+      expect(firstCallResult).not.toBeNull();
+      expect(firstCallResult!.status).toBe(RoomStatus.PLAYING);
+    });
+
+    it('should abort and write no words if config changes during generation', async () => {
+      const room = {
+        code: 'ai-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }],
+        config: { wordMode: 'AI_GENERATED', wordCategory: 'Animals', language: 'th' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.startGameAiGenerated(room, 'host1');
+
+      // Config changed
+      room.config = { ...room.config, language: 'en' };
+
+      resolveFindMany!([
+        { word: 'Tiger', emoji: '🐯' },
+        { word: 'Lion', emoji: '🦁' },
+      ]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get('ai-room', 'host1', 'waiMyWord')).toBeUndefined();
+    });
+
+    it('should abort and write no words if a player leaves during generation', async () => {
+      const room = {
+        code: 'ai-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [{ socketId: 'host1' }, { socketId: 'p1' }, { socketId: 'p2' }],
+        config: { wordMode: 'AI_GENERATED', wordCategory: 'Animals' },
+      } as unknown as RoomState;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.word.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.startGameAiGenerated(room, 'host1');
+
+      // Player leaves
+      room.players = [{ socketId: 'host1' }, { socketId: 'p1' }] as unknown as UserState[];
+
+      resolveFindMany!([
+        { word: 'Tiger', emoji: '🐯' },
+        { word: 'Lion', emoji: '🦁' },
+        { word: 'Bear', emoji: '🐻' },
+      ]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get('ai-room', 'host1', 'waiMyWord')).toBeUndefined();
     });
   });
 
@@ -477,6 +781,34 @@ describe('WhoAmIService', () => {
           privateState.get('test-room', p.socketId, 'waiSubmittedWord'),
         );
       });
+
+      // Each player's visible words excludes their own word, and public room does not leak secret words
+      room.players.forEach((p) => {
+        const visible = privateState.get<Record<string, string>>(
+          'test-room',
+          p.socketId,
+          'waiVisibleWords',
+        );
+        expect(visible).toBeDefined();
+        expect(visible![p.socketId]).toBeUndefined();
+      });
+      expect(result!.room.whoAmIState!.revealedWords).toBeUndefined();
+    });
+
+    it('leaves wordSubmittedIds unchanged upon duplicate rejection so draft can be edited and resubmitted', () => {
+      const room = makeCollectingRoom();
+      service.submitPlayerWord(room, 'p1', 'Elephant');
+      expect(room.whoAmIState!.wordSubmittedIds).toEqual(['p1']);
+
+      const rejected = service.submitPlayerWord(room, 'p2', 'Elephant');
+      expect(rejected).not.toBeNull();
+      expect(rejected!.error).toBeDefined();
+      expect(room.whoAmIState!.wordSubmittedIds).toEqual(['p1']);
+
+      const accepted = service.submitPlayerWord(room, 'p2', 'Cheetah');
+      expect(accepted).not.toBeNull();
+      expect(accepted!.error).toBeUndefined();
+      expect(room.whoAmIState!.wordSubmittedIds).toEqual(['p1', 'p2']);
     });
   });
 

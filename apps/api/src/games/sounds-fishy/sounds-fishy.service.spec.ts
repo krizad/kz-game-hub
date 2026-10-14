@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SoundsFishyService } from './sounds-fishy.service';
+import { SoundsFishyService, SF_ERROR_QUESTIONS_UNAVAILABLE } from './sounds-fishy.service';
 import { PrivateStateService } from '../private-state.service';
+import { RoomStartGuardService } from '../room-start-guard.service';
 import { RoomState, RoomStatus, SoundsFishyPhase } from '@repo/types';
 
 jest.mock('@repo/database', () => ({
@@ -18,11 +19,17 @@ import { prisma } from '@repo/database';
 describe('SoundsFishyService', () => {
   let service: SoundsFishyService;
   let privateState: PrivateStateService;
+  let startGuard: RoomStartGuardService;
 
   beforeEach(async () => {
     privateState = new PrivateStateService();
+    startGuard = new RoomStartGuardService();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SoundsFishyService, { provide: PrivateStateService, useValue: privateState }],
+      providers: [
+        SoundsFishyService,
+        { provide: PrivateStateService, useValue: privateState },
+        { provide: RoomStartGuardService, useValue: startGuard },
+      ],
     }).compile();
 
     service = module.get<SoundsFishyService>(SoundsFishyService);
@@ -127,6 +134,184 @@ describe('SoundsFishyService', () => {
 
       expect(result).not.toBeNull();
       expect(privateState.getRoomData(room.code, 'sfMyAnswer').size).toBe(0);
+    });
+
+    it('should reject concurrent double-start with START_BUSY while async query is in flight', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+
+      let resolveAggregate: (value: unknown) => void;
+      const deferredAggregate = new Promise((resolve) => {
+        resolveAggregate = resolve;
+      });
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockReturnValue(deferredAggregate);
+
+      const firstCallPromise = service.assignRoles(room, 'p1');
+      // Second call while first is in flight
+      const secondCallResult = await service.assignRoles(room, 'p1');
+      expect(secondCallResult).toBeNull();
+
+      // Resolve first call
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockResolvedValue([
+        { id: 1, question: 'Q?', answer: 'A!', lang: 'th' },
+      ]);
+      (prisma.soundsFishyQuestion.update as jest.Mock).mockResolvedValue({});
+      resolveAggregate!({ _min: { query_count: 0 } });
+
+      const firstCallResult = await firstCallPromise;
+      expect(firstCallResult).not.toBeNull();
+    });
+
+    it('should abort and write no private state if config changes during async query', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValue({
+        _min: { query_count: 0 },
+      });
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.assignRoles(room, 'p1');
+
+      // Config changed while query in flight
+      room.config = { ...room.config, language: 'en' };
+
+      resolveFindMany!([{ id: 1, question: 'Q?', answer: 'A!', lang: 'th' }]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      // No roles or answers written
+      expect(privateState.get(room.code, 'p1', 'sfRole')).toBeUndefined();
+      expect(privateState.get(room.code, '__room__', 'sfRoomTrueAnswer')).toBeUndefined();
+    });
+
+    it('should abort and write no private state if host rotates during async query', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValue({
+        _min: { query_count: 0 },
+      });
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.assignRoles(room, 'p1');
+
+      // Host rotates to p2
+      room.roomHostId = 'p2';
+
+      resolveFindMany!([{ id: 1, question: 'Q?', answer: 'A!', lang: 'th' }]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get(room.code, 'p1', 'sfRole')).toBeUndefined();
+    });
+
+    it('should abort and write no private state if a player leaves during async query', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+
+      let resolveFindMany: (value: unknown) => void;
+      const deferredFindMany = new Promise((resolve) => {
+        resolveFindMany = resolve;
+      });
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValue({
+        _min: { query_count: 0 },
+      });
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockReturnValue(deferredFindMany);
+
+      const callPromise = service.assignRoles(room, 'p1');
+
+      // Player p3 leaves
+      room.players = room.players.filter((p) => p.socketId !== 'p3');
+
+      resolveFindMany!([{ id: 1, question: 'Q?', answer: 'A!', lang: 'th' }]);
+      const result = await callPromise;
+
+      expect(result).toBeNull();
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(privateState.get(room.code, 'p1', 'sfRole')).toBeUndefined();
+    });
+
+    it('should return error object and release ticket on DB error allowing host to retry', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockRejectedValueOnce(
+        new Error('DB connection failed'),
+      );
+
+      const failedResult = await service.assignRoles(room, 'p1');
+      expect(failedResult).toEqual({
+        room,
+        roles: {},
+        error: SF_ERROR_QUESTIONS_UNAVAILABLE,
+      });
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(room.soundsFishyState).toBeUndefined();
+      expect(privateState.get(room.code, 'p1', 'sfRole')).toBeUndefined();
+      expect(privateState.get(room.code, '__room__', 'sfRoomTrueAnswer')).toBeUndefined();
+
+      // Retry immediately after DB recovers
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValueOnce({
+        _min: { query_count: 0 },
+      });
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockResolvedValueOnce([
+        { id: 1, question: 'Q?', answer: 'A!', lang: 'th' },
+      ]);
+      (prisma.soundsFishyQuestion.update as jest.Mock).mockResolvedValueOnce({});
+
+      const retryResult = await service.assignRoles(room, 'p1');
+      expect(retryResult).not.toBeNull();
+      expect(retryResult!.room.status).toBe(RoomStatus.QUESTIONING);
+    });
+
+    it('should return error object and keep room in LOBBY when no questions exist for language', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+      room.config = { ...room.config, language: 'en' };
+
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValueOnce({
+        _min: { query_count: null },
+      });
+
+      const result = await service.assignRoles(room, 'p1');
+      expect(result).toEqual({
+        room,
+        roles: {},
+        error: SF_ERROR_QUESTIONS_UNAVAILABLE,
+      });
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(room.soundsFishyState).toBeUndefined();
+      expect(privateState.get(room.code, 'p1', 'sfRole')).toBeUndefined();
+      expect(privateState.get(room.code, '__room__', 'sfRoomTrueAnswer')).toBeUndefined();
+    });
+
+    it('should return error object when questions list is empty', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.LOBBY;
+
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValueOnce({
+        _min: { query_count: 0 },
+      });
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockResolvedValueOnce([]);
+
+      const result = await service.assignRoles(room, 'p1');
+      expect(result).toEqual({
+        room,
+        roles: {},
+        error: SF_ERROR_QUESTIONS_UNAVAILABLE,
+      });
+      expect(room.status).toBe(RoomStatus.LOBBY);
     });
   });
 

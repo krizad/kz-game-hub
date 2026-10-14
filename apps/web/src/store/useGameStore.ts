@@ -28,10 +28,20 @@ import {
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
   DeleteArtistPayload,
+  ActionReceipt,
+  ServerTimeResponsePayload,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
 import { translateServerError } from '@/i18n/serverErrors';
+import { estimateServerOffset } from '../hooks/useServerClock';
+
+export interface PendingAction {
+  event: string;
+  createdAt: number;
+  status: 'pending' | 'accepted' | 'rejected' | 'unknown';
+  reason?: string;
+}
 
 /**
  * Room config patch. `musicTriviaArtistPresetId: null` explicitly leaves
@@ -70,9 +80,13 @@ interface GameState {
   artistPresets: ArtistPresetSummary[];
   categories: WordCategory[];
   isLoading: boolean;
+  gameStartError: string | null;
+  clearGameStartError: () => void;
   privateState: Record<string, unknown>;
   musicTriviaHostAnswer: MusicTriviaHostAnswerPayload | null;
   actionLoading: boolean;
+  serverOffset: number;
+  syncServerTime: () => void;
   connect: () => void;
   setName: (name: string) => void;
   isGameEnabled: (gameType: GameType | TttModeFlag) => boolean;
@@ -163,9 +177,30 @@ interface GameState {
   musicTriviaSyncPlay: MusicTriviaSyncPlayPayload | null;
   /** Latest room-wide emoji reaction (Banana Thief sound board). */
   lastBananaThiefReaction: { fromName: string; emoji: string; seq: number } | null;
+  pendingActions: Record<string, PendingAction>;
+  dismissPendingAction: (requestId: string) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => {
+  let pendingSpectatorJoin: { code: string; previousIsSpectator: boolean } | null = null;
+  const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  const clockSyncTimeouts: ReturnType<typeof setTimeout>[] = [];
+  let bestRtt = Infinity;
+
+  const clearAllActionTimeouts = () => {
+    actionTimeouts.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    actionTimeouts.clear();
+  };
+
+  const clearClockSyncTimeouts = () => {
+    clockSyncTimeouts.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    clockSyncTimeouts.length = 0;
+  };
+
   /**
    * Standard game-action emitter: guards on socket/room/loading state,
    * flips `actionLoading`, and sends `{ code, ...payload }`.
@@ -173,21 +208,63 @@ export const useGameStore = create<GameState>((set, get) => {
    */
   const emitGameAction = (
     event: string,
-    options: { loading?: boolean; payload?: (room: RoomState) => Record<string, unknown> } = {},
+    options: {
+      loading?: boolean;
+      trackReceipt?: boolean;
+      payload?: (room: RoomState) => Record<string, unknown>;
+    } = {},
   ): boolean => {
     const { socket, room, actionLoading, connected, connectionStatus } = get();
+    // Offline check: "offline ไม่ queue"
     if (!socket?.connected || !connected || connectionStatus !== 'connected' || !room) return false;
     const withLoading = options.loading ?? true;
     if (withLoading && actionLoading) return false;
+
+    const shouldTrackReceipt =
+      options.trackReceipt ??
+      (event === SOCKET_EVENTS.TTT_MAKE_MOVE || event === SOCKET_EVENTS.RPS_MAKE_CHOICE);
+
+    let requestId: string | undefined;
+    if (shouldTrackReceipt) {
+      requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const timeoutId = setTimeout(() => {
+        actionTimeouts.delete(requestId!);
+        const current = get().pendingActions[requestId!];
+        if (current && current.status === 'pending') {
+          const updated = { ...get().pendingActions };
+          updated[requestId!] = { ...current, status: 'unknown' };
+          const hasOtherPending = Object.values(updated).some((a) => a.status === 'pending');
+          set({
+            pendingActions: updated,
+            actionLoading: hasOtherPending,
+          });
+        }
+      }, 5000);
+
+      actionTimeouts.set(requestId, timeoutId);
+      set({
+        pendingActions: {
+          ...get().pendingActions,
+          [requestId]: {
+            event,
+            createdAt: Date.now(),
+            status: 'pending',
+          },
+        },
+      });
+    }
+
     if (withLoading) set({ actionLoading: true });
     socket.emit(event, {
       code: room.code,
       ...(options.payload ? options.payload(room) : {}),
+      ...(requestId ? { requestId } : {}),
     });
     return true;
   };
 
-  const clearRoomSession = () =>
+  const clearRoomSession = () => {
+    clearAllActionTimeouts();
     set({
       room: null,
       myRole: null,
@@ -195,7 +272,10 @@ export const useGameStore = create<GameState>((set, get) => {
       privateState: {},
       isSpectator: false,
       playerId: '',
+      pendingActions: {},
+      actionLoading: false,
     });
+  };
 
   return {
     socket: null,
@@ -224,9 +304,38 @@ export const useGameStore = create<GameState>((set, get) => {
     categories: [],
 
     isLoading: false,
+    gameStartError: null,
+    clearGameStartError: () => set({ gameStartError: null }),
     privateState: {},
     musicTriviaHostAnswer: null,
     actionLoading: false,
+    serverOffset: 0,
+    syncServerTime: () => {
+      const socket = get().socket;
+      if (!socket?.connected) return;
+      clearClockSyncTimeouts();
+      bestRtt = Infinity;
+      for (let i = 0; i < 5; i++) {
+        const timeout = setTimeout(() => {
+          if (get().socket?.connected) {
+            get().socket?.emit(SOCKET_EVENTS.SERVER_TIME_REQUEST, { clientSentAt: Date.now() });
+          }
+        }, i * 250);
+        clockSyncTimeouts.push(timeout);
+      }
+    },
+    pendingActions: {},
+    dismissPendingAction: (requestId: string) => {
+      const timeout = actionTimeouts.get(requestId);
+      if (timeout) {
+        clearTimeout(timeout);
+        actionTimeouts.delete(requestId);
+      }
+      const updated = { ...get().pendingActions };
+      delete updated[requestId];
+      const hasOtherPending = Object.values(updated).some((a) => a.status === 'pending');
+      set({ pendingActions: updated, actionLoading: hasOtherPending });
+    },
     musicTriviaTrackAnswer: null,
     musicTriviaSyncPlay: null,
     lastBananaThiefReaction: null,
@@ -312,6 +421,7 @@ export const useGameStore = create<GameState>((set, get) => {
         socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
         socket.emit(SOCKET_EVENTS.GET_GAME_SETTINGS);
         socket.emit(SOCKET_EVENTS.GET_ARTIST_PRESETS);
+        get().syncServerTime();
       });
 
       socket.on(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, (settings: GameSettingsMap) => {
@@ -327,12 +437,15 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on('disconnect', () => {
+        clearAllActionTimeouts();
+        clearClockSyncTimeouts();
         set({
           connected: false,
           socketId: '',
           connectionStatus: get().room ? 'reconnecting' : 'connecting',
           isLoading: false,
           actionLoading: false,
+          pendingActions: {},
           myRole: null,
           secretWord: null,
           privateState: {},
@@ -342,16 +455,19 @@ export const useGameStore = create<GameState>((set, get) => {
         });
       });
       socket.on('connect_error', () => {
+        clearAllActionTimeouts();
         set({
           connected: false,
           socketId: '',
           connectionStatus: 'failed',
           isLoading: false,
           actionLoading: false,
+          pendingActions: {},
         });
       });
 
       socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
+        if (pendingSpectatorJoin?.code === room.code) pendingSpectatorJoin = null;
         // Check if the current player is still in the room
         const isMe = room.players.some((p) => p.socketId === socket.id);
 
@@ -360,6 +476,10 @@ export const useGameStore = create<GameState>((set, get) => {
         if (!isMe && !get().isSpectator) return;
         set({ connectionStatus: 'connected' });
 
+        const hasPendingAction = Object.values(get().pendingActions).some(
+          (a) => a.status === 'pending',
+        );
+
         if (room.status === RoomStatus.LOBBY) {
           set({
             room,
@@ -367,7 +487,7 @@ export const useGameStore = create<GameState>((set, get) => {
             secretWord: null,
             privateState: {},
             isLoading: false,
-            actionLoading: false,
+            actionLoading: hasPendingAction,
           });
         } else {
           // Clear host answer when state updates (if not GAME_MASTER playing)
@@ -379,12 +499,54 @@ export const useGameStore = create<GameState>((set, get) => {
             set({ musicTriviaHostAnswer: null });
           }
 
-          set({ room, isLoading: false, actionLoading: false });
+          set({ room, isLoading: false, actionLoading: hasPendingAction, gameStartError: null });
         }
 
         if (!get().isSpectator) {
           localStorage.setItem(STORAGE_KEYS.roomCode, room.code);
           localStorage.setItem(STORAGE_KEYS.name, get().myName);
+        }
+      });
+
+      socket.on(SOCKET_EVENTS.ACTION_RECEIPT, (receipt: ActionReceipt) => {
+        const timeout = actionTimeouts.get(receipt.requestId);
+        if (timeout) {
+          clearTimeout(timeout);
+          actionTimeouts.delete(receipt.requestId);
+        }
+
+        const pending = get().pendingActions[receipt.requestId];
+        if (!pending) return;
+
+        const updated = { ...get().pendingActions };
+        delete updated[receipt.requestId];
+        const hasOtherPending = Object.values(updated).some((a) => a.status === 'pending');
+        set({
+          pendingActions: updated,
+          actionLoading: hasOtherPending,
+        });
+
+        if (receipt.status === 'rejected' && receipt.reason) {
+          toast.error(translateError(receipt.reason));
+        }
+      });
+
+      socket.on(SOCKET_EVENTS.SERVER_TIME_RESPONSE, (payload: ServerTimeResponsePayload) => {
+        if (
+          !payload ||
+          typeof payload.clientSentAt !== 'number' ||
+          typeof payload.serverNow !== 'number'
+        ) {
+          return;
+        }
+        const t0 = payload.clientSentAt;
+        const t1 = Date.now();
+        const rtt = t1 - t0;
+        if (rtt < 0 || rtt > 3000) return;
+        if (rtt < bestRtt) {
+          bestRtt = rtt;
+          const offset = estimateServerOffset(t0, t1, payload.serverNow);
+          set({ serverOffset: offset });
         }
       });
 
@@ -441,6 +603,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
         let redirectedFromMissingInviteRoom = false;
+        if (message === 'SPECTATORS_DISABLED' && pendingSpectatorJoin) {
+          set({ isSpectator: pendingSpectatorJoin.previousIsSpectator });
+          pendingSpectatorJoin = null;
+        }
         if (message === 'Room not found') {
           localStorage.removeItem(STORAGE_KEYS.roomCode);
           localStorage.removeItem(STORAGE_KEYS.reconnectToken);
@@ -453,7 +619,15 @@ export const useGameStore = create<GameState>((set, get) => {
             window.location.replace('/');
           }
         }
+        const wasLoading = get().isLoading;
         set({ isLoading: false, actionLoading: false });
+        if (
+          wasLoading ||
+          message.includes('Questions are unavailable') ||
+          message.includes('Cannot start game')
+        ) {
+          set({ gameStartError: message });
+        }
         if (get().connectionStatus === 'reconnecting')
           set({ connectionStatus: get().room ? 'failed' : 'connected' });
         if (!redirectedFromMissingInviteRoom) {
@@ -506,6 +680,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     startGame: () => {
+      set({ gameStartError: null });
       if (emitGameAction(SOCKET_EVENTS.START_GAME)) set({ isLoading: true });
     },
 
@@ -530,6 +705,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     leaveRoom: () => {
+      set({ gameStartError: null });
       const { socket } = get();
       if (socket) {
         if (socket.connected) socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
@@ -810,8 +986,10 @@ export const useGameStore = create<GameState>((set, get) => {
     spectateJoin: (code: string) => {
       const { socket, myName } = get();
       if (socket && myName) {
+        const normalizedCode = code.toUpperCase();
+        pendingSpectatorJoin = { code: normalizedCode, previousIsSpectator: get().isSpectator };
         set({ isLoading: true, isSpectator: true });
-        socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: code.toUpperCase(), name: myName });
+        socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: normalizedCode, name: myName });
       }
     },
   };

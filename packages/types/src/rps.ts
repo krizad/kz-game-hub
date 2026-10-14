@@ -9,3 +9,9 @@ export interface RPSState {
   roundWinner?: string | string[]; // Can be "DRAW", or a single P1 ID, or an array of winning IDs
   gameWinner?: string | string[]; // Overall winner(s) ID
 }
+
+export interface RPSMakeChoicePayload {
+  code: string;
+  choice: RPSChoice;
+  requestId?: string;
+}

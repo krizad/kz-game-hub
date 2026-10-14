@@ -5,6 +5,7 @@ Audit a running local application against its `DESIGN.md` design system without 
 ## 1. Probe local state
 
 Run `stitch status --flow=design --json` first and inspect `data.facets` (a local review does not require a linked Canvas project, so read these facets rather than `data.state`):
+
 - `data.facets.capture.hasSnapshot`: whether `.stitch/captured-dom.html` exists. If `false`, capture a snapshot first.
 - `data.facets.design.hasDesignMd`: whether `DESIGN.md` exists. If `false`, author it with [design.md](design.md).
 - `data.facets.capture.devServerUrl`: auto-detected local dev server URL to use for capture when present.

@@ -173,13 +173,23 @@ export function GobblerView() {
       const isSelected = selectedInventoryPieceId === topPiece.id;
 
       return (
-        <div
+        <button
+          type="button"
           data-testid={`gobbler-inventory-${side}-stack-${stackIndex}`}
+          aria-pressed={isSelected}
+          aria-label={t('gameGobbler.inventoryPieceAria', {
+            side,
+            size: t(`gameGobbler.sizes.${topPiece.size}`),
+            count,
+          })}
+          disabled={
+            !isInventoryOwner || !isMyTurn || room.status !== RoomStatus.PLAYING || actionLoading
+          }
           className={clsx(
             'relative w-14 h-14 sm:w-20 sm:h-20 lg:w-12 lg:h-12 xl:w-16 xl:h-16 2xl:w-20 2xl:h-20 flex-shrink-0 bg-white border-4 border-black transition-all flex items-center justify-center group font-mono',
-            isInventoryOwner
+            isInventoryOwner && isMyTurn && room.status === RoomStatus.PLAYING
               ? 'cursor-pointer hover:bg-yellow-300 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-              : 'opacity-80',
+              : 'opacity-80 cursor-not-allowed',
             isSelected
               ? 'bg-yellow-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
               : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
@@ -193,7 +203,7 @@ export function GobblerView() {
           <div className="absolute -bottom-2 -right-2 bg-white text-black text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black z-20 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             x{count}
           </div>
-        </div>
+        </button>
       );
     };
 
@@ -399,15 +409,84 @@ export function GobblerView() {
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-full aspect-square relative z-10 mt-2 sm:mt-4">
                   {gb.board.map((cellStack, idx) => {
                     const isWinningCell = gb.winningLine?.includes(idx);
-                    const canPlaceHere =
-                      (selectedInventoryPieceId && isMyTurn) ||
-                      (selectedBoardIndex !== null && selectedBoardIndex !== idx && isMyTurn);
                     const isSelectedCellToMove = selectedBoardIndex === idx;
+
+                    const row = Math.floor(idx / 3) + 1;
+                    const col = (idx % 3) + 1;
+                    const topPiece = cellStack.length > 0 ? cellStack[cellStack.length - 1] : null;
+
+                    const status = topPiece
+                      ? t('gameGobbler.cellOccupied', {
+                          side: topPiece.side,
+                          size: t(`gameGobbler.sizes.${topPiece.size}`),
+                        })
+                      : t('gameGobbler.cellEmpty');
+
+                    const selectedInvPiece = selectedInventoryPieceId
+                      ? [...gb.inventory.X, ...gb.inventory.O].find(
+                          (p) => p.id === selectedInventoryPieceId,
+                        )
+                      : null;
+                    const selectedBoardPiece =
+                      selectedBoardIndex !== null && gb.board[selectedBoardIndex]?.length > 0
+                        ? gb.board[selectedBoardIndex][gb.board[selectedBoardIndex].length - 1]
+                        : null;
+                    const movingPiece = selectedInvPiece || selectedBoardPiece;
+
+                    const SIZE_ORDER: Record<GobblerSize, number> = {
+                      SMALL: 1,
+                      MEDIUM: 2,
+                      LARGE: 3,
+                    };
+
+                    let isCellClickable = false;
+                    let disabledReason = '';
+
+                    if (room.status !== RoomStatus.PLAYING) {
+                      disabledReason = t('gameGobbler.disabledGameOver');
+                    } else if (!mySide) {
+                      disabledReason = t('gameGobbler.disabledViewer');
+                    } else if (!isMyTurn) {
+                      disabledReason = t('gameGobbler.disabledNotYourTurn');
+                    } else if (actionLoading) {
+                      disabledReason = t('gameTicTacToe.disabledBusy');
+                    } else if (movingPiece) {
+                      if (selectedBoardIndex === idx) {
+                        isCellClickable = true; // Deselect
+                      } else if (
+                        !topPiece ||
+                        SIZE_ORDER[movingPiece.size] > SIZE_ORDER[topPiece.size]
+                      ) {
+                        isCellClickable = true;
+                      } else {
+                        disabledReason = t('gameGobbler.disabledCannotGobble');
+                      }
+                    } else {
+                      if (topPiece && topPiece.side === mySide) {
+                        isCellClickable = true; // Pick up to move
+                      } else {
+                        disabledReason = t('gameGobbler.disabledSelectPieceFirst');
+                      }
+                    }
+
+                    const ariaLabel = disabledReason
+                      ? `${t('gameGobbler.cellAria', { row, col, status })} (${disabledReason})`
+                      : t('gameGobbler.cellAria', { row, col, status });
+
+                    const canPlaceHere =
+                      (selectedInventoryPieceId && isMyTurn && isCellClickable) ||
+                      (selectedBoardIndex !== null &&
+                        selectedBoardIndex !== idx &&
+                        isMyTurn &&
+                        isCellClickable);
 
                     return (
                       <button
+                        type="button"
                         key={idx}
                         data-testid={`gobbler-cell-${idx}`}
+                        aria-label={ariaLabel}
+                        disabled={!isCellClickable}
                         onClick={() => handleCellClick(idx)}
                         className={clsx(
                           'bg-white border-4 relative overflow-hidden transition-all duration-300 group flex items-center justify-center',
@@ -418,7 +497,7 @@ export function GobblerView() {
                               : canPlaceHere
                                 ? 'border-black hover:bg-yellow-100 hover:shadow-[inset_4px_4px_0px_rgba(0,0,0,0.1)]'
                                 : 'border-black',
-                          isMyTurn ? 'cursor-pointer' : 'cursor-default',
+                          isCellClickable ? 'cursor-pointer' : 'cursor-default opacity-90',
                         )}
                       >
                         <AnimatePresence>

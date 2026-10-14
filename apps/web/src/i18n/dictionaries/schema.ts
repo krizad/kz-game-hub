@@ -64,6 +64,13 @@ export interface Dictionary {
     roomCodePlaceholder: string;
     join: string;
     publicLobbies: string;
+    roomVisibility: string;
+    publicRoom: string;
+    unlistedRoom: string;
+    visibilityHint: string;
+    spectatorPolicy: string;
+    spectatorsAllowed: string;
+    spectatorsDisabled: string;
     host: string;
     playersInRoom: string;
     roomHost: string;
@@ -73,6 +80,9 @@ export interface Dictionary {
     leave: string;
     confirmLeave: string;
     players: string;
+    togglePlayers: string;
+    showRoster: string;
+    hideRoster: string;
     score: string;
     offline: string;
     you: string;
@@ -96,6 +106,7 @@ export interface Dictionary {
     bestOf: string;
     startGame: string;
     startingGame: string;
+    questionsUnavailable: string;
     waitingMin: string;
     waitingForHost: string;
     waitingForSecretWord: string;
@@ -112,6 +123,45 @@ export interface Dictionary {
     invitePlayers: string;
     scanQrCodeDesc: string;
     close: string;
+    filters: string;
+    all: string;
+    groupSize: string;
+    groupSizeAll: string;
+    groupSize2: string;
+    groupSize3to4: string;
+    groupSize5plus: string;
+    style: string;
+    styleAll: string;
+    styleParty: string;
+    styleCompetitive: string;
+    styleCooperative: string;
+    styleBluffing: string;
+    styleQuick: string;
+    audioFilter: string;
+    audioAll: string;
+    audioRequired: string;
+    audioNotRequired: string;
+    textFilter: string;
+    textAll: string;
+    textRequired: string;
+    textNotRequired: string;
+    clearFilters: string;
+    noGamesFound: string;
+    disabledReason: string;
+    connectedSummary: string;
+    advancedSettings: string;
+    firstRoundGuide: string;
+    guideGoal: string;
+    guideFirstAction: string;
+    guideExpectedResult: string;
+    guidePractice: string;
+    guideDismiss: string;
+    guideRpsGoal: string;
+    guideRpsAction: string;
+    guideRpsResult: string;
+    guideTttGoal: string;
+    guideTttAction: string;
+    guideTttResult: string;
   };
   gameStatus: {
     phase: string;
@@ -120,6 +170,118 @@ export interface Dictionary {
     groupAction: string;
     progress: string;
     phaseNames: Record<string, string>;
+  };
+  gamePrompts: {
+    spectating: string;
+    gameOver: string;
+    lobbyWaiting: string;
+    ttt: {
+      yourTurn: string;
+      waitingOpponent: string;
+      spectating: string;
+      gameOver: string;
+    };
+    rps: {
+      choose: string;
+      waitingOpponent: string;
+      roundResult: string;
+      matchOver: string;
+    };
+    soundsFishy: {
+      guesserWaiting: string;
+      giveAnswer: string;
+      waitingAnswers: string;
+      guesserChoose: string;
+      othersWait: string;
+      roundResult: string;
+    };
+    detectiveClub: {
+      leaderWord: string;
+      othersWaitWord: string;
+      playCardTurn: string;
+      waitingCard: string;
+      explainCards: string;
+      leaderWaitVote: string;
+      voteConspirator: string;
+      roundResult: string;
+    };
+    whoAmI: {
+      hostSettingWords: string;
+      waitWords: string;
+      inputWord: string;
+      waitingOtherWords: string;
+      generatingWords: string;
+      askQuestion: string;
+      answerQuestion: string;
+      voting: string;
+      gameOver: string;
+    };
+    whoFirst: {
+      getReady: string;
+      pressButton: string;
+      roundResult: string;
+    };
+    musicTrivia: {
+      preparing: string;
+      countdown: string;
+      typeGuess: string;
+      pressBuzzer: string;
+      youBuzzed: string;
+      otherBuzzed: string;
+      hostJudging: string;
+      roundResult: string;
+    };
+    theMind: {
+      getReady: string;
+      waitingReady: string;
+      playCard: string;
+      voteShuriken: string;
+      waitingShurikenVotes: string;
+      roundResult: string;
+      gameOver: string;
+    };
+    saboteur: {
+      dealing: string;
+      yourTurn: string;
+      waitingFor: string;
+      pickGold: string;
+      waitingGoldPick: string;
+      roundResult: string;
+    };
+    coup: {
+      yourTurn: string;
+      waitingTurn: string;
+      respondAction: string;
+      respondBlock: string;
+      chooseCards: string;
+      waitingExchange: string;
+      loseInfluence: string;
+      waitingLoseInfluence: string;
+    };
+    cardGame: {
+      dealing: string;
+      yourTurn: string;
+      waitingTurn: string;
+      showdown: string;
+    };
+    poker: {
+      dealing: string;
+      yourTurn: string;
+      waitingTurn: string;
+      showdown: string;
+      handResult: string;
+    };
+    bananaThief: {
+      tapReady: string;
+      waitingOthersReady: string;
+      chooseFollower: string;
+      waitingFollowerChoice: string;
+      nightAction: string;
+      dayDiscussion: string;
+      votePrompt: string;
+      waitingVotes: string;
+      roundResult: string;
+    };
   };
   errors: {
     enterNameFirst: string;
@@ -458,6 +620,11 @@ export interface Dictionary {
       aiPrompt: string;
       aiPromptPlaceholder: string;
       randomTopic: string;
+      hostWordModalTitle: string;
+      hostWordModalDesc: string;
+      hostWordPlaceholder: string;
+      hostWordCancel: string;
+      hostWordStart: string;
     };
     submitYourWord: string;
     category: string;
@@ -499,6 +666,8 @@ export interface Dictionary {
     isGuessCorrect: string;
     voteCast: string;
     waitingForVerify: string;
+    waitingForHostWords: string;
+    guessSubmittedWaiting: string;
     continueBtn: string;
     gameOver: string;
     noWinners: string;
@@ -546,6 +715,9 @@ export interface Dictionary {
     waitingFor: string;
     yourHand: string;
     play: string;
+    inspectHandCard: string;
+    selectHandCard: string;
+    inspectPlayedCard: string;
     confirmCardPlay: string;
     confirmPlayDescription: string;
     cancel: string;
@@ -585,6 +757,13 @@ export interface Dictionary {
     draw: string;
     wins: string;
     playAgain: string;
+    cellAria: string;
+    cellEmpty: string;
+    disabledNotYourTurn: string;
+    disabledBusy: string;
+    disabledOccupied: string;
+    disabledGameOver: string;
+    disabledViewer: string;
     modes: {
       title: string;
       classic: string;
@@ -619,6 +798,13 @@ export interface Dictionary {
     opponentTurn: string;
     freeMove: string;
     targetBoard: string;
+    cellAria: string;
+    cellEmpty: string;
+    disabledNotYourTurn: string;
+    disabledOccupied: string;
+    disabledWrongBoard: string;
+    disabledBoardWon: string;
+    disabledViewer: string;
   };
   gameGobbler: {
     lobby: string;
@@ -634,6 +820,20 @@ export interface Dictionary {
     claimsVictory: string;
     playAgain: string;
     player: string;
+    inventoryPieceAria: string;
+    sizes: {
+      SMALL: string;
+      MEDIUM: string;
+      LARGE: string;
+    };
+    cellAria: string;
+    cellEmpty: string;
+    cellOccupied: string;
+    disabledNotYourTurn: string;
+    disabledSelectPieceFirst: string;
+    disabledCannotGobble: string;
+    disabledViewer: string;
+    disabledGameOver: string;
   };
   gameSlave: {
     title: string;
@@ -669,12 +869,20 @@ export interface Dictionary {
     spectating: string;
     choiceLocked: string;
     waitingOpponent: string;
+    waitingFor: string;
+    ready: string;
+    choosing: string;
     draw: string;
+    drawExplanation: string;
     winsMatch: string;
     winsRound: string;
     playAgain: string;
     nextRound: string;
+    waitingHostNextRound: string;
+    waitingHostPlayAgain: string;
     queue: string;
+    yourTurnIn: string;
+    you: string;
     rock: string;
     paper: string;
     scissors: string;
@@ -778,7 +986,13 @@ export interface Dictionary {
   };
   result: {
     winners: string;
+    winner: string;
     playAgain: string;
+    gameOver: string;
+    waitingForHost: string;
+    scores: string;
+    rank: string;
+    backToLobby: string;
   };
   whoFirst: {
     lobby: {
@@ -904,6 +1118,22 @@ export interface Dictionary {
       getReadyStartBtn: string;
       countdownTitle: string;
       nowPlaying: string;
+      playbackStatus: {
+        loading: string;
+        ready: string;
+        playing: string;
+        blocked: string;
+        error: string;
+      };
+      playbackReason: {
+        AUTOPLAY_BLOCKED: string;
+        NETWORK_OR_PROVIDER: string;
+        EXPIRED_CLIP: string;
+      };
+      enableAudio: string;
+      retryPlayback: string;
+      muteAudio: string;
+      unmuteAudio: string;
       listenCarefully: string;
       cantHearMusic: string;
       hostCannotBuzz: string;

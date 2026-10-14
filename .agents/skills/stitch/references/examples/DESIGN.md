@@ -9,20 +9,24 @@ High-performance, crisp alpine telemetry built for outdoor legibility in bright 
 ## 2. Color Palette & Roles
 
 ### Primary Foundation
+
 - **Deep Peak Blue (`#131b2e`)**: Dark navy container surface contrasting with white text and map overlays.
 - **Powder White (`#fcf8fa`)**: Airy primary canvas background.
 - **Ice Surface (`#f0edef` to `#e4e2e4`)**: Layered container tones for cards, drawers, and metric panels.
 
 ### Accent & Interactive
+
 - **Safety Orange (`#ea580c`)**: Primary calls to action, hazard warnings, and emergency trail closures.
 - **Electric Blue (`#2563eb`)**: Weather updates, active filters, and interactive controls.
 
 ### Typography & Text Hierarchy
+
 - **Obsidian Ink (`#1b1b1d`)**: Primary text on light surfaces.
 - **Slate Variant (`#45464d`)**: Secondary labels and supporting metadata.
 - **Muted Outline (`#76777d`)**: Captions, timestamps, and `1px` structural hairlines.
 
 ### Functional States
+
 - **Trail Difficulty & Status**: High-saturation Green (Easy), Blue (Intermediate), and Black (`#000000`, Expert), plus **Alert Red (`#ba1a1a`)** on `#ffdad6` containers for closures.
 
 ## 3. Typography Rules

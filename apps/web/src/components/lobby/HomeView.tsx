@@ -9,6 +9,7 @@ import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 import { AppInfoModal } from '@/components/core/AppInfoModal';
 import { RulesModal } from '@/components/RulesModal';
 import { AdminGameSettings } from './AdminGameSettings';
+import { GAME_CATALOG, GameStyle } from './game-catalog';
 
 const getGameName = (gameType: GameType, t: any) => {
   switch (gameType) {
@@ -50,112 +51,45 @@ export function HomeView() {
 
   const [joinCode, setJoinCode] = useState('');
 
-  const games: {
-    type: GameType;
-    icon: string;
-    name: string;
-    catalogKey: string;
-    color: string;
-  }[] = [
-    {
-      type: GameType.WHO_KNOW,
-      icon: '🎭',
-      name: t('lobby.gameNames.whoKnow'),
-      catalogKey: 'whoKnow',
-      color: 'bg-indigo-500',
-    },
-    {
-      type: GameType.SOUNDS_FISHY,
-      icon: '💬',
-      name: t('lobby.gameNames.soundsFishy'),
-      catalogKey: 'soundsFishy',
-      color: 'bg-teal-300',
-    },
-    {
-      type: GameType.TIC_TAC_TOE,
-      icon: '❌',
-      name: t('lobby.gameNames.ticTacToe'),
-      catalogKey: 'ticTacToe',
-      color: 'bg-slate-400',
-    },
-    {
-      type: GameType.RPS,
-      icon: '✊',
-      name: t('lobby.gameNames.handDuel'),
-      catalogKey: 'handDuel',
-      color: 'bg-amber-300',
-    },
-    {
-      type: GameType.DETECTIVE_CLUB,
-      icon: '🖼️',
-      name: t('lobby.gameNames.detectiveClub'),
-      catalogKey: 'detectiveClub',
-      color: 'bg-yellow-300',
-    },
-    {
-      type: GameType.WHO_AM_I,
-      icon: '🤔❓',
-      name: t('lobby.gameNames.whoAmI'),
-      catalogKey: 'whoAmI',
-      color: 'bg-pink-400',
-    },
-    {
-      type: GameType.WHO_FIRST,
-      icon: '🛎️',
-      name: t('lobby.gameNames.whoFirst'),
-      catalogKey: 'whoFirst',
-      color: 'bg-emerald-400',
-    },
-    {
-      type: GameType.MUSIC_TRIVIA,
-      icon: '🎵',
-      name: t('lobby.gameNames.musicTrivia'),
-      catalogKey: 'musicTrivia',
-      color: 'bg-violet-400',
-    },
-    {
-      type: GameType.THE_MIND,
-      icon: '⏳',
-      name: t('lobby.gameNames.theMind'),
-      catalogKey: 'theMind',
-      color: 'bg-orange-200',
-    },
-    {
-      type: GameType.SABOTEUR,
-      icon: '⛏️',
-      name: t('lobby.gameNames.saboteur'),
-      catalogKey: 'saboteur',
-      color: 'bg-orange-500',
-    },
-    {
-      type: GameType.COUP,
-      icon: '🏠📜',
-      name: t('lobby.gameNames.coup'),
-      catalogKey: 'coup',
-      color: 'bg-rose-200',
-    },
-    {
-      type: GameType.CARD_GAME,
-      icon: '🃏',
-      name: t('lobby.gameNames.cardGame'),
-      catalogKey: 'cardGame',
-      color: 'bg-amber-500',
-    },
-    {
-      type: GameType.BANANA_THIEF,
-      icon: '🐒',
-      name: t('lobby.gameNames.bananaThief'),
-      catalogKey: 'bananaThief',
-      color: 'bg-lime-400',
-    },
-    {
-      type: GameType.POKER,
-      icon: '🅰️',
-      name: t('lobby.gameNames.poker'),
-      catalogKey: 'poker',
-      color: 'bg-emerald-400',
-    },
-  ];
+  const [groupSizeFilter, setGroupSizeFilter] = useState<'ALL' | '2' | '3-4' | '5+'>('ALL');
+  const [styleFilter, setStyleFilter] = useState<'ALL' | GameStyle>('ALL');
+  const [audioFilter, setAudioFilter] = useState<'ALL' | 'REQUIRED' | 'NOT_REQUIRED'>('ALL');
+  const [textFilter, setTextFilter] = useState<'ALL' | 'REQUIRED' | 'NOT_REQUIRED'>('ALL');
+
+  const hasActiveFilters =
+    groupSizeFilter !== 'ALL' ||
+    styleFilter !== 'ALL' ||
+    audioFilter !== 'ALL' ||
+    textFilter !== 'ALL';
+
+  const clearFilters = () => {
+    setGroupSizeFilter('ALL');
+    setStyleFilter('ALL');
+    setAudioFilter('ALL');
+    setTextFilter('ALL');
+  };
+
+  const filteredGames = GAME_CATALOG.filter((g) => {
+    if (groupSizeFilter === '2') {
+      if (g.minPlayers > 2 || g.maxPlayers < 2) return false;
+    } else if (groupSizeFilter === '3-4') {
+      if (g.minPlayers > 4 || g.maxPlayers < 3) return false;
+    } else if (groupSizeFilter === '5+') {
+      if (g.maxPlayers < 5) return false;
+    }
+
+    if (styleFilter !== 'ALL' && !g.styles.includes(styleFilter)) {
+      return false;
+    }
+
+    if (audioFilter === 'REQUIRED' && !g.audioRequired) return false;
+    if (audioFilter === 'NOT_REQUIRED' && g.audioRequired) return false;
+
+    if (textFilter === 'REQUIRED' && !g.textRequired) return false;
+    if (textFilter === 'NOT_REQUIRED' && g.textRequired) return false;
+
+    return true;
+  });
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-[#FEF08A] text-black relative font-black overflow-x-hidden">
@@ -243,43 +177,191 @@ export function HomeView() {
 
         {/* Right Column (PC) / Bottom Section (Mobile) */}
         <div className="flex flex-col mt-8 lg:mt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            {games
-              .filter((g) => isGameEnabled(g.type))
-              .map((g) => (
+          {/* Catalog Filter Bar */}
+          <div
+            data-testid="catalog-filter-bar"
+            className="mb-3 bg-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-black">
+                <span>🔍</span> {t('lobby.filters')}
+              </span>
+              {hasActiveFilters && (
                 <button
-                  key={g.type}
                   type="button"
-                  onClick={() => createRoom(g.type)}
-                  disabled={!connected || !myName}
-                  aria-label={`${g.name}. ${t(`lobby.gameCards.${g.catalogKey}.category`)}. ${t(`lobby.gameCards.${g.catalogKey}.players`)}`}
-                  className="group relative w-full overflow-hidden border-4 border-black bg-white p-3 text-left shadow-[4px_4px_0_0_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]"
+                  data-testid="catalog-clear-filters-btn"
+                  onClick={clearFilters}
+                  className="text-[10px] font-black bg-rose-200 hover:bg-rose-300 text-black border-2 border-black px-2 py-0.5 shadow-[1px_1px_0_0_#000] active:translate-y-0.5"
                 >
-                  <span className={`absolute inset-y-0 left-0 w-2 ${g.color}`} aria-hidden="true" />
-                  <span className="flex items-start gap-3 pl-2">
-                    <span
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border-2 border-black text-2xl shadow-[2px_2px_0_0_#000] ${g.color}`}
-                      aria-hidden="true"
-                    >
-                      {g.icon}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
-                        {t(`lobby.gameCards.${g.catalogKey}.category`)}
-                      </span>
-                      <span className="block text-sm font-black leading-tight text-black">
-                        {g.name}
-                      </span>
-                      <span className="mt-1 block text-xs font-medium leading-snug text-slate-700">
-                        {t(`lobby.gameCards.${g.catalogKey}.description`)}
-                      </span>
-                      <span className="mt-2 inline-flex border-2 border-black bg-[#FEF08A] px-2 py-0.5 text-[10px] font-black text-black">
-                        👥 {t(`lobby.gameCards.${g.catalogKey}.players`)}
-                      </span>
-                    </span>
-                  </span>
+                  {t('lobby.clearFilters')}
                 </button>
-              ))}
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label
+                  htmlFor="filter-group-size"
+                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                >
+                  {t('lobby.groupSize')}
+                </label>
+                <select
+                  id="filter-group-size"
+                  data-testid="filter-group-size"
+                  value={groupSizeFilter}
+                  onChange={(e) => setGroupSizeFilter(e.target.value as any)}
+                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                >
+                  <option value="ALL">{t('lobby.groupSizeAll')}</option>
+                  <option value="2">{t('lobby.groupSize2')}</option>
+                  <option value="3-4">{t('lobby.groupSize3to4')}</option>
+                  <option value="5+">{t('lobby.groupSize5plus')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="filter-style"
+                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                >
+                  {t('lobby.style')}
+                </label>
+                <select
+                  id="filter-style"
+                  data-testid="filter-style"
+                  value={styleFilter}
+                  onChange={(e) => setStyleFilter(e.target.value as any)}
+                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                >
+                  <option value="ALL">{t('lobby.styleAll')}</option>
+                  <option value="party">{t('lobby.styleParty')}</option>
+                  <option value="competitive">{t('lobby.styleCompetitive')}</option>
+                  <option value="cooperative">{t('lobby.styleCooperative')}</option>
+                  <option value="bluffing">{t('lobby.styleBluffing')}</option>
+                  <option value="quick">{t('lobby.styleQuick')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="filter-audio"
+                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                >
+                  {t('lobby.audioFilter')}
+                </label>
+                <select
+                  id="filter-audio"
+                  data-testid="filter-audio"
+                  value={audioFilter}
+                  onChange={(e) => setAudioFilter(e.target.value as any)}
+                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                >
+                  <option value="ALL">{t('lobby.audioAll')}</option>
+                  <option value="REQUIRED">{t('lobby.audioRequired')}</option>
+                  <option value="NOT_REQUIRED">{t('lobby.audioNotRequired')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="filter-text"
+                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                >
+                  {t('lobby.textFilter')}
+                </label>
+                <select
+                  id="filter-text"
+                  data-testid="filter-text"
+                  value={textFilter}
+                  onChange={(e) => setTextFilter(e.target.value as any)}
+                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                >
+                  <option value="ALL">{t('lobby.textAll')}</option>
+                  <option value="REQUIRED">{t('lobby.textRequired')}</option>
+                  <option value="NOT_REQUIRED">{t('lobby.textNotRequired')}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Game Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            {filteredGames.length === 0 ? (
+              <div
+                data-testid="catalog-no-games"
+                className="col-span-full border-4 border-dashed border-black bg-white/70 p-6 text-center"
+              >
+                <p className="text-sm font-black text-slate-800">{t('lobby.noGamesFound')}</p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    data-testid="catalog-no-games-clear-btn"
+                    onClick={clearFilters}
+                    className="mt-3 inline-block bg-yellow-300 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] hover:bg-yellow-400 active:translate-y-0.5"
+                  >
+                    {t('lobby.clearFilters')}
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredGames.map((g) => {
+                const enabled = isGameEnabled(g.type);
+                const gameName = t(`lobby.gameNames.${g.catalogKey}`);
+                return (
+                  <button
+                    key={g.type}
+                    type="button"
+                    data-testid={`catalog-card-${g.type}`}
+                    onClick={() => enabled && createRoom(g.type)}
+                    disabled={!enabled || !connected || !myName}
+                    aria-label={`${gameName}. ${t(`lobby.gameCards.${g.catalogKey}.category`)}. ${t(`lobby.gameCards.${g.catalogKey}.players`)}`}
+                    className={`group relative w-full overflow-hidden border-4 border-black p-3 text-left shadow-[4px_4px_0_0_#000] transition-all ${
+                      !enabled
+                        ? 'bg-slate-100 opacity-60 cursor-not-allowed'
+                        : 'bg-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]'
+                    }`}
+                  >
+                    <span
+                      className={`absolute inset-y-0 left-0 w-2 ${g.color}`}
+                      aria-hidden="true"
+                    />
+                    <span className="flex items-start gap-3 pl-2">
+                      <span
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border-2 border-black text-2xl shadow-[2px_2px_0_0_#000] ${g.color}`}
+                        aria-hidden="true"
+                      >
+                        {g.icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
+                          {t(`lobby.gameCards.${g.catalogKey}.category`)}
+                        </span>
+                        <span className="block text-sm font-black leading-tight text-black">
+                          {gameName}
+                        </span>
+                        <span className="mt-1 block text-xs font-medium leading-snug text-slate-700">
+                          {t(`lobby.gameCards.${g.catalogKey}.description`)}
+                        </span>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex border-2 border-black bg-[#FEF08A] px-2 py-0.5 text-[10px] font-black text-black">
+                            👥 {t(`lobby.gameCards.${g.catalogKey}.players`)}
+                          </span>
+                          {!enabled && (
+                            <span
+                              data-testid={`game-disabled-reason-${g.type}`}
+                              className="inline-flex border-2 border-red-500 bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-700"
+                            >
+                              🔒 {t('lobby.disabledReason')}
+                            </span>
+                          )}
+                        </div>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {availableRooms.length > 0 && (

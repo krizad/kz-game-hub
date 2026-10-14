@@ -711,8 +711,7 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
           .catch(() => {});
         continue;
       }
-      // 2. Active player plays a card: a plain click opens the confirm modal
-      // (same interaction the legacy detectiveclub spec proved works).
+      // 2. Active player selects a card, then confirms the play.
       // Only on this page's turn — the hand stays visible during discussion,
       // and falling through is what lets the host reach Start Voting.
       const myTurnNow = await p
@@ -721,10 +720,10 @@ async function playDetectiveClub(s: SimSession): Promise<void> {
         .catch(() => false);
       const hand = p.locator('img[alt="Hand Card"]').first();
       if (myTurnNow && (await hand.isVisible({ timeout: 200 }).catch(() => false))) {
-        // force click: the hover overlay covers the img, so actionability checks
-        // never pass; force still fires the overlay's onClick and opens the modal
-        // (proven by the debug variant test)
-        await hand.click({ force: true, timeout: 3000 }).catch(() => {});
+        await p
+          .getByRole('button', { name: 'Play card 1' })
+          .click({ timeout: 3000 })
+          .catch(() => {});
         const confirmBtn = p
           .locator('button')
           .filter({ hasText: /^Play Card$/i })

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useGameStore } from '@/store/useGameStore';
 
-import { MusicTriviaAction, MusicTriviaActionType, MusicTriviaSyncPlayPayload } from '@repo/types';
+import { MusicTriviaAction, MusicTriviaActionType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useMusicPlayback } from '@/hooks/useMusicPlayback';
 
 export function MusicTriviaView() {
   const { t } = useTranslate();
@@ -16,25 +17,18 @@ export function MusicTriviaView() {
   const [answerInput, setAnswerInput] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [answerTimeLeft, setAnswerTimeLeft] = useState<number | null>(null);
-  const [volume, setVolume] = useState(0.5);
-  const [isLocalPaused, setIsLocalPaused] = useState(false);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastAppliedSyncPlayRef = useRef<MusicTriviaSyncPlayPayload | null>(null);
-  const reactPlayerRef = useRef<any>(null);
+  const serverOffset = useGameStore((s) => s.serverOffset);
+  const playback = useMusicPlayback(
+    musicTriviaSyncPlay,
+    state?.phase,
+    room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true,
+    serverOffset,
+  );
   const [hasTestedAudio, setHasTestedAudio] = useState(false);
-
-  // Leaving the room (or it being deleted) unmounts this view — nothing else
-  // will stop the preview then, so pause it here.
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause();
-    };
-  }, []);
 
   // Reset local pause when round changes
   useEffect(() => {
-    setIsLocalPaused(false);
+    playback.setPaused(false);
   }, [state?.currentRound?.roundNumber]);
 
   // Auto-ready for subsequent rounds if audio was already unlocked
@@ -48,63 +42,6 @@ export function MusicTriviaView() {
       musicTriviaGameAction({ type: 'PLAYER_READY' });
     }
   }, [state?.phase, hasTestedAudio, state?.readyPlayerIds, socketId, musicTriviaGameAction]);
-
-  // Handle audio playback based on syncPlay and phase
-  useEffect(() => {
-    if (!state || !musicTriviaSyncPlay) return;
-
-    if (state.phase === 'PLAYING') {
-      const shouldPlay = room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true;
-
-      // Handle HTML5 Audio (iTunes, Spotify, Deezer)
-      if (
-        musicTriviaSyncPlay.sourceType !== 'YOUTUBE' &&
-        musicTriviaSyncPlay.sourceType !== 'SOUNDCLOUD'
-      ) {
-        const isNewTrack =
-          !audioRef.current || audioRef.current.src !== musicTriviaSyncPlay.previewUrl;
-        if (!audioRef.current) {
-          audioRef.current = new Audio(musicTriviaSyncPlay.previewUrl);
-        } else if (audioRef.current.src !== musicTriviaSyncPlay.previewUrl) {
-          audioRef.current.src = musicTriviaSyncPlay.previewUrl;
-        }
-        if (isNewTrack || lastAppliedSyncPlayRef.current !== musicTriviaSyncPlay) {
-          // New playback signals, including reconnects, resume at the server's position.
-          const now = Date.now();
-          const elapsed = (now - musicTriviaSyncPlay.playStartTime) / 1000;
-          if (elapsed > 0 && elapsed < musicTriviaSyncPlay.durationMs / 1000) {
-            audioRef.current!.currentTime = elapsed;
-          }
-          lastAppliedSyncPlayRef.current = musicTriviaSyncPlay;
-        }
-        audioRef.current.volume = volume;
-
-        if (shouldPlay && !isLocalPaused) {
-          audioRef.current.play().catch((e) => {
-            console.error('Audio playback failed:', e);
-          });
-        } else {
-          audioRef.current.pause();
-        }
-      } else {
-        // Handle YouTube via ReactPlayer
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-      }
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    }
-  }, [
-    state?.phase,
-    musicTriviaSyncPlay,
-    room?.config.musicTriviaAudioPlayback,
-    isHost,
-    volume,
-    isLocalPaused,
-  ]);
 
   // Handle countdown calculation for COUNTDOWN phase
   useEffect(() => {
@@ -395,15 +332,7 @@ export function MusicTriviaView() {
               {!state.readyPlayerIds?.includes(socketId) && (
                 <button
                   onClick={() => {
-                    // Unlock audio element with a silent play/pause if not youtube
-                    if (audioRef.current) {
-                      audioRef.current
-                        .play()
-                        .catch(() => {})
-                        .finally(() => {
-                          audioRef.current?.pause();
-                        });
-                    }
+                    playback.unlock();
                     setHasTestedAudio(true);
                     musicTriviaGameAction({ type: 'PLAYER_READY' });
                   }}
@@ -424,7 +353,10 @@ export function MusicTriviaView() {
                     </span>
                   </div>
                   <button
-                    onClick={() => musicTriviaGameAction({ type: 'START_COUNTDOWN' })}
+                    onClick={() => {
+                      playback.unlock();
+                      musicTriviaGameAction({ type: 'START_COUNTDOWN' });
+                    }}
                     className="w-full h-20 text-2xl font-black bg-rose-400 hover:bg-rose-300 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none uppercase tracking-widest "
                   >
                     {t('gameMusicTrivia.game.getReadyStartBtn')}
@@ -464,18 +396,16 @@ export function MusicTriviaView() {
                 {['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '') && (
                   <div className="hidden">
                     <ReactPlayer
-                      ref={reactPlayerRef}
+                      key={playback.providerAttempt}
+                      ref={playback.providerRef}
                       url={
                         musicTriviaSyncPlay?.sourceType === 'YOUTUBE'
                           ? `https://www.youtube.com/watch?v=${musicTriviaSyncPlay.previewUrl}`
                           : musicTriviaSyncPlay?.previewUrl
                       }
-                      playing={
-                        room?.config.musicTriviaAudioPlayback === 'HOST_ONLY'
-                          ? isHost && !isLocalPaused
-                          : !isLocalPaused
-                      }
-                      volume={volume}
+                      playing={playback.providerPlaying}
+                      muted={playback.muted}
+                      volume={playback.volume}
                       width="0"
                       height="0"
                       config={{
@@ -488,97 +418,111 @@ export function MusicTriviaView() {
                         },
                         soundcloud: { options: { auto_play: true } },
                       }}
-                      onError={(e) =>
-                        console.error(`ReactPlayer error (${musicTriviaSyncPlay?.sourceType}):`, e)
-                      }
+                      onReady={playback.onProviderReady}
+                      onPlay={playback.onProviderPlay}
+                      onError={playback.onProviderError}
+                      onEnded={playback.markExpired}
                     />
                   </div>
                 )}
               </div>
               <div className="text-center space-y-4">
-                <h3 className="text-3xl font-black text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest animate-pulse -">
-                  {t('gameMusicTrivia.game.nowPlaying')}
+                <h3
+                  data-testid="music-playback-status"
+                  role="status"
+                  className="text-3xl font-black text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase tracking-widest -"
+                >
+                  {playback.status === 'playing'
+                    ? t('gameMusicTrivia.game.nowPlaying')
+                    : t(`gameMusicTrivia.game.playbackStatus.${playback.status}`)}
                 </h3>
+                {playback.reason && (
+                  <p
+                    data-testid="music-playback-reason"
+                    role="alert"
+                    className="text-black font-bold bg-rose-300 px-4 py-2 border-4 border-black"
+                  >
+                    {t(`gameMusicTrivia.game.playbackReason.${playback.reason}`)}
+                  </p>
+                )}
+                {room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' && !isHost && (
+                  <p
+                    data-testid="music-host-only-notice"
+                    className="text-black font-bold text-sm bg-pink-200 px-3 py-1 border-2 border-black inline-block mt-2"
+                  >
+                    📢 {t('gameMusicTrivia.lobby.playbackHostHint')}
+                  </p>
+                )}
                 <p className="text-black font-bold text-xl bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                   {t('gameMusicTrivia.game.listenCarefully')}
                 </p>
-                {musicTriviaSyncPlay?.sourceType === 'SOUNDCLOUD' && (
-                  <div className="bg-rose-300 border-4 border-black text-black px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-sm mx-auto text-lg font-black uppercase mb-4 ">
-                    <p>⚠️ SoundCloud กำลังโหลด (Loading SoundCloud)</p>
-                  </div>
-                )}
-                {musicTriviaSyncPlay?.sourceType === 'YOUTUBE' && (
-                  <div className="bg-rose-300 border-4 border-black text-black px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-sm mx-auto text-lg font-black uppercase mb-4 -">
-                    <p>⚠️ YouTube กำลังโหลด (Loading YouTube)</p>
-                  </div>
-                )}
-                <div>
-                  <button
-                    onClick={() => {
-                      if (
-                        ['YOUTUBE', 'SOUNDCLOUD'].includes(musicTriviaSyncPlay?.sourceType || '')
-                      ) {
-                        setIsLocalPaused(false);
-                      } else if (audioRef.current) {
-                        audioRef.current.play().catch((e) => console.error(e));
-                      }
-                    }}
-                    className="px-6 py-3 bg-white text-black border-4 border-black font-black uppercase tracking-widest hover:bg-slate-200 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform"
-                  >
-                    {t('gameMusicTrivia.game.cantHearMusic')}
-                  </button>
-                </div>
+                {playback.reason !== 'EXPIRED_CLIP' &&
+                  (room?.config.musicTriviaAudioPlayback !== 'HOST_ONLY' || isHost) && (
+                    <div>
+                      <button
+                        onClick={playback.retry}
+                        className="px-6 py-3 bg-white text-black border-4 border-black font-black uppercase tracking-widest hover:bg-slate-200 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform"
+                      >
+                        {playback.status === 'blocked'
+                          ? t('gameMusicTrivia.game.enableAudio')
+                          : t('gameMusicTrivia.game.retryPlayback')}
+                      </button>
+                    </div>
+                  )}
               </div>
 
               {/* Enhanced Audio Controls */}
-              <div className="w-full max-w-sm flex flex-col gap-3 bg-pink-300 p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setIsLocalPaused(!isLocalPaused)}
-                      className={`h-12 w-12 flex items-center justify-center font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none ${isLocalPaused ? 'bg-yellow-300 text-black' : 'bg-white text-black'}`}
-                      title={isLocalPaused ? 'Play' : 'Pause'}
-                    >
-                      {isLocalPaused ? '▶️' : '⏸️'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (
-                          ['YOUTUBE', 'SOUNDCLOUD'].includes(
-                            musicTriviaSyncPlay?.sourceType || '',
-                          ) &&
-                          reactPlayerRef.current
-                        ) {
-                          reactPlayerRef.current.seekTo(0, 'seconds');
-                          setIsLocalPaused(false);
-                        } else if (audioRef.current) {
-                          audioRef.current.currentTime = 0;
-                          audioRef.current.play();
-                          setIsLocalPaused(false);
-                        }
-                      }}
-                      className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
-                      title="Listen Again"
-                    >
-                      🔄
-                    </button>
-                  </div>
-                  <div className="flex items-center space-x-3 flex-1 ml-4 bg-white p-2 border-4 border-black">
-                    <span className="text-black font-black">🔉</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={volume}
-                      onChange={(e) => setVolume(parseFloat(e.target.value))}
-                      className="w-full h-3 bg-black appearance-none cursor-pointer accent-yellow-400 border-2 border-black"
-                      aria-label="Volume control"
-                    />
-                    <span className="text-black font-black">🔊</span>
+              {(room?.config.musicTriviaAudioPlayback !== 'HOST_ONLY' || isHost) && (
+                <div className="w-full max-w-sm flex flex-col gap-3 bg-pink-300 p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => playback.setPaused(!playback.paused)}
+                        disabled={playback.reason === 'EXPIRED_CLIP'}
+                        className={`h-12 w-12 flex items-center justify-center font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none ${playback.paused ? 'bg-yellow-300 text-black' : 'bg-white text-black'}`}
+                        title={playback.paused ? 'Play' : 'Pause'}
+                      >
+                        {playback.paused ? '▶️' : '⏸️'}
+                      </button>
+                      <button
+                        onClick={playback.retry}
+                        disabled={playback.reason === 'EXPIRED_CLIP'}
+                        className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
+                        title={t('gameMusicTrivia.game.retryPlayback')}
+                      >
+                        🔄
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => playback.setMuted(!playback.muted)}
+                        aria-label={t(
+                          playback.muted
+                            ? 'gameMusicTrivia.game.unmuteAudio'
+                            : 'gameMusicTrivia.game.muteAudio',
+                        )}
+                        aria-pressed={playback.muted}
+                        className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
+                      >
+                        {playback.muted ? '🔇' : '🔊'}
+                      </button>
+                    </div>
+                    <div className="flex items-center space-x-3 flex-1 ml-4 bg-white p-2 border-4 border-black">
+                      <span className="text-black font-black">🔉</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={playback.volume}
+                        onChange={(e) => playback.setVolume(parseFloat(e.target.value))}
+                        className="w-full h-3 bg-black appearance-none cursor-pointer accent-yellow-400 border-2 border-black"
+                        aria-label="Volume control"
+                      />
+                      <span className="text-black font-black">🔊</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {!isHost || state.hostPlays ? (
                 <div className="w-full max-w-xs flex flex-col items-center gap-4 mt-8">

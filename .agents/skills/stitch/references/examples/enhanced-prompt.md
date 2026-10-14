@@ -16,6 +16,7 @@ High-energy, modern landing page for 'Pulse', a fitness tracking application. Th
 PLATFORM: Web, Desktop-first
 
 PAGE STRUCTURE:
+
 1. Header: Minimal sticky navigation bar with the Pulse logo on the left and a "Start Training" primary call-to-action button on the right.
 2. Hero Section: Full-width fitness photography background. Headline: "Elevate Every Beat." Subtext: "Track, analyze, and hit your fitness goals with Pulse." Primary call-to-action button: "Get Started".
 3. Feature Grid: Three-column responsive card grid:

@@ -20,15 +20,18 @@ export function RoomHeader() {
 
   return (
     <>
-      <header className="flex-none flex items-center justify-between gap-4 p-2 sm:p-4 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] z-10 w-full">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full">
+      <header
+        data-testid="room-header"
+        className="flex-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] z-10 w-full"
+      >
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0">
           <img
             src="/icon.png"
             alt="Logo"
-            className="w-8 h-8 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000]"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000]"
           />
-          <div className="flex flex-col">
-            <span className="text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 hidden sm:block">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] sm:text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 truncate max-w-[120px] sm:max-w-none">
               {room.gameType === GameType.TIC_TAC_TOE
                 ? room.config?.ticTacToeMode === 'GOBBLER'
                   ? t('lobby.gameNames.gobbler')
@@ -63,28 +66,39 @@ export function RoomHeader() {
                                         ? t('lobby.gameNames.poker')
                                         : t('lobby.gameNames.whoKnow')}
             </span>
-            <span className="text-xl sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
+            <span className="text-lg sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}
             </span>
           </div>
           <span className="text-[10px] sm:text-xs font-medium text-slate-500 ml-1 sm:ml-2 border-l border-amber-300 pl-2 sm:pl-4 py-0.5 flex items-center gap-1">
             <span className="hidden sm:inline">{t('lobby.roomHost')}</span>
             <span
-              className="text-slate-700 font-bold truncate max-w-[100px] sm:max-w-[150px]"
+              className="text-slate-700 font-bold truncate max-w-[80px] sm:max-w-[150px]"
               title="Room Creator"
             >
               {room.players?.find((p) => p.socketId === room.roomHostId)?.name ||
                 t('lobby.unknownHost')}
             </span>
           </span>
+          <span
+            data-testid="header-player-count"
+            className="text-[10px] sm:text-xs font-bold bg-amber-100 border border-black px-2 py-0.5 shadow-[1px_1px_0_0_#000] flex items-center gap-1"
+          >
+            👥 {room.players.filter((p) => !p.isViewer && p.connected !== false).length}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           <button
+            data-testid="header-copy-link-btn"
             onClick={() => {
               const inviteLink = `${window.location.origin}/?room=${room.code}`;
               navigator.clipboard.writeText(inviteLink);
               toast.success(t('errors.inviteLinkCopied'));
             }}
-            className="bg-[#A3E635] hover:bg-[#84cc16] text-black border-2 border-black font-bold px-2.5 py-1.5 rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs flex items-center gap-1.5 sm:ml-2"
+            className="bg-[#A3E635] hover:bg-[#84cc16] text-black border-2 border-black font-bold p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs flex items-center gap-1.5"
             title={t('lobby.copyLink')}
+            aria-label={t('lobby.copyLink')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -103,9 +117,11 @@ export function RoomHeader() {
             <span className="hidden sm:inline">{t('lobby.copyLink')}</span>
           </button>
           <button
+            data-testid="header-qr-code-btn"
             onClick={() => setShowQRModal(true)}
-            className="bg-[#C084FC] hover:bg-[#A855F7] text-black border-2 border-black font-bold px-2.5 py-1.5 rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs flex items-center gap-1.5 ml-1"
+            className="bg-[#C084FC] hover:bg-[#A855F7] text-black border-2 border-black font-bold p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs flex items-center gap-1.5"
             title={t('lobby.qrCode')}
+            aria-label={t('lobby.qrCode')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -127,17 +143,17 @@ export function RoomHeader() {
             <span className="hidden sm:inline">{t('lobby.qrCode')}</span>
           </button>
           <LanguageSwitcher />
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
           <RulesModal
             defaultGameType={room.gameType}
             isGameRoom={true}
-            triggerClassName="text-sm font-black text-black hover:bg-yellow-300 bg-white transition-colors flex items-center gap-2 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-nowrap"
+            triggerClassName="text-xs sm:text-sm font-black text-black hover:bg-yellow-300 bg-white transition-colors flex items-center gap-1 sm:gap-2 p-1.5 sm:px-3 sm:py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-nowrap"
           />
           <button
+            data-testid="header-leave-room-btn"
             onClick={() => setShowLeaveModal(true)}
-            className="bg-[#F43F5E] hover:bg-[#E11D48] text-white border-2 border-black px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1.5 whitespace-nowrap"
+            className="bg-[#F43F5E] hover:bg-[#E11D48] text-white border-2 border-black p-1.5 sm:px-3 sm:py-1.5 rounded-lg font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1.5 whitespace-nowrap"
             title={t('lobby.leave')}
+            aria-label={t('lobby.leave')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

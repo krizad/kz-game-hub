@@ -9,6 +9,7 @@ import {
 } from '@repo/types';
 import { prisma } from '@repo/database';
 import { PrivateStateService } from '../private-state.service';
+import { RoomStartGuardService } from '../room-start-guard.service';
 
 const ROOM_KEY = '__room__';
 const SF_ROLE = 'sfRole';
@@ -21,9 +22,15 @@ const SF_TYPING_TEXTS = 'sfTypingTexts';
 
 const MAX_ANSWER_LENGTH = 200;
 
+export const SF_ERROR_QUESTIONS_UNAVAILABLE =
+  'Questions are unavailable. Retry or choose another game.';
+
 @Injectable()
 export class SoundsFishyService {
-  constructor(private readonly privateState: PrivateStateService) {}
+  constructor(
+    private readonly privateState: PrivateStateService,
+    private readonly startGuard: RoomStartGuardService,
+  ) {}
 
   private shuffleArray<T>(arr: T[]): T[] {
     const a = [...arr];
@@ -65,117 +72,142 @@ export class SoundsFishyService {
   async assignRoles(
     room: RoomState,
     requesterId: string,
-  ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
+  ): Promise<{ room: RoomState; roles: Record<string, Role>; error?: string } | null> {
     if (room.status !== RoomStatus.LOBBY) return null;
     const connectedPlayers = room.players.filter((p) => !p.isViewer && p.connected !== false);
     if (connectedPlayers.length < 3) return null; // Need at least 3 players
     if (room.roomHostId !== requesterId) return null;
 
-    const lang = room.config.language || 'th';
+    const ticket = this.startGuard.begin(room.code, room);
+    if (ticket === 'START_BUSY') return null;
 
-    let questionRecord: {
-      id: string;
-      question: string;
-      answer: string;
-      lang: string;
-    } | null = null;
     try {
-      const minQueryCountResult = await prisma.soundsFishyQuestion.aggregate({
-        where: { lang },
-        _min: { query_count: true },
-      });
+      const lang = room.config.language || 'th';
 
-      // If no questions in DB
-      if (minQueryCountResult._min.query_count === null) return null;
-
-      const minQueryCount = minQueryCountResult._min.query_count;
-
-      const questionsWithMinCount = await prisma.soundsFishyQuestion.findMany({
-        where: { lang, query_count: minQueryCount },
-        select: { id: true, question: true, answer: true, lang: true },
-      });
-
-      if (questionsWithMinCount.length === 0) return null;
-
-      const randomIndex = Math.floor(Math.random() * questionsWithMinCount.length);
-      questionRecord = questionsWithMinCount[randomIndex];
-
-      // Increment query_count for the chosen question
-      if (questionRecord) {
-        await prisma.soundsFishyQuestion.update({
-          where: { id: questionRecord.id },
-          data: { query_count: { increment: 1 } },
+      let questionRecord: {
+        id: string;
+        question: string;
+        answer: string;
+        lang: string;
+      } | null = null;
+      try {
+        const minQueryCountResult = await prisma.soundsFishyQuestion.aggregate({
+          where: { lang },
+          _min: { query_count: true },
         });
+
+        // If no questions in DB
+        if (minQueryCountResult._min.query_count === null) {
+          return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
+        }
+
+        const minQueryCount = minQueryCountResult._min.query_count;
+
+        const questionsWithMinCount = await prisma.soundsFishyQuestion.findMany({
+          where: { lang, query_count: minQueryCount },
+          select: { id: true, question: true, answer: true, lang: true },
+        });
+
+        if (questionsWithMinCount.length === 0) {
+          return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
+        }
+
+        const randomIndex = Math.floor(Math.random() * questionsWithMinCount.length);
+        questionRecord = questionsWithMinCount[randomIndex];
+
+        // Increment query_count for the chosen question
+        if (questionRecord) {
+          await prisma.soundsFishyQuestion.update({
+            where: { id: questionRecord.id },
+            data: { query_count: { increment: 1 } },
+          });
+        }
+      } catch {
+        return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
       }
-    } catch {
-      return null;
-    }
 
-    if (!questionRecord) return null;
-
-    // A new round starts clean — drop stale answers and typing drafts.
-    this.privateState.takeRoomData(room.code, SF_MY_ANSWER);
-    for (const p of room.players) this.privateState.delete(room.code, p.socketId, SF_TYPING_TEXTS);
-
-    // Assign roles randomly among connected players
-    // 1 Picker, 1 Blue Fish, rest are Red Herrings
-    const shuffledPlayers = this.shuffleArray(connectedPlayers);
-    const picker = shuffledPlayers[0];
-    const blueFish = shuffledPlayers[1];
-    const redHerrings = shuffledPlayers.slice(2);
-
-    // Store secrets server-side only
-    for (const p of connectedPlayers) {
-      const role =
-        p.socketId === picker.socketId
-          ? 'PICKER'
-          : p.socketId === blueFish.socketId
-            ? 'BLUE_FISH'
-            : 'RED_HERRING';
-      this.privateState.set(room.code, p.socketId, SF_ROLE, role);
-      if (role !== 'PICKER') {
-        this.privateState.set(room.code, p.socketId, SF_TRUE_ANSWER, questionRecord.answer);
+      if (!questionRecord) {
+        return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
       }
+
+      // Revalidate room state before mutating room and private state
+      if (!this.startGuard.isCurrent(ticket, room)) {
+        return null;
+      }
+
+      // Re-read connected players in case non-critical metadata changed, but participants match ticket
+      const validConnectedPlayers = room.players.filter(
+        (p) => !p.isViewer && p.connected !== false,
+      );
+      if (validConnectedPlayers.length < 3) return null;
+
+      // A new round starts clean — drop stale answers and typing drafts.
+      this.privateState.takeRoomData(room.code, SF_MY_ANSWER);
+      for (const p of room.players)
+        this.privateState.delete(room.code, p.socketId, SF_TYPING_TEXTS);
+
+      // Assign roles randomly among connected players
+      // 1 Picker, 1 Blue Fish, rest are Red Herrings
+      const shuffledPlayers = this.shuffleArray(validConnectedPlayers);
+      const picker = shuffledPlayers[0];
+      const blueFish = shuffledPlayers[1];
+      const redHerrings = shuffledPlayers.slice(2);
+
+      // Store secrets server-side only
+      for (const p of validConnectedPlayers) {
+        const role =
+          p.socketId === picker.socketId
+            ? 'PICKER'
+            : p.socketId === blueFish.socketId
+              ? 'BLUE_FISH'
+              : 'RED_HERRING';
+        this.privateState.set(room.code, p.socketId, SF_ROLE, role);
+        if (role !== 'PICKER') {
+          this.privateState.set(room.code, p.socketId, SF_TRUE_ANSWER, questionRecord.answer);
+        }
+      }
+      this.privateState.set(room.code, ROOM_KEY, SF_ROOM_TRUE_ANSWER, questionRecord.answer);
+      this.privateState.set(room.code, ROOM_KEY, SF_ROOM_BLUE_FISH, blueFish.socketId);
+      this.privateState.set(
+        room.code,
+        ROOM_KEY,
+        SF_ROOM_RED_HERRINGS,
+        redHerrings.map((p) => p.socketId),
+      );
+
+      const questionData: SoundsFishyQuestionData = {
+        id: questionRecord.id,
+        question: questionRecord.question,
+        lang: questionRecord.lang,
+      };
+
+      const state: SoundsFishyState = {
+        currentPhase: SoundsFishyPhase.SETUP,
+        pickerId: picker.socketId,
+        blueFishId: null,
+        redHerringIds: [],
+        question: questionData,
+        playerAnswers: {},
+        answeredPlayerIds: [],
+        eliminatedPlayers: [],
+        roundScorePool: 0,
+        roundPoints: {},
+        typingPlayerIds: [],
+      };
+
+      room.status = RoomStatus.QUESTIONING;
+      room.soundsFishyState = state;
+
+      const roles: Record<string, Role> = {};
+      room.players.forEach((p) => {
+        p.role = null as unknown as Role;
+        roles[p.socketId] = p.role;
+      });
+
+      return { room, roles };
+    } finally {
+      this.startGuard.release(ticket);
     }
-    this.privateState.set(room.code, ROOM_KEY, SF_ROOM_TRUE_ANSWER, questionRecord.answer);
-    this.privateState.set(room.code, ROOM_KEY, SF_ROOM_BLUE_FISH, blueFish.socketId);
-    this.privateState.set(
-      room.code,
-      ROOM_KEY,
-      SF_ROOM_RED_HERRINGS,
-      redHerrings.map((p) => p.socketId),
-    );
-
-    const questionData: SoundsFishyQuestionData = {
-      id: questionRecord.id,
-      question: questionRecord.question,
-      lang: questionRecord.lang,
-    };
-
-    const state: SoundsFishyState = {
-      currentPhase: SoundsFishyPhase.SETUP,
-      pickerId: picker.socketId,
-      blueFishId: null,
-      redHerringIds: [],
-      question: questionData,
-      playerAnswers: {},
-      answeredPlayerIds: [],
-      eliminatedPlayers: [],
-      roundScorePool: 0,
-      roundPoints: {},
-      typingPlayerIds: [],
-    };
-
-    room.status = RoomStatus.QUESTIONING;
-    room.soundsFishyState = state;
-
-    const roles: Record<string, Role> = {};
-    room.players.forEach((p) => {
-      p.role = null as unknown as Role;
-      roles[p.socketId] = p.role;
-    });
-
-    return { room, roles };
   }
 
   typeAnswer(room: RoomState, playerId: string, answer: string): RoomState | null {
