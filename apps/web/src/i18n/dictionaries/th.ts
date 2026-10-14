@@ -1849,6 +1849,11 @@ export const th: Dictionary = {
     votes: 'โหวต',
     vote: 'โหวต',
     playAgain: 'เล่นอีกครั้ง',
+    spectatorWordSetting: 'กำลังรับชม: กำลังรอคนถือคำเลือกคำลับ...',
+    spectatorQuestioning: 'กำลังรับชม: ผู้เล่นกำลังถามคำถามเพื่อหาคำลับ...',
+    spectatorVoting: 'กำลังรับชม: ผู้เล่นกำลังโหวตหาคนรู้...',
+    spectatorHint: 'คุณกำลังรับชมรอบนี้',
+    waitingHostPlayAgain: 'กำลังรอโฮสต์ห้องเริ่มรอบถัดไป...',
   },
   poker: {
     modeTitle: 'โหมดเกม',

@@ -1639,6 +1639,11 @@ export interface Dictionary {
     votes: string;
     vote: string;
     playAgain: string;
+    spectatorWordSetting: string;
+    spectatorQuestioning: string;
+    spectatorVoting: string;
+    spectatorHint: string;
+    waitingHostPlayAgain: string;
   };
   poker: {
     modeTitle: string;

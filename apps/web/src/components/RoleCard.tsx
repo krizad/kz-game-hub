@@ -1,22 +1,53 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Role } from '@repo/types';
 import { cn } from '@/lib/utils';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useGameStore } from '@/store/useGameStore';
 
 interface RoleCardProps {
   role: Role | null;
   word?: string | null;
+  roomCode?: string | null;
 }
 
-export const RoleCard = ({ role, word }: RoleCardProps) => {
+export const RoleCard = ({ role, word, roomCode }: RoleCardProps) => {
   const [isRevealed, setIsRevealed] = useState(false);
+  const storeRoomCode = useGameStore((s) => s.room?.code);
+  const currentRoomCode = roomCode ?? storeRoomCode;
   const { t } = useTranslate();
   const prefersReducedMotion = useReducedMotion();
   const flipTransition = { duration: prefersReducedMotion ? 0 : 0.28 };
+
+  // Close card whenever role, word, or room code changes
+  useEffect(() => {
+    setIsRevealed(false);
+  }, [role, word, currentRoomCode]);
+
+  // Close card when document is hidden or window blurs; do NOT re-reveal on return
+  useEffect(() => {
+    const handleBlur = () => {
+      setIsRevealed(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        setIsRevealed(false);
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const roleLabel =
     role === Role.Host
       ? t('gameWhoKnow.roleCard.host')
@@ -35,7 +66,9 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
         <button
           onClick={() => setIsRevealed(!isRevealed)}
           type="button"
+          aria-expanded={isRevealed}
           aria-pressed={isRevealed}
+          data-testid="role-card-toggle"
           className="flex min-h-10 shrink-0 items-center gap-2 border-2 border-black bg-amber-100 px-3 py-2 text-slate-900 transition-colors hover:bg-amber-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-indigo-700"
         >
           {isRevealed ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -48,8 +81,10 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
       <button
         type="button"
         onClick={() => setIsRevealed(!isRevealed)}
+        aria-expanded={isRevealed}
         aria-pressed={isRevealed}
         aria-label={t(isRevealed ? 'gameWhoKnow.roleCard.hide' : 'gameWhoKnow.roleCard.show')}
+        data-testid="role-card-flip"
         className="group relative aspect-[16/8] w-full cursor-pointer focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-indigo-700 sm:aspect-[16/7]"
         style={{ perspective: prefersReducedMotion ? undefined : '1000px' }}
       >
@@ -57,6 +92,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
           {!isRevealed ? (
             <motion.div
               key="hidden"
+              data-testid="role-card-hidden-content"
               initial={prefersReducedMotion ? { opacity: 0 } : { rotateX: -80, opacity: 0 }}
               animate={prefersReducedMotion ? { opacity: 1 } : { rotateX: 0, opacity: 1 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { rotateX: 80, opacity: 0 }}
@@ -71,6 +107,7 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
           ) : (
             <motion.div
               key="revealed"
+              data-testid="role-card-revealed-content"
               initial={prefersReducedMotion ? { opacity: 0 } : { rotateX: -80, opacity: 0 }}
               animate={prefersReducedMotion ? { opacity: 1 } : { rotateX: 0, opacity: 1 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { rotateX: 80, opacity: 0 }}
@@ -84,13 +121,21 @@ export const RoleCard = ({ role, word }: RoleCardProps) => {
               )}
             >
               <div className="flex flex-col items-center justify-center w-full">
-                <h3 className="px-2 text-center text-xl font-black sm:text-3xl">{roleLabel}</h3>
+                <h3
+                  data-testid="role-card-role-label"
+                  className="px-2 text-center text-xl font-black sm:text-3xl"
+                >
+                  {roleLabel}
+                </h3>
                 {word && role !== Role.Unknow && (
                   <div className="mt-2 w-full border-t border-black/30 px-2 pt-2 text-center sm:mt-3 sm:px-4 sm:pt-3">
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-700 sm:text-xs">
                       {t('gameWhoKnow.roleCard.targetWord')}
                     </span>
-                    <span className="break-words text-xl font-black text-black sm:text-2xl">
+                    <span
+                      data-testid="role-card-target-word"
+                      className="break-words text-xl font-black text-black sm:text-2xl"
+                    >
                       {word}
                     </span>
                   </div>

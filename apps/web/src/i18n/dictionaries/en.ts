@@ -1896,6 +1896,11 @@ export const en: Dictionary = {
     votes: 'VOTES',
     vote: 'VOTE',
     playAgain: 'Play Again',
+    spectatorWordSetting: 'Spectating: Waiting for the Word Keeper to pick a word...',
+    spectatorQuestioning: 'Spectating: Players are asking questions to guess the secret word...',
+    spectatorVoting: 'Spectating: Players are voting on who the Hidden Guide is...',
+    spectatorHint: 'You are spectating this round.',
+    waitingHostPlayAgain: 'Waiting for room host to start next round...',
   },
   poker: {
     modeTitle: 'Game mode',

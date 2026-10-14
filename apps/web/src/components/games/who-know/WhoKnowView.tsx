@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, Role, GameType } from '@repo/types';
 import { CountdownTimer } from '@/components/core/CountdownTimer';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { RulesModal } from '@/components/RulesModal';
 import { useTranslate } from '@/hooks/useTranslate';
 import { celebrateWin } from '@/lib/celebrateWin';
 
@@ -41,6 +42,7 @@ export function WhoKnowView() {
 
   if (!room || room.gameType !== GameType.WHO_KNOW) return null;
 
+  const isViewer = !myRole || room.players.find((p) => p.socketId === socketId)?.isViewer;
   const myVote = privateState.wkVote as string | undefined;
   const activeStep = PHASES.findIndex((phase) => phase.status === room.status);
   const resultVotes = room.votes ?? {};
@@ -107,11 +109,13 @@ export function WhoKnowView() {
                 {t('gameWhoKnow.phaseSteps.word')}
               </p>
               <h2 id="who-know-word-setting" className="text-2xl font-black text-black sm:text-3xl">
-                {myRole === Role.Host
-                  ? t('gameWhoKnow.wordSettingHost')
-                  : t('gameWhoKnow.wordSettingWaiting')}
+                {isViewer
+                  ? t('gameWhoKnow.spectatorWordSetting')
+                  : myRole === Role.Host
+                    ? t('gameWhoKnow.wordSettingHost')
+                    : t('gameWhoKnow.wordSettingWaiting')}
               </h2>
-              {myRole !== Role.Host && (
+              {!isViewer && myRole !== Role.Host && (
                 <div className="mt-5 flex items-center justify-center gap-3 text-sm font-bold text-slate-700">
                   <span className="text-2xl" aria-hidden="true">
                     ⏳
@@ -139,9 +143,11 @@ export function WhoKnowView() {
                 id="who-know-questioning"
                 className="mx-auto inline-block max-w-full border-4 border-black bg-emerald-300 px-4 py-3 text-xl font-black text-black shadow-[4px_4px_0_0_#000] sm:px-6 sm:text-2xl"
               >
-                {myRole === Role.Host
-                  ? t('gameWhoKnow.questioningHost')
-                  : t('gameWhoKnow.questioningPlayers')}
+                {isViewer
+                  ? t('gameWhoKnow.spectatorQuestioning')
+                  : myRole === Role.Host
+                    ? t('gameWhoKnow.questioningHost')
+                    : t('gameWhoKnow.questioningPlayers')}
               </h2>
             </div>
 
@@ -201,24 +207,29 @@ export function WhoKnowView() {
               </p>
               <h2
                 id="who-know-voting"
+                data-testid="who-know-voting-heading"
                 className="mx-auto inline-block max-w-full border-4 border-black bg-yellow-200 px-4 py-3 text-xl font-black text-black shadow-[4px_4px_0_0_#000] sm:px-6 sm:text-2xl"
               >
-                {myRole === Role.Host
-                  ? t('gameWhoKnow.votingHostWait')
-                  : myVote
-                    ? t('gameWhoKnow.voteSubmittedStatus')
-                    : t('gameWhoKnow.votingPrompt')}
+                {isViewer
+                  ? t('gameWhoKnow.spectatorVoting')
+                  : myRole === Role.Host
+                    ? t('gameWhoKnow.votingHostWait')
+                    : myVote
+                      ? t('gameWhoKnow.voteSubmittedStatus')
+                      : t('gameWhoKnow.votingPrompt')}
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-slate-700">
-                {myRole === Role.Host
-                  ? t('gameWhoKnow.sealedVoteHostHint')
-                  : myVote
-                    ? t('gameWhoKnow.sealedVoteWaitingHint')
-                    : t('gameWhoKnow.sealedVoteHint')}
+                {isViewer
+                  ? t('gameWhoKnow.spectatorHint')
+                  : myRole === Role.Host
+                    ? t('gameWhoKnow.sealedVoteHostHint')
+                    : myVote
+                      ? t('gameWhoKnow.sealedVoteWaitingHint')
+                      : t('gameWhoKnow.sealedVoteHint')}
               </p>
             </div>
 
-            {myRole !== Role.Host && !myVote && (
+            {!isViewer && myRole !== Role.Host && !myVote && (
               <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
                 {room.players.map((player) => {
                   if (
@@ -233,6 +244,7 @@ export function WhoKnowView() {
                   return (
                     <button
                       key={player.id}
+                      data-testid={`wk-vote-target-${player.socketId}`}
                       onClick={() => useGameStore.getState().submitVote(player.socketId)}
                       disabled={actionLoading}
                       className="min-h-14 border-4 border-black bg-white px-5 py-4 text-left text-lg font-black text-black shadow-[4px_4px_0_0_#000] transition hover:-translate-y-0.5 hover:bg-cyan-200 active:translate-y-1 active:shadow-none focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-indigo-700 disabled:cursor-wait disabled:opacity-60"
@@ -244,6 +256,16 @@ export function WhoKnowView() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {!isViewer && myRole !== Role.Host && myVote && (
+              <div
+                data-testid="wk-vote-submitted-badge"
+                className="mt-4 border-4 border-black bg-emerald-200 px-6 py-4 font-black text-black shadow-[4px_4px_0_0_#000] text-center"
+              >
+                <span className="text-xl mr-2">✓</span>
+                <span className="text-lg">{t('gameWhoKnow.voteSubmittedStatus')}</span>
               </div>
             )}
           </motion.section>
@@ -265,29 +287,47 @@ export function WhoKnowView() {
             </h2>
 
             {room.winner === 'TIMEOUT' ? (
-              <div className="w-full max-w-2xl border-4 border-black bg-rose-300 p-5 text-center shadow-[5px_5px_0_0_#000] sm:p-7">
-                <h3 className="text-2xl font-black text-black sm:text-3xl">
+              <div
+                data-testid="wk-winner-result"
+                className="w-full max-w-2xl border-4 border-black bg-rose-300 p-5 text-center shadow-[5px_5px_0_0_#000] sm:p-7"
+              >
+                <h3
+                  data-testid="wk-winner-title"
+                  className="text-2xl font-black text-black sm:text-3xl"
+                >
                   {t('gameWhoKnow.timeoutTitle')}
                 </h3>
-                <p className="mt-2 text-base font-bold text-black">
+                <p data-testid="wk-win-reason" className="mt-2 text-base font-bold text-black">
                   {t('gameWhoKnow.timeoutDesc')}
                 </p>
               </div>
             ) : room.winner === 'INSIDER' ? (
-              <div className="w-full max-w-2xl border-4 border-black bg-rose-300 p-5 text-center shadow-[5px_5px_0_0_#000] sm:p-7">
-                <h3 className="text-2xl font-black text-black sm:text-3xl">
+              <div
+                data-testid="wk-winner-result"
+                className="w-full max-w-2xl border-4 border-black bg-rose-300 p-5 text-center shadow-[5px_5px_0_0_#000] sm:p-7"
+              >
+                <h3
+                  data-testid="wk-winner-title"
+                  className="text-2xl font-black text-black sm:text-3xl"
+                >
                   {t('gameWhoKnow.insiderWinsTitle')}
                 </h3>
-                <p className="mt-2 text-base font-bold text-black">
+                <p data-testid="wk-win-reason" className="mt-2 text-base font-bold text-black">
                   {t('gameWhoKnow.insiderWinsDesc')}
                 </p>
               </div>
             ) : room.winner === 'COMMONERS' ? (
-              <div className="w-full max-w-2xl border-4 border-black bg-cyan-200 p-5 text-center shadow-[5px_5px_0_0_#000] sm:p-7">
-                <h3 className="text-2xl font-black text-black sm:text-3xl">
+              <div
+                data-testid="wk-winner-result"
+                className="w-full max-w-2xl border-4 border-black bg-cyan-200 p-5 text-center shadow-[5px_5px_0_0_#000] sm:p-7"
+              >
+                <h3
+                  data-testid="wk-winner-title"
+                  className="text-2xl font-black text-black sm:text-3xl"
+                >
                   {t('gameWhoKnow.commonersWinTitle')}
                 </h3>
-                <p className="mt-2 text-base font-bold text-black">
+                <p data-testid="wk-win-reason" className="mt-2 text-base font-bold text-black">
                   {t('gameWhoKnow.commonersWinDesc')}
                 </p>
               </div>
@@ -372,38 +412,71 @@ export function WhoKnowView() {
               <ul className="divide-y-2 divide-black">
                 {room.players
                   .filter((player) => !player.isViewer)
-                  .map((player) => (
-                    <li
-                      key={player.id}
-                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="break-words font-black text-black">{player.name}</p>
-                        <p className="text-xs font-bold text-slate-600">
-                          {player.role === Role.Host
-                            ? t('gameWhoKnow.roleCard.host')
-                            : player.role === Role.Know
-                              ? t('gameWhoKnow.insider')
-                              : t('gameWhoKnow.roleCard.seeker')}
-                        </p>
-                      </div>
-                      <span className="shrink-0 border-2 border-black bg-yellow-100 px-3 py-1 text-sm font-black text-black">
-                        {t('lobby.score')}: {player.score}
-                      </span>
-                    </li>
-                  ))}
+                  .map((player) => {
+                    const pointsGained =
+                      room.winner === 'COMMONERS' && player.role === Role.Unknow
+                        ? 1
+                        : room.winner === 'INSIDER' && player.role === Role.Know
+                          ? 2
+                          : 0;
+
+                    return (
+                      <li
+                        key={player.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="break-words font-black text-black">{player.name}</p>
+                          <p className="text-xs font-bold text-slate-600">
+                            {player.role === Role.Host
+                              ? t('gameWhoKnow.roleCard.host')
+                              : player.role === Role.Know
+                                ? t('gameWhoKnow.insider')
+                                : t('gameWhoKnow.roleCard.seeker')}
+                          </p>
+                        </div>
+                        <span
+                          data-testid={`wk-player-score-${player.id}`}
+                          className="shrink-0 border-2 border-black bg-yellow-100 px-3 py-1 text-sm font-black text-black"
+                        >
+                          {t('lobby.score')}: {player.score}
+                          {pointsGained > 0 && (
+                            <span className="ml-1.5 text-xs font-black text-emerald-700">
+                              (+{pointsGained})
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
               </ul>
             </div>
 
-            {socketId === room.roomHostId && (
+            {socketId === room.roomHostId ? (
               <button
+                data-testid="wk-play-again-btn"
                 onClick={() => useGameStore.getState().resetRoom()}
                 disabled={actionLoading}
                 className="min-h-14 w-full max-w-2xl border-4 border-black bg-emerald-300 px-5 py-4 text-xl font-black text-black shadow-[5px_5px_0_0_#000] transition hover:bg-emerald-200 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t('gameWhoKnow.playAgain')}
               </button>
+            ) : (
+              <p
+                data-testid="wk-waiting-host-restart"
+                className="text-center text-sm font-bold text-slate-600"
+              >
+                {t('gameWhoKnow.waitingHostPlayAgain')}
+              </p>
             )}
+
+            <div className="w-full max-w-2xl flex justify-center pt-2">
+              <RulesModal
+                defaultGameType={GameType.WHO_KNOW}
+                isGameRoom={true}
+                triggerClassName="text-xs font-black text-black hover:bg-yellow-200 bg-yellow-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-nowrap"
+              />
+            </div>
           </motion.section>
         )}
       </AnimatePresence>

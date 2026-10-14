@@ -220,4 +220,71 @@ describe('WhoKnowService', () => {
       expect(room.winner).toBe('COMMONERS');
     });
   });
+
+  describe('resetGame and next round lifecycle', () => {
+    it('clears roles, secret word, and resets room state only for room host', () => {
+      const room = createRoom(fourPlayers(), RoomStatus.RESULT);
+      room.winner = 'COMMONERS';
+      room.votes = { p2: 'p3', p3: 'p2', p4: 'p2' };
+      privateState.set(room.code, 'p1', 'wkRole', Role.Host);
+      privateState.set(room.code, 'p2', 'wkVote', 'p3');
+
+      const secretWords = new Map<string, string>([[room.code, 'Secret']]);
+
+      // Non-host attempts to reset
+      expect(service.resetGame(room, 'p2', secretWords)).toBeNull();
+      expect(secretWords.has(room.code)).toBe(true);
+
+      // Room host resets
+      const reset = service.resetGame(room, 'p1', secretWords);
+      expect(reset).not.toBeNull();
+      expect(reset!.status).toBe(RoomStatus.LOBBY);
+      expect(reset!.votes).toBeUndefined();
+      expect(reset!.winner).toBeUndefined();
+      expect(secretWords.has(room.code)).toBe(false);
+      expect(privateState.get(room.code, 'p1', 'wkRole')).toBeUndefined();
+      expect(privateState.get(room.code, 'p2', 'wkVote')).toBeUndefined();
+    });
+
+    it('assignRoles from RESULT clears previous round votes, winner, and assigns fresh roles', () => {
+      const room = createRoom(fourPlayers(), RoomStatus.RESULT);
+      room.winner = 'INSIDER';
+      room.votes = { p3: 'p4', p4: 'p3', p2: 'p3' };
+      privateState.set(room.code, 'p3', 'wkVote', 'p4');
+
+      const result = service.assignRoles(room, 'p1');
+      expect(result).not.toBeNull();
+      expect(result!.room.status).toBe(RoomStatus.WORD_SETTING);
+      expect(result!.room.votes).toBeUndefined();
+      expect(result!.room.winner).toBeUndefined();
+      expect(privateState.get(room.code, 'p3', 'wkVote')).toBeUndefined();
+    });
+
+    it('rejects votes from spectators/viewers and already voted players', () => {
+      const room = createRoom(
+        [
+          { socketId: 'p1' },
+          { socketId: 'p2' },
+          { socketId: 'p3' },
+          { socketId: 'p4' },
+          { socketId: 'v1', isViewer: true },
+        ],
+        RoomStatus.VOTING,
+      );
+      privateState.set(room.code, 'p1', 'wkRole', Role.Host);
+      privateState.set(room.code, 'p2', 'wkRole', Role.Know);
+      privateState.set(room.code, 'p3', 'wkRole', Role.Unknow);
+      privateState.set(room.code, 'p4', 'wkRole', Role.Unknow);
+      room.votes = {};
+
+      // Viewer cannot vote
+      expect(service.submitVote(room, 'v1', 'p2')).toBeNull();
+
+      // Normal player votes
+      expect(service.submitVote(room, 'p3', 'p2')).not.toBeNull();
+
+      // Double vote rejected
+      expect(service.submitVote(room, 'p3', 'p4')).toBeNull();
+    });
+  });
 });

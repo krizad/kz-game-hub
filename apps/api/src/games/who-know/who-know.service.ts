@@ -42,6 +42,12 @@ export class WhoKnowService {
     if (connectedPlayers.length < 4) return null;
 
     room.status = RoomStatus.WORD_SETTING;
+    room.votes = undefined;
+    room.winner = undefined;
+    room.endTime = undefined;
+    for (const p of room.players) {
+      this.privateState.delete(room.code, p.socketId, WK_VOTE);
+    }
 
     // Assign Host based on config (connected players only)
     let hostPlayer: UserState;
