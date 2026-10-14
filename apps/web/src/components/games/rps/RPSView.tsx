@@ -18,7 +18,8 @@ export function RPSView() {
   } = useGameStore();
   const { t } = useTranslate();
 
-  const unknownPendingAction = Object.values(pendingActions).find((a) => a.status === 'unknown');
+  const [unknownActionId, unknownPendingAction] =
+    Object.entries(pendingActions).find(([, a]) => a.status === 'unknown') ?? [];
   const showActionOverlay = actionLoading || !!unknownPendingAction;
 
   if (!room || !room.rpsState) return null;
@@ -103,9 +104,7 @@ export function RPSView() {
       {showActionOverlay && (
         <ActionLoadingOverlay
           status={unknownPendingAction ? 'unknown' : 'pending'}
-          onDismiss={
-            unknownPendingAction ? () => dismissPendingAction(unknownPendingAction[0]) : undefined
-          }
+          onDismiss={unknownActionId ? () => dismissPendingAction(unknownActionId) : undefined}
         />
       )}
       <div className="flex flex-col items-center gap-6 w-full max-w-2xl bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none p-6 relative my-auto">

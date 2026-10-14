@@ -18,7 +18,8 @@ export function TicTacToeView() {
   } = useGameStore();
   const { t } = useTranslate();
 
-  const unknownPendingAction = Object.values(pendingActions).find((a) => a.status === 'unknown');
+  const [unknownActionId, unknownPendingAction] =
+    Object.entries(pendingActions).find(([, a]) => a.status === 'unknown') ?? [];
   const showActionOverlay = actionLoading || !!unknownPendingAction;
 
   if (!room || !room.ticTacToeState) return null;
@@ -49,9 +50,7 @@ export function TicTacToeView() {
       {showActionOverlay && (
         <ActionLoadingOverlay
           status={unknownPendingAction ? 'unknown' : 'pending'}
-          onDismiss={
-            unknownPendingAction ? () => dismissPendingAction(unknownPendingAction[0]) : undefined
-          }
+          onDismiss={unknownActionId ? () => dismissPendingAction(unknownActionId) : undefined}
         />
       )}
       {room.status === RoomStatus.LOBBY ? (

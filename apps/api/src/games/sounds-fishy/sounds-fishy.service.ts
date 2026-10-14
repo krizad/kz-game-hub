@@ -22,6 +22,9 @@ const SF_TYPING_TEXTS = 'sfTypingTexts';
 
 const MAX_ANSWER_LENGTH = 200;
 
+export const SF_ERROR_QUESTIONS_UNAVAILABLE =
+  'Questions are unavailable. Retry or choose another game.';
+
 @Injectable()
 export class SoundsFishyService {
   constructor(
@@ -69,7 +72,7 @@ export class SoundsFishyService {
   async assignRoles(
     room: RoomState,
     requesterId: string,
-  ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
+  ): Promise<{ room: RoomState; roles: Record<string, Role>; error?: string } | null> {
     if (room.status !== RoomStatus.LOBBY) return null;
     const connectedPlayers = room.players.filter((p) => !p.isViewer && p.connected !== false);
     if (connectedPlayers.length < 3) return null; // Need at least 3 players
@@ -94,7 +97,9 @@ export class SoundsFishyService {
         });
 
         // If no questions in DB
-        if (minQueryCountResult._min.query_count === null) return null;
+        if (minQueryCountResult._min.query_count === null) {
+          return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
+        }
 
         const minQueryCount = minQueryCountResult._min.query_count;
 
@@ -103,7 +108,9 @@ export class SoundsFishyService {
           select: { id: true, question: true, answer: true, lang: true },
         });
 
-        if (questionsWithMinCount.length === 0) return null;
+        if (questionsWithMinCount.length === 0) {
+          return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
+        }
 
         const randomIndex = Math.floor(Math.random() * questionsWithMinCount.length);
         questionRecord = questionsWithMinCount[randomIndex];
@@ -116,10 +123,12 @@ export class SoundsFishyService {
           });
         }
       } catch {
-        return null;
+        return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
       }
 
-      if (!questionRecord) return null;
+      if (!questionRecord) {
+        return { room, roles: {}, error: SF_ERROR_QUESTIONS_UNAVAILABLE };
+      }
 
       // Revalidate room state before mutating room and private state
       if (!this.startGuard.isCurrent(ticket, room)) {

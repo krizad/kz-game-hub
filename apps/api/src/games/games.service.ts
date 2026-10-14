@@ -942,7 +942,7 @@ export class GamesService {
   async assignRoles(
     code: string,
     requesterId: string,
-  ): Promise<{ room: RoomState; roles: Record<string, Role> } | null> {
+  ): Promise<{ room: RoomState; roles: Record<string, Role>; error?: string } | null> {
     const room = this.rooms.get(code);
     if (!room) return null;
 

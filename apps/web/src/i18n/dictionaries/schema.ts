@@ -103,6 +103,7 @@ export interface Dictionary {
     bestOf: string;
     startGame: string;
     startingGame: string;
+    questionsUnavailable: string;
     waitingMin: string;
     waitingForHost: string;
     waitingForSecretWord: string;

@@ -5,10 +5,12 @@ import { useGameStore } from '@/store/useGameStore';
 import { GameType, getBananaThiefRequiredPlayerCount } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
+import { translateServerError } from '@/i18n/serverErrors';
 
 export function LobbyStartButton() {
-  const { room, startGame, submitWordsWhoAmI, isLoading, artistPresets } = useGameStore();
-  const { t } = useTranslate();
+  const { room, startGame, submitWordsWhoAmI, isLoading, artistPresets, gameStartError } =
+    useGameStore();
+  const { t, language } = useTranslate();
   const [showHostWordModal, setShowHostWordModal] = useState(false);
   const [hostWordDraft, setHostWordDraft] = useState<Record<string, string>>({});
 
@@ -35,8 +37,19 @@ export function LobbyStartButton() {
 
   if (!isHost) {
     return (
-      <div className="w-full max-w-xs bg-white text-black border-4 border-black shadow-[4px_4px_0_0_#000] font-black text-sm py-4 text-center uppercase tracking-widest">
-        {t('lobby.waitingForHost')}
+      <div className="w-full max-w-xs flex flex-col items-center gap-2">
+        <div className="w-full bg-white text-black border-4 border-black shadow-[4px_4px_0_0_#000] font-black text-sm py-4 text-center uppercase tracking-widest">
+          {t('lobby.waitingForHost')}
+        </div>
+        {gameStartError && (
+          <p
+            id="game-start-error"
+            data-testid="game-start-error"
+            className="w-full max-w-sm text-sm text-center font-bold text-red-600 bg-red-100 border-2 border-red-500 px-3 py-2"
+          >
+            {translateServerError(gameStartError, language)}
+          </p>
+        )}
       </div>
     );
   }
@@ -122,7 +135,9 @@ export function LobbyStartButton() {
     <>
       <button
         data-testid="lobby-start-game"
-        aria-describedby={startReason ? 'lobby-start-reason' : undefined}
+        aria-describedby={
+          gameStartError ? 'game-start-error' : startReason ? 'lobby-start-reason' : undefined
+        }
         onClick={handleStart}
         disabled={isDisabled}
         className={`w-full max-w-xs text-white border-4 border-black font-black text-lg py-4 transition-all uppercase tracking-widest ${
@@ -133,7 +148,16 @@ export function LobbyStartButton() {
       >
         {getButtonText()}
       </button>
-      {startReason && (
+      {gameStartError && (
+        <p
+          id="game-start-error"
+          data-testid="game-start-error"
+          className="w-full max-w-sm text-sm text-center font-bold text-red-600 bg-red-100 border-2 border-red-500 px-3 py-2 mt-2"
+        >
+          {translateServerError(gameStartError, language)}
+        </p>
+      )}
+      {startReason && !gameStartError && (
         <p
           id="lobby-start-reason"
           data-testid="lobby-start-reason"

@@ -80,6 +80,8 @@ interface GameState {
   artistPresets: ArtistPresetSummary[];
   categories: WordCategory[];
   isLoading: boolean;
+  gameStartError: string | null;
+  clearGameStartError: () => void;
   privateState: Record<string, unknown>;
   musicTriviaHostAnswer: MusicTriviaHostAnswerPayload | null;
   actionLoading: boolean;
@@ -302,6 +304,8 @@ export const useGameStore = create<GameState>((set, get) => {
     categories: [],
 
     isLoading: false,
+    gameStartError: null,
+    clearGameStartError: () => set({ gameStartError: null }),
     privateState: {},
     musicTriviaHostAnswer: null,
     actionLoading: false,
@@ -495,7 +499,7 @@ export const useGameStore = create<GameState>((set, get) => {
             set({ musicTriviaHostAnswer: null });
           }
 
-          set({ room, isLoading: false, actionLoading: hasPendingAction });
+          set({ room, isLoading: false, actionLoading: hasPendingAction, gameStartError: null });
         }
 
         if (!get().isSpectator) {
@@ -615,7 +619,15 @@ export const useGameStore = create<GameState>((set, get) => {
             window.location.replace('/');
           }
         }
+        const wasLoading = get().isLoading;
         set({ isLoading: false, actionLoading: false });
+        if (
+          wasLoading ||
+          message.includes('Questions are unavailable') ||
+          message.includes('Cannot start game')
+        ) {
+          set({ gameStartError: message });
+        }
         if (get().connectionStatus === 'reconnecting')
           set({ connectionStatus: get().room ? 'failed' : 'connected' });
         if (!redirectedFromMissingInviteRoom) {
@@ -668,6 +680,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     startGame: () => {
+      set({ gameStartError: null });
       if (emitGameAction(SOCKET_EVENTS.START_GAME)) set({ isLoading: true });
     },
 
@@ -692,6 +705,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     leaveRoom: () => {
+      set({ gameStartError: null });
       const { socket } = get();
       if (socket) {
         if (socket.connected) socket.emit(SOCKET_EVENTS.LEAVE_ROOM);

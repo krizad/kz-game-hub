@@ -164,6 +164,7 @@ export const en: Dictionary = {
     bestOf: 'Best of',
     startGame: 'Start Game',
     startingGame: 'Starting...',
+    questionsUnavailable: 'Questions are unavailable. Retry or choose another game.',
     waitingMin: 'Waiting (min {count})',
     waitingForHost: 'Waiting for Room Host to start',
     waitingForSecretWord: 'Waiting for Secret Word...',

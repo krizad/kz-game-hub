@@ -415,7 +415,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   async handleStartGame(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const result = await this.gamesService.assignRoles(data.code, client.id);
 
-    if (result) {
+    if (result && !result.error) {
       // Broadcast updated room state
       this.broadcastRoomState(result.room);
       this.syncTheMindTimer(result.room);
@@ -433,23 +433,29 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     } else {
       const roomInfo = this.gamesService.getRoom(data.code);
       const gameType = roomInfo?.gameType;
-      let msg = 'Cannot start game.';
-      if (gameType === GameType.WHO_KNOW) {
-        msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
-      } else if (gameType === GameType.SOUNDS_FISHY) {
-        msg = 'Cannot start game. Need at least 3 players.';
-      } else if (gameType === GameType.MUSIC_TRIVIA) {
-        msg = 'Cannot start game. Need at least 2 players and a music query.';
-      } else if (gameType === GameType.DETECTIVE_CLUB) {
-        msg = 'Cannot start game. Need at least 3 players.';
-      } else if (gameType === GameType.COUP) {
-        msg = 'Cannot start game. Need 3-6 players for Coup.';
-      } else if (gameType === GameType.POKER) {
-        msg = 'Cannot start game. Need at least 2 players.';
-      } else if (gameType === GameType.BANANA_THIEF) {
-        msg = 'Cannot start game. Need at least 4 players.';
+      let msg = result?.error ?? 'Cannot start game.';
+      if (!result?.error) {
+        if (gameType === GameType.WHO_KNOW) {
+          msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
+        } else if (gameType === GameType.SOUNDS_FISHY) {
+          msg = 'Cannot start game. Need at least 3 players.';
+        } else if (gameType === GameType.MUSIC_TRIVIA) {
+          msg = 'Cannot start game. Need at least 2 players and a music query.';
+        } else if (gameType === GameType.DETECTIVE_CLUB) {
+          msg = 'Cannot start game. Need at least 3 players.';
+        } else if (gameType === GameType.COUP) {
+          msg = 'Cannot start game. Need 3-6 players for Coup.';
+        } else if (gameType === GameType.POKER) {
+          msg = 'Cannot start game. Need at least 2 players.';
+        } else if (gameType === GameType.BANANA_THIEF) {
+          msg = 'Cannot start game. Need at least 4 players.';
+        }
       }
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
+      const currentRoom = result?.room ?? roomInfo;
+      if (currentRoom) {
+        this.broadcastRoomState(currentRoom);
+      }
     }
   }
 

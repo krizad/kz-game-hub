@@ -162,6 +162,7 @@ export const th: Dictionary = {
     bestOf: 'ใครถึง',
     startGame: 'เริ่มเกม',
     startingGame: 'กำลังโหลด...',
+    questionsUnavailable: 'คลังคำถามยังใช้งานไม่ได้ ลองใหม่หรือเลือกเกมอื่น',
     waitingMin: 'รอคน (อย่างน้อย {count})',
     waitingForHost: 'รอเจ้าของห้องเริ่มเกม',
     waitingForSecretWord: 'รอคำปริศนา...',

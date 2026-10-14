@@ -11,6 +11,8 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     'Cannot propose shuriken.': 'Cannot propose a Breath Break.',
     'Cannot vote on shuriken.': 'Cannot vote on a Breath Break.',
     'Cannot cancel shuriken proposal.': 'Cannot cancel the Breath Break proposal.',
+    'Questions are unavailable. Retry or choose another game.':
+      'Questions are unavailable. Retry or choose another game.',
   },
   th: {
     SPECTATORS_DISABLED: 'ห้องนี้ไม่อนุญาตให้เข้าชม',
@@ -50,6 +52,8 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     'This game is currently disabled.': 'เกมนี้ถูกปิดใช้งานชั่วคราว',
     'Unauthorized.': 'ไม่ได้รับอนุญาต',
     'Failed to update the game setting.': 'อัปเดตการตั้งค่าเกมไม่สำเร็จ',
+    'Questions are unavailable. Retry or choose another game.':
+      'คลังคำถามยังใช้งานไม่ได้ ลองใหม่หรือเลือกเกมอื่น',
   },
 };
 
@@ -62,6 +66,11 @@ export function translateServerError(message: string, language: Language): strin
         ? `คำว่า "${word}" ซ้ำกับผู้เล่นอื่น! กรุณาเลือกคำใหม่`
         : `Duplicate word "${word}"! Please submit a different word.`;
     }
+  }
+  if (message.startsWith('Questions are unavailable')) {
+    return language === 'th'
+      ? 'คลังคำถามยังใช้งานไม่ได้ ลองใหม่หรือเลือกเกมอื่น'
+      : 'Questions are unavailable. Retry or choose another game.';
   }
   return SERVER_ERRORS[language][message] ?? message;
 }
