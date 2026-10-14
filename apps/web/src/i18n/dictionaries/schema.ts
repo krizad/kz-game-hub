@@ -623,6 +623,8 @@ export interface Dictionary {
     isGuessCorrect: string;
     voteCast: string;
     waitingForVerify: string;
+    waitingForHostWords: string;
+    guessSubmittedWaiting: string;
     continueBtn: string;
     gameOver: string;
     noWinners: string;

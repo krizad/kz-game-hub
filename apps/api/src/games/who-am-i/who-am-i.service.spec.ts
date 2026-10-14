@@ -781,6 +781,34 @@ describe('WhoAmIService', () => {
           privateState.get('test-room', p.socketId, 'waiSubmittedWord'),
         );
       });
+
+      // Each player's visible words excludes their own word, and public room does not leak secret words
+      room.players.forEach((p) => {
+        const visible = privateState.get<Record<string, string>>(
+          'test-room',
+          p.socketId,
+          'waiVisibleWords',
+        );
+        expect(visible).toBeDefined();
+        expect(visible![p.socketId]).toBeUndefined();
+      });
+      expect(result!.room.whoAmIState!.revealedWords).toBeUndefined();
+    });
+
+    it('leaves wordSubmittedIds unchanged upon duplicate rejection so draft can be edited and resubmitted', () => {
+      const room = makeCollectingRoom();
+      service.submitPlayerWord(room, 'p1', 'Elephant');
+      expect(room.whoAmIState!.wordSubmittedIds).toEqual(['p1']);
+
+      const rejected = service.submitPlayerWord(room, 'p2', 'Elephant');
+      expect(rejected).not.toBeNull();
+      expect(rejected!.error).toBeDefined();
+      expect(room.whoAmIState!.wordSubmittedIds).toEqual(['p1']);
+
+      const accepted = service.submitPlayerWord(room, 'p2', 'Cheetah');
+      expect(accepted).not.toBeNull();
+      expect(accepted!.error).toBeUndefined();
+      expect(room.whoAmIState!.wordSubmittedIds).toEqual(['p1', 'p2']);
     });
   });
 

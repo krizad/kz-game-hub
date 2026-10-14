@@ -798,6 +798,8 @@ export const th: Dictionary = {
     isGuessCorrect: 'เขาทายถูกหรือไม่?',
     voteCast: 'โหวตเรียบร้อย!',
     waitingForVerify: 'กำลังรอคนอื่นตรวจสอบคำตอบของคุณ...',
+    waitingForHostWords: 'กำลังรอหัวหน้าห้องกำหนดคำลับ...',
+    guessSubmittedWaiting: 'ส่งคำทายแล้ว! รอผู้เล่นโหวตยืนยัน...',
     continueBtn: 'ดำเนินการต่อ',
     gameOver: 'จบเกม',
     noWinners: 'ไม่มีใครชนะในรอบนี้',

@@ -240,4 +240,151 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
       .toBe('ASKING');
     await Promise.all([host, bob, cara, replacement, viewer].map((page) => page.close()));
   });
+
+  test('TASK-WA-002: rejected duplicate word preserves draft for editing, guess modal traps focus and restores on Escape, guess status displays, and own secret is never visible', async ({
+    browser,
+  }) => {
+    const p1Ctx = await browser.newContext();
+    const p2Ctx = await browser.newContext();
+    const host = await p1Ctx.newPage();
+    const bob = await p2Ctx.newPage();
+
+    await host.setViewportSize({ width: 1280, height: 900 });
+    await bob.setViewportSize({ width: 390, height: 844 });
+
+    // 1. Host creates room in Thai
+    await goToLobby(host);
+    await host.locator('#lobbyNameInput').fill('HostAmy');
+    await host.locator('button:has-text("ฉันคือใคร")').first().click();
+    await host.waitForTimeout(3000);
+    const roomCode = await extractRoomCode(host);
+    const origin = await getOrigin(host);
+
+    // 2. Bob joins room
+    await bob.goto(`${origin}/?room=${roomCode}`);
+    await bob.locator('#inviteNameInput').waitFor({ state: 'visible', timeout: 15000 });
+    await bob.locator('#inviteNameInput').fill('Bob');
+    await bob.locator('#inviteNameInput').press('Enter');
+    await bob.locator('#inviteNameInput').waitFor({ state: 'hidden', timeout: 20000 });
+
+    // 3. Switch wordMode to PLAYER_INPUT
+    await selectWordMode(host, /ผู้เล่นเขียนเอง/);
+
+    const startBtn = host.getByTestId('lobby-start-game');
+    await expect(startBtn).toBeEnabled({ timeout: 5000 });
+    await startBtn.click();
+
+    // 4. COLLECTING_WORDS phase reached
+    const hostWordInput = host.locator('#playerWordInput');
+    const bobWordInput = bob.locator('#playerWordInput');
+    await expect(hostWordInput).toBeVisible({ timeout: 10000 });
+    await expect(bobWordInput).toBeVisible({ timeout: 10000 });
+
+    // Host submits "แมว"
+    await hostWordInput.fill('แมว');
+    await host.getByRole('button', { name: /ส่งคำปริศนา/ }).click();
+    await expect(host.getByText('ส่งคำปริศนาแล้ว!')).toBeVisible({ timeout: 5000 });
+
+    // Bob tries to submit duplicate word "แมว" via Enter
+    await bobWordInput.fill('แมว');
+    await bobWordInput.press('Enter');
+
+    // Duplicate rejection toast arrives; Bob's input draft is PRESERVED
+    await expect(bobWordInput).toBeVisible({ timeout: 5000 });
+    await expect(bobWordInput).toHaveValue('แมว');
+
+    // Bob edits to non-duplicate "สุนัข" and submits
+    await bobWordInput.fill('สุนัข');
+    await bob.getByRole('button', { name: /ส่งคำปริศนา/ }).click();
+
+    // 5. ASKING phase starts
+    await expect
+      .poll(() =>
+        host.evaluate(() => (window as any).__useGameStore.getState().room?.whoAmIState?.phase),
+      )
+      .toBe('ASKING');
+
+    // 6. Secret word privacy check: neither player sees their own word
+    const hostVisible = await host.evaluate(
+      () => (window as any).__useGameStore.getState().privateState?.waiVisibleWords,
+    );
+    const hostSocketId = await host.evaluate(
+      () => (window as any).__useGameStore.getState().socketId,
+    );
+    expect(hostVisible?.[hostSocketId]).toBeUndefined();
+
+    const bobVisible = await bob.evaluate(
+      () => (window as any).__useGameStore.getState().privateState?.waiVisibleWords,
+    );
+    const bobSocketId = await bob.evaluate(
+      () => (window as any).__useGameStore.getState().socketId,
+    );
+    expect(bobVisible?.[bobSocketId]).toBeUndefined();
+
+    // 7. Guess modal interaction: find active player
+    const guessBtnHost = host.getByRole('button', { name: /ขอทายคำ!/i });
+    const guessBtnBob = bob.getByRole('button', { name: /ขอทายคำ!/i });
+    const isHostActive = await guessBtnHost.isVisible({ timeout: 5000 }).catch(() => false);
+    const activePage = isHostActive ? host : bob;
+    const voterPage = isHostActive ? bob : host;
+    const activeGuessBtn = isHostActive ? guessBtnHost : guessBtnBob;
+
+    await activeGuessBtn.click();
+
+    const guessDialog = activePage.getByRole('dialog');
+    await expect(guessDialog).toBeVisible({ timeout: 5000 });
+    const guessWordInput = activePage.locator('#guessWordInput');
+    await expect(guessWordInput).toBeVisible();
+
+    // Typing draft
+    await guessWordInput.fill('กระต่าย');
+
+    // Tab trap inside guessDialog (cycles between input and last enabled element submit button)
+    await guessWordInput.focus();
+    await activePage.keyboard.press('Shift+Tab');
+    await expect(guessDialog.getByRole('button', { name: /ส่งคำตอบ/i })).toBeFocused();
+    await activePage.keyboard.press('Tab');
+    await expect(guessWordInput).toBeFocused();
+
+    // Pressing Escape preserves draft and restores focus to trigger button
+    await activePage.keyboard.press('Escape');
+    await expect(guessDialog).toBeHidden({ timeout: 3000 });
+    await expect(activeGuessBtn).toBeFocused();
+
+    // Reopen dialog: draft is preserved
+    await activeGuessBtn.click();
+    await expect(guessDialog).toBeVisible({ timeout: 5000 });
+    await expect(activePage.locator('#guessWordInput')).toHaveValue('กระต่าย');
+
+    // Screenshots across viewport sizes
+    await activePage.screenshot({
+      path: '../../docs/qa/private-friends-2026-10-14/who-am-i/guess-modal-1280.png',
+    });
+    for (const width of [390, 360]) {
+      await activePage.setViewportSize({ width, height: width === 390 ? 844 : 800 });
+      await expect(guessDialog).toBeInViewport();
+      await activePage.screenshot({
+        path: `../../docs/qa/private-friends-2026-10-14/who-am-i/guess-modal-${width}.png`,
+      });
+    }
+
+    // Submit guess
+    const submitGuessBtn = guessDialog.getByRole('button', { name: /ส่งคำตอบ/i });
+    await submitGuessBtn.click();
+
+    // Dialog closes and whoami-guess-status appears
+    await expect(guessDialog).toBeHidden({ timeout: 5000 });
+    const guessStatus = activePage.getByTestId('whoami-guess-status');
+    await expect(guessStatus).toBeVisible({ timeout: 10000 });
+    await expect(guessStatus).toContainText(/ส่งคำทาย|รอ/i);
+
+    // Voter casts vote
+    const yesVoteBtn = voterPage.getByRole('button', { name: /YES|ใช่/i }).first();
+    await expect(yesVoteBtn).toBeVisible({ timeout: 5000 });
+    await yesVoteBtn.click();
+    await expect(voterPage.getByTestId('whoami-guess-status')).toBeVisible({ timeout: 5000 });
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+  });
 });

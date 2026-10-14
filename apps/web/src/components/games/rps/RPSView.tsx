@@ -18,9 +18,7 @@ export function RPSView() {
   } = useGameStore();
   const { t } = useTranslate();
 
-  const unknownPendingAction = Object.entries(pendingActions).find(
-    ([_, a]) => a.status === 'unknown',
-  );
+  const unknownPendingAction = Object.values(pendingActions).find((a) => a.status === 'unknown');
   const showActionOverlay = actionLoading || !!unknownPendingAction;
 
   if (!room || !room.rpsState) return null;

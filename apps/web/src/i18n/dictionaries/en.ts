@@ -822,6 +822,8 @@ export const en: Dictionary = {
     isGuessCorrect: 'Is their guess correct?',
     voteCast: 'Vote cast!',
     waitingForVerify: 'Waiting for other players to verify your guess...',
+    waitingForHostWords: 'Waiting for Host to submit secret words...',
+    guessSubmittedWaiting: 'Guess submitted! Waiting for players to vote...',
     continueBtn: 'Continue',
     gameOver: 'Game Over',
     noWinners: 'No winners this round',

@@ -54,5 +54,14 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
 };
 
 export function translateServerError(message: string, language: Language): string {
+  if (message.startsWith('Duplicate word "')) {
+    const match = message.match(/^Duplicate word "(.*?)"! Please submit a different word\.$/);
+    if (match) {
+      const word = match[1];
+      return language === 'th'
+        ? `คำว่า "${word}" ซ้ำกับผู้เล่นอื่น! กรุณาเลือกคำใหม่`
+        : `Duplicate word "${word}"! Please submit a different word.`;
+    }
+  }
   return SERVER_ERRORS[language][message] ?? message;
 }

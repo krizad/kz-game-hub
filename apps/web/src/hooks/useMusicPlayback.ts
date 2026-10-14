@@ -65,7 +65,9 @@ export function useMusicPlayback(
           audioContextRef.current.resume().catch(() => {});
         }
       }
-    } catch {}
+    } catch {
+      // AudioContext may be restricted by browser policy; continue silently
+    }
 
     try {
       let audio = audioRef.current;
@@ -81,7 +83,9 @@ export function useMusicPlayback(
           p.then(() => audio.pause()).catch(() => {});
         }
       }
-    } catch {}
+    } catch {
+      // HTMLAudio play may fail before user gesture; continue silently
+    }
 
     if (typeof window !== 'undefined') {
       (window as any).__musicAudioUnlocked = true;
@@ -217,7 +221,9 @@ export function useMusicPlayback(
       setReason(null);
       try {
         providerRef.current?.seekTo(elapsedSeconds(), 'seconds');
-      } catch {}
+      } catch {
+        // Provider might not be ready to seek; continue silently
+      }
     } else {
       playNative();
     }

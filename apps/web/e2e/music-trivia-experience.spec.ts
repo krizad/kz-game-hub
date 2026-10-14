@@ -16,8 +16,8 @@ async function startPreset(host: Page, guest: Page) {
 }
 
 function attachYTMock(initialMode: 'play' | 'blocked' | 'error') {
-  return (modeParam: string) => {
-    let currentMode = modeParam;
+  return () => {
+    let currentMode = initialMode;
     (window as any).__setYTMockMode = (m: string) => {
       currentMode = m;
     };
