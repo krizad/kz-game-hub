@@ -1595,6 +1595,13 @@ export const th: Dictionary = {
     need3Players: 'ต้องมีอย่างน้อย 3 คน',
     spectating: 'กำลังรับชม',
     resetHint: 'จบเกมแล้ว กดรีเซ็ตเพื่อเล่นใหม่',
+    cost: 'ค่าใช้จ่าย: {amount} เหรียญ',
+    claimedRoleLabel: 'อ้างบทบาท: {role}',
+    targetLabel: 'เป้าหมาย: {name}',
+    roleReference: 'สรุปบทบาทประจำคฤหาสน์',
+    history: 'ประวัติการเล่น',
+    noHistory: 'ยังไม่มีประวัติการเล่น',
+    none: 'ไม่มี',
   },
   gameBananaThief: {
     phaseSetup: 'เตรียมพร้อม',

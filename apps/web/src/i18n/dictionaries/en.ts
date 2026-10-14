@@ -1636,6 +1636,13 @@ export const en: Dictionary = {
     need3Players: 'Need at least 3 players',
     spectating: 'Spectating',
     resetHint: 'Game over — reset to play again',
+    cost: 'Cost: {amount} coins',
+    claimedRoleLabel: 'Claims: {role}',
+    targetLabel: 'Target: {name}',
+    roleReference: 'Household Role Summary',
+    history: 'Action Log',
+    noHistory: 'No actions recorded yet',
+    none: 'None',
   },
   gameBananaThief: {
     phaseSetup: 'Ready Up',

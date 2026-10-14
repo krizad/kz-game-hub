@@ -1397,6 +1397,13 @@ export interface Dictionary {
     need3Players: string;
     spectating: string;
     resetHint: string;
+    cost: string;
+    claimedRoleLabel: string;
+    targetLabel: string;
+    roleReference: string;
+    history: string;
+    noHistory: string;
+    none: string;
   };
   gameBananaThief: {
     phaseSetup: string;

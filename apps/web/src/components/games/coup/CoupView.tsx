@@ -74,8 +74,82 @@ export function CoupView() {
   const [assassinateTarget, setAssassinateTarget] = useState<string>('');
   const [stealTarget, setStealTarget] = useState<string>('');
   const [exchangeKeep, setExchangeKeep] = useState<number[]>([]);
+  const [actionHistory, setActionHistory] = useState<string[]>([]);
 
   const state = room?.coupState;
+
+  // ── Action History Logging ─────────────────────────────────────────
+  useEffect(() => {
+    if (!state?.pendingAction) return;
+    const actor =
+      room?.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name ?? 'Someone';
+    const actionName = actionLabel(state.pendingAction.type);
+    const target = state.pendingAction.targetId
+      ? room?.players.find((p) => p.socketId === state.pendingAction!.targetId)?.name
+      : undefined;
+    const role = state.pendingAction.claimedRole
+      ? roleLabel(state.pendingAction.claimedRole)
+      : undefined;
+    let entry = `${actor}: ${actionName}`;
+    if (role) entry += ` (${role})`;
+    if (target) entry += ` ➔ ${target}`;
+
+    setActionHistory((prev) => {
+      if (prev[0] === entry) return prev;
+      return [entry, ...prev.slice(0, 19)];
+    });
+  }, [state?.pendingAction]);
+
+  useEffect(() => {
+    if (!state?.pendingBlock) return;
+    const blocker =
+      room?.players.find((p) => p.socketId === state.pendingBlock!.blockerId)?.name ?? 'Someone';
+    const role = roleLabel(state.pendingBlock.claimedRole);
+    const entry = `🛡️ ${blocker} blocks as ${role}`;
+    setActionHistory((prev) => {
+      if (prev[0] === entry) return prev;
+      return [entry, ...prev.slice(0, 19)];
+    });
+  }, [state?.pendingBlock]);
+
+  useEffect(() => {
+    if (!state?.winnerId) return;
+    const winner = room?.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId;
+    const entry = `🏆 ${t('gameCoup.winner', { name: winner })}`;
+    setActionHistory((prev) => {
+      if (prev[0] === entry) return prev;
+      return [entry, ...prev.slice(0, 19)];
+    });
+  }, [state?.winnerId]);
+
+  const prevTurnRef = useRef<{ turn: string | null; coins: Record<string, number> }>({
+    turn: null,
+    coins: {},
+  });
+  useEffect(() => {
+    if (!state) return;
+    const prev = prevTurnRef.current;
+    if (prev.turn !== null && prev.turn !== state.currentTurn) {
+      const prevActor = room?.players.find((p) => p.socketId === prev.turn)?.name ?? 'Someone';
+      const prevCoins = prev.coins[prev.turn] ?? 0;
+      const currentCoins = state.coins[prev.turn] ?? 0;
+
+      // Income (+1 coin)
+      if (currentCoins === prevCoins + 1 && !state.pendingAction) {
+        const entry = `${prevActor}: ${actionLabel(CoupActionType.INCOME)}`;
+        setActionHistory((h) => (h[0] === entry ? h : [entry, ...h.slice(0, 19)]));
+      }
+      // Coup (-7 coins)
+      else if (currentCoins === prevCoins - 7) {
+        const entry = `${prevActor}: ${actionLabel(CoupActionType.COUP)}`;
+        setActionHistory((h) => (h[0] === entry ? h : [entry, ...h.slice(0, 19)]));
+      }
+    }
+    prevTurnRef.current = {
+      turn: state.currentTurn,
+      coins: { ...state.coins },
+    };
+  }, [state, room?.players]);
 
   // ── Sound effects: derive cues from server-state deltas ─────────────
   // 1) a declared action (pendingAction appears) → sound per action type
@@ -149,6 +223,36 @@ export function CoupView() {
   const assassinateTargetValid = aliveTargets.some((p) => p.socketId === assassinateTarget);
   const stealTargetValid = aliveTargets.some((p) => p.socketId === stealTarget);
   const coupTargetValid = aliveTargets.some((p) => p.socketId === coupTarget);
+  const getTargetName = (targetId: string) =>
+    room.players.find((p) => p.socketId === targetId)?.name ?? t('gameCoup.none');
+
+  const getClaimedRole = (type: CoupActionType): CoupRole | null => {
+    switch (type) {
+      case CoupActionType.TAX:
+        return CoupRole.DUKE;
+      case CoupActionType.ASSASSINATE:
+        return CoupRole.ASSASSIN;
+      case CoupActionType.STEAL:
+        return CoupRole.CAPTAIN;
+      case CoupActionType.EXCHANGE:
+        return CoupRole.AMBASSADOR;
+      default:
+        return null;
+    }
+  };
+
+  const handleDeclare = (type: CoupActionType, targetId?: string) => {
+    const actor = room?.players.find((p) => p.socketId === socketId)?.name ?? 'You';
+    const actionName = actionLabel(type);
+    const target = targetId ? getTargetName(targetId) : undefined;
+    const role = getClaimedRole(type);
+    let entry = `${actor}: ${actionName}`;
+    if (role) entry += ` (${roleLabel(role)})`;
+    if (target && target !== t('gameCoup.none')) entry += ` ➔ ${target}`;
+
+    setActionHistory((prev) => (prev[0] === entry ? prev : [entry, ...prev.slice(0, 19)]));
+    coupDeclare(type, targetId);
+  };
 
   const isSpectator =
     room.players.find((p) => p.socketId === socketId)?.isViewer ||
@@ -462,137 +566,319 @@ export function CoupView() {
       )}
 
       {!state.winnerId && state.phase === 'PLAYING' && (
-        <div className="border-4 border-black p-3 bg-white">
-          <div className="text-xs font-black uppercase mb-2">
-            {isMyTurn
-              ? t('gameCoup.yourTurn')
-              : `${t('gameCoup.waitingFor')} ${room.players.find((p) => p.socketId === state.currentTurn)?.name ?? '...'}`}{' '}
+        <div data-testid="coup-action-area" className="border-4 border-black p-3 bg-white">
+          <div className="text-xs font-black uppercase mb-3 flex flex-wrap items-center justify-between gap-1">
+            <div>
+              {isMyTurn
+                ? t('gameCoup.yourTurn')
+                : `${t('gameCoup.waitingFor')} ${room.players.find((p) => p.socketId === state.currentTurn)?.name ?? '...'}`}{' '}
+            </div>
             {forcedCoup && isMyTurn && (
-              <span className="bg-red-500 text-white px-1">{t('gameCoup.mustCoup')}</span>
+              <span className="bg-red-500 text-white px-1.5 py-0.5 text-[11px] font-bold">
+                {t('gameCoup.mustCoup')}
+              </span>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              disabled={!isMyTurn || forcedCoup}
-              onClick={() => coupDeclare(CoupActionType.INCOME)}
-              className="border-4 border-black bg-[#E8D9BE] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-            >
-              {t('gameCoup.actionIncome')}
-            </button>
-            <button
-              disabled={!isMyTurn || forcedCoup}
-              onClick={() => coupDeclare(CoupActionType.FOREIGN_AID)}
-              className="border-4 border-black bg-[#C9D7CF] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-            >
-              {t('gameCoup.actionForeignAid')}
-            </button>
-            <button
-              disabled={!isMyTurn || forcedCoup}
-              onClick={() => coupDeclare(CoupActionType.TAX)}
-              className="border-4 border-black bg-[#D9B475] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-            >
-              {t('gameCoup.actionTax')}
-            </button>
-            <div className="col-span-2 flex min-w-0 flex-col gap-2 sm:flex-row">
-              <select
-                value={assassinateTarget}
-                onChange={(e) => setAssassinateTarget(e.target.value)}
-                disabled={!isMyTurn}
-                className="min-w-0 flex-1 min-h-11 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
-              >
-                <option value="">{t('gameCoup.target')}</option>
-                {aliveTargets.map((p) => (
-                  <option key={p.socketId} value={p.socketId}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                data-testid="coup-action-assassinate"
-                disabled={!isMyTurn || !assassinateTargetValid || myCoins < 3 || forcedCoup}
-                onClick={() => {
-                  if (!assassinateTargetValid) {
-                    toast.error(t('gameCoup.pickTarget'));
-                    return;
-                  }
-                  coupDeclare(CoupActionType.ASSASSINATE, assassinateTarget);
-                }}
-                className="bg-[#9B6073] border-4 border-black text-white disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-              >
-                {t('gameCoup.actionAssassinate')} (3)
-              </button>
+
+          <div className="flex flex-col gap-3">
+            {/* Untargeted actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Income */}
+              <div className="border-2 border-black p-2 bg-[#F9F5EC] flex flex-col justify-between gap-1.5">
+                <button
+                  disabled={!isMyTurn || forcedCoup}
+                  onClick={() => handleDeclare(CoupActionType.INCOME)}
+                  className="w-full border-4 border-black bg-[#E8D9BE] disabled:bg-gray-300 font-black py-2 px-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11"
+                >
+                  {t('gameCoup.actionIncome')}
+                </button>
+                <div
+                  data-testid="coup-action-summary-income"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 0 })}</span>
+                  <span>{t('gameCoup.claimedRoleLabel', { role: t('gameCoup.none') })}</span>
+                </div>
+              </div>
+
+              {/* Foreign Aid */}
+              <div className="border-2 border-black p-2 bg-[#F9F5EC] flex flex-col justify-between gap-1.5">
+                <button
+                  disabled={!isMyTurn || forcedCoup}
+                  onClick={() => handleDeclare(CoupActionType.FOREIGN_AID)}
+                  className="w-full border-4 border-black bg-[#C9D7CF] disabled:bg-gray-300 font-black py-2 px-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11"
+                >
+                  {t('gameCoup.actionForeignAid')}
+                </button>
+                <div
+                  data-testid="coup-action-summary-foreign_aid"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 0 })}</span>
+                  <span>{t('gameCoup.claimedRoleLabel', { role: t('gameCoup.none') })}</span>
+                </div>
+              </div>
+
+              {/* Tax */}
+              <div className="border-2 border-black p-2 bg-[#F9F5EC] flex flex-col justify-between gap-1.5">
+                <button
+                  disabled={!isMyTurn || forcedCoup}
+                  onClick={() => handleDeclare(CoupActionType.TAX)}
+                  className="w-full border-4 border-black bg-[#D9B475] disabled:bg-gray-300 font-black py-2 px-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11"
+                >
+                  {t('gameCoup.actionTax')}
+                </button>
+                <div
+                  data-testid="coup-action-summary-tax"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 0 })}</span>
+                  <span>{t('gameCoup.claimedRoleLabel', { role: roleLabel(CoupRole.DUKE) })}</span>
+                </div>
+              </div>
+
+              {/* Exchange */}
+              <div className="border-2 border-black p-2 bg-[#F9F5EC] flex flex-col justify-between gap-1.5">
+                <button
+                  disabled={!isMyTurn || forcedCoup}
+                  onClick={() => handleDeclare(CoupActionType.EXCHANGE)}
+                  className="w-full border-4 border-black bg-[#E3C6A6] disabled:bg-gray-300 font-black py-2 px-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11"
+                >
+                  {t('gameCoup.actionExchange')}
+                </button>
+                <div
+                  data-testid="coup-action-summary-exchange"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 0 })}</span>
+                  <span>
+                    {t('gameCoup.claimedRoleLabel', { role: roleLabel(CoupRole.AMBASSADOR) })}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="col-span-2 flex min-w-0 flex-col gap-2 sm:flex-row">
-              <select
-                value={stealTarget}
-                onChange={(e) => setStealTarget(e.target.value)}
-                disabled={!isMyTurn}
-                className="min-w-0 flex-1 min-h-11 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
-              >
-                <option value="">{t('gameCoup.target')}</option>
-                {aliveTargets.map((p) => (
-                  <option key={p.socketId} value={p.socketId}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                disabled={!isMyTurn || !stealTargetValid || forcedCoup}
-                onClick={() => {
-                  if (!stealTargetValid) {
-                    toast.error(t('gameCoup.pickTarget'));
-                    return;
-                  }
-                  coupDeclare(CoupActionType.STEAL, stealTarget);
-                }}
-                className="bg-[#C9A997] border-4 border-black text-black disabled:bg-gray-300 font-black px-2 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-              >
-                {t('gameCoup.actionSteal')}
-              </button>
-            </div>
-            <button
-              disabled={!isMyTurn || forcedCoup}
-              onClick={() => coupDeclare(CoupActionType.EXCHANGE)}
-              className="col-span-2 border-4 border-black bg-[#E3C6A6] disabled:bg-gray-300 font-black py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-            >
-              {t('gameCoup.actionExchange')}
-            </button>
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row col-span-2">
-              <select
-                value={coupTarget}
-                onChange={(e) => setCoupTarget(e.target.value)}
-                disabled={!isMyTurn}
-                className="min-w-0 flex-1 min-h-11 border-4 border-black px-1 text-xs font-black bg-white disabled:bg-gray-100"
-              >
-                <option value="">{t('gameCoup.target')}</option>
-                {aliveTargets.map((p) => (
-                  <option key={p.socketId} value={p.socketId}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                disabled={!isMyTurn || !coupTargetValid || myCoins < 7}
-                onClick={() => {
-                  if (!coupTargetValid) {
-                    toast.error(t('gameCoup.pickTarget'));
-                    return;
-                  }
-                  coupDeclare(CoupActionType.COUP, coupTarget);
-                }}
-                className="bg-[#6B213C] border-4 border-black text-white disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none"
-              >
-                {t('gameCoup.actionCoup')} (7)
-              </button>
+
+            {/* Targeted actions */}
+            <div className="flex flex-col gap-2.5">
+              {/* Assassinate */}
+              <div className="border-2 border-black p-2.5 bg-[#FFF7E8] flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+                  <select
+                    value={assassinateTarget}
+                    onChange={(e) => setAssassinateTarget(e.target.value)}
+                    disabled={!isMyTurn}
+                    className="min-w-0 flex-1 min-h-11 border-4 border-black px-2 text-xs font-black bg-white disabled:bg-gray-100"
+                  >
+                    <option value="">{t('gameCoup.target')}</option>
+                    {aliveTargets.map((p) => (
+                      <option key={p.socketId} value={p.socketId}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    data-testid="coup-action-assassinate"
+                    disabled={!isMyTurn || !assassinateTargetValid || myCoins < 3 || forcedCoup}
+                    onClick={() => {
+                      if (!assassinateTargetValid) {
+                        toast.error(t('gameCoup.pickTarget'));
+                        return;
+                      }
+                      handleDeclare(CoupActionType.ASSASSINATE, assassinateTarget);
+                    }}
+                    className="bg-[#9B6073] border-4 border-black text-white disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11 shrink-0"
+                  >
+                    {t('gameCoup.actionAssassinate')} (3)
+                  </button>
+                </div>
+                <div
+                  data-testid="coup-action-summary-assassinate"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 3 })}</span>
+                  <span>
+                    {t('gameCoup.claimedRoleLabel', { role: roleLabel(CoupRole.ASSASSIN) })}
+                  </span>
+                  <span>
+                    {t('gameCoup.targetLabel', {
+                      name: assassinateTarget
+                        ? getTargetName(assassinateTarget)
+                        : t('gameCoup.none'),
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Steal */}
+              <div className="border-2 border-black p-2.5 bg-[#FFF7E8] flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+                  <select
+                    value={stealTarget}
+                    onChange={(e) => setStealTarget(e.target.value)}
+                    disabled={!isMyTurn}
+                    className="min-w-0 flex-1 min-h-11 border-4 border-black px-2 text-xs font-black bg-white disabled:bg-gray-100"
+                  >
+                    <option value="">{t('gameCoup.target')}</option>
+                    {aliveTargets.map((p) => (
+                      <option key={p.socketId} value={p.socketId}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    disabled={!isMyTurn || !stealTargetValid || forcedCoup}
+                    onClick={() => {
+                      if (!stealTargetValid) {
+                        toast.error(t('gameCoup.pickTarget'));
+                        return;
+                      }
+                      handleDeclare(CoupActionType.STEAL, stealTarget);
+                    }}
+                    className="bg-[#C9A997] border-4 border-black text-black disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11 shrink-0"
+                  >
+                    {t('gameCoup.actionSteal')}
+                  </button>
+                </div>
+                <div
+                  data-testid="coup-action-summary-steal"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 0 })}</span>
+                  <span>
+                    {t('gameCoup.claimedRoleLabel', { role: roleLabel(CoupRole.CAPTAIN) })}
+                  </span>
+                  <span>
+                    {t('gameCoup.targetLabel', {
+                      name: stealTarget ? getTargetName(stealTarget) : t('gameCoup.none'),
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Coup */}
+              <div className="border-2 border-black p-2.5 bg-[#FFF7E8] flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+                  <select
+                    value={coupTarget}
+                    onChange={(e) => setCoupTarget(e.target.value)}
+                    disabled={!isMyTurn}
+                    className="min-w-0 flex-1 min-h-11 border-4 border-black px-2 text-xs font-black bg-white disabled:bg-gray-100"
+                  >
+                    <option value="">{t('gameCoup.target')}</option>
+                    {aliveTargets.map((p) => (
+                      <option key={p.socketId} value={p.socketId}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    disabled={!isMyTurn || !coupTargetValid || myCoins < 7}
+                    onClick={() => {
+                      if (!coupTargetValid) {
+                        toast.error(t('gameCoup.pickTarget'));
+                        return;
+                      }
+                      handleDeclare(CoupActionType.COUP, coupTarget);
+                    }}
+                    className="bg-[#6B213C] border-4 border-black text-white disabled:bg-gray-300 font-black px-3 py-2 text-xs uppercase shadow-[2px_2px_0_0_#000] disabled:shadow-none min-h-11 shrink-0"
+                  >
+                    {t('gameCoup.actionCoup')} (7)
+                  </button>
+                </div>
+                <div
+                  data-testid="coup-action-summary-coup"
+                  className="text-[10px] font-bold text-[#5B2637] flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  <span>{t('gameCoup.cost', { amount: 7 })}</span>
+                  <span>{t('gameCoup.claimedRoleLabel', { role: t('gameCoup.none') })}</span>
+                  <span>
+                    {t('gameCoup.targetLabel', {
+                      name: coupTarget ? getTargetName(coupTarget) : t('gameCoup.none'),
+                    })}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
+
           {forcedCoup && isMyTurn && (
-            <div className="text-[10px] font-bold text-red-600 mt-1">
+            <div className="text-[10px] font-bold text-red-600 mt-2">
               {t('gameCoup.mustCoupHint')}
             </div>
           )}
         </div>
       )}
+
+      {/* Folded Role Explanations */}
+      <details
+        data-testid="coup-role-explanations"
+        className="border-4 border-[#5B2637] bg-[#F7EBD6] p-3 shadow-[2px_2px_0_0_#5B2637]"
+      >
+        <summary className="cursor-pointer font-black text-xs uppercase select-none flex items-center justify-between">
+          <span>👑 {t('gameCoup.roleReference')}</span>
+          <span className="text-[10px] opacity-70">▼</span>
+        </summary>
+        <div className="grid gap-2 text-xs mt-3">
+          <div className="border-2 border-black p-2 bg-[#E0E7FF]">
+            <div className="font-black">
+              {roleEmoji[CoupRole.DUKE]} {roleLabel(CoupRole.DUKE)}
+            </div>
+            <div className="opacity-80 text-[11px]">{t('gameCoup.roleDukeDesc')}</div>
+          </div>
+          <div className="border-2 border-black p-2 bg-[#FECACA]">
+            <div className="font-black">
+              {roleEmoji[CoupRole.ASSASSIN]} {roleLabel(CoupRole.ASSASSIN)}
+            </div>
+            <div className="opacity-80 text-[11px]">{t('gameCoup.roleAssassinDesc')}</div>
+          </div>
+          <div className="border-2 border-black p-2 bg-[#A7F3D0]">
+            <div className="font-black">
+              {roleEmoji[CoupRole.CAPTAIN]} {roleLabel(CoupRole.CAPTAIN)}
+            </div>
+            <div className="opacity-80 text-[11px]">{t('gameCoup.roleCaptainDesc')}</div>
+          </div>
+          <div className="border-2 border-black p-2 bg-[#FDE68A]">
+            <div className="font-black">
+              {roleEmoji[CoupRole.AMBASSADOR]} {roleLabel(CoupRole.AMBASSADOR)}
+            </div>
+            <div className="opacity-80 text-[11px]">{t('gameCoup.roleAmbassadorDesc')}</div>
+          </div>
+          <div className="border-2 border-black p-2 bg-[#DDD6FE]">
+            <div className="font-black">
+              {roleEmoji[CoupRole.CONTESSA]} {roleLabel(CoupRole.CONTESSA)}
+            </div>
+            <div className="opacity-80 text-[11px]">{t('gameCoup.roleContessaDesc')}</div>
+          </div>
+        </div>
+      </details>
+
+      {/* Folded Action History */}
+      <details
+        data-testid="coup-action-history"
+        className="border-4 border-[#5B2637] bg-[#F7EBD6] p-3 shadow-[2px_2px_0_0_#5B2637]"
+      >
+        <summary className="cursor-pointer font-black text-xs uppercase select-none flex items-center justify-between">
+          <span>
+            📜 {t('gameCoup.history')} {actionHistory.length > 0 ? `(${actionHistory.length})` : ''}
+          </span>
+          <span className="text-[10px] opacity-70">▼</span>
+        </summary>
+        <div className="mt-3 space-y-1 text-xs max-h-48 overflow-y-auto">
+          {actionHistory.length === 0 ? (
+            <div className="text-xs opacity-60 text-center py-2">{t('gameCoup.noHistory')}</div>
+          ) : (
+            actionHistory.map((entry, idx) => (
+              <div
+                key={idx}
+                className="border-2 border-[#5B2637] bg-white p-1.5 font-bold text-[11px] flex items-center gap-1.5"
+              >
+                <span className="opacity-50 text-[10px]">#{actionHistory.length - idx}</span>
+                <span>{entry}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </details>
 
       {state.winnerId && (
         <div className="border-4 border-black bg-[#A7F3D0] p-3 text-center font-black">
