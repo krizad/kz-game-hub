@@ -157,5 +157,37 @@ describe('WhoFirstService', () => {
     expect(service.resetGame(room, 'p2')).toBeNull();
     const result = service.resetGame(room, 'p1');
     expect(result!.status).toBe(RoomStatus.LOBBY);
+    expect(result!.whoFirstState!.phase).toBe('LOBBY');
+  });
+
+  it('ignores button press during COUNTDOWN when penalty is disabled', () => {
+    const room = createRoom({ whoFirstPenalty: false });
+    service.startGame(room, 'p1');
+
+    expect(room.whoFirstState!.phase).toBe('COUNTDOWN');
+    service.handleGameAction(room, 'p2', { type: 'PRESS_BUTTON' });
+    expect(room.whoFirstState!.presses.length).toBe(0);
+  });
+
+  it('supports infinite mode without max round cap until host ends game', () => {
+    const room = createRoom({ whoFirstInfiniteRounds: true });
+    service.startGame(room, 'p1');
+    expect(room.whoFirstState!.maxRounds).toBe(0);
+
+    // Round 1
+    service.setActive(room);
+    service.handleGameAction(room, 'p2', { type: 'PRESS_BUTTON' });
+    service.handleGameAction(room, 'p3', { type: 'PRESS_BUTTON' });
+    expect(room.whoFirstState!.phase).toBe('ROUND_RESULT');
+
+    // Round 2
+    service.handleGameAction(room, 'p1', { type: 'NEXT_ROUND' });
+    expect(room.whoFirstState!.currentRound).toBe(2);
+    expect(room.whoFirstState!.phase).toBe('COUNTDOWN');
+
+    // Host manually ends game
+    service.handleGameAction(room, 'p1', { type: 'END_GAME' });
+    expect(room.whoFirstState!.phase).toBe('FINISHED');
+    expect(room.status).toBe(RoomStatus.RESULT);
   });
 });

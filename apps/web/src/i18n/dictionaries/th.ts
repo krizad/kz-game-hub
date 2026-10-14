@@ -1194,6 +1194,9 @@ export const th: Dictionary = {
       penalty: 'ฟาวล์!',
       spectating: 'กำลังดูคนอื่นเล่น',
       endGameNow: 'จบเกมทันที',
+      infiniteRound: 'รอบที่ {round} (ไม่จำกัดรอบ)',
+      soundOn: 'เปิดเสียง',
+      soundOff: 'ปิดเสียง',
     },
     result: {
       roundTitle: 'ผลลัพธ์รอบนี้',
@@ -1203,6 +1206,10 @@ export const th: Dictionary = {
       nextRoundBtn: 'รอบต่อไป',
       endGameBtn: 'จบเกม',
       allFouls: 'ทุกคนฟาวล์หมด!',
+      networkDisclaimer: 'เวลาปฏิกิริยาถูกบันทึกที่เซิร์ฟเวอร์และรวมความหน่วงเครือข่าย',
+      earlyPressExplanation: 'กดก่อนที่สัญญาณ "กดเลย!!" จะปรากฏ (ออกตัวก่อน)',
+      waitingHostNextRound: 'รอเจ้าของห้องเริ่มรอบต่อไป...',
+      waitingHostNewGame: 'รอเจ้าของห้องเริ่มเกมใหม่...',
     },
     rules: {
       title: 'กติกา',

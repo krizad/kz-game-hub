@@ -190,7 +190,7 @@ export class WhoFirstService {
 
     room.status = RoomStatus.LOBBY;
     room.whoFirstState = {
-      phase: 'COUNTDOWN',
+      phase: 'LOBBY',
       presses: [],
       currentRound: 1,
       maxRounds: room.config.whoFirstInfiniteRounds

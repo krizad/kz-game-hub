@@ -1227,6 +1227,9 @@ export const en: Dictionary = {
       penalty: 'FOUL!',
       spectating: 'Spectating other players',
       endGameNow: 'End Game Now',
+      infiniteRound: 'Round {round} (Infinite)',
+      soundOn: 'Sound: On',
+      soundOff: 'Sound: Muted',
     },
     result: {
       roundTitle: 'Round Result',
@@ -1236,6 +1239,10 @@ export const en: Dictionary = {
       nextRoundBtn: 'Next Round',
       endGameBtn: 'End Game',
       allFouls: 'Everyone Fouled!',
+      networkDisclaimer: 'Reaction times are measured server-side and include network latency.',
+      earlyPressExplanation: 'Pressed before the GO signal was given (False Start).',
+      waitingHostNextRound: 'Waiting for host to start next round...',
+      waitingHostNewGame: 'Waiting for host to start a new game...',
     },
     rules: {
       title: 'Rules',

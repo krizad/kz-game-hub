@@ -227,8 +227,7 @@ export function CoupView() {
             );
           } else {
             // Challenger lost -> action challenge failed (actor had the role)
-            const actorName =
-              room?.players.find((p) => p.socketId === actorId)?.name ?? 'Actor';
+            const actorName = room?.players.find((p) => p.socketId === actorId)?.name ?? 'Actor';
             addHistory(
               t('gameCoup.actionChallengeFailLog', {
                 actor: actorName,
@@ -250,8 +249,7 @@ export function CoupView() {
         ([id, inf]) => (prev.influences[id]?.count ?? 0) > inf.count,
       );
       if (!influenceDropped && state.phase === 'PLAYING') {
-        const blocker =
-          room?.players.find((p) => p.socketId === blockerId)?.name ?? 'Someone';
+        const blocker = room?.players.find((p) => p.socketId === blockerId)?.name ?? 'Someone';
         const actionName = prev.pendingAction ? actionLabel(prev.pendingAction.type) : '';
         addHistory(t('gameCoup.blockStoodLog', { blocker, action: actionName }));
       }
@@ -1175,8 +1173,7 @@ export function CoupView() {
         >
           <div className="text-base sm:text-lg">
             {t('gameCoup.winner', {
-              name:
-                room.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId,
+              name: room.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId,
             })}
           </div>
           {room.roomHostId === socketId ? (

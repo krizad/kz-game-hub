@@ -460,7 +460,12 @@ test.describe('Coup / Golden Sand House Experience (TASK-CP-001)', () => {
 
     // 4. Eliminate remaining rivals purely via instant Income + Coup (no 7s challenge timers)
     for (let round = 0; round < 60; round++) {
-      if (await p1.locator('[data-testid="coup-winner-banner"]').isVisible().catch(() => false)) {
+      if (
+        await p1
+          .locator('[data-testid="coup-winner-banner"]')
+          .isVisible()
+          .catch(() => false)
+      ) {
         break;
       }
       const curIdx = await findActive();
@@ -499,9 +504,9 @@ test.describe('Coup / Golden Sand House Experience (TASK-CP-001)', () => {
     // Host clicks rematch -> resets room to Lobby
     await p1.locator('[data-testid="coup-rematch-button"]').click();
     await expect(p1.getByText(/Start Game|เริ่มเกม/i)).toBeVisible({ timeout: 8000 });
-    await expect(
-      p2.getByText(/Waiting for Room Host|รอเจ้าของห้องเริ่มเกม/i),
-    ).toBeVisible({ timeout: 8000 });
+    await expect(p2.getByText(/Waiting for Room Host|รอเจ้าของห้องเริ่มเกม/i)).toBeVisible({
+      timeout: 8000,
+    });
 
     await p1Ctx.close();
     await p2Ctx.close();

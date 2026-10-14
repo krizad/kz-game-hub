@@ -1015,6 +1015,9 @@ export interface Dictionary {
       penalty: string;
       spectating: string;
       endGameNow: string;
+      infiniteRound: string;
+      soundOn: string;
+      soundOff: string;
     };
     result: {
       roundTitle: string;
@@ -1024,6 +1027,10 @@ export interface Dictionary {
       nextRoundBtn: string;
       endGameBtn: string;
       allFouls: string;
+      networkDisclaimer: string;
+      earlyPressExplanation: string;
+      waitingHostNextRound: string;
+      waitingHostNewGame: string;
     };
     rules: {
       title: string;
