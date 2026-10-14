@@ -9,6 +9,7 @@ interface GameStatusHeaderProps {
   progress?: { current: number; total: number };
   accentClass: string;
   promptKey?: string;
+  promptParams?: Record<string, string | number>;
 }
 
 export function GameStatusHeader({
@@ -18,11 +19,12 @@ export function GameStatusHeader({
   progress,
   accentClass,
   promptKey,
+  promptParams,
 }: GameStatusHeaderProps) {
   const { t } = useTranslate();
   const phaseLabel = t(`gameStatus.phaseNames.${phase}`);
   const prompt = promptKey
-    ? t(promptKey)
+    ? t(promptKey, promptParams)
     : activePlayerName
       ? isMyTurn
         ? t('gameStatus.yourTurn')

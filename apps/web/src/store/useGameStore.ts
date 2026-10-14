@@ -29,10 +29,12 @@ import {
   SetArtistEnabledPayload,
   DeleteArtistPayload,
   ActionReceipt,
+  ServerTimeResponsePayload,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
 import { translateServerError } from '@/i18n/serverErrors';
+import { estimateServerOffset } from '../hooks/useServerClock';
 
 export interface PendingAction {
   event: string;
@@ -81,6 +83,8 @@ interface GameState {
   privateState: Record<string, unknown>;
   musicTriviaHostAnswer: MusicTriviaHostAnswerPayload | null;
   actionLoading: boolean;
+  serverOffset: number;
+  syncServerTime: () => void;
   connect: () => void;
   setName: (name: string) => void;
   isGameEnabled: (gameType: GameType | TttModeFlag) => boolean;
@@ -178,12 +182,21 @@ interface GameState {
 export const useGameStore = create<GameState>((set, get) => {
   let pendingSpectatorJoin: { code: string; previousIsSpectator: boolean } | null = null;
   const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  const clockSyncTimeouts: ReturnType<typeof setTimeout>[] = [];
+  let bestRtt = Infinity;
 
   const clearAllActionTimeouts = () => {
     actionTimeouts.forEach((timeout) => {
       clearTimeout(timeout);
     });
     actionTimeouts.clear();
+  };
+
+  const clearClockSyncTimeouts = () => {
+    clockSyncTimeouts.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    clockSyncTimeouts.length = 0;
   };
 
   /**
@@ -292,6 +305,21 @@ export const useGameStore = create<GameState>((set, get) => {
     privateState: {},
     musicTriviaHostAnswer: null,
     actionLoading: false,
+    serverOffset: 0,
+    syncServerTime: () => {
+      const socket = get().socket;
+      if (!socket?.connected) return;
+      clearClockSyncTimeouts();
+      bestRtt = Infinity;
+      for (let i = 0; i < 5; i++) {
+        const timeout = setTimeout(() => {
+          if (get().socket?.connected) {
+            get().socket?.emit(SOCKET_EVENTS.SERVER_TIME_REQUEST, { clientSentAt: Date.now() });
+          }
+        }, i * 250);
+        clockSyncTimeouts.push(timeout);
+      }
+    },
     pendingActions: {},
     dismissPendingAction: (requestId: string) => {
       const timeout = actionTimeouts.get(requestId);
@@ -389,6 +417,7 @@ export const useGameStore = create<GameState>((set, get) => {
         socket.emit(SOCKET_EVENTS.GET_AVAILABLE_ROOMS);
         socket.emit(SOCKET_EVENTS.GET_GAME_SETTINGS);
         socket.emit(SOCKET_EVENTS.GET_ARTIST_PRESETS);
+        get().syncServerTime();
       });
 
       socket.on(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, (settings: GameSettingsMap) => {
@@ -405,6 +434,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on('disconnect', () => {
         clearAllActionTimeouts();
+        clearClockSyncTimeouts();
         set({
           connected: false,
           socketId: '',
@@ -494,6 +524,25 @@ export const useGameStore = create<GameState>((set, get) => {
 
         if (receipt.status === 'rejected' && receipt.reason) {
           toast.error(translateError(receipt.reason));
+        }
+      });
+
+      socket.on(SOCKET_EVENTS.SERVER_TIME_RESPONSE, (payload: ServerTimeResponsePayload) => {
+        if (
+          !payload ||
+          typeof payload.clientSentAt !== 'number' ||
+          typeof payload.serverNow !== 'number'
+        ) {
+          return;
+        }
+        const t0 = payload.clientSentAt;
+        const t1 = Date.now();
+        const rtt = t1 - t0;
+        if (rtt < 0 || rtt > 3000) return;
+        if (rtt < bestRtt) {
+          bestRtt = rtt;
+          const offset = estimateServerOffset(t0, t1, payload.serverNow);
+          set({ serverOffset: offset });
         }
       });
 

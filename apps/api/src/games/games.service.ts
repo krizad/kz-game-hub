@@ -125,6 +125,10 @@ export class GamesService {
     return this.rooms.get(code);
   }
 
+  getServerTime(): number {
+    return Date.now();
+  }
+
   isGameEnabled(gameType: GameType): boolean {
     return this.gameSettings.isEnabled(gameType);
   }

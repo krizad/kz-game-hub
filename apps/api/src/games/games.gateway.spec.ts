@@ -53,6 +53,13 @@ describe('GamesGateway payload guard', () => {
     expect(isValid(SOCKET_EVENTS.START_GAME, { code: 'abc123' })).toBe(true);
   });
 
+  it('validates server_time_request payload without requiring room code', () => {
+    expect(isValid(SOCKET_EVENTS.SERVER_TIME_REQUEST, { clientSentAt: 1700000000000 })).toBe(true);
+    expect(isValid(SOCKET_EVENTS.SERVER_TIME_REQUEST, { clientSentAt: 'invalid' })).toBe(false);
+    expect(isValid(SOCKET_EVENTS.SERVER_TIME_REQUEST, { clientSentAt: Infinity })).toBe(false);
+    expect(isValid(SOCKET_EVENTS.SERVER_TIME_REQUEST, {})).toBe(false);
+  });
+
   it('rejects spectator entry when disabled and permits legacy and enabled rooms', () => {
     const room = { code: 'ABC123', config: { allowSpectators: false }, players: [] };
     const getRoom = jest.fn(() => room);
@@ -958,6 +965,27 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       expect(gamesService.rpsMakeChoice).toHaveBeenCalledWith('RPS001', 'sock-player-1', 'ROCK');
       expect(client.emit).not.toHaveBeenCalledWith(SOCKET_EVENTS.ACTION_RECEIPT, expect.anything());
       expect(server.to).toHaveBeenCalledWith('RPS001');
+    });
+  });
+
+  describe('handleServerTimeRequest', () => {
+    it('replies with clientSentAt and serverNow from gamesService.getServerTime', () => {
+      const client = { emit: jest.fn() };
+      const serverTimeGateway = new GamesGateway(
+        { getServerTime: jest.fn(() => 1700000005000) } as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+
+      serverTimeGateway.handleServerTimeRequest(client as never, { clientSentAt: 1700000000000 });
+
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.SERVER_TIME_RESPONSE, {
+        clientSentAt: 1700000000000,
+        serverNow: 1700000005000,
+      });
     });
   });
 });

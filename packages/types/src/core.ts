@@ -178,7 +178,19 @@ export const SOCKET_EVENTS = {
   POKER_ACTION: 'poker_action',
   // Shared gameplay receipt (TASK-SH-002)
   ACTION_RECEIPT: 'action_receipt',
+  // Server clock sync (TASK-SH-001)
+  SERVER_TIME_REQUEST: 'server_time_request',
+  SERVER_TIME_RESPONSE: 'server_time_response',
 } as const;
+
+export interface ServerTimeRequestPayload {
+  clientSentAt: number;
+}
+
+export interface ServerTimeResponsePayload {
+  clientSentAt: number;
+  serverNow: number;
+}
 
 export type ActionReceiptStatus = 'accepted' | 'rejected';
 

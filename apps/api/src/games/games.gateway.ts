@@ -36,6 +36,8 @@ import {
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
   SetGameEnabledPayload,
+  ServerTimeRequestPayload,
+  ServerTimeResponsePayload,
   TttModeFlag,
   TTT_MODE_FLAGS,
   BANANA_THIEF_REACTIONS,
@@ -158,6 +160,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   @SubscribeMessage(SOCKET_EVENTS.GET_GAME_SETTINGS)
   handleGetGameSettings(@ConnectedSocket() client: Socket) {
     client.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SERVER_TIME_REQUEST)
+  handleServerTimeRequest(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: ServerTimeRequestPayload,
+  ) {
+    const serverNow = this.gamesService.getServerTime();
+    client.emit(SOCKET_EVENTS.SERVER_TIME_RESPONSE, {
+      clientSentAt: data.clientSentAt,
+      serverNow,
+    } satisfies ServerTimeResponsePayload);
   }
 
   /** Admin-only: flip a game's enabled flag; needs ADMIN_SECRET from the server env. */
@@ -2152,6 +2166,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
     if (event === SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
       return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
+    }
+    if (event === SOCKET_EVENTS.SERVER_TIME_REQUEST) {
+      return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);
     }
     if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code)) return false;
     if (

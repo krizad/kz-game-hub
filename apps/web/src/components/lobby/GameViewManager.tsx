@@ -24,12 +24,16 @@ import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameStatusHeader } from '@/components/games/GameStatusHeader';
+import { getGamePrompt } from '@/components/games/game-prompts';
 
-function getGameStatus(room: RoomState, socketId: string) {
+function getGameStatus(
+  room: RoomState,
+  socketId: string,
+  privateState: Record<string, unknown> = {},
+) {
   let phase: string = room.status;
   let activePlayerId: string | null | undefined;
   let progress: { current: number; total: number } | undefined;
-  let promptKey: string | undefined;
 
   switch (room.gameType) {
     case GameType.TIC_TAC_TOE: {
@@ -134,29 +138,13 @@ function getGameStatus(room: RoomState, socketId: string) {
             : null;
       }
       break;
-    case GameType.WHO_KNOW:
-      if (room.status === RoomStatus.WORD_SETTING) {
-        promptKey =
-          socketId === room.hostPlayerId
-            ? 'gameWhoKnow.wordSettingHost'
-            : 'gameWhoKnow.wordSettingWaiting';
-      } else if (room.status === RoomStatus.QUESTIONING) {
-        promptKey =
-          socketId === room.hostPlayerId
-            ? 'gameWhoKnow.questioningHost'
-            : 'gameWhoKnow.questioningPlayers';
-      } else if (room.status === RoomStatus.VOTING) {
-        promptKey =
-          socketId === room.hostPlayerId
-            ? 'gameWhoKnow.votingHostWait'
-            : 'gameWhoKnow.votingPrompt';
-      } else if (room.status === RoomStatus.RESULT) {
-        promptKey = 'gameWhoKnow.resultPrompt';
-      }
-      break;
     default:
       break;
   }
+
+  const prompt = getGamePrompt(room, socketId, privateState);
+  const promptKey = prompt.key;
+  const promptParams = prompt.params;
 
   const activePlayerName = activePlayerId
     ? activePlayerId === BOT_SOCKET_ID
@@ -187,11 +175,12 @@ function getGameStatus(room: RoomState, socketId: string) {
     progress,
     accentClass: accentClass[room.gameType],
     promptKey,
+    promptParams,
   };
 }
 
 export function GameViewManager() {
-  const { room, socketId } = useGameStore();
+  const { room, socketId, privateState } = useGameStore();
   const { t } = useTranslate();
 
   if (!room) return null;
@@ -257,7 +246,7 @@ export function GameViewManager() {
           </div>
         )}
         {room.status !== RoomStatus.LOBBY && (
-          <GameStatusHeader {...getGameStatus(room, socketId)} />
+          <GameStatusHeader {...getGameStatus(room, socketId, privateState)} />
         )}
         {renderGameView()}
       </div>

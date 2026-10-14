@@ -128,6 +128,118 @@ export interface Dictionary {
     progress: string;
     phaseNames: Record<string, string>;
   };
+  gamePrompts: {
+    spectating: string;
+    gameOver: string;
+    lobbyWaiting: string;
+    ttt: {
+      yourTurn: string;
+      waitingOpponent: string;
+      spectating: string;
+      gameOver: string;
+    };
+    rps: {
+      choose: string;
+      waitingOpponent: string;
+      roundResult: string;
+      matchOver: string;
+    };
+    soundsFishy: {
+      guesserWaiting: string;
+      giveAnswer: string;
+      waitingAnswers: string;
+      guesserChoose: string;
+      othersWait: string;
+      roundResult: string;
+    };
+    detectiveClub: {
+      leaderWord: string;
+      othersWaitWord: string;
+      playCardTurn: string;
+      waitingCard: string;
+      explainCards: string;
+      leaderWaitVote: string;
+      voteConspirator: string;
+      roundResult: string;
+    };
+    whoAmI: {
+      hostSettingWords: string;
+      waitWords: string;
+      inputWord: string;
+      waitingOtherWords: string;
+      generatingWords: string;
+      askQuestion: string;
+      answerQuestion: string;
+      voting: string;
+      gameOver: string;
+    };
+    whoFirst: {
+      getReady: string;
+      pressButton: string;
+      roundResult: string;
+    };
+    musicTrivia: {
+      preparing: string;
+      countdown: string;
+      typeGuess: string;
+      pressBuzzer: string;
+      youBuzzed: string;
+      otherBuzzed: string;
+      hostJudging: string;
+      roundResult: string;
+    };
+    theMind: {
+      getReady: string;
+      waitingReady: string;
+      playCard: string;
+      voteShuriken: string;
+      waitingShurikenVotes: string;
+      roundResult: string;
+      gameOver: string;
+    };
+    saboteur: {
+      dealing: string;
+      yourTurn: string;
+      waitingFor: string;
+      pickGold: string;
+      waitingGoldPick: string;
+      roundResult: string;
+    };
+    coup: {
+      yourTurn: string;
+      waitingTurn: string;
+      respondAction: string;
+      respondBlock: string;
+      chooseCards: string;
+      waitingExchange: string;
+      loseInfluence: string;
+      waitingLoseInfluence: string;
+    };
+    cardGame: {
+      dealing: string;
+      yourTurn: string;
+      waitingTurn: string;
+      showdown: string;
+    };
+    poker: {
+      dealing: string;
+      yourTurn: string;
+      waitingTurn: string;
+      showdown: string;
+      handResult: string;
+    };
+    bananaThief: {
+      tapReady: string;
+      waitingOthersReady: string;
+      chooseFollower: string;
+      waitingFollowerChoice: string;
+      nightAction: string;
+      dayDiscussion: string;
+      votePrompt: string;
+      waitingVotes: string;
+      roundResult: string;
+    };
+  };
   errors: {
     enterNameFirst: string;
     inviteLinkCopied: string;
