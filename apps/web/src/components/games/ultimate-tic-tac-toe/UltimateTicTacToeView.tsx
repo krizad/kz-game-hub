@@ -217,11 +217,47 @@ export function UltimateTicTacToeView() {
                     const isCellPlayable =
                       isSubBoardPlayable && cell === null && isMyTurn && !actionLoading;
 
+                    const macroRow = Math.floor(macroIndex / 3) + 1;
+                    const macroCol = (macroIndex % 3) + 1;
+                    const microRow = Math.floor(microIndex / 3) + 1;
+                    const microCol = (microIndex % 3) + 1;
+                    const status = cell ? cell : t('gameUltimateTTT.cellEmpty');
+
+                    let disabledReason = '';
+                    if (room.status !== RoomStatus.PLAYING) {
+                      disabledReason = t('gameTicTacToe.disabledGameOver');
+                    } else if (!mySide) {
+                      disabledReason = t('gameUltimateTTT.disabledViewer');
+                    } else if (!isMyTurn) {
+                      disabledReason = t('gameUltimateTTT.disabledNotYourTurn');
+                    } else if (actionLoading) {
+                      disabledReason = t('gameTicTacToe.disabledBusy');
+                    } else if (subBoard.winner) {
+                      disabledReason = t('gameUltimateTTT.disabledBoardWon');
+                    } else if (!isSubBoardPlayable) {
+                      disabledReason = t('gameUltimateTTT.disabledWrongBoard', {
+                        board: (uttt.activeMacroIndex ?? 0) + 1,
+                      });
+                    } else if (cell !== null) {
+                      disabledReason = t('gameUltimateTTT.disabledOccupied', { owner: cell });
+                    }
+
+                    const ariaLabel = disabledReason
+                      ? `${t('gameUltimateTTT.cellAria', { macroRow, macroCol, microRow, microCol, status })} (${disabledReason})`
+                      : t('gameUltimateTTT.cellAria', {
+                          macroRow,
+                          macroCol,
+                          microRow,
+                          microCol,
+                          status,
+                        });
+
                     return (
                       <button
                         type="button"
                         key={`cell-${macroIndex}-${microIndex}`}
                         data-testid={`uttt-cell-${macroIndex}-${microIndex}`}
+                        aria-label={ariaLabel}
                         disabled={!isCellPlayable}
                         onClick={() => utttMakeMove(macroIndex, microIndex)}
                         onMouseEnter={() => {

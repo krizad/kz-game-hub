@@ -597,6 +597,13 @@ export interface Dictionary {
     draw: string;
     wins: string;
     playAgain: string;
+    cellAria: string;
+    cellEmpty: string;
+    disabledNotYourTurn: string;
+    disabledBusy: string;
+    disabledOccupied: string;
+    disabledGameOver: string;
+    disabledViewer: string;
     modes: {
       title: string;
       classic: string;
@@ -631,6 +638,13 @@ export interface Dictionary {
     opponentTurn: string;
     freeMove: string;
     targetBoard: string;
+    cellAria: string;
+    cellEmpty: string;
+    disabledNotYourTurn: string;
+    disabledOccupied: string;
+    disabledWrongBoard: string;
+    disabledBoardWon: string;
+    disabledViewer: string;
   };
   gameGobbler: {
     lobby: string;
@@ -646,6 +660,20 @@ export interface Dictionary {
     claimsVictory: string;
     playAgain: string;
     player: string;
+    inventoryPieceAria: string;
+    sizes: {
+      SMALL: string;
+      MEDIUM: string;
+      LARGE: string;
+    };
+    cellAria: string;
+    cellEmpty: string;
+    cellOccupied: string;
+    disabledNotYourTurn: string;
+    disabledSelectPieceFirst: string;
+    disabledCannotGobble: string;
+    disabledViewer: string;
+    disabledGameOver: string;
   };
   gameSlave: {
     title: string;

@@ -131,11 +131,33 @@ export function TicTacToeView() {
           <div className="grid grid-cols-3 gap-2 bg-black p-2 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
             {ttt.board.map((cell, index) => {
               const isWinningCell = ttt.winningLine?.includes(index);
+              const row = Math.floor(index / 3) + 1;
+              const col = (index % 3) + 1;
+              const status = cell ? cell : t('gameTicTacToe.cellEmpty');
+
+              let disabledReason = '';
+              if (room.status !== RoomStatus.PLAYING) {
+                disabledReason = t('gameTicTacToe.disabledGameOver');
+              } else if (!mySide) {
+                disabledReason = t('gameTicTacToe.disabledViewer');
+              } else if (!isMyTurn) {
+                disabledReason = t('gameTicTacToe.disabledNotYourTurn');
+              } else if (actionLoading) {
+                disabledReason = t('gameTicTacToe.disabledBusy');
+              } else if (cell !== null) {
+                disabledReason = t('gameTicTacToe.disabledOccupied', { owner: cell });
+              }
+
+              const ariaLabel = disabledReason
+                ? `${t('gameTicTacToe.cellAria', { row, col, status })} (${disabledReason})`
+                : t('gameTicTacToe.cellAria', { row, col, status });
 
               return (
                 <button
+                  type="button"
                   key={index}
                   data-testid={`ttt-cell-${index}`}
+                  aria-label={ariaLabel}
                   disabled={
                     room.status !== RoomStatus.PLAYING ||
                     !isMyTurn ||
