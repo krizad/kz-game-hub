@@ -1231,6 +1231,14 @@ export interface Dictionary {
       gameOver: string;
       levelReached: string;
       finalScores: string;
+      unreadyPlayers: string;
+      skipReveal: string;
+      rewardShuriken: string;
+      rewardLife: string;
+      lifeLostExplanation: string;
+      waitingHostNextLevel: string;
+      waitingHostRematch: string;
+      waitingForVotesFrom: string;
     };
     rules: {
       overviewTitle: string;

@@ -33,7 +33,7 @@ export function TheMindGameView() {
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-3">
       {showSetupHand && (
-        <div className="mx-auto w-full max-w-lg px-4 pt-4">
+        <div className="mx-auto w-full max-w-lg px-4 pt-4" data-testid="the-mind-setup-hand">
           <div className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 -">
             <h3 className="text-sm font-black text-black uppercase tracking-widest mb-3 text-center bg-yellow-300 inline-block px-2 border-2 border-black ">
               {t('gameTheMind.game.yourHand')} ({myHand.length})
@@ -45,6 +45,7 @@ export function TheMindGameView() {
                 return (
                   <div
                     key={card}
+                    data-testid="the-mind-setup-hand-card"
                     className={`w-16 h-20 font-black text-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center ${
                       isDownCard ? 'bg-[#E6B3A4] text-black' : 'bg-[#F2D7B6] text-[#2C5559]'
                     } ${idx % 2 === 0 ? '' : '-'}`}

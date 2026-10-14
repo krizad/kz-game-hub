@@ -301,4 +301,39 @@ describe('TheMindService', () => {
 
     expect(privateState.get('ABC123', 'socket-3', 'theMindHand')).toBeUndefined();
   });
+
+  it('handleTimeout ignores duplicate calls when not in PLAYING phase', () => {
+    const room = createRoom({}, defaultPlayers(), { lives: 2, levelEndTime: Date.now() - 1 });
+    seedHands(room, { 'player-1': [10], 'player-2': [20] });
+
+    const first = service.handleTimeout(room);
+    expect(first).not.toBeNull();
+    expect(first!.theMindState!.lives).toBe(1);
+    expect(first!.theMindState!.phase).toBe(TheMindPhase.LEVEL_RESULT);
+
+    // Second call while in LEVEL_RESULT returns null and does not decrement life again
+    const second = service.handleTimeout(room);
+    expect(second).toBeNull();
+    expect(room.theMindState!.lives).toBe(1);
+  });
+
+  it('cancels shuriken proposal and returns to PLAYING without consuming shuriken', () => {
+    const room = createRoom();
+    seedHands(room, { 'player-1': [10], 'player-2': [20] });
+    const state = room.theMindState!;
+    state.phase = TheMindPhase.SHURIKEN_VOTE;
+    state.shurikenProposerId = 'player-1';
+    state.shurikenVotes = { 'player-1': true };
+
+    // Non-proposer cannot cancel
+    expect(service.cancelShurikenProposal(room, 'player-2')).toBeNull();
+
+    // Proposer can cancel
+    const result = service.cancelShurikenProposal(room, 'player-1');
+    expect(result).not.toBeNull();
+    expect(result!.theMindState!.phase).toBe(TheMindPhase.PLAYING);
+    expect(result!.theMindState!.shurikenProposerId).toBeNull();
+    expect(result!.theMindState!.shurikenVotes).toEqual({});
+    expect(result!.theMindState!.shuriken).toBe(1);
+  });
 });

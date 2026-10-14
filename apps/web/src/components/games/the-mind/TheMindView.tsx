@@ -9,7 +9,18 @@ import { toast } from 'react-hot-toast';
 import { GameType, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 
-import { Play, Heart, Wind, Users, RotateCcw, Zap, Check, X, EyeOff } from 'lucide-react';
+import {
+  Play,
+  Heart,
+  Wind,
+  Users,
+  RotateCcw,
+  Zap,
+  Check,
+  X,
+  EyeOff,
+  FastForward,
+} from 'lucide-react';
 
 const THE_MIND_RESULT_TOAST_ID = 'the-mind-result';
 
@@ -39,6 +50,8 @@ export function TheMindView() {
   const resultCardsContainerRef = React.useRef<HTMLDivElement>(null);
   const [revealedCount, setRevealedCount] = React.useState(0);
   const [selectedExtremeCard, setSelectedExtremeCard] = React.useState<number | null>(null);
+  const revealTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const [isSubmittingNextLevel, setIsSubmittingNextLevel] = React.useState(false);
 
   const playerId = React.useMemo(() => {
     if (!room) return storedPlayerId;
@@ -157,19 +170,25 @@ export function TheMindView() {
 
       let count = 0;
       const wasSuccessful = result.success;
-      const timer = setInterval(() => {
+      if (revealTimerRef.current) clearInterval(revealTimerRef.current);
+      revealTimerRef.current = setInterval(() => {
         if (count < maxCount) {
           count++;
           setRevealedCount(count);
           if (count === maxCount) {
-            clearInterval(timer);
+            if (revealTimerRef.current) clearInterval(revealTimerRef.current);
+            revealTimerRef.current = null;
             showResultToast(wasSuccessful);
           }
         } else {
-          clearInterval(timer);
+          if (revealTimerRef.current) clearInterval(revealTimerRef.current);
+          revealTimerRef.current = null;
         }
       }, 800);
-      return () => clearInterval(timer);
+      return () => {
+        if (revealTimerRef.current) clearInterval(revealTimerRef.current);
+        revealTimerRef.current = null;
+      };
     }
   }, [
     displayPhase,
@@ -179,6 +198,28 @@ export function TheMindView() {
     room?.theMindState?.result?.success,
     showResultToast,
   ]);
+
+  const handleSkipReveal = React.useCallback(() => {
+    if (revealTimerRef.current) {
+      clearInterval(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+    const maxCount = room?.theMindState?.playedCards?.length ?? 0;
+    setRevealedCount(maxCount);
+    if (room?.theMindState?.result) {
+      showResultToast(room.theMindState.result.success);
+    }
+  }, [room?.theMindState?.playedCards?.length, room?.theMindState?.result, showResultToast]);
+
+  React.useEffect(() => {
+    setIsSubmittingNextLevel(false);
+  }, [room?.theMindState?.phase, room?.theMindState?.level]);
+
+  const handleNextLevel = React.useCallback(() => {
+    if (isSubmittingNextLevel) return;
+    setIsSubmittingNextLevel(true);
+    theMindNextLevel();
+  }, [isSubmittingNextLevel, theMindNextLevel]);
 
   React.useEffect(() => {
     if (room?.theMindState?.levelEndTime && room?.theMindState?.phase === TheMindPhase.PLAYING) {
@@ -404,50 +445,73 @@ export function TheMindView() {
   const isShurikenProposer = state.shurikenProposerId === playerId;
   const blindMistakeIndexes = new Set(state.result?.invalidPlayIndexes ?? []);
 
-  const renderSetup = () => (
-    <div className="flex-1 flex flex-col items-center justify-center space-y-8 w-full max-w-sm mx-auto p-4">
-      <div className="text-center space-y-6 w-full">
-        <h2 className="w-full text-4xl font-black text-black uppercase tracking-widest bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] px-6 py-3">
-          {t('gameTheMind.game.level')} {state.level}/{state.maxLevel}
-        </h2>
-        <div className="flex items-center justify-between gap-4 w-full">
-          <div className="w-full flex items-center justify-center gap-2 bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3">
-            <Heart className="w-6 h-6 text-black" />
-            <span className="font-black text-2xl text-black">{state.lives}</span>
-          </div>
-          <div className="w-full flex items-center justify-center gap-2 bg-[#D6E7DA] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3">
-            <Wind className="w-6 h-6 text-black" />
-            <span className="font-black text-2xl text-black">{state.shuriken}</span>
-          </div>
-        </div>
-        <p className="w-full text-black bg-white border-2 border-black px-4 py-2 font-black text-xl uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          {t('gameTheMind.game.cardsDealt', { count: state.level })}
-        </p>
-        <div className="mt-8 w-full">
-          {!state.readyPlayers.includes(playerId) ? (
-            <Button
-              onClick={() => theMindReady()}
-              className="w-full bg-emerald-400 hover:bg-emerald-300 text-black font-black py-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none text-2xl uppercase tracking-widest"
-              size="lg"
+  const renderSetup = () => {
+    const connectedPlayers = room.players.filter((p) => p.connected && !p.isViewer);
+    const unreadyPlayers = connectedPlayers.filter((p) => !state.readyPlayers.includes(p.id));
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center space-y-8 w-full max-w-sm mx-auto p-4">
+        <div className="text-center space-y-6 w-full">
+          <h2 className="w-full text-4xl font-black text-black uppercase tracking-widest bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] px-6 py-3">
+            {t('gameTheMind.game.level')} {state.level}/{state.maxLevel}
+          </h2>
+          <div className="flex items-center justify-between gap-4 w-full">
+            <div
+              data-testid="the-mind-lives"
+              className="w-full flex items-center justify-center gap-2 bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3"
             >
-              <Check className="w-8 h-8 mr-3 stroke-[3]" />
-              {t('gameTheMind.game.readyBtn')}
-            </Button>
-          ) : (
-            <div className="w-full text-black bg-emerald-400 font-black text-xl flex items-center justify-center gap-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] py-5 px-6 uppercase tracking-widest">
-              <Check className="w-6 h-6 stroke-[3]" />
-              {t('gameTheMind.game.waitingForOthers')}
+              <Heart className="w-6 h-6 text-black" />
+              <span className="font-black text-2xl text-black">{state.lives}</span>
+            </div>
+            <div
+              data-testid="the-mind-shurikens"
+              className="w-full flex items-center justify-center gap-2 bg-[#D6E7DA] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-3"
+            >
+              <Wind className="w-6 h-6 text-black" />
+              <span className="font-black text-2xl text-black">{state.shuriken}</span>
+            </div>
+          </div>
+          <p className="w-full text-black bg-white border-2 border-black px-4 py-2 font-black text-xl uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            {t('gameTheMind.game.cardsDealt', { count: state.level })}
+          </p>
+          <div className="mt-8 w-full">
+            {!state.readyPlayers.includes(playerId) ? (
+              <Button
+                data-testid="the-mind-ready-btn"
+                onClick={() => theMindReady()}
+                className="w-full bg-emerald-400 hover:bg-emerald-300 text-black font-black py-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none text-2xl uppercase tracking-widest"
+                size="lg"
+              >
+                <Check className="w-8 h-8 mr-3 stroke-[3]" />
+                {t('gameTheMind.game.readyBtn')}
+              </Button>
+            ) : (
+              <div
+                data-testid="the-mind-ready-status"
+                className="w-full text-black bg-emerald-400 font-black text-xl flex items-center justify-center gap-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] py-5 px-6 uppercase tracking-widest"
+              >
+                <Check className="w-6 h-6 stroke-[3]" />
+                {t('gameTheMind.game.waitingForOthers')}
+              </div>
+            )}
+          </div>
+          <p className="text-sm text-black font-bold uppercase tracking-widest bg-white border-2 border-black inline-block px-3 py-1 -">
+            {state.readyPlayers.length}/{connectedPlayers.length} {t('gameTheMind.game.ready')}
+          </p>
+          {unreadyPlayers.length > 0 && (
+            <div
+              data-testid="the-mind-unready-players"
+              className="text-xs font-black uppercase tracking-widest text-black bg-yellow-200 border-2 border-black p-2 mt-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            >
+              {t('gameTheMind.game.unreadyPlayers', {
+                names: unreadyPlayers.map((p) => p.name).join(', '),
+              })}
             </div>
           )}
         </div>
-        <p className="text-sm text-black font-bold uppercase tracking-widest bg-white border-2 border-black inline-block px-3 py-1 -">
-          {state.readyPlayers.length}/
-          {room.players.filter((p) => p.connected && !p.isViewer).length}{' '}
-          {t('gameTheMind.game.ready')}
-        </p>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPlaying = () => (
     <div className="flex-1 flex flex-col space-y-4 w-full max-w-2xl mx-auto p-2 sm:p-4">
@@ -458,18 +522,24 @@ export function TheMindView() {
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 bg-[#E6B3A4] border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+          <div
+            data-testid="the-mind-lives"
+            className="flex items-center gap-1.5 bg-[#E6B3A4] border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] "
+          >
             <Heart className="w-5 h-5 text-black fill-black" />
             <span className="font-black text-lg text-black">{state.lives}</span>
           </div>
-          <div className="flex items-center gap-1.5 bg-[#D6E7DA] border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+          <div
+            data-testid="the-mind-shurikens"
+            className="flex items-center gap-1.5 bg-[#D6E7DA] border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -"
+          >
             <Wind className="w-5 h-5 text-black fill-black" />
             <span className="font-black text-lg text-black">{state.shuriken}</span>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 justify-center">
+      <div data-testid="the-mind-teammates" className="flex flex-wrap gap-2 justify-center">
         {room.players
           .filter((p) => p.connected && p.id !== playerId)
           .map((p) => {
@@ -481,7 +551,10 @@ export function TheMindView() {
               >
                 <span>{p.avatar || getAvatarEmoji(p.id)}</span>
                 <span className="font-black uppercase tracking-widest text-black">{p.name}</span>
-                <span className="border-2 border-black bg-cyan-300 px-2 py-0.5 font-black text-black text-[10px]">
+                <span
+                  data-testid="the-mind-teammate-hand-count"
+                  className="border-2 border-black bg-cyan-300 px-2 py-0.5 font-black text-black text-[10px]"
+                >
                   {handCount}
                 </span>
               </div>
@@ -491,7 +564,7 @@ export function TheMindView() {
 
       {remainingTime !== null && (
         <div
-          className={`flex items-center justify-center p-3 border-4 border-black font-black text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors duration-300 ${remainingTime <= 10 ? 'bg-rose-500 text-black animate-pulse' : 'bg-white text-black'}`}
+          className={`flex items-center justify-center p-3 border-4 border-black font-black text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors duration-300 motion-reduce:animate-none ${remainingTime <= 10 ? 'bg-rose-500 text-black animate-pulse' : 'bg-white text-black'}`}
         >
           ⏱️ {remainingTime}s
         </div>
@@ -500,6 +573,7 @@ export function TheMindView() {
       {room.config?.theMindMode === 'EXTREME' ? (
         <div className="flex gap-4">
           <button
+            data-testid="the-mind-pile-up"
             disabled={!canPlay || selectedExtremeCard === null}
             onClick={() => {
               if (canPlay && selectedExtremeCard !== null) {
@@ -521,6 +595,7 @@ export function TheMindView() {
             )}
           </button>
           <button
+            data-testid="the-mind-pile-down"
             disabled={!canPlay || selectedExtremeCard === null}
             onClick={() => {
               if (canPlay && selectedExtremeCard !== null) {
@@ -543,7 +618,10 @@ export function TheMindView() {
           </button>
         </div>
       ) : (
-        <div className="bg-purple-300 border-4 border-black p-6 text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
+        <div
+          data-testid="the-mind-pile-normal"
+          className="bg-purple-300 border-4 border-black p-6 text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] "
+        >
           <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-3 py-1 border-2 border-black -">
             {t('gameTheMind.game.pileTop')}
           </p>
@@ -628,6 +706,7 @@ export function TheMindView() {
             return (
               <button
                 key={card}
+                data-testid="the-mind-hand-card"
                 onClick={() => {
                   if (canPlay && isExtreme) {
                     setSelectedExtremeCard(card);
@@ -649,6 +728,7 @@ export function TheMindView() {
       <div className="flex justify-center gap-4 mt-4">
         {state.shuriken > 0 && state.phase !== TheMindPhase.SHURIKEN_VOTE && (
           <Button
+            data-testid="the-mind-use-shuriken-btn"
             onClick={() => theMindProposeShuriken()}
             variant="outline"
             className="bg-[#D6E7DA] text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#D6E7DA] font-black px-6 py-6 text-lg uppercase tracking-widest active:translate-y-1 active:shadow-none"
@@ -671,74 +751,99 @@ export function TheMindView() {
     </div>
   );
 
-  const renderShurikenVote = () => (
-    <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
-      <div className="w-full bg-[#D6E7DA] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-black text-black uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 - shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <Zap className="w-6 h-6 inline-block mr-2 stroke-[3]" />
-            {t('gameTheMind.game.shurikenVoteTitle')}
-          </h2>
-        </div>
-        <div className="space-y-6 bg-white border-4 border-black p-4 -">
-          <p className="text-center text-black font-black text-lg uppercase tracking-widest">
-            {isShurikenProposer
-              ? t('gameTheMind.game.youProposedShuriken')
-              : t('gameTheMind.game.shurikenProposedBy', {
-                  name:
-                    room.players.find((p) => p.id === state.shurikenProposerId)?.name ||
-                    t('lobby.unknownHost'),
-                })}
-          </p>
-          <p className="text-center text-sm text-black font-bold border-2 border-black p-2 bg-yellow-300 ">
-            {t('gameTheMind.game.shurikenVoteDesc')}
-          </p>
-          {shurikenVote === undefined ? (
-            <div className="flex gap-4 justify-center mt-4">
-              <Button
-                onClick={() => theMindVoteShuriken(true)}
-                className="bg-emerald-400 hover:bg-emerald-300 text-black font-black py-4 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none - uppercase tracking-widest"
-              >
-                <Check className="w-6 h-6 mr-2 stroke-[3]" />
-                {t('gameTheMind.game.agree')}
-              </Button>
-              <Button
-                onClick={() => theMindVoteShuriken(false)}
-                variant="outline"
-                className="bg-[#E6B3A4] hover:bg-rose-300 text-black font-black py-4 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest"
-              >
-                <X className="w-6 h-6 mr-2 stroke-[3]" />
-                {t('gameTheMind.game.disagree')}
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center space-y-4">
-              <div
-                className={`font-black text-2xl uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 ${shurikenVote ? 'text-emerald-500' : 'text-rose-500'}`}
-              >
-                {shurikenVote
-                  ? t('gameTheMind.game.votedAgree')
-                  : t('gameTheMind.game.votedDisagree')}
-              </div>
-              <p className="text-sm text-black font-bold uppercase tracking-widest border-2 border-black p-2 bg-cyan-300 -">
-                {t('gameTheMind.game.waitingForVotes')} ({Object.keys(state.shurikenVotes).length}/
-                {room.players.filter((p) => p.connected && !p.isViewer).length})
-              </p>
-            </div>
-          )}
-          {isShurikenProposer && (
-            <Button
-              onClick={() => theMindCancelShuriken()}
-              variant="outline"
-              className="w-full bg-yellow-300 hover:bg-yellow-200 text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black py-4 uppercase tracking-widest mt-4 active:translate-y-1 active:shadow-none"
+  const renderShurikenVote = () => {
+    const pendingVoters = room.players.filter(
+      (p) => p.connected && !p.isViewer && state.shurikenVotes[p.id] === undefined,
+    );
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto p-4">
+        <div
+          data-testid="the-mind-shuriken-vote-dialog"
+          className="w-full bg-[#D6E7DA] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6"
+        >
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-black text-black uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 - shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <Zap className="w-6 h-6 inline-block mr-2 stroke-[3]" />
+              {t('gameTheMind.game.shurikenVoteTitle')}
+            </h2>
+          </div>
+          <div className="space-y-6 bg-white border-4 border-black p-4 -">
+            <p
+              data-testid="the-mind-shuriken-proposer"
+              className="text-center text-black font-black text-lg uppercase tracking-widest"
             >
-              {t('gameTheMind.game.cancelProposal')}
-            </Button>
-          )}
+              {isShurikenProposer
+                ? t('gameTheMind.game.youProposedShuriken')
+                : t('gameTheMind.game.shurikenProposedBy', {
+                    name:
+                      room.players.find((p) => p.id === state.shurikenProposerId)?.name ||
+                      t('lobby.unknownHost'),
+                  })}
+            </p>
+            <p className="text-center text-sm text-black font-bold border-2 border-black p-2 bg-yellow-300 ">
+              {t('gameTheMind.game.shurikenVoteDesc')}
+            </p>
+            {shurikenVote === undefined ? (
+              <div className="flex gap-4 justify-center mt-4">
+                <Button
+                  data-testid="the-mind-vote-agree-btn"
+                  onClick={() => theMindVoteShuriken(true)}
+                  className="bg-emerald-400 hover:bg-emerald-300 text-black font-black py-4 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none - uppercase tracking-widest"
+                >
+                  <Check className="w-6 h-6 mr-2 stroke-[3]" />
+                  {t('gameTheMind.game.agree')}
+                </Button>
+                <Button
+                  data-testid="the-mind-vote-disagree-btn"
+                  onClick={() => theMindVoteShuriken(false)}
+                  variant="outline"
+                  className="bg-[#E6B3A4] hover:bg-rose-300 text-black font-black py-4 px-8 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest"
+                >
+                  <X className="w-6 h-6 mr-2 stroke-[3]" />
+                  {t('gameTheMind.game.disagree')}
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center space-y-4">
+                <div
+                  className={`font-black text-2xl uppercase tracking-widest bg-white border-4 border-black inline-block px-4 py-2 ${shurikenVote ? 'text-emerald-500' : 'text-rose-500'}`}
+                >
+                  {shurikenVote
+                    ? t('gameTheMind.game.votedAgree')
+                    : t('gameTheMind.game.votedDisagree')}
+                </div>
+                <p className="text-sm text-black font-bold uppercase tracking-widest border-2 border-black p-2 bg-cyan-300 -">
+                  {t('gameTheMind.game.waitingForVotes')} ({Object.keys(state.shurikenVotes).length}
+                  /{room.players.filter((p) => p.connected && !p.isViewer).length})
+                </p>
+                {pendingVoters.length > 0 && (
+                  <div
+                    data-testid="the-mind-pending-voters"
+                    className="text-xs text-black font-black uppercase tracking-widest border-2 border-black p-2 bg-yellow-200"
+                  >
+                    {t('gameTheMind.game.waitingForVotesFrom', {
+                      names: pendingVoters.map((p) => p.name).join(', '),
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {isShurikenProposer && (
+              <Button
+                data-testid="the-mind-cancel-shuriken-btn"
+                onClick={() => theMindCancelShuriken()}
+                variant="outline"
+                className="w-full bg-yellow-300 hover:bg-yellow-200 text-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black py-4 uppercase tracking-widest mt-4 active:translate-y-1 active:shadow-none"
+              >
+                {t('gameTheMind.game.cancelProposal')}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderShurikenResult = () => (
     <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
@@ -787,14 +892,27 @@ export function TheMindView() {
   const renderBlindReveal = () => {
     if (!room.config?.theMindBlindMode || !state.result) return null;
 
-    const revealFinished = revealedCount === state.playedCards.length;
+    const revealFinished = revealedCount >= state.playedCards.length;
 
     return (
-      <div className="space-y-4 text-left">
+      <div className="space-y-4 text-left" data-testid="the-mind-blind-reveal">
         <div className="bg-slate-800 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 -">
-          <p className="text-sm font-black text-white mb-2 uppercase tracking-widest text-center bg-black inline-block px-2 py-1 ">
-            {t('gameTheMind.game.playedCardsLog')}
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-black text-white uppercase tracking-widest text-center bg-black inline-block px-2 py-1 ">
+              {t('gameTheMind.game.playedCardsLog')}
+            </p>
+            {!revealFinished && (
+              <Button
+                data-testid="the-mind-skip-reveal-btn"
+                onClick={handleSkipReveal}
+                size="sm"
+                className="bg-yellow-300 hover:bg-yellow-200 text-black border-2 border-black font-black px-3 py-1 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 uppercase tracking-wider"
+              >
+                <FastForward className="w-3.5 h-3.5 mr-1" />
+                {t('gameTheMind.game.skipReveal')}
+              </Button>
+            )}
+          </div>
           <div
             ref={resultCardsContainerRef}
             className="flex gap-2 overflow-x-auto pb-2 scroll-smooth items-center mt-2"
@@ -809,6 +927,7 @@ export function TheMindView() {
               return (
                 <div
                   key={idx}
+                  data-testid="the-mind-revealed-card"
                   className={`flex-shrink-0 border-4 border-black p-2 text-center min-w-[70px] transition-all duration-500 transform shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                     isRevealed
                       ? isMistake
@@ -822,7 +941,7 @@ export function TheMindView() {
                   }}
                 >
                   <div
-                    className="w-full h-full transition-transform duration-500"
+                    className="w-full h-full transition-transform duration-500 motion-reduce:transition-none"
                     style={{
                       transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)',
                     }}
@@ -873,120 +992,160 @@ export function TheMindView() {
     );
   };
 
-  const renderLevelResult = () => (
-    <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
-      <div className="w-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
-        <div
-          className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${state.result?.success ? 'bg-emerald-400' : 'bg-[#E6B3A4]'}`}
-        >
-          <h2 className={`text-2xl font-black text-black uppercase tracking-widest`}>
-            {state.result?.success
-              ? t('gameTheMind.game.levelComplete')
-              : state.result?.isTimeOut
-                ? t('gameTheMind.game.timesUp')
-                : t('gameTheMind.game.mistake')}
-          </h2>
-        </div>
-        <div className="space-y-6">
-          {state.result && !state.result.success && !room.config?.theMindBlindMode && (
-            <div className="space-y-6">
-              <div className="bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-center ">
-                <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black -">
-                  {t('gameTheMind.game.mistakeBy', {
-                    name:
-                      room.players.find((p) => p.id === state.result?.failedPlayerId)?.name ||
-                      'Unknown',
-                  })}
-                </p>
-                <p className="text-6xl font-black text-black leading-none my-4">{state.pileTop}</p>
-                <p className="text-sm font-black text-black uppercase tracking-widest bg-yellow-300 inline-block px-2 border-2 border-black ">
-                  {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+  const renderLevelResult = () => {
+    const isRewardShuriken = [2, 5, 8].includes(state.level);
+    const isRewardLife = [3, 6, 9].includes(state.level);
+
+    return (
+      <div
+        data-testid="the-mind-level-result"
+        className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4"
+      >
+        <div className="w-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
+          <div
+            className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${state.result?.success ? 'bg-emerald-400' : 'bg-[#E6B3A4]'}`}
+          >
+            <h2 className={`text-2xl font-black text-black uppercase tracking-widest`}>
+              {state.result?.success
+                ? t('gameTheMind.game.levelComplete')
+                : state.result?.isTimeOut
+                  ? t('gameTheMind.game.timesUp')
+                  : t('gameTheMind.game.mistake')}
+            </h2>
+          </div>
+          <div className="space-y-6">
+            {state.result?.levelCleared && (isRewardShuriken || isRewardLife) && (
+              <div
+                data-testid="the-mind-reward-banner"
+                className="bg-yellow-300 border-4 border-black p-3 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black text-sm uppercase tracking-widest text-black"
+              >
+                {isRewardShuriken
+                  ? t('gameTheMind.game.rewardShuriken')
+                  : t('gameTheMind.game.rewardLife')}
+              </div>
+            )}
+            {state.result && !state.result.success && (
+              <div
+                data-testid="the-mind-mistake-explanation"
+                className="bg-rose-400 border-4 border-black p-3 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black text-sm uppercase tracking-widest text-black"
+              >
+                {t('gameTheMind.game.lifeLostExplanation', { pileTop: state.pileTop })}
+              </div>
+            )}
+            {state.result && !state.result.success && !room.config?.theMindBlindMode && (
+              <div className="space-y-6">
+                <div className="bg-[#E6B3A4] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-center ">
+                  <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black -">
+                    {t('gameTheMind.game.mistakeBy', {
+                      name:
+                        room.players.find((p) => p.id === state.result?.failedPlayerId)?.name ||
+                        'Unknown',
+                    })}
+                  </p>
+                  <p className="text-6xl font-black text-black leading-none my-4">
+                    {state.pileTop}
+                  </p>
+                  <p className="text-sm font-black text-black uppercase tracking-widest bg-yellow-300 inline-block px-2 border-2 border-black ">
+                    {t('gameTheMind.game.livesRemaining', { lives: state.lives })}
+                  </p>
+                </div>
+
+                {Object.keys(state.discardedCards).length > 0 && (
+                  <div className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 -">
+                    <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black ">
+                      {t('gameTheMind.game.discardedCards')}:
+                    </p>
+                    <div className="space-y-2 mt-2">
+                      {Object.entries(state.discardedCards).map(([pid, cards]) => {
+                        const player = room.players.find((p) => p.id === pid);
+                        return (
+                          <div
+                            key={pid}
+                            className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 "
+                          >
+                            <span className="font-black text-black uppercase tracking-widest">
+                              {player?.name || t('lobby.unknownHost')}:
+                            </span>
+                            <span className="text-black font-black text-lg">
+                              [{cards.map((c) => Math.abs(c)).join(', ')}]
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {state.lives === 0 && (
+                  <div className="bg-slate-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 ">
+                    <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black -">
+                      {t('gameTheMind.game.remainingCards')}:
+                    </p>
+                    <div className="space-y-2 mt-2">
+                      {Object.entries(state.remainingHands ?? {}).map(([pid, cards]) => {
+                        if (cards.length === 0) return null;
+                        const player = room.players.find((p) => p.id === pid);
+                        return (
+                          <div
+                            key={pid}
+                            className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 -"
+                          >
+                            <span className="font-black text-black uppercase tracking-widest">
+                              {player?.name || t('lobby.unknownHost')}:
+                            </span>
+                            <span className="text-black font-black text-lg">
+                              [{cards.join(', ')}]
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {renderBlindReveal()}
+
+            {state.result?.success && !room.config?.theMindBlindMode && (
+              <div className="text-center">
+                <p className="text-center text-black font-black text-2xl uppercase tracking-widest bg-emerald-400 border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - animate-in fade-in duration-500">
+                  {t('gameTheMind.game.levelCleared')}
                 </p>
               </div>
-
-              {Object.keys(state.discardedCards).length > 0 && (
-                <div className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 -">
-                  <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black ">
-                    {t('gameTheMind.game.discardedCards')}:
-                  </p>
-                  <div className="space-y-2 mt-2">
-                    {Object.entries(state.discardedCards).map(([pid, cards]) => {
-                      const player = room.players.find((p) => p.id === pid);
-                      return (
-                        <div
-                          key={pid}
-                          className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 "
-                        >
-                          <span className="font-black text-black uppercase tracking-widest">
-                            {player?.name || t('lobby.unknownHost')}:
-                          </span>
-                          <span className="text-black font-black text-lg">
-                            [{cards.map((c) => Math.abs(c)).join(', ')}]
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {state.lives === 0 && (
-                <div className="bg-slate-200 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 ">
-                  <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-2 border-2 border-black -">
-                    {t('gameTheMind.game.remainingCards')}:
-                  </p>
-                  <div className="space-y-2 mt-2">
-                    {Object.entries(state.remainingHands ?? {}).map(([pid, cards]) => {
-                      if (cards.length === 0) return null;
-                      const player = room.players.find((p) => p.id === pid);
-                      return (
-                        <div
-                          key={pid}
-                          className="flex items-center gap-2 text-sm bg-white border-2 border-black p-2 -"
-                        >
-                          <span className="font-black text-black uppercase tracking-widest">
-                            {player?.name || t('lobby.unknownHost')}:
-                          </span>
-                          <span className="text-black font-black text-lg">
-                            [{cards.join(', ')}]
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {renderBlindReveal()}
-
-          {state.result?.success && !room.config?.theMindBlindMode && (
-            <div className="text-center">
-              <p className="text-center text-black font-black text-2xl uppercase tracking-widest bg-emerald-400 border-4 border-black inline-block px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - animate-in fade-in duration-500">
-                {t('gameTheMind.game.levelCleared')}
-              </p>
-            </div>
-          )}
-          {isHost && (
-            <Button
-              onClick={() => theMindNextLevel()}
-              className="w-full bg-cyan-300 hover:bg-cyan-200 text-black font-black py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-xl uppercase tracking-widest mt-6"
-              size="lg"
-            >
-              <Play className="w-6 h-6 mr-2 stroke-[3]" />
-              {state.result?.levelCleared
-                ? `${t('gameTheMind.game.nextLevel')} ${state.level + 1}`
-                : t('gameTheMind.game.resumeLevel')}
-            </Button>
-          )}
+            )}
+            {isHost ? (
+              <Button
+                data-testid="the-mind-next-level-btn"
+                onClick={handleNextLevel}
+                disabled={isSubmittingNextLevel}
+                className="w-full bg-cyan-300 hover:bg-cyan-200 text-black font-black py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-xl uppercase tracking-widest mt-6"
+                size="lg"
+              >
+                <Play className="w-6 h-6 mr-2 stroke-[3]" />
+                {state.result?.levelCleared
+                  ? `${t('gameTheMind.game.nextLevel')} ${state.level + 1}`
+                  : t('gameTheMind.game.resumeLevel')}
+              </Button>
+            ) : (
+              <div
+                data-testid="the-mind-waiting-host"
+                className="w-full text-center text-black font-black uppercase tracking-widest bg-yellow-300 border-2 border-black p-3 mt-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              >
+                {t('gameTheMind.game.waitingHostNextLevel')}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderGameOver = () => (
-    <div className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4">
+    <div
+      data-testid="the-mind-game-over"
+      className="flex-1 flex flex-col items-center justify-center space-y-6 w-full max-w-lg mx-auto p-4"
+    >
       <div className="w-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
         <div
           className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${
@@ -1085,8 +1244,9 @@ export function TheMindView() {
                 ))}
             </div>
           </div>
-          {isHost && (
+          {isHost ? (
             <Button
+              data-testid="the-mind-rematch-btn"
               onClick={() => resetRoom()}
               className="w-full bg-emerald-400 hover:bg-emerald-300 text-black font-black py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-xl uppercase tracking-widest - mt-6"
               size="lg"
@@ -1094,6 +1254,13 @@ export function TheMindView() {
               <RotateCcw className="w-6 h-6 mr-2 stroke-[3]" />
               {t('result.playAgain')}
             </Button>
+          ) : (
+            <div
+              data-testid="the-mind-waiting-host"
+              className="w-full text-center text-black font-black uppercase tracking-widest bg-yellow-300 border-2 border-black p-3 mt-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            >
+              {t('gameTheMind.game.waitingHostRematch')}
+            </div>
           )}
         </div>
       </div>
