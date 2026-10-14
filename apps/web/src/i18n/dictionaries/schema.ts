@@ -764,6 +764,8 @@ export interface Dictionary {
     disabledOccupied: string;
     disabledGameOver: string;
     disabledViewer: string;
+    currentMode: string;
+    waitingForHostRematch: string;
     modes: {
       title: string;
       classic: string;
@@ -805,6 +807,9 @@ export interface Dictionary {
     disabledWrongBoard: string;
     disabledBoardWon: string;
     disabledViewer: string;
+    sendsOpponentTo: string;
+    sendsToFreeMove: string;
+    targetBoardPreview: string;
   };
   gameGobbler: {
     lobby: string;

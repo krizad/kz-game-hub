@@ -974,6 +974,8 @@ export const en: Dictionary = {
     disabledOccupied: 'Occupied by {owner}',
     disabledGameOver: 'Game over',
     disabledViewer: 'Spectating',
+    currentMode: 'Mode: {mode}',
+    waitingForHostRematch: 'Waiting for host to start a new match...',
     modes: {
       title: 'Game Mode',
       classic: 'Classic (3x3)',
@@ -1015,6 +1017,9 @@ export const en: Dictionary = {
     disabledWrongBoard: 'Must play in Board #{board}',
     disabledBoardWon: 'Board already decided',
     disabledViewer: 'Spectating',
+    sendsOpponentTo: 'Sends opponent to Board #{board}',
+    sendsToFreeMove: 'Sends opponent to any board (Free Move)',
+    targetBoardPreview: 'Target Board: #{board}',
   },
   gameGobbler: {
     lobby: 'Gobbler',

@@ -165,3 +165,182 @@ for (const { mode, viewport, language, cellPrefix, firstCell, secondCell } of mo
     }
   });
 }
+
+test('ULTIMATE: touch/focus next-board preview, disabled reasons, and 360px viewport fit', async ({
+  browser,
+}, testInfo) => {
+  const host = await browser.newPage({ viewport: { width: 360, height: 800 } });
+  const guest = await browser.newPage({ viewport: { width: 360, height: 800 } });
+
+  try {
+    const code = await createRoom(host, 'HostU', 'Tic-Tac-Toe', 'ULTIMATE');
+    const origin = await getOrigin(host);
+    await host.getByRole('button', { name: 'Allowed', exact: true }).click();
+    await joinRoom(guest, origin, code, 'GuestU');
+
+    await host.getByTestId('uttt-join-x').click();
+    await guest.getByTestId('uttt-join-o').click();
+
+    // Mode badge visible
+    await expect(host.getByTestId('ttt-current-mode-badge')).toBeVisible();
+    await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Ultimate/);
+
+    // 360px viewport check: zero horizontal overflow
+    const hasHorizontalOverflow = await host.evaluate(() => {
+      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+    });
+    expect(hasHorizontalOverflow).toBe(false);
+
+    // Initial state: free move, no cell focused, so target preview banner is not visible
+    await expect(host.getByTestId('uttt-target-preview')).toBeHidden();
+
+    // Focus cell in macro 4, micro 2 (Board #5, micro cell #3)
+    // Moving at micro 2 routes opponent to macro board 2 (Board #3)
+    await host.getByTestId('uttt-cell-4-2').focus();
+
+    // Target preview banner and highlighted target macro board appear without hovering
+    await expect(host.getByTestId('uttt-target-preview')).toBeVisible();
+    await expect(host.getByTestId('uttt-target-preview')).toHaveText(/Board #3/);
+    await expect(host.getByTestId('uttt-target-board-preview')).toBeVisible();
+    await expect(host.getByTestId('uttt-target-board-preview')).toHaveText(/#3/);
+
+    await host.screenshot({ path: testInfo.outputPath('uttt-360-preview.png') });
+
+    // Host plays cell 4-2
+    await host.getByTestId('uttt-cell-4-2').click();
+
+    // Opponent (Guest) is routed to Board #3 (macro index 2)
+    // Macro index 0 cells are disabled for guest with specific reason
+    await expect(guest.getByTestId('uttt-cell-0-0')).toBeDisabled();
+    await expect(guest.getByTestId('uttt-cell-0-0')).toHaveAttribute(
+      'aria-label',
+      /Must play in Board #3/,
+    );
+
+    // Guest focuses cell 2-7 in Board #3, which routes back to Board #8
+    await guest.getByTestId('uttt-cell-2-7').focus();
+    await expect(guest.getByTestId('uttt-target-preview')).toBeVisible();
+    await expect(guest.getByTestId('uttt-target-preview')).toHaveText(/Board #8/);
+  } finally {
+    await host.close();
+    await guest.close();
+  }
+});
+
+test('Unified results, rematch mode/bot persistence, and change mode', async ({ browser }) => {
+  const host = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const guest = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+
+  try {
+    // 1. Classic vs Bot: plays with God bot, tests rematch mode & difficulty persistence
+    const code = await createRoom(host, 'HostBot', 'Tic-Tac-Toe');
+    await host.getByTestId('ttt-opponent-bot').click();
+    await host.getByTestId('ttt-diff-god').click();
+    await host.getByTestId('ttt-join-x').click();
+
+    // Bot is seated as O and game starts
+    await expect(host.getByTestId('ttt-current-mode-badge')).toBeVisible();
+    await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Classic/);
+    await expect(host.getByText('BOT (God)')).toBeVisible();
+
+    // Play moves until result
+    for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8]) {
+      const cell = host.getByTestId(`ttt-cell-${i}`);
+      if (await cell.isEnabled()) {
+        await cell.click();
+        await host.waitForTimeout(350);
+        const hasResult = await host
+          .locator('[data-testid="ttt-result-winner"], [data-testid="ttt-result-draw"]')
+          .isVisible();
+        if (hasResult) break;
+      }
+    }
+
+    // Result screen in Classic
+    await expect(
+      host.locator('[data-testid="ttt-result-winner"], [data-testid="ttt-result-draw"]'),
+    ).toBeVisible();
+    await expect(host.getByTestId('ttt-rematch-btn')).toBeVisible();
+    await expect(host.getByTestId('ttt-change-mode-btn')).toBeVisible();
+
+    // Rematch: click rematch button
+    await host.getByTestId('ttt-rematch-btn').click();
+
+    // Should restart playing immediately, keeping vs Bot and God difficulty
+    await expect(host.getByTestId('ttt-cell-0')).toBeVisible();
+    await expect(host.getByText('BOT (God)')).toBeVisible();
+    await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Classic/);
+
+    // 2. Change mode: host clicks change mode to return to lobby
+    for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8]) {
+      const cell = host.getByTestId(`ttt-cell-${i}`);
+      if (await cell.isEnabled()) {
+        await cell.click();
+        await host.waitForTimeout(350);
+        const hasResult = await host
+          .locator('[data-testid="ttt-result-winner"], [data-testid="ttt-result-draw"]')
+          .isVisible();
+        if (hasResult) break;
+      }
+    }
+
+    await expect(host.getByTestId('ttt-change-mode-btn')).toBeVisible();
+    await host.getByTestId('ttt-change-mode-btn').click();
+
+    // Returned to lobby, still in Classic mode
+    await expect(host.getByTestId('ttt-mode-classic')).toBeVisible();
+
+    // Switch to Gobbler mode
+    await host.getByTestId('ttt-mode-gobbler').click();
+    await host.waitForTimeout(1000);
+
+    // Guest joins Gobbler room
+    const origin = await getOrigin(host);
+    await host.getByRole('button', { name: 'Allowed', exact: true }).click();
+    await joinRoom(guest, origin, code, 'GuestGobbler');
+
+    // Both join seats
+    await host.getByRole('button', { name: 'Join X' }).click();
+    await guest.getByRole('button', { name: 'Join O' }).click();
+
+    // Mode badge visible in Gobbler
+    await expect(host.getByTestId('ttt-current-mode-badge')).toBeVisible();
+    await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Gobbler/);
+    await expect(guest.getByTestId('ttt-current-mode-badge')).toBeVisible();
+
+    // Fast-forward to result by having host and guest play 3 cells in a row
+    // X places at 0
+    await host.getByTestId('gobbler-inventory-X-stack-2').click();
+    await host.getByTestId('gobbler-cell-0').click();
+    // O places at 3
+    await guest.getByTestId('gobbler-inventory-O-stack-2').click();
+    await guest.getByTestId('gobbler-cell-3').click();
+    // X places at 1
+    await host.getByTestId('gobbler-inventory-X-stack-2').click();
+    await host.getByTestId('gobbler-cell-1').click();
+    // O places at 4
+    await guest.getByTestId('gobbler-inventory-O-stack-2').click();
+    await guest.getByTestId('gobbler-cell-4').click();
+    // X places at 2 (X wins row 0-1-2!)
+    await host.getByTestId('gobbler-inventory-X-stack-1').click();
+    await host.getByTestId('gobbler-cell-2').click();
+
+    // Result banner in Gobbler
+    await expect(host.getByTestId('ttt-result-winner')).toBeVisible();
+    await expect(guest.getByTestId('ttt-result-winner')).toBeVisible();
+
+    // Rematch and Change Mode controls
+    await expect(host.getByTestId('ttt-rematch-btn')).toBeVisible();
+    await expect(host.getByTestId('ttt-change-mode-btn')).toBeVisible();
+    // Guest sees waiting message
+    await expect(guest.getByTestId('ttt-waiting-host')).toBeVisible();
+
+    // Host clicks rematch: stays in GOBBLER mode!
+    await host.getByTestId('ttt-rematch-btn').click();
+    await expect(host.getByTestId('gobbler-cell-0')).toBeVisible();
+    await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Gobbler/);
+  } finally {
+    await host.close();
+    await guest.close();
+  }
+});

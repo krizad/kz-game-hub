@@ -172,6 +172,40 @@ describe('TicTacToeService', () => {
       expect(service.reset(room, 'stranger')).toBeNull();
       expect(room.status).toBe(RoomStatus.RESULT);
     });
+
+    it('preserves ticTacToeMode, vsBot, and botDifficulty on rematch', () => {
+      const room = createRoom(
+        RoomStatus.RESULT,
+        { winner: 'X', playerXId: 'p1', playerOId: 'bot-player' },
+        [{ socketId: 'p1' }, { socketId: 'bot-player' }],
+      );
+      room.config.ticTacToeMode = 'CLASSIC';
+      room.config.ticTacToeVsBot = true;
+      room.config.ticTacToeBotDifficulty = 'GOD';
+
+      const result = service.reset(room, 'p1');
+      expect(result).not.toBeNull();
+      expect(result!.config.ticTacToeMode).toBe('CLASSIC');
+      expect(result!.config.ticTacToeVsBot).toBe(true);
+      expect(result!.config.ticTacToeBotDifficulty).toBe('GOD');
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.ticTacToeState!.playerXId).toBe('p1');
+      expect(result!.ticTacToeState!.playerOId).toBe('bot-player');
+    });
+
+    it('preserves ticTacToeMode when resetting to lobby via toLobby flag', () => {
+      const room = createRoom(RoomStatus.RESULT, { winner: 'X' });
+      room.config.ticTacToeMode = 'CLASSIC';
+      room.config.ticTacToeVsBot = true;
+
+      const result = service.reset(room, 'p1', true);
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.LOBBY);
+      expect(result!.config.ticTacToeMode).toBe('CLASSIC');
+      expect(result!.config.ticTacToeVsBot).toBe(true);
+      expect(result!.ticTacToeState!.playerXId).toBeUndefined();
+      expect(result!.ticTacToeState!.playerOId).toBeUndefined();
+    });
   });
 
   describe('vs Bot mode', () => {

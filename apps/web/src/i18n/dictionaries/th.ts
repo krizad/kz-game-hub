@@ -941,6 +941,8 @@ export const th: Dictionary = {
     disabledOccupied: 'มีหมาก {owner} แล้ว',
     disabledGameOver: 'จบเกมแล้ว',
     disabledViewer: 'กำลังรับชม',
+    currentMode: 'โหมด: {mode}',
+    waitingForHostRematch: 'กำลังรอหัวหน้าห้องเริ่มเกมใหม่...',
     modes: {
       title: 'โหมดเกม',
       classic: 'Classic (3x3)',
@@ -982,6 +984,9 @@ export const th: Dictionary = {
     disabledWrongBoard: 'ต้องเล่นที่กระดาน #{board}',
     disabledBoardWon: 'กระดานนี้ได้ผู้ชนะแล้ว',
     disabledViewer: 'กำลังรับชม',
+    sendsOpponentTo: 'ส่งคู่แข่งไปกระดาน #{board}',
+    sendsToFreeMove: 'ส่งคู่แข่งไปเลือกกระดานใดก็ได้ (เดินอิสระ)',
+    targetBoardPreview: 'กระดานเป้าหมาย: #{board}',
   },
   gameGobbler: {
     lobby: 'ก็อบเบลอร์',

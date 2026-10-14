@@ -11,6 +11,9 @@ export function UltimateTicTacToeView() {
   const { room, socketId, utttJoinSide, utttMakeMove, utttReset, actionLoading } = useGameStore();
   const { t } = useTranslate();
   const [hoveredCell, setHoveredCell] = useState<{ macro: number; micro: number } | null>(null);
+  const [focusedCell, setFocusedCell] = useState<{ macro: number; micro: number } | null>(null);
+
+  const previewCell = focusedCell ?? hoveredCell;
 
   if (!room || !room.ultimateTicTacToeState) return null;
   const uttt = room.ultimateTicTacToeState;
@@ -119,6 +122,13 @@ export function UltimateTicTacToeView() {
 
             {/* Turn & Status Badge */}
             <div className="flex flex-col items-center gap-1 mx-2">
+              <div
+                data-testid="ttt-current-mode-badge"
+                className="text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black bg-yellow-300 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase tracking-wider text-center"
+              >
+                {t('gameTicTacToe.currentMode', { mode: t('gameTicTacToe.modes.ultimate') })}
+              </div>
+
               <div className="text-xs sm:text-sm font-black tracking-wider uppercase text-black bg-white px-3 py-1.5 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center">
                 {room.status === RoomStatus.RESULT
                   ? t('gameTicTacToe.gameOver')
@@ -138,6 +148,23 @@ export function UltimateTicTacToeView() {
                   {isFreeMove
                     ? t('gameUltimateTTT.freeMove')
                     : t('gameUltimateTTT.targetBoard', { board: (uttt.activeMacroIndex ?? 0) + 1 })}
+                </div>
+              )}
+
+              {room.status === RoomStatus.PLAYING && previewCell && (
+                <div
+                  data-testid="uttt-target-preview"
+                  className="text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black text-center bg-purple-100 text-purple-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-in fade-in"
+                >
+                  {(() => {
+                    const targetSubBoard = uttt.subBoards[previewCell.micro];
+                    const targetDecided =
+                      targetSubBoard &&
+                      (!!targetSubBoard.winner || targetSubBoard.cells.every((c) => c !== null));
+                    return targetDecided
+                      ? t('gameUltimateTTT.sendsToFreeMove')
+                      : t('gameUltimateTTT.sendsOpponentTo', { board: previewCell.micro + 1 });
+                  })()}
                 </div>
               )}
 
@@ -168,7 +195,7 @@ export function UltimateTicTacToeView() {
 
           {/* 9x9 Ultimate Board */}
           <div
-            className="w-full aspect-square max-w-[440px] sm:max-w-[480px] bg-black p-2 sm:p-2.5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] grid grid-cols-3 gap-2 sm:gap-2.5"
+            className="w-full aspect-square max-w-[340px] sm:max-w-[480px] bg-black p-1.5 sm:p-2.5 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] grid grid-cols-3 gap-1.5 sm:gap-2.5"
             onMouseLeave={() => setHoveredCell(null)}
           >
             {uttt.subBoards.map((subBoard, macroIndex) => {
@@ -178,22 +205,31 @@ export function UltimateTicTacToeView() {
                 !subBoard.winner &&
                 (isFreeMove || uttt.activeMacroIndex === macroIndex);
 
-              // Check if this sub-board is the hover target (where the next move will send the opponent)
+              // Check if this sub-board is the hover/focus target (where the next move will send the opponent)
               const isHoverTarget =
-                hoveredCell &&
-                hoveredCell.micro === macroIndex &&
-                isSubBoardPlayable &&
-                !subBoard.winner;
+                previewCell &&
+                previewCell.micro === macroIndex &&
+                room.status === RoomStatus.PLAYING;
 
               return (
                 <div
                   key={`macro-${macroIndex}`}
-                  className={`relative grid grid-cols-3 gap-1 p-1 bg-gray-200 border-2 sm:border-3 transition-all ${
+                  data-testid={`uttt-macro-board-${macroIndex}`}
+                  className={`relative grid grid-cols-3 gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-gray-200 border-2 sm:border-3 transition-all ${
                     isSubBoardPlayable
                       ? 'border-yellow-400 ring-2 sm:ring-3 ring-yellow-400 bg-yellow-50'
                       : 'border-black opacity-80'
-                  } ${isHoverTarget ? 'ring-4 ring-purple-500' : ''}`}
+                  } ${isHoverTarget ? 'ring-4 ring-purple-500 z-10' : ''}`}
                 >
+                  {isHoverTarget && (
+                    <div
+                      data-testid="uttt-target-board-preview"
+                      className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 bg-purple-600 text-white text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] uppercase tracking-wider whitespace-nowrap pointer-events-none"
+                    >
+                      {t('gameUltimateTTT.targetBoardPreview', { board: macroIndex + 1 })}
+                    </div>
+                  )}
+
                   {/* Won Overlay for Sub-Board */}
                   {subBoard.winner && (
                     <div
@@ -259,13 +295,23 @@ export function UltimateTicTacToeView() {
                         data-testid={`uttt-cell-${macroIndex}-${microIndex}`}
                         aria-label={ariaLabel}
                         disabled={!isCellPlayable}
-                        onClick={() => utttMakeMove(macroIndex, microIndex)}
+                        onClick={() => {
+                          utttMakeMove(macroIndex, microIndex);
+                          setHoveredCell(null);
+                          setFocusedCell(null);
+                        }}
+                        onFocus={() => {
+                          if (isCellPlayable) {
+                            setFocusedCell({ macro: macroIndex, micro: microIndex });
+                          }
+                        }}
+                        onBlur={() => setFocusedCell(null)}
                         onMouseEnter={() => {
                           if (isCellPlayable) {
                             setHoveredCell({ macro: macroIndex, micro: microIndex });
                           }
                         }}
-                        className={`aspect-square flex items-center justify-center font-black text-base sm:text-lg transition-colors select-none ${
+                        className={`aspect-square flex items-center justify-center font-black text-sm sm:text-lg transition-colors select-none ${
                           cell === null
                             ? isCellPlayable
                               ? 'bg-white hover:bg-yellow-200 active:bg-yellow-300 cursor-pointer'
@@ -292,11 +338,15 @@ export function UltimateTicTacToeView() {
           {room.status === RoomStatus.RESULT && (
             <div className="flex flex-col items-center gap-3 mt-2 animate-in zoom-in slide-in-from-bottom-3 w-full">
               {uttt.winner === 'DRAW' ? (
-                <div className="text-2xl sm:text-3xl font-black text-black bg-gray-300 px-6 py-3 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center w-full">
+                <div
+                  data-testid="ttt-result-draw"
+                  className="text-2xl sm:text-3xl font-black text-black bg-gray-300 px-6 py-3 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center w-full"
+                >
                   {t('gameTicTacToe.draw')}
                 </div>
               ) : (
                 <div
+                  data-testid="ttt-result-winner"
                   className={`text-xl sm:text-3xl text-center font-black text-black px-6 py-3 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] w-full ${
                     uttt.winner === 'X' ? 'bg-cyan-300' : 'bg-pink-300'
                   }`}
@@ -311,6 +361,7 @@ export function UltimateTicTacToeView() {
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center justify-center">
                   <button
                     type="button"
+                    data-testid="ttt-rematch-btn"
                     onClick={() => utttReset(false)}
                     disabled={actionLoading}
                     className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
@@ -320,6 +371,7 @@ export function UltimateTicTacToeView() {
                   {room.roomHostId === socketId && (
                     <button
                       type="button"
+                      data-testid="ttt-change-mode-btn"
                       onClick={() => utttReset(true)}
                       disabled={actionLoading}
                       className="bg-white hover:bg-gray-100 text-black font-black px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
@@ -328,6 +380,14 @@ export function UltimateTicTacToeView() {
                     </button>
                   )}
                 </div>
+              )}
+              {room.roomHostId !== socketId && (
+                <p
+                  data-testid="ttt-waiting-host"
+                  className="text-xs sm:text-sm font-bold text-gray-700 bg-white border-2 border-black px-4 py-1.5 text-center mt-2"
+                >
+                  {t('gameTicTacToe.waitingForHostRematch')}
+                </p>
               )}
             </div>
           )}

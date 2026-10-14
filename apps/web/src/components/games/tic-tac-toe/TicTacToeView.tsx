@@ -122,6 +122,12 @@ export function TicTacToeView() {
             </div>
 
             <div className="flex flex-col items-center gap-1">
+              <div
+                data-testid="ttt-current-mode-badge"
+                className="text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black bg-yellow-300 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase tracking-wider text-center"
+              >
+                {t('gameTicTacToe.currentMode', { mode: t('gameTicTacToe.modes.classic') })}
+              </div>
               <div className="text-sm font-black tracking-widest uppercase text-black bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-10">
                 {room.status === RoomStatus.RESULT
                   ? t('gameTicTacToe.gameOver')
@@ -199,38 +205,54 @@ export function TicTacToeView() {
           </div>
 
           {room.status === RoomStatus.RESULT && (
-            <div className="flex flex-col items-center gap-4 animate-in zoom-in slide-in-from-bottom-4 mt-4">
+            <div className="flex flex-col items-center gap-4 animate-in zoom-in slide-in-from-bottom-4 mt-4 w-full">
               {ttt.winner === 'DRAW' ? (
-                <div className="text-3xl font-black text-black bg-gray-300 px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
+                <div
+                  data-testid="ttt-result-draw"
+                  className="text-3xl font-black text-black bg-gray-300 px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center w-full"
+                >
                   {t('gameTicTacToe.draw')}
                 </div>
               ) : (
                 <div
-                  className={`text-2xl sm:text-4xl text-center font-black text-black px-4 sm:px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] - ${ttt.winner === 'X' ? 'bg-cyan-300' : 'bg-pink-300'}`}
+                  data-testid="ttt-result-winner"
+                  className={`text-2xl sm:text-4xl text-center font-black text-black px-4 sm:px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full ${ttt.winner === 'X' ? 'bg-cyan-300' : 'bg-pink-300'}`}
                 >
                   {t('gameTicTacToe.wins', { winner: ttt.winner || '' })}
                 </div>
               )}
 
               {(room.roomHostId === socketId || mySide) && (
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row gap-3 mt-4 w-full sm:w-auto items-center justify-center">
                   <button
+                    type="button"
+                    data-testid="ttt-rematch-btn"
                     onClick={() => tttReset(false)}
                     disabled={actionLoading}
-                    className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
+                    className="bg-yellow-300 hover:bg-yellow-200 text-black font-black px-8 py-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
                   >
                     {t('gameTicTacToe.playAgain')}
                   </button>
                   {room.roomHostId === socketId && (
                     <button
+                      type="button"
+                      data-testid="ttt-change-mode-btn"
                       onClick={() => tttReset(true)}
                       disabled={actionLoading}
-                      className="bg-white hover:bg-gray-100 text-black font-black px-6 py-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
+                      className="bg-white hover:bg-gray-100 text-black font-black px-6 py-4 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-base w-full sm:w-auto"
                     >
                       {t('gameTicTacToe.modes.changeMode')}
                     </button>
                   )}
                 </div>
+              )}
+              {room.roomHostId !== socketId && (
+                <p
+                  data-testid="ttt-waiting-host"
+                  className="text-xs sm:text-sm font-bold text-gray-700 bg-white border-2 border-black px-4 py-1.5 text-center mt-2"
+                >
+                  {t('gameTicTacToe.waitingForHostRematch')}
+                </p>
               )}
             </div>
           )}

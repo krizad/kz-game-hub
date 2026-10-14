@@ -358,24 +358,32 @@ export function GobblerView() {
 
       {room.status !== RoomStatus.LOBBY && (
         <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[500px]">
-          {/* Scoreboard moved to top! */}
-          <div className="flex items-center gap-4 bg-white border-4 border-black px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-8 sm:mb-10 font-mono z-10 relative">
-            <div className="flex flex-col items-center">
-              <span className="text-black font-black text-2xl sm:text-3xl leading-none">
-                {gb.scores.X}
-              </span>
-              <span className="text-[10px] text-black font-black bg-cyan-300 px-1 border-2 border-black uppercase tracking-widest mt-1">
-                {t('gameGobbler.team', { side: 'X' })}
-              </span>
+          {/* Mode Badge & Scoreboard */}
+          <div className="flex flex-col items-center gap-2 mb-8 sm:mb-10 font-mono z-10 relative">
+            <div
+              data-testid="ttt-current-mode-badge"
+              className="text-[10px] sm:text-xs font-black px-2.5 py-1 border-2 border-black bg-yellow-300 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase tracking-wider text-center"
+            >
+              {t('gameTicTacToe.currentMode', { mode: t('gameTicTacToe.modes.gobbler') })}
             </div>
-            <div className="text-black font-black text-xl px-2">-</div>
-            <div className="flex flex-col items-center">
-              <span className="text-black font-black text-2xl sm:text-3xl leading-none">
-                {gb.scores.O}
-              </span>
-              <span className="text-[10px] text-black font-black bg-pink-300 px-1 border-2 border-black uppercase tracking-widest mt-1">
-                {t('gameGobbler.team', { side: 'O' })}
-              </span>
+            <div className="flex items-center gap-4 bg-white border-4 border-black px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex flex-col items-center">
+                <span className="text-black font-black text-2xl sm:text-3xl leading-none">
+                  {gb.scores.X}
+                </span>
+                <span className="text-[10px] text-black font-black bg-cyan-300 px-1 border-2 border-black uppercase tracking-widest mt-1">
+                  {t('gameGobbler.team', { side: 'X' })}
+                </span>
+              </div>
+              <div className="text-black font-black text-xl px-2">-</div>
+              <div className="flex flex-col items-center">
+                <span className="text-black font-black text-2xl sm:text-3xl leading-none">
+                  {gb.scores.O}
+                </span>
+                <span className="text-[10px] text-black font-black bg-pink-300 px-1 border-2 border-black uppercase tracking-widest mt-1">
+                  {t('gameGobbler.team', { side: 'O' })}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -547,7 +555,10 @@ export function GobblerView() {
                           <div className="text-6xl sm:text-8xl mb-4 sm:mb-6 animate-bounce drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
                             🤝
                           </div>
-                          <div className="text-4xl sm:text-6xl font-black text-black uppercase tracking-widest mb-2 bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+                          <div
+                            data-testid="ttt-result-draw"
+                            className="text-4xl sm:text-6xl font-black text-black uppercase tracking-widest mb-2 bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -"
+                          >
                             {t('gameGobbler.draw')}
                           </div>
                           <div className="text-black font-black mb-8 sm:mb-10 text-base sm:text-xl bg-white px-2 py-1 border-2 border-black mt-4 ">
@@ -570,7 +581,9 @@ export function GobblerView() {
                               'text-4xl sm:text-6xl font-black uppercase tracking-widest mb-3 bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] - text-black',
                             )}
                           >
-                            {t('gameGobbler.wins', { winner: gb.winner || '' })}
+                            <span data-testid="ttt-result-winner">
+                              {t('gameGobbler.wins', { winner: gb.winner || '' })}
+                            </span>
                           </div>
                           <div className="text-black font-black mb-8 sm:mb-12 text-base sm:text-xl bg-white px-3 py-2 border-2 border-black mt-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                             <strong className="text-black text-lg sm:text-2xl">
@@ -585,6 +598,8 @@ export function GobblerView() {
                       {(room.roomHostId === socketId || mySide) && (
                         <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
                           <motion.button
+                            type="button"
+                            data-testid="ttt-rematch-btn"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => gobblerReset(false)}
@@ -603,6 +618,7 @@ export function GobblerView() {
                           {room.roomHostId === socketId && (
                             <button
                               type="button"
+                              data-testid="ttt-change-mode-btn"
                               onClick={() => gobblerReset(true)}
                               disabled={actionLoading}
                               className="bg-white hover:bg-gray-100 text-black font-black px-6 py-4 sm:py-5 border-4 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm sm:text-lg"
@@ -611,6 +627,14 @@ export function GobblerView() {
                             </button>
                           )}
                         </div>
+                      )}
+                      {room.roomHostId !== socketId && (
+                        <p
+                          data-testid="ttt-waiting-host"
+                          className="text-xs sm:text-sm font-bold text-gray-700 bg-white border-2 border-black px-4 py-1.5 text-center mt-3"
+                        >
+                          {t('gameTicTacToe.waitingForHostRematch')}
+                        </p>
                       )}
                     </div>
                   </motion.div>
