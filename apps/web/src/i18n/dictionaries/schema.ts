@@ -628,6 +628,10 @@ export interface Dictionary {
     };
     submitYourWord: string;
     category: string;
+    hostModerator: string;
+    moderatorBadge: string;
+    whoMayVote: string;
+    currentAsker: string;
     wordSubmissionDesc: string;
     wordSubmitted: string;
     waitingForOthers: string;

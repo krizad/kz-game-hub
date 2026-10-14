@@ -803,6 +803,10 @@ export const th: Dictionary = {
     },
     submitYourWord: 'ส่งคำปริศนาของคุณ',
     category: 'หมวดหมู่',
+    hostModerator: 'ผู้ดำเนินเกม (โฮสต์)',
+    moderatorBadge: 'ผู้ดูแล',
+    whoMayVote: 'ผู้มีสิทธิ์โหวต',
+    currentAsker: 'ผู้ถาม',
     wordSubmissionDesc:
       'ผู้เล่นทุกคนเขียนคำปริศนา 1 คำ ระบบจะสลับคำให้คุณไม่ได้คำของตัวเอง! (คำซ้ำกันจะถูกปฎิเสธ)',
     wordSubmitted: 'ส่งคำปริศนาแล้ว!',

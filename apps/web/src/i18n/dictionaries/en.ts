@@ -832,6 +832,10 @@ export const en: Dictionary = {
     },
     submitYourWord: 'Submit Your Word',
     category: 'Category',
+    hostModerator: 'Host Moderator',
+    moderatorBadge: 'Moderator',
+    whoMayVote: 'Eligible Voters',
+    currentAsker: 'Current Asker',
     wordSubmissionDesc:
       "Each player writes a word. Words are shuffled so you won't get your own! Duplicates will be rejected.",
     wordSubmitted: 'Word submitted!',

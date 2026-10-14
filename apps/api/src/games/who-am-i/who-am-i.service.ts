@@ -586,7 +586,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     }
 
     if (action.type === 'END_TURN') {
-      if (gameState.currentTurn !== requesterId) return null;
+      if (gameState.currentTurn !== requesterId && room.roomHostId !== requesterId) return null;
       if (gameState.turnStatus !== 'VOTING') return null;
       if (gameState.phase === 'FINAL_GUESS') return null;
 

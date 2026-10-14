@@ -993,6 +993,25 @@ describe('WhoAmIService', () => {
         expect(result).not.toBeNull();
         expect(result!.whoAmIState!.votes['p1']).toBe('MAYBE');
       });
+
+      it('should return null and not record vote if voter is a spectator (TASK-WA-003)', () => {
+        const room = makeAskingRoom({
+          turnStatus: 'VOTING',
+          players: [
+            { socketId: 'host1' },
+            { socketId: 'p1' },
+            { socketId: 'p2' },
+            { socketId: 'p3' },
+            { socketId: 'viewer1', isViewer: true },
+          ],
+        });
+        const result = service.handleGameAction(room, 'viewer1', {
+          type: 'VOTE_GUESS',
+          vote: 'YES',
+        });
+        expect(result).toBeNull();
+        expect(room.whoAmIState!.votes['viewer1']).toBeUndefined();
+      });
     });
 
     describe('END_TURN', () => {
@@ -1005,6 +1024,14 @@ describe('WhoAmIService', () => {
         expect(result!.whoAmIState!.turnStatus).toBe('VOTING');
         expect(result!.whoAmIState!.currentGuess).toBeNull();
         expect(result!.whoAmIState!.votes).toEqual({});
+      });
+
+      it('should allow room host moderator to END_TURN (TASK-WA-003)', () => {
+        const room = makeAskingRoom({ turnStatus: 'VOTING' });
+        const result = service.handleGameAction(room, 'host1', { type: 'END_TURN' });
+
+        expect(result).not.toBeNull();
+        expect(result!.whoAmIState!.currentTurn).toBe('p2');
       });
 
       it('should skip eliminated players', () => {

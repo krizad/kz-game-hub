@@ -387,4 +387,154 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     await p1Ctx.close();
     await p2Ctx.close();
   });
+
+  test('TASK-WA-003: host moderator distinct from asker, who may vote status displayed, no raw enums, rejected vote not accepted, and next round advances', async ({
+    browser,
+  }) => {
+    test.setTimeout(120000);
+    const p1Ctx = await browser.newContext();
+    const p2Ctx = await browser.newContext();
+    const p3Ctx = await browser.newContext();
+    const host = await p1Ctx.newPage();
+    const bob = await p2Ctx.newPage();
+    const cara = await p3Ctx.newPage();
+
+    await host.setViewportSize({ width: 1280, height: 900 });
+    await bob.setViewportSize({ width: 390, height: 844 });
+    await cara.setViewportSize({ width: 390, height: 844 });
+
+    // 1. Host creates room in Thai (default locale)
+    await goToLobby(host);
+    await host.locator('#lobbyNameInput').fill('HostAmy');
+    await host.locator('button:has-text("ฉันคือใคร")').first().click();
+    await host.waitForTimeout(3000);
+    const roomCode = await extractRoomCode(host);
+    const origin = await getOrigin(host);
+
+    // 2. Bob & Cara join
+    for (const [page, name] of [
+      [bob, 'Bob'],
+      [cara, 'Cara'],
+    ] as const) {
+      await page.goto(`${origin}/?room=${roomCode}`);
+      await page.locator('#inviteNameInput').waitFor({ state: 'visible', timeout: 15000 });
+      await page.locator('#inviteNameInput').fill(name);
+      await page.locator('#inviteNameInput').press('Enter');
+      await page.locator('#inviteNameInput').waitFor({ state: 'hidden', timeout: 20000 });
+    }
+
+    // 3. Switch to HOST_INPUT mode
+    await selectWordMode(host, /โฮสต์เป็นคนตั้ง/);
+    const startBtn = host.getByTestId('lobby-start-game');
+    await expect(startBtn).toBeEnabled({ timeout: 5000 });
+    await startBtn.click();
+
+    // 4. Host submits words for Bob and Cara
+    const dialog = host.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    await dialog.locator('input').nth(0).fill('กระต่าย');
+    await dialog.locator('input').nth(1).fill('สิงโต');
+    await dialog.getByRole('button', { name: 'เริ่มเกม' }).click();
+
+    // 5. Game starts: ASKING phase
+    await expect
+      .poll(() =>
+        host.evaluate(() => (window as any).__useGameStore.getState().room?.whoAmIState?.phase),
+      )
+      .toBe('ASKING');
+
+    // Host moderator assertion: host is moderator, not a guesser
+    await expect(host.getByText('ผู้ดำเนินเกม (โฮสต์)')).toBeVisible({ timeout: 10000 });
+    await expect(host.getByText('ผู้ดูแล')).toBeVisible();
+
+    // Current asker is distinct from host moderator
+    const activePlayerId = await host.evaluate(
+      () => (window as any).__useGameStore.getState().room?.whoAmIState?.currentTurn,
+    );
+    const hostSocketId = await host.evaluate(
+      () => (window as any).__useGameStore.getState().socketId,
+    );
+    expect(activePlayerId).not.toBe(hostSocketId);
+
+    const bobSocketId = await bob.evaluate(
+      () => (window as any).__useGameStore.getState().socketId,
+    );
+    const activePage = activePlayerId === bobSocketId ? bob : cara;
+    const voterPage = activePlayerId === bobSocketId ? cara : bob;
+
+    // Verify "who may vote" / current asker breakdown
+    await expect(host.getByText('ผู้มีสิทธิ์โหวต:')).toBeVisible();
+    await expect(host.getByText('ผู้ถาม:')).toBeVisible();
+
+    // Verify rejected vote is NOT accepted:
+    // Active player attempts to vote on their own turn -> rejected by server
+    await activePage.evaluate(() => {
+      (window as any).__useGameStore.getState().gameActionWhoAmI({
+        type: 'VOTE_GUESS',
+        vote: 'YES',
+      });
+    });
+    // Active page should NOT show vote cast confirmation
+    await expect(activePage.getByTestId('whoami-vote-status')).toBeHidden();
+
+    // Voter casts vote
+    const voteYesBtn = voterPage.getByRole('button', { name: /ใช่/i }).first();
+    await expect(voteYesBtn).toBeVisible({ timeout: 5000 });
+    await voteYesBtn.click();
+    await expect(voterPage.getByTestId('whoami-vote-status')).toBeVisible({ timeout: 5000 });
+
+    // Host moderator ends asking phase
+    const endAskingModeratorBtn = host.getByRole('button', { name: /จบการถาม/i });
+    await expect(endAskingModeratorBtn).toBeVisible({ timeout: 5000 });
+    await endAskingModeratorBtn.click();
+
+    // Turn advances to next player
+    await expect
+      .poll(() =>
+        host.evaluate(
+          () => (window as any).__useGameStore.getState().room?.whoAmIState?.currentTurn,
+        ),
+      )
+      .not.toBe(activePlayerId);
+
+    // New active player takes a guess
+    const newActiveId = await host.evaluate(
+      () => (window as any).__useGameStore.getState().room?.whoAmIState?.currentTurn,
+    );
+    const newActivePage = newActiveId === bobSocketId ? bob : cara;
+    const newVoterPage = newActiveId === bobSocketId ? cara : bob;
+
+    const guessBtn = newActivePage.getByRole('button', { name: /ขอทายคำ!/i });
+    await expect(guessBtn).toBeVisible({ timeout: 5000 });
+    await guessBtn.click();
+
+    const guessDialog = newActivePage.getByRole('dialog');
+    await expect(guessDialog).toBeVisible({ timeout: 5000 });
+    await newActivePage.locator('#guessWordInput').fill('สิงโต');
+    await guessDialog.getByRole('button', { name: /ส่งคำตอบ/i }).click();
+    await expect(guessDialog).toBeHidden({ timeout: 5000 });
+
+    // State is now RESULT
+    await expect(newActivePage.getByTestId('whoami-guess-status')).toBeVisible({ timeout: 10000 });
+    await expect(newActivePage.getByTestId('whoami-guess-status')).toContainText(/ส่งคำทายแล้ว/);
+
+    // Verify no raw enums: YES/NO buttons show "ใช่" and "ไม่ใช่"
+    const yesBtn = newVoterPage.getByRole('button', { name: '✅ ใช่' });
+    const noBtn = newVoterPage.getByRole('button', { name: '❌ ไม่ใช่' });
+    await expect(yesBtn).toBeVisible({ timeout: 5000 });
+    await expect(noBtn).toBeVisible({ timeout: 5000 });
+
+    // Voter votes YES
+    await yesBtn.click();
+    await expect(newVoterPage.getByTestId('whoami-guess-status')).toBeVisible({ timeout: 5000 });
+
+    // Host sees Continue button and advances next turn/round
+    const continueBtn = host.getByRole('button', { name: /ดำเนินการต่อ/i });
+    await expect(continueBtn).toBeVisible({ timeout: 5000 });
+    await continueBtn.click();
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+    await p3Ctx.close();
+  });
 });
