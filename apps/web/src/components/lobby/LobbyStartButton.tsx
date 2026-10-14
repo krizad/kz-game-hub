@@ -6,6 +6,7 @@ import { GameType, getBananaThiefRequiredPlayerCount } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
 import { translateServerError } from '@/i18n/serverErrors';
+import { FirstRoundGuide } from '@/components/lobby/FirstRoundGuide';
 
 export function LobbyStartButton() {
   const { room, startGame, submitWordsWhoAmI, isLoading, artistPresets, gameStartError } =
@@ -35,25 +36,6 @@ export function LobbyStartButton() {
 
   const isHost = useGameStore.getState().socketId === room.roomHostId;
 
-  if (!isHost) {
-    return (
-      <div className="w-full max-w-xs flex flex-col items-center gap-2">
-        <div className="w-full bg-white text-black border-4 border-black shadow-[4px_4px_0_0_#000] font-black text-sm py-4 text-center uppercase tracking-widest">
-          {t('lobby.waitingForHost')}
-        </div>
-        {gameStartError && (
-          <p
-            id="game-start-error"
-            data-testid="game-start-error"
-            className="w-full max-w-sm text-sm text-center font-bold text-red-600 bg-red-100 border-2 border-red-500 px-3 py-2"
-          >
-            {translateServerError(gameStartError, language)}
-          </p>
-        )}
-      </div>
-    );
-  }
-
   const getMinPlayers = () => {
     switch (room.gameType) {
       case GameType.WHO_KNOW:
@@ -78,8 +60,35 @@ export function LobbyStartButton() {
   };
 
   const minPlayers = getMinPlayers();
-  const notEnoughPlayers =
-    room.players.filter((p) => !p.isViewer && p.connected !== false).length < minPlayers;
+  const connectedCount = room.players.filter((p) => !p.isViewer && p.connected !== false).length;
+
+  if (!isHost) {
+    return (
+      <div className="w-full max-w-xs flex flex-col items-center gap-3">
+        <div
+          data-testid="lobby-connected-summary"
+          className="w-full bg-amber-100 border-2 border-black font-black text-xs py-2 px-3 text-center shadow-[2px_2px_0_0_#000]"
+        >
+          👥 {t('lobby.connectedSummary', { current: connectedCount, min: minPlayers })}
+        </div>
+        <div className="w-full bg-white text-black border-4 border-black shadow-[4px_4px_0_0_#000] font-black text-sm py-4 text-center uppercase tracking-widest">
+          {t('lobby.waitingForHost')}
+        </div>
+        <FirstRoundGuide gameType={room.gameType} />
+        {gameStartError && (
+          <p
+            id="game-start-error"
+            data-testid="game-start-error"
+            className="w-full max-w-sm text-sm text-center font-bold text-red-600 bg-red-100 border-2 border-red-500 px-3 py-2"
+          >
+            {translateServerError(gameStartError, language)}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const notEnoughPlayers = connectedCount < minPlayers;
   const presetId = room.config.musicTriviaArtistPresetId;
   const preset = artistPresets.find((p) => p.id === presetId);
   const level = (room.config.musicTriviaLevel ?? 'EASY').toLowerCase() as
@@ -133,21 +142,30 @@ export function LobbyStartButton() {
 
   return (
     <>
-      <button
-        data-testid="lobby-start-game"
-        aria-describedby={
-          gameStartError ? 'game-start-error' : startReason ? 'lobby-start-reason' : undefined
-        }
-        onClick={handleStart}
-        disabled={isDisabled}
-        className={`w-full max-w-xs text-white border-4 border-black font-black text-lg py-4 transition-all uppercase tracking-widest ${
-          isDisabled
-            ? 'bg-[#9CA3AF] cursor-not-allowed shadow-[4px_4px_0_0_#000]'
-            : 'bg-[#22C55E] hover:bg-[#16A34A] shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]'
-        }`}
-      >
-        {getButtonText()}
-      </button>
+      <div className="w-full max-w-xs flex flex-col items-center gap-3">
+        <div
+          data-testid="lobby-connected-summary"
+          className="w-full bg-amber-100 border-2 border-black font-black text-xs py-2 px-3 text-center shadow-[2px_2px_0_0_#000]"
+        >
+          👥 {t('lobby.connectedSummary', { current: connectedCount, min: minPlayers })}
+        </div>
+        <button
+          data-testid="lobby-start-game"
+          aria-describedby={
+            gameStartError ? 'game-start-error' : startReason ? 'lobby-start-reason' : undefined
+          }
+          onClick={handleStart}
+          disabled={isDisabled}
+          className={`w-full text-white border-4 border-black font-black text-lg py-4 transition-all uppercase tracking-widest ${
+            isDisabled
+              ? 'bg-[#9CA3AF] cursor-not-allowed shadow-[4px_4px_0_0_#000]'
+              : 'bg-[#22C55E] hover:bg-[#16A34A] shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]'
+          }`}
+        >
+          {getButtonText()}
+        </button>
+        <FirstRoundGuide gameType={room.gameType} />
+      </div>
       {gameStartError && (
         <p
           id="game-start-error"

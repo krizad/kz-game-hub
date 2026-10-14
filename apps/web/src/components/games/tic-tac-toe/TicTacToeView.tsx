@@ -1,9 +1,10 @@
 'use client';
 
 import { useGameStore } from '@/store/useGameStore';
-import { BOT_SOCKET_ID, RoomStatus } from '@repo/types';
+import { BOT_SOCKET_ID, GameType, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { FirstRoundGuide } from '@/components/lobby/FirstRoundGuide';
 
 export function TicTacToeView() {
   const {
@@ -102,6 +103,7 @@ export function TicTacToeView() {
           <p className="text-black font-bold bg-white border-2 border-black px-4 py-1 mt-4">
             {isVsBot ? t('gameTicTacToe.bot.playVsBotAs') : t('gameTicTacToe.waitingJoin')}
           </p>
+          <FirstRoundGuide gameType={GameType.TIC_TAC_TOE} />
         </div>
       ) : (
         <div className="flex flex-col items-center gap-6 w-full max-w-md">

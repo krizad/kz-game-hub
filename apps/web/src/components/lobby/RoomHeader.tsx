@@ -80,6 +80,12 @@ export function RoomHeader() {
                 t('lobby.unknownHost')}
             </span>
           </span>
+          <span
+            data-testid="header-player-count"
+            className="text-[10px] sm:text-xs font-bold bg-amber-100 border border-black px-2 py-0.5 shadow-[1px_1px_0_0_#000] flex items-center gap-1"
+          >
+            👥 {room.players.filter((p) => !p.isViewer && p.connected !== false).length}
+          </span>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
