@@ -5,6 +5,7 @@ import { RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { GameActionArea } from '@/components/core/GameActionArea';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export function RPSView() {
   const {
@@ -18,6 +19,7 @@ export function RPSView() {
     dismissPendingAction,
   } = useGameStore();
   const { t } = useTranslate();
+  const prefersReducedMotion = useReducedMotion();
 
   const [unknownActionId, unknownPendingAction] =
     Object.entries(pendingActions).find(([, a]) => a.status === 'unknown') ?? [];
@@ -32,6 +34,14 @@ export function RPSView() {
   const isMyChoiceLocked = !!myChoice || (isMyTurn && rps.choicesMade.includes(socketId));
   const isHost = room.roomHostId === socketId;
   const myQueueIndex = rps.queue.indexOf(socketId);
+
+  const roundKey =
+    room.status === RoomStatus.RESULT
+      ? `${rps.activePlayers.join('-')}:${Object.entries(rps.choices)
+          .sort()
+          .map(([k, v]) => `${k}:${v}`)
+          .join('-')}:${JSON.stringify(rps.scores)}`
+      : 'playing';
 
   const bestOf = room.config.rpsBestOf || 3;
   const targetScore = Math.floor(bestOf / 2) + 1;
@@ -89,7 +99,7 @@ export function RPSView() {
     return (
       <div
         key={`active-${playerId}`}
-        className={`flex flex-col items-center transition-all ${mySideIndex !== -1 && mySideIndex !== index ? 'opacity-70' : ''} ${isWinner ? 'scale-110 z-10' : ''}`}
+        className={`flex flex-col items-center transition-all ${mySideIndex !== -1 && mySideIndex !== index ? 'opacity-70' : ''} ${isWinner ? 'scale-110 motion-reduce:transform-none z-10' : ''}`}
       >
         <div
           className={`flex flex-col items-center border-4 border-black p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${bgColor} ${index % 2 === 0 ? '' : '-'}`}
@@ -118,11 +128,28 @@ export function RPSView() {
         </div>
 
         {room.status === RoomStatus.RESULT && choice && (
-          <div
-            className={`mt-4 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${isWinner ? 'bg-yellow-300 animate-bounce' : rps.roundWinner === 'DRAW' ? 'bg-gray-300' : 'bg-white opacity-50'} ${index % 2 === 0 ? '-' : ''}`}
+          <motion.div
+            key={`choice-${playerId}-${roundKey}`}
+            data-testid={`rps-revealed-choice-${playerId}`}
+            initial={prefersReducedMotion ? false : { scale: 0.6, opacity: 0 }}
+            animate={
+              prefersReducedMotion
+                ? { scale: 1, opacity: 1 }
+                : isWinner
+                  ? { scale: [0.6, 1.15, 1], y: [0, -10, 0], opacity: 1 }
+                  : { scale: [0.6, 1], opacity: 1 }
+            }
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4, ease: 'easeOut' }}
+            className={`mt-4 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+              isWinner
+                ? 'bg-yellow-300'
+                : rps.roundWinner === 'DRAW'
+                  ? 'bg-gray-300'
+                  : 'bg-white opacity-50'
+            } ${index % 2 === 0 ? '-' : ''}`}
           >
             <span className="text-5xl sm:text-7xl drop-">{getEmoji(choice)}</span>
-          </div>
+          </motion.div>
         )}
       </div>
     );
@@ -242,7 +269,13 @@ export function RPSView() {
 
         {/* Results & Transitions */}
         {room.status === RoomStatus.RESULT && (
-          <div className="flex flex-col items-center gap-6 animate-in zoom-in slide-in-from-bottom-4 w-full mt-8">
+          <motion.div
+            key={`outcome-${roundKey}`}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3 }}
+            className="flex flex-col items-center gap-6 w-full mt-8"
+          >
             <div
               data-testid="rps-round-outcome"
               className="w-full flex flex-col items-center gap-2"
@@ -286,7 +319,7 @@ export function RPSView() {
                   : t('gameRps.waitingHostNextRound')}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* 1V1 Queue Display (Responsive) */}

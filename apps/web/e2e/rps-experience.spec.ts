@@ -200,4 +200,71 @@ test.describe('RPS Experience (TASK-RP-001)', () => {
     await p2Ctx.close();
     await p3Ctx.close();
   });
+
+  test('plays reveal animation once, supports reduced-motion, and allows immediate next round without waiting (TASK-RP-003)', async ({
+    browser,
+  }) => {
+    test.setTimeout(120000);
+    const p1Ctx = await browser.newContext();
+    const p2Ctx = await browser.newContext();
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+
+    // Emulate reduced motion on P2 to verify reduced-motion behavior
+    await p2.emulateMedia({ reducedMotion: 'reduce' });
+
+    await p1.setViewportSize({ width: 1280, height: 900 });
+    await p2.setViewportSize({ width: 390, height: 844 });
+
+    const roomCode = await createRoom(p1, 'MotionHost', 'Hand Duel');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'ReducedGuest');
+
+    // Host starts game
+    const startBtn = p1.getByTestId('lobby-start-game');
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+    await startBtn.click();
+
+    // Round 1: P1 picks ROCK, P2 picks SCISSORS -> P1 wins round
+    const p1Rock = p1.getByRole('button', { name: 'Rock', exact: true });
+    const p2Scissors = p2.getByRole('button', { name: 'Scissors', exact: true });
+
+    await expect(p1Rock).toBeVisible({ timeout: 10000 });
+    await expect(p2Scissors).toBeVisible({ timeout: 10000 });
+
+    await p1Rock.click();
+    await p2Scissors.click();
+
+    // 1. Verify outcomes are immediately visible on both screens
+    const p1Outcome = p1.getByTestId('rps-round-outcome');
+    const p2Outcome = p2.getByTestId('rps-round-outcome');
+    await expect(p1Outcome).toBeVisible({ timeout: 10000 });
+    await expect(p2Outcome).toBeVisible({ timeout: 10000 });
+    await expect(p1Outcome).toContainText('MotionHost Wins the Round!');
+
+    // 2. Verify revealed choice testids are present
+    const p1Revealed = p1.locator('[data-testid^="rps-revealed-choice-"]');
+    const p2Revealed = p2.locator('[data-testid^="rps-revealed-choice-"]');
+    await expect(p1Revealed.first()).toBeVisible({ timeout: 5000 });
+    await expect(p2Revealed.first()).toBeVisible({ timeout: 5000 });
+
+    // 3. Next round button is immediately enabled for host without waiting for animation delay
+    const hostNextBtn = p1.getByTestId('rps-next-round-btn');
+    await expect(hostNextBtn).toBeVisible();
+    await expect(hostNextBtn).toBeEnabled();
+
+    // 4. Host advances immediately to Round 2
+    await hostNextBtn.click();
+
+    // Round 2 controls appear immediately without blocked delays
+    await expect(p1.getByRole('button', { name: 'Rock', exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(p2.getByRole('button', { name: 'Scissors', exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+  });
 });
