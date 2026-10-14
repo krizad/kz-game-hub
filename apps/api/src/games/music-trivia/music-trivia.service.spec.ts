@@ -351,8 +351,369 @@ describe('MusicTriviaService', () => {
         trackViewUrl: 'https://x/1',
       });
     });
+
+    it('sets errorReason to NO_TRACKS when no tracks are found', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'TYPING',
+          musicTriviaSource: 'ITUNES',
+          musicTriviaRounds: 5,
+        },
+      };
+      service.startGame(room, 'host-1');
+      service['sourceFactory'].register({
+        sourceType: 'ITUNES',
+        search: jest.fn().mockResolvedValue([]),
+      });
+
+      await service.handleGameAction(room, 'host-1', {
+        type: 'CONFIGURE_SOURCE',
+        query: 'nonexistent-song-xyz',
+      });
+
+      expect(room.musicTriviaState?.phase).toBe('SETUP');
+      expect(room.musicTriviaState?.errorReason).toBe('NO_TRACKS');
+      expect(room.musicTriviaState?.errorMessage).toBe(
+        'No songs found for this search. Try a different artist or genre.',
+      );
+    });
+
+    it('sets errorReason to PROVIDER_UNAVAILABLE when adapter throws network error', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'TYPING',
+          musicTriviaSource: 'ITUNES',
+          musicTriviaRounds: 5,
+        },
+      };
+      service.startGame(room, 'host-1');
+      service['sourceFactory'].register({
+        sourceType: 'ITUNES',
+        search: jest.fn().mockRejectedValue(new Error('Connection timed out')),
+      });
+
+      await service.handleGameAction(room, 'host-1', {
+        type: 'CONFIGURE_SOURCE',
+        query: 'rock music',
+      });
+
+      expect(room.musicTriviaState?.phase).toBe('SETUP');
+      expect(room.musicTriviaState?.errorReason).toBe('PROVIDER_UNAVAILABLE');
+      expect(room.musicTriviaState?.errorMessage).toBe('Connection timed out');
+    });
+
+    it('sets errorReason to PROVIDER_UNAVAILABLE when preset catalog is not found', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'TYPING',
+          musicTriviaArtistPresetId: 'missing-preset',
+          musicTriviaLevel: 'EASY',
+          musicTriviaRounds: 5,
+        },
+      };
+      service.startGame(room, 'host-1');
+
+      await service.handleGameAction(room, 'host-1', {
+        type: 'CONFIGURE_SOURCE',
+      });
+
+      expect(room.musicTriviaState?.phase).toBe('SETUP');
+      expect(room.musicTriviaState?.errorReason).toBe('PROVIDER_UNAVAILABLE');
+    });
   });
-  // pressBuzzer, submitAnswer, etc. but basic coverage is here for the core logic.
+
+  describe('hostJudge in GAME_MASTER mode', () => {
+    it('sets answeredCorrectly, awards score, and transitions to ANSWER_RESULT on correct judgment', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.PLAYING,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'GAME_MASTER',
+          musicTriviaRounds: 5,
+        },
+        musicTriviaState: {
+          phase: 'BUZZED',
+          mode: 'GAME_MASTER',
+          sourceType: 'ITUNES',
+          totalRounds: 5,
+          currentRound: {
+            roundNumber: 1,
+            track: { id: 't1', previewUrl: 'url', sourceType: 'ITUNES', durationMs: 30000 },
+            buzzerPresses: [],
+            currentBuzzerId: 'player-2',
+            struckOutIds: [],
+            answeredCorrectly: false,
+            winnerId: null,
+          },
+          roundHistory: [],
+          readyPlayerIds: [],
+          scores: { 'host-1': 0, 'player-2': 0 },
+          hostPlays: false,
+          answerTimeoutMs: 15000,
+        },
+      };
+      privateState.set(room.code, '__ROOM__', 'mtTrackAnswers', [
+        { id: 't1', title: 'Song 1', artist: 'Artist 1' },
+      ]);
+
+      const result = await service.handleGameAction(room, 'host-1', {
+        type: 'HOST_JUDGE',
+        correct: true,
+      });
+
+      expect(result).not.toBeNull();
+      expect(room.musicTriviaState?.phase).toBe('ANSWER_RESULT');
+      expect(room.musicTriviaState?.currentRound?.answeredCorrectly).toBe(true);
+      expect(room.musicTriviaState?.currentRound?.winnerId).toBe('player-2');
+      expect(room.musicTriviaState?.scores['player-2']).toBe(1);
+      expect(room.players[1].score).toBe(1);
+    });
+
+    it('strikes out buzzer and returns to PLAYING on incorrect judgment if other players remain', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.PLAYING,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player 2',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '3',
+            socketId: 'player-3',
+            name: 'Player 3',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'GAME_MASTER',
+          musicTriviaRounds: 5,
+        },
+        musicTriviaState: {
+          phase: 'BUZZED',
+          mode: 'GAME_MASTER',
+          sourceType: 'ITUNES',
+          totalRounds: 5,
+          currentRound: {
+            roundNumber: 1,
+            track: { id: 't1', previewUrl: 'url', sourceType: 'ITUNES', durationMs: 30000 },
+            buzzerPresses: [],
+            currentBuzzerId: 'player-2',
+            struckOutIds: [],
+            answeredCorrectly: false,
+            winnerId: null,
+          },
+          roundHistory: [],
+          readyPlayerIds: [],
+          scores: { 'host-1': 0, 'player-2': 0, 'player-3': 0 },
+          hostPlays: false,
+          answerTimeoutMs: 15000,
+        },
+      };
+
+      const result = await service.handleGameAction(room, 'host-1', {
+        type: 'HOST_JUDGE',
+        correct: false,
+      });
+
+      expect(result).not.toBeNull();
+      expect(room.musicTriviaState?.phase).toBe('PLAYING');
+      expect(room.musicTriviaState?.currentRound?.struckOutIds).toContain('player-2');
+      expect(room.musicTriviaState?.currentRound?.currentBuzzerId).toBeNull();
+    });
+
+    it('rejects judging attempts by guests or outside BUZZED phase', async () => {
+      const room: RoomState = {
+        id: 'room-1',
+        gameType: GameType.MUSIC_TRIVIA,
+        code: 'ABCD',
+        status: RoomStatus.PLAYING,
+        roomHostId: 'host-1',
+        players: [
+          {
+            id: '1',
+            socketId: 'host-1',
+            name: 'Host',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+          {
+            id: '2',
+            socketId: 'player-2',
+            name: 'Player',
+            score: 0,
+            roomId: 'room-1',
+            connected: true,
+          },
+        ],
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'FIXED',
+          timerMin: 5,
+          musicTriviaMode: 'GAME_MASTER',
+          musicTriviaRounds: 5,
+        },
+        musicTriviaState: {
+          phase: 'BUZZED',
+          mode: 'GAME_MASTER',
+          sourceType: 'ITUNES',
+          totalRounds: 5,
+          currentRound: {
+            roundNumber: 1,
+            track: { id: 't1', previewUrl: 'url', sourceType: 'ITUNES', durationMs: 30000 },
+            buzzerPresses: [],
+            currentBuzzerId: 'player-2',
+            struckOutIds: [],
+            answeredCorrectly: false,
+            winnerId: null,
+          },
+          roundHistory: [],
+          readyPlayerIds: [],
+          scores: { 'host-1': 0, 'player-2': 0 },
+          hostPlays: false,
+          answerTimeoutMs: 15000,
+        },
+      };
+
+      // Guest attempts to judge
+      const guestResult = await service.handleGameAction(room, 'player-2', {
+        type: 'HOST_JUDGE',
+        correct: true,
+      });
+      expect(guestResult).toBeNull();
+
+      // Host attempts to judge in PLAYING phase
+      room.musicTriviaState!.phase = 'PLAYING';
+      const wrongPhaseResult = await service.handleGameAction(room, 'host-1', {
+        type: 'HOST_JUDGE',
+        correct: true,
+      });
+      expect(wrongPhaseResult).toBeNull();
+    });
+  });
 
   it('finalizeCountdown returns null instead of crashing after a reset cleared the state', () => {
     const room: RoomState = {

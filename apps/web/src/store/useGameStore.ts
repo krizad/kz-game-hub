@@ -489,12 +489,14 @@ export const useGameStore = create<GameState>((set, get) => {
             isLoading: false,
             actionLoading: hasPendingAction,
           });
-        } else {
-          // Clear host answer when state updates (if not GAME_MASTER playing)
+          // Clear host answer when state updates (if not current host or not in active GM phase)
+          const isCurrentHost = room.roomHostId === socket.id;
+          const activeHostPhases = ['GET_READY', 'COUNTDOWN', 'PLAYING', 'BUZZED', 'ANSWERING'];
           if (
-            room.musicTriviaState?.phase !== 'PLAYING' &&
-            room.musicTriviaState?.phase !== 'BUZZED' &&
-            room.musicTriviaState?.phase !== 'ANSWERING'
+            !isCurrentHost ||
+            room.musicTriviaState?.mode !== 'GAME_MASTER' ||
+            !room.musicTriviaState?.phase ||
+            !activeHostPhases.includes(room.musicTriviaState.phase)
           ) {
             set({ musicTriviaHostAnswer: null });
           }

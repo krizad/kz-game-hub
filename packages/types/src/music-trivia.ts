@@ -75,6 +75,8 @@ export interface MusicTriviaRoundHistory {
   successfulAnswerText?: string;
 }
 
+export type MusicTriviaErrorReason = 'NO_TRACKS' | 'PROVIDER_UNAVAILABLE';
+
 // Main game state (broadcast-safe — no answer spoilers in here)
 export interface MusicTriviaState {
   phase: MusicTriviaPhase;
@@ -94,6 +96,7 @@ export interface MusicTriviaState {
   answerTimeoutMs: number;
   playStartTime?: number; // Server-set timestamp when current clip started/resumed
   errorMessage?: string; // Add errorMessage to handle source config failures
+  errorReason?: MusicTriviaErrorReason;
   pausedAtMs?: number; // Server-set timestamp when play was paused (for buzzer)
   revealedAnswer?: {
     title: string;

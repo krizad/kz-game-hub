@@ -8,11 +8,16 @@ import { useMusicPlayback } from '@/hooks/useMusicPlayback';
 
 export function MusicTriviaView() {
   const { t } = useTranslate();
-  const { room, musicTriviaGameAction, musicTriviaSyncPlay, socketId, resetRoom } = useGameStore();
+  const { room, musicTriviaGameAction, musicTriviaSyncPlay, socketId, resetRoom, artistPresets } =
+    useGameStore();
   const hostAnswer = useGameStore((s) => s.musicTriviaHostAnswer);
   const state = room?.musicTriviaState;
 
   const isHost = socketId === room?.roomHostId;
+  const selectedPreset = artistPresets?.find(
+    (p) => p.id === room?.config.musicTriviaArtistPresetId,
+  );
+  const isPreset = !!(room?.config.musicTriviaArtistPresetId || state?.artistPresetName);
 
   const [answerInput, setAnswerInput] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -199,14 +204,47 @@ export function MusicTriviaView() {
 
       {/* Sub-header for Category Info */}
       <div className="px-4 py-3 bg-pink-300 border-b-8 border-black flex flex-wrap gap-x-6 gap-y-3 items-center text-black font-bold z-0 relative ">
-        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
-          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
-            {t('gameMusicTrivia.game.playlist')}
+        {isPreset ? (
+          <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+            <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
+              {t('gameMusicTrivia.game.presetLabel')}
+            </span>
+            <span data-testid="music-view-preset" className="font-black text-base uppercase">
+              {state.artistPresetName ||
+                selectedPreset?.name ||
+                room.config.musicTriviaArtistPresetId}
+            </span>
           </span>
-          <span className="font-black text-base uppercase">
-            {room.config.musicTriviaQuery || 'Thai Pop'}
+        ) : (
+          <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+            <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
+              {t('gameMusicTrivia.game.playlist')}
+            </span>
+            <span data-testid="music-view-query" className="font-black text-base uppercase">
+              {room.config.musicTriviaQuery || 'Thai Pop'}
+            </span>
+          </span>
+        )}
+        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
+            {t('gameMusicTrivia.game.sourceLabel')}
+          </span>
+          <span data-testid="music-view-source" className="font-black text-base uppercase">
+            {state.sourceType || (isPreset ? 'YOUTUBE' : room.config.musicTriviaSource || 'ITUNES')}
           </span>
         </span>
+        {(isPreset || state.level) && (
+          <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+            <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
+              {t('gameMusicTrivia.game.difficultyLabel')}
+            </span>
+            <span data-testid="music-view-difficulty" className="font-black text-base uppercase">
+              {t(
+                `gameMusicTrivia.lobby.level${(state.level || room.config.musicTriviaLevel || 'EASY').toLowerCase()}`,
+              )}
+            </span>
+          </span>
+        )}
         <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
           <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.regionLabel')}
@@ -217,22 +255,24 @@ export function MusicTriviaView() {
               : t('gameMusicTrivia.lobby.regionIntl')}
           </span>
         </span>
-        <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
-          <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
-            {t('gameMusicTrivia.game.searchByLabel')}
+        {!isPreset && (
+          <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -">
+            <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
+              {t('gameMusicTrivia.game.searchByLabel')}
+            </span>
+            <span className="font-black text-base uppercase">
+              {room.config.musicTriviaAttribute === 'artistTerm'
+                ? t('gameMusicTrivia.lobby.searchArtist')
+                : room.config.musicTriviaAttribute === 'songTerm'
+                  ? t('gameMusicTrivia.lobby.searchSong')
+                  : room.config.musicTriviaAttribute === 'albumTerm'
+                    ? t('gameMusicTrivia.lobby.searchAlbum')
+                    : ['YOUTUBE', 'SOUNDCLOUD'].includes(room.config.musicTriviaSource || '')
+                      ? t('gameMusicTrivia.lobby.sourceProvidesVideo')
+                      : t('gameMusicTrivia.lobby.sourceProvidesPreview')}
+            </span>
           </span>
-          <span className="font-black text-base uppercase">
-            {room.config.musicTriviaAttribute === 'artistTerm'
-              ? t('gameMusicTrivia.lobby.searchArtist')
-              : room.config.musicTriviaAttribute === 'songTerm'
-                ? t('gameMusicTrivia.lobby.searchSong')
-                : room.config.musicTriviaAttribute === 'albumTerm'
-                  ? t('gameMusicTrivia.lobby.searchAlbum')
-                  : ['YOUTUBE', 'SOUNDCLOUD'].includes(room.config.musicTriviaSource || '')
-                    ? t('gameMusicTrivia.lobby.sourceProvidesVideo')
-                    : t('gameMusicTrivia.lobby.sourceProvidesPreview')}
-          </span>
-        </span>
+        )}
         <span className="flex items-center gap-2 bg-white px-3 py-1 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
           <span className="uppercase tracking-widest text-xs bg-black text-white px-1">
             {t('gameMusicTrivia.game.yearsLabel')}
@@ -269,8 +309,29 @@ export function MusicTriviaView() {
                 {state.errorMessage ? 'Setup Failed' : t('gameMusicTrivia.game.preparingMusic')}
               </h3>
               {state.errorMessage ? (
-                <div className="text-black font-bold bg-rose-400 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xl">
-                  <p>{state.errorMessage}</p>
+                <div
+                  data-testid="music-setup-error"
+                  className="text-black font-bold bg-rose-400 p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xl"
+                >
+                  <p
+                    data-testid={
+                      state.errorReason === 'NO_TRACKS'
+                        ? 'music-setup-no-tracks'
+                        : state.errorReason === 'PROVIDER_UNAVAILABLE'
+                          ? 'music-setup-provider-unavailable'
+                          : undefined
+                    }
+                    className="font-black text-2xl uppercase mb-2"
+                  >
+                    {state.errorReason === 'NO_TRACKS'
+                      ? t('gameMusicTrivia.game.errorNoTracks')
+                      : state.errorReason === 'PROVIDER_UNAVAILABLE'
+                        ? t('gameMusicTrivia.game.errorProviderUnavailable')
+                        : state.errorMessage}
+                  </p>
+                  {state.errorReason && (
+                    <p className="text-sm font-semibold opacity-90">{state.errorMessage}</p>
+                  )}
                 </div>
               ) : (
                 <p className="text-black font-bold text-xl bg-cyan-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
@@ -456,6 +517,15 @@ export function MusicTriviaView() {
                 <p className="text-black font-bold text-xl bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                   {t('gameMusicTrivia.game.listenCarefully')}
                 </p>
+                <div className="flex flex-wrap gap-2 justify-center items-center">
+                  <span
+                    data-testid="music-who-may-act"
+                    className="bg-purple-200 border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider"
+                  >
+                    {t('gameMusicTrivia.game.whoMayAct')}{' '}
+                    {t('gameMusicTrivia.game.whoMayActEveryone')}
+                  </span>
+                </div>
                 {playback.reason !== 'EXPIRED_CLIP' &&
                   (room?.config.musicTriviaAudioPlayback !== 'HOST_ONLY' || isHost) && (
                     <div>
@@ -549,6 +619,28 @@ export function MusicTriviaView() {
                 </div>
               )}
 
+              {state.currentRound && state.currentRound.struckOutIds.length > 0 && (
+                <div
+                  data-testid="music-rejected-list"
+                  className="w-full max-w-sm bg-rose-100 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-3 text-center text-xs font-bold text-rose-900 mt-4"
+                >
+                  <p className="font-black uppercase tracking-wider mb-2 text-sm text-black">
+                    {t('gameMusicTrivia.game.rejectedAttempts')}
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {state.currentRound.struckOutIds.map((id) => (
+                      <span
+                        key={id}
+                        className="bg-white border-2 border-black px-2 py-1 text-black font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        ❌ {room?.players.find((p) => p.socketId === id)?.name || id} (
+                        {t('gameMusicTrivia.game.statusRejected')})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {isHost && (
                 <div className="mt-8">
                   <button
@@ -568,27 +660,52 @@ export function MusicTriviaView() {
               <div className="text-6xl animate-bounce drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
                 🚨
               </div>
-              <div>
-                <h3 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
-                  {
-                    room?.players.find((p) => p.socketId === state.currentRound?.currentBuzzerId)
-                      ?.name
-                  }{' '}
-                  {t('gameMusicTrivia.game.buzzed')}
-                </h3>
-                {state.currentRound?.buzzerPresses.find(
-                  (p) => p.playerId === state.currentRound?.currentBuzzerId,
-                ) && (
-                  <p className="text-xl font-black text-white bg-black px-3 py-1 inline-block mt-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
-                    {t('gameMusicTrivia.game.reaction')}{' '}
-                    {(
-                      state.currentRound.buzzerPresses.find(
-                        (p) => p.playerId === state.currentRound?.currentBuzzerId,
-                      )!.reactionTimeMs / 1000
-                    ).toFixed(2)}
-                    s ⚡️
-                  </p>
-                )}
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2 justify-center items-center">
+                  <span
+                    data-testid="music-judging-status"
+                    className="bg-amber-200 border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider"
+                  >
+                    ⏳ {t('gameMusicTrivia.game.statusWaiting')}
+                  </span>
+                  <span
+                    data-testid="music-who-may-act"
+                    className="bg-purple-200 border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider"
+                  >
+                    {t('gameMusicTrivia.game.whoMayAct')}{' '}
+                    {state.mode === 'GAME_MASTER'
+                      ? isHost
+                        ? t('gameMusicTrivia.game.whoMayActHostYou')
+                        : t('gameMusicTrivia.game.whoMayActHost')
+                      : amICurrentBuzzer
+                        ? t('gameMusicTrivia.game.whoMayActBuzzerYou')
+                        : room?.players.find(
+                            (p) => p.socketId === state.currentRound?.currentBuzzerId,
+                          )?.name || t('gameMusicTrivia.game.whoMayActBuzzer')}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
+                    {
+                      room?.players.find((p) => p.socketId === state.currentRound?.currentBuzzerId)
+                        ?.name
+                    }{' '}
+                    {t('gameMusicTrivia.game.buzzed')}
+                  </h3>
+                  {state.currentRound?.buzzerPresses.find(
+                    (p) => p.playerId === state.currentRound?.currentBuzzerId,
+                  ) && (
+                    <p className="text-xl font-black text-white bg-black px-3 py-1 inline-block mt-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
+                      {t('gameMusicTrivia.game.reaction')}{' '}
+                      {(
+                        state.currentRound.buzzerPresses.find(
+                          (p) => p.playerId === state.currentRound?.currentBuzzerId,
+                        )!.reactionTimeMs / 1000
+                      ).toFixed(2)}
+                      s ⚡️
+                    </p>
+                  )}
+                </div>
               </div>
 
               {state.mode === 'GAME_MASTER' ? (
@@ -634,6 +751,7 @@ export function MusicTriviaView() {
 
                       <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
                         <button
+                          data-testid="music-judge-correct"
                           onClick={() =>
                             musicTriviaGameAction({ type: 'HOST_JUDGE', correct: true })
                           }
@@ -642,6 +760,7 @@ export function MusicTriviaView() {
                           {t('gameMusicTrivia.game.yesCorrect')}
                         </button>
                         <button
+                          data-testid="music-judge-wrong"
                           onClick={() =>
                             musicTriviaGameAction({ type: 'HOST_JUDGE', correct: false })
                           }
@@ -730,6 +849,27 @@ export function MusicTriviaView() {
               <div className="text-6xl mb-4 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
                 {state.currentRound?.answeredCorrectly ? '✅' : '❌'}
               </div>
+              <div className="flex flex-wrap gap-2 justify-center items-center">
+                <span
+                  data-testid="music-judging-status"
+                  className={`${
+                    state.currentRound?.answeredCorrectly ? 'bg-emerald-200' : 'bg-rose-200'
+                  } border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider`}
+                >
+                  {state.currentRound?.answeredCorrectly
+                    ? `✅ ${t('gameMusicTrivia.game.statusAccepted')}`
+                    : `❌ ${t('gameMusicTrivia.game.statusRejected')}`}
+                </span>
+                <span
+                  data-testid="music-who-may-act"
+                  className="bg-purple-200 border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider"
+                >
+                  {t('gameMusicTrivia.game.whoMayAct')}{' '}
+                  {isHost
+                    ? t('gameMusicTrivia.game.whoMayActHostYou')
+                    : t('gameMusicTrivia.game.whoMayActHost')}
+                </span>
+              </div>
               <h3 className="text-4xl font-black text-black uppercase tracking-widest bg-white px-6 py-3 border-4 border-black inline-block shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
                 {state.currentRound?.answeredCorrectly
                   ? t('gameMusicTrivia.game.correct')
@@ -807,6 +947,7 @@ export function MusicTriviaView() {
               {isHost && (
                 <div className="pt-8">
                   <button
+                    data-testid="music-next-round"
                     onClick={() => musicTriviaGameAction({ type: 'NEXT_ROUND' })}
                     className="px-8 py-6 text-2xl font-black uppercase tracking-widest text-black bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none hover:bg-yellow-400 -"
                   >
@@ -826,6 +967,27 @@ export function MusicTriviaView() {
           {/* REVEAL / ROUND_RESULT Phase */}
           {(state.phase === 'REVEAL' || state.phase === 'ROUND_RESULT') && (
             <div className="bg-white p-8 border-8 border-black text-center space-y-8 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] - max-w-2xl mx-auto mt-8">
+              <div className="flex flex-wrap gap-2 justify-center items-center">
+                <span
+                  data-testid="music-judging-status"
+                  className={`${
+                    state.currentRound?.winnerId ? 'bg-emerald-200' : 'bg-rose-200'
+                  } border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider`}
+                >
+                  {state.currentRound?.winnerId
+                    ? `✅ ${t('gameMusicTrivia.game.statusAccepted')}`
+                    : `❌ ${t('gameMusicTrivia.game.statusRejected')}`}
+                </span>
+                <span
+                  data-testid="music-who-may-act"
+                  className="bg-purple-200 border-2 border-black px-3 py-1 font-black text-sm uppercase tracking-wider"
+                >
+                  {t('gameMusicTrivia.game.whoMayAct')}{' '}
+                  {isHost
+                    ? t('gameMusicTrivia.game.whoMayActHostYou')
+                    : t('gameMusicTrivia.game.whoMayActHost')}
+                </span>
+              </div>
               <h3 className="text-4xl font-black text-black uppercase tracking-widest bg-cyan-300 px-6 py-3 border-4 border-black inline-block shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
                 {t('gameMusicTrivia.game.theAnswerWas')}
               </h3>
@@ -887,6 +1049,7 @@ export function MusicTriviaView() {
               {isHost && (
                 <div className="pt-8">
                   <button
+                    data-testid="music-next-round"
                     onClick={() => handleAction('NEXT_ROUND')}
                     className="px-8 py-6 text-2xl font-black uppercase tracking-widest text-black bg-yellow-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none hover:bg-yellow-400 "
                   >

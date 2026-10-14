@@ -62,6 +62,57 @@ export function MusicTriviaSettings() {
           {t('gameMusicTrivia.lobby.musicSource')}
         </h4>
 
+        {/* Configuration Summary Badges */}
+        <div
+          data-testid="music-settings-summary"
+          className="mb-4 p-3 bg-yellow-100 border-2 border-black flex flex-wrap gap-2 text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+        >
+          <span className="bg-black text-white px-2 py-1 uppercase tracking-wider">
+            {t('gameMusicTrivia.lobby.summaryTitle')}
+          </span>
+          <span
+            data-testid="music-settings-source"
+            className="bg-white border border-black px-2 py-1"
+          >
+            {t('gameMusicTrivia.lobby.summarySource')}:{' '}
+            <span className="font-bold">
+              {presetMode ? 'YouTube' : getSourceLabel(room.config.musicTriviaSource)}
+            </span>
+          </span>
+          {presetMode ? (
+            <>
+              <span
+                data-testid="music-settings-preset"
+                className="bg-white border border-black px-2 py-1"
+              >
+                {t('gameMusicTrivia.lobby.summaryPreset')}:{' '}
+                <span className="font-bold">
+                  {selectedPreset?.name || room.config.musicTriviaArtistPresetId || '-'}
+                </span>
+              </span>
+              <span
+                data-testid="music-settings-difficulty"
+                className="bg-white border border-black px-2 py-1"
+              >
+                {t('gameMusicTrivia.lobby.summaryDifficulty')}:{' '}
+                <span className="font-bold">
+                  {t(
+                    `gameMusicTrivia.lobby.level${(room.config.musicTriviaLevel || 'EASY').toLowerCase()}`,
+                  )}
+                </span>
+              </span>
+            </>
+          ) : (
+            <span
+              data-testid="music-settings-query"
+              className="bg-white border border-black px-2 py-1"
+            >
+              {t('gameMusicTrivia.lobby.summaryQuery')}:{' '}
+              <span className="font-bold">{room.config.musicTriviaQuery?.trim() || '-'}</span>
+            </span>
+          )}
+        </div>
+
         <div className="space-y-4">
           <div>
             <label className="block text-black font-black uppercase tracking-widest mb-2 text-sm">
@@ -127,6 +178,31 @@ export function MusicTriviaSettings() {
                     {selectedPreset?.name || room.config.musicTriviaArtistPresetId}
                   </div>
                 )}
+                {selectedPreset && !selectedPreset.enabled && (
+                  <p
+                    data-testid="music-preset-unavailable"
+                    role="alert"
+                    className="text-xs text-red-700 bg-red-100 border-2 border-red-500 font-bold p-2 mt-2"
+                  >
+                    {t('gameMusicTrivia.lobby.presetUnavailable')}
+                  </p>
+                )}
+                {selectedPreset &&
+                  selectedPreset.enabled &&
+                  selectedPreset.trackCounts[
+                    (room.config.musicTriviaLevel || 'EASY').toLowerCase() as
+                      | 'easy'
+                      | 'medium'
+                      | 'hard'
+                  ] === 0 && (
+                    <p
+                      data-testid="music-preset-no-tracks"
+                      role="alert"
+                      className="text-xs text-red-700 bg-red-100 border-2 border-red-500 font-bold p-2 mt-2"
+                    >
+                      {t('gameMusicTrivia.lobby.presetEmptyTracks')}
+                    </p>
+                  )}
               </div>
 
               <div>
@@ -282,6 +358,15 @@ export function MusicTriviaSettings() {
                     {room.config.musicTriviaQuery || t('gameMusicTrivia.lobby.anyTopic')}
                   </div>
                 )}
+                {!room.config.musicTriviaQuery?.trim() && (
+                  <p
+                    data-testid="music-query-missing"
+                    role="alert"
+                    className="text-xs text-amber-800 bg-amber-100 border-2 border-amber-500 font-bold p-2 mt-2"
+                  >
+                    {t('gameMusicTrivia.lobby.queryRequired')}
+                  </p>
+                )}
                 <p className="text-xs text-black font-bold mt-2 bg-yellow-300 border-2 border-black inline-block px-2 py-1 ">
                   {t('gameMusicTrivia.lobby.searchHint')}
                 </p>
@@ -303,15 +388,17 @@ export function MusicTriviaSettings() {
             </label>
             {isHost ? (
               <NeobrutalismSelect
+                data-testid="music-game-mode-select"
                 value={room.config?.musicTriviaMode || 'TYPING'}
                 options={[
                   { value: 'TYPING', label: t('gameMusicTrivia.lobby.modeTyping') },
                   { value: 'GAME_MASTER', label: t('gameMusicTrivia.lobby.modeVoice') },
                 ]}
                 onChange={(val) => {
-                  useGameStore
-                    .getState()
-                    .updateConfig({ musicTriviaMode: val as 'TYPING' | 'GAME_MASTER' });
+                  useGameStore.getState().updateConfig({
+                    musicTriviaMode: val as 'TYPING' | 'GAME_MASTER',
+                    musicTriviaHostPlays: val !== 'GAME_MASTER',
+                  });
                 }}
                 className="bg-white hover:bg-gray-100"
               />

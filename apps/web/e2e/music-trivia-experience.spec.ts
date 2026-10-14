@@ -379,4 +379,179 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
       await guestContext.close();
     }
   });
+
+  test('empty free query blocks start while artist preset allows start with empty query', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    try {
+      const code = await createRoom(host, 'Alice', 'Music Trivia');
+      await joinRoom(guest, await getOrigin(host), code, 'Bob');
+
+      // Switch to Free search mode
+      await host.getByRole('button', { name: /Free search/i }).click();
+
+      // Clear query input
+      const queryInput = host.locator('#musicSearchTermInput');
+      await queryInput.fill('');
+
+      // Query missing alert is displayed and Start button is disabled
+      await expect(host.getByTestId('music-query-missing')).toBeVisible();
+      await expect(host.getByTestId('lobby-start-game')).toBeDisabled();
+
+      // Switch back to Pick an Artist (Preset mode)
+      await host
+        .getByRole('button', { name: /Pick an Artist/i })
+        .last()
+        .click();
+
+      // Query missing alert is cleared, preset is active in summary, and start button is enabled
+      await expect(host.getByTestId('music-query-missing')).toHaveCount(0);
+      await expect(host.getByTestId('music-settings-preset')).toBeVisible();
+      await expect(host.getByTestId('lobby-start-game')).toBeEnabled();
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
+
+  test('setup error distinguishes between no tracks and provider unavailable', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    try {
+      await createRoom(host, 'Alice', 'Music Trivia');
+
+      // Simulate SETUP error with NO_TRACKS reason
+      await host.evaluate(() => {
+        const store = (window as any).__useGameStore;
+        const room = store.getState().room;
+        if (room) {
+          store.setState({
+            room: {
+              ...room,
+              musicTriviaState: {
+                phase: 'SETUP',
+                currentTrackIndex: 0,
+                totalTracks: 0,
+                tracks: [],
+                scores: {},
+                mode: 'TYPING',
+                hostPlays: true,
+                errorMessage: 'No preview tracks found for your search',
+                errorReason: 'NO_TRACKS',
+              },
+            },
+          });
+        }
+      });
+
+      await expect(host.getByTestId('music-setup-error')).toBeVisible();
+      await expect(host.getByTestId('music-setup-no-tracks')).toBeVisible();
+      await expect(host.getByTestId('music-setup-provider-unavailable')).toHaveCount(0);
+
+      // Simulate SETUP error with PROVIDER_UNAVAILABLE reason
+      await host.evaluate(() => {
+        const store = (window as any).__useGameStore;
+        const room = store.getState().room;
+        if (room) {
+          store.setState({
+            room: {
+              ...room,
+              musicTriviaState: {
+                phase: 'SETUP',
+                currentTrackIndex: 0,
+                totalTracks: 0,
+                tracks: [],
+                scores: {},
+                mode: 'TYPING',
+                hostPlays: true,
+                errorMessage: 'Music service is currently unreachable',
+                errorReason: 'PROVIDER_UNAVAILABLE',
+              },
+            },
+          });
+        }
+      });
+
+      await expect(host.getByTestId('music-setup-error')).toBeVisible();
+      await expect(host.getByTestId('music-setup-provider-unavailable')).toBeVisible();
+      await expect(host.getByTestId('music-setup-no-tracks')).toHaveCount(0);
+    } finally {
+      await hostContext.close();
+    }
+  });
+
+  test('game master judging displays status, who may act, and controls correctly', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    try {
+      await host.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock('play'), 'play');
+
+      const code = await createRoom(host, 'Alice', 'Music Trivia');
+      await joinRoom(guest, await getOrigin(host), code, 'Bob');
+
+      // Select Game Master (Voice) mode
+      await host.getByTestId('music-game-mode-select').click();
+      await host.getByRole('button', { name: /Voice/i }).click();
+
+      // Select Artist preset
+      await host.getByRole('button', { name: /Free search/i }).click();
+      await host
+        .getByRole('button', { name: /Pick an Artist/i })
+        .last()
+        .click();
+
+      // Start game
+      await host.getByTestId('lobby-start-game').click();
+      await guest.getByRole('button', { name: "I'm Ready!", exact: true }).click();
+      await host.getByRole('button', { name: 'Start Song (Countdown)', exact: true }).click();
+
+      // Guest buzzes in PLAYING phase
+      await expect(guest.getByRole('button', { name: /BUZZ!$/ })).toBeVisible();
+      await guest.getByRole('button', { name: /BUZZ!$/ }).click();
+
+      // In BUZZED phase, check status and who may act
+      await expect(host.getByTestId('music-judging-status')).toBeVisible();
+      await expect(host.getByTestId('music-judging-status')).toHaveText(/waiting/i);
+      await expect(host.getByTestId('music-who-may-act')).toHaveText(/Host/i);
+
+      await expect(guest.getByTestId('music-judging-status')).toBeVisible();
+      await expect(guest.getByTestId('music-judging-status')).toHaveText(/waiting/i);
+      await expect(guest.getByTestId('music-who-may-act')).toHaveText(/Host/i);
+
+      // Host has judge controls; guest does not
+      await expect(host.getByTestId('music-judge-correct')).toBeVisible();
+      await expect(host.getByTestId('music-judge-wrong')).toBeVisible();
+      await expect(guest.getByTestId('music-judge-correct')).toHaveCount(0);
+      await expect(guest.getByTestId('music-judge-wrong')).toHaveCount(0);
+
+      // Host awards correct answer
+      await host.getByTestId('music-judge-correct').click();
+
+      // In ANSWER_RESULT phase, status is Accepted
+      await expect(host.getByTestId('music-judging-status')).toBeVisible();
+      await expect(host.getByTestId('music-judging-status')).toHaveText(/accepted/i);
+      await expect(host.getByTestId('music-who-may-act')).toHaveText(/Host/i);
+
+      await expect(guest.getByTestId('music-judging-status')).toBeVisible();
+      await expect(guest.getByTestId('music-judging-status')).toHaveText(/accepted/i);
+
+      // Host has Next Round button; guest does not
+      await expect(host.getByTestId('music-next-round')).toBeVisible();
+      await expect(guest.getByTestId('music-next-round')).toHaveCount(0);
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
 });
