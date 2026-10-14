@@ -32,12 +32,16 @@ const card_game_service_1 = require("./card-game/card-game.service");
 const poker_service_1 = require("./poker/poker.service");
 const game_settings_service_1 = require("./game-settings.service");
 const artist_preset_service_1 = require("./artist-preset.service");
+const room_start_guard_service_1 = require("./room-start-guard.service");
+const action_receipt_service_1 = require("./action-receipt.service");
 let GamesModule = class GamesModule {
 };
 exports.GamesModule = GamesModule;
 exports.GamesModule = GamesModule = __decorate([
     (0, common_1.Module)({
         providers: [
+            room_start_guard_service_1.RoomStartGuardService,
+            action_receipt_service_1.ActionReceiptService,
             games_gateway_1.GamesGateway,
             games_service_1.GamesService,
             who_know_service_1.WhoKnowService,

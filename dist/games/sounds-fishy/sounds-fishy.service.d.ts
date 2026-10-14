@@ -1,8 +1,11 @@
 import { RoomState, SoundsFishyState, Role } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
+import { RoomStartGuardService } from '../room-start-guard.service';
+export declare const SF_ERROR_QUESTIONS_UNAVAILABLE = "Questions are unavailable. Retry or choose another game.";
 export declare class SoundsFishyService {
     private readonly privateState;
-    constructor(privateState: PrivateStateService);
+    private readonly startGuard;
+    constructor(privateState: PrivateStateService, startGuard: RoomStartGuardService);
     private shuffleArray;
     private isMember;
     private getTrueAnswer;
@@ -12,6 +15,7 @@ export declare class SoundsFishyService {
     assignRoles(room: RoomState, requesterId: string): Promise<{
         room: RoomState;
         roles: Record<string, Role>;
+        error?: string;
     } | null>;
     typeAnswer(room: RoomState, playerId: string, answer: string): RoomState | null;
     checkAnswerResolution(room: RoomState): boolean;

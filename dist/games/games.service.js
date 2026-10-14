@@ -34,11 +34,13 @@ const room_timer_service_1 = require("./room-timer.service");
 const card_game_service_1 = require("./card-game/card-game.service");
 const poker_service_1 = require("./poker/poker.service");
 const game_settings_service_1 = require("./game-settings.service");
+const room_start_guard_service_1 = require("./room-start-guard.service");
+const action_receipt_service_1 = require("./action-receipt.service");
 const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, gameSettings) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -59,6 +61,8 @@ let GamesService = GamesService_1 = class GamesService {
         this.cardGameService = cardGameService;
         this.pokerService = pokerService;
         this.gameSettings = gameSettings;
+        this.roomStartGuardService = roomStartGuardService;
+        this.actionReceiptService = actionReceiptService;
         this.rooms = new Map();
         this.secretWords = new Map();
         this.saboteurTurnDeadlines = new Map();
@@ -84,6 +88,9 @@ let GamesService = GamesService_1 = class GamesService {
     getRoom(code) {
         return this.rooms.get(code);
     }
+    getServerTime() {
+        return Date.now();
+    }
     isGameEnabled(gameType) {
         return this.gameSettings.isEnabled(gameType);
     }
@@ -94,14 +101,14 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.playerSessionService.takePendingToken(socketId);
     }
-    hasSeatedSession(code, reconnectToken) {
+    hasSeatedSession(code, reconnectToken, name) {
         const room = this.rooms.get(code);
         if (!room)
             return false;
         const playerId = this.playerSessionService.verify(code, reconnectToken);
         if (!playerId)
             return false;
-        return room.players.some((player) => player.id === playerId);
+        return room.players.some((player) => player.id === playerId && player.name === name);
     }
     createRoom(hostId, gameType = types_1.GameType.WHO_KNOW, initialConfig) {
         let code;
@@ -122,6 +129,8 @@ let GamesService = GamesService_1 = class GamesService {
                 rpsBestOf: 3,
                 rpsMode: '1V1_ROUND_ROBIN',
                 language: 'th',
+                visibility: 'UNLISTED',
+                allowSpectators: false,
             },
         };
         if (initialConfig) {
@@ -475,11 +484,15 @@ let GamesService = GamesService_1 = class GamesService {
         this.playerSessionService.clearRoom(code);
         this.musicTriviaService.deleteRoomData(code);
         this.privateStateService.clearRoom(code);
+        this.roomStartGuardService.invalidate(code);
+        this.actionReceiptService.clearRoom(code);
     }
     getAvailableRooms() {
         const availableRooms = [];
         for (const room of this.rooms.values()) {
-            if (room.status === types_1.RoomStatus.LOBBY && this.gameSettings.isEnabled(room.gameType)) {
+            if (room.status === types_1.RoomStatus.LOBBY &&
+                (room.config.visibility ?? 'PUBLIC') === 'PUBLIC' &&
+                this.gameSettings.isEnabled(room.gameType)) {
                 availableRooms.push({
                     code: room.code,
                     gameType: room.gameType,
@@ -641,6 +654,8 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('rpsBestOf', 1, 9);
         copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
         copyEnum('language', ['en', 'th']);
+        copyEnum('visibility', ['PUBLIC', 'UNLISTED']);
+        copyBoolean('allowSpectators');
         copyEnum('cardGamePreset', ['POK_DENG', 'SLAVE']);
         copyEnum('ticTacToeMode', ['CLASSIC', 'GOBBLER', 'ULTIMATE']);
         copyBoolean('ticTacToeVsBot');
@@ -1354,6 +1369,8 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         room_timer_service_1.RoomTimerService,
         card_game_service_1.CardGameService,
         poker_service_1.PokerService,
-        game_settings_service_1.GameSettingsService])
+        game_settings_service_1.GameSettingsService,
+        room_start_guard_service_1.RoomStartGuardService,
+        action_receipt_service_1.ActionReceiptService])
 ], GamesService);
 //# sourceMappingURL=games.service.js.map

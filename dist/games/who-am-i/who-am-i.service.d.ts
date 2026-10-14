@@ -1,8 +1,10 @@
 import { RoomState, WhoAmIGameState, WordCategory } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
+import { RoomStartGuardService } from '../room-start-guard.service';
 export declare class WhoAmIService {
     private readonly privateState;
-    constructor(privateState: PrivateStateService);
+    private readonly startGuard;
+    constructor(privateState: PrivateStateService, startGuard: RoomStartGuardService);
     private shuffleArray;
     private setMyWord;
     private clearRoomPrivateData;

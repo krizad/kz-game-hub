@@ -6,7 +6,8 @@ import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, BananaThiefChooseFollowerPayload } from '@repo/types';
+import { ActionReceiptService } from './action-receipt.service';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -14,10 +15,11 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private readonly privateStateService;
     private readonly gameSettingsService;
     private readonly artistPresetService;
+    private readonly actionReceiptService;
     server: Server;
     private readonly logger;
     private readonly recordedResults;
-    constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService, artistPresetService: ArtistPresetService);
+    constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService, artistPresetService: ArtistPresetService, actionReceiptService?: ActionReceiptService);
     afterInit(): void;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
@@ -26,6 +28,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private forgetRecordedResult;
     handleGetAvailableRooms(client: Socket): void;
     handleGetGameSettings(client: Socket): void;
+    handleServerTimeRequest(client: Socket, data: ServerTimeRequestPayload): void;
     handleSetGameEnabled(data: SetGameEnabledPayload, client: Socket): Promise<void>;
     private isAdminKey;
     private broadcastArtistPresets;
@@ -85,6 +88,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleTTTMakeMove(data: {
         code: string;
         index: number;
+        requestId?: string;
     }, client: Socket): void;
     handleTTTReset(data: {
         code: string;
@@ -109,6 +113,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleRPSMakeChoice(data: {
         code: string;
         choice: RPSChoice;
+        requestId?: string;
     }, client: Socket): void;
     handleRPSReset(data: {
         code: string;

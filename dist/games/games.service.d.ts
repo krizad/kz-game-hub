@@ -19,6 +19,8 @@ import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
+import { RoomStartGuardService } from './room-start-guard.service';
+import { ActionReceiptService } from './action-receipt.service';
 export type LeaveRoomResult = {
     outcome: 'ROOM_CLOSED';
     code: string;
@@ -59,20 +61,23 @@ export declare class GamesService {
     private readonly cardGameService;
     private readonly pokerService;
     private readonly gameSettings;
+    private readonly roomStartGuardService;
+    private readonly actionReceiptService;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, gameSettings: GameSettingsService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
     findRoomCodeBySocketId(socketId: string): string | null;
     getRoom(code: string): RoomState | undefined;
+    getServerTime(): number;
     isGameEnabled(gameType: GameType): boolean;
     getReconnectToken(code: string, socketId: string): string | null;
-    hasSeatedSession(code: string, reconnectToken: string): boolean;
+    hasSeatedSession(code: string, reconnectToken: string, name: string): boolean;
     createRoom(hostId: string, gameType?: GameType, initialConfig?: Partial<RoomConfig>): RoomState;
     joinRoom(code: string, user: Omit<UserState, 'score' | 'roomId' | 'role'>, reconnectToken?: string): RoomState | null;
     leaveRoom(clientId: string, explicitLeave?: boolean): LeaveRoomResult;
@@ -102,6 +107,7 @@ export declare class GamesService {
     assignRoles(code: string, requesterId: string): Promise<{
         room: RoomState;
         roles: Record<string, Role>;
+        error?: string;
     } | null>;
     private startWhoAmI;
     private withRoomAsync;

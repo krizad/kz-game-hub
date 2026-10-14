@@ -23,17 +23,19 @@ const room_timer_service_1 = require("./room-timer.service");
 const private_state_service_1 = require("./private-state.service");
 const game_settings_service_1 = require("./game-settings.service");
 const artist_preset_service_1 = require("./artist-preset.service");
+const action_receipt_service_1 = require("./action-receipt.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 let GamesGateway = GamesGateway_1 = class GamesGateway {
-    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService) {
+    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.gamesService = gamesService;
         this.leaderboardService = leaderboardService;
         this.roomTimerService = roomTimerService;
         this.privateStateService = privateStateService;
         this.gameSettingsService = gameSettingsService;
         this.artistPresetService = artistPresetService;
+        this.actionReceiptService = actionReceiptService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
     }
@@ -101,6 +103,13 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     handleGetGameSettings(client) {
         client.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
+    }
+    handleServerTimeRequest(client, data) {
+        const serverNow = this.gamesService.getServerTime();
+        client.emit(types_1.SOCKET_EVENTS.SERVER_TIME_RESPONSE, {
+            clientSentAt: data.clientSentAt,
+            serverNow,
+        });
     }
     async handleSetGameEnabled(data, client) {
         const adminSecret = process.env.ADMIN_SECRET;
@@ -227,22 +236,28 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleJoinRoom(data, client) {
-        this.leavePreviousRoom(client, data.code.toUpperCase());
         const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
         if (!targetRoom) {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found' });
             return;
         }
-        const isSeatedMember = targetRoom.players.some((p) => p.socketId === client.id) ||
-            (!!data.reconnectToken &&
-                this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
+        const name = data.name.trim();
+        const isSeatedMember = !!data.reconnectToken &&
+            this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken, name);
+        if (!isSeatedMember &&
+            targetRoom.status !== types_1.RoomStatus.LOBBY &&
+            targetRoom.config?.allowSpectators === false) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
+            return;
+        }
         if (!isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
             return;
         }
+        this.leavePreviousRoom(client, data.code.toUpperCase());
         const room = this.gamesService.joinRoom(data.code.toUpperCase(), {
             id: client.id,
-            name: data.name.trim(),
+            name,
             socketId: client.id,
         }, data.reconnectToken);
         if (room) {
@@ -276,7 +291,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     async handleStartGame(data, client) {
         const result = await this.gamesService.assignRoles(data.code, client.id);
-        if (result) {
+        if (result && !result.error) {
             this.broadcastRoomState(result.room);
             this.syncTheMindTimer(result.room);
             this.syncWhoFirstTimer(result.room);
@@ -289,29 +304,35 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         else {
             const roomInfo = this.gamesService.getRoom(data.code);
             const gameType = roomInfo?.gameType;
-            let msg = 'Cannot start game.';
-            if (gameType === types_1.GameType.WHO_KNOW) {
-                msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
-            }
-            else if (gameType === types_1.GameType.SOUNDS_FISHY) {
-                msg = 'Cannot start game. Need at least 3 players.';
-            }
-            else if (gameType === types_1.GameType.MUSIC_TRIVIA) {
-                msg = 'Cannot start game. Need at least 2 players and a music query.';
-            }
-            else if (gameType === types_1.GameType.DETECTIVE_CLUB) {
-                msg = 'Cannot start game. Need at least 3 players.';
-            }
-            else if (gameType === types_1.GameType.COUP) {
-                msg = 'Cannot start game. Need 3-6 players for Coup.';
-            }
-            else if (gameType === types_1.GameType.POKER) {
-                msg = 'Cannot start game. Need at least 2 players.';
-            }
-            else if (gameType === types_1.GameType.BANANA_THIEF) {
-                msg = 'Cannot start game. Need at least 4 players.';
+            let msg = result?.error ?? 'Cannot start game.';
+            if (!result?.error) {
+                if (gameType === types_1.GameType.WHO_KNOW) {
+                    msg = 'Cannot start game. Need at least 4 players (1 Host + 3 Players).';
+                }
+                else if (gameType === types_1.GameType.SOUNDS_FISHY) {
+                    msg = 'Cannot start game. Need at least 3 players.';
+                }
+                else if (gameType === types_1.GameType.MUSIC_TRIVIA) {
+                    msg = 'Cannot start game. Need at least 2 players and a music query.';
+                }
+                else if (gameType === types_1.GameType.DETECTIVE_CLUB) {
+                    msg = 'Cannot start game. Need at least 3 players.';
+                }
+                else if (gameType === types_1.GameType.COUP) {
+                    msg = 'Cannot start game. Need 3-6 players for Coup.';
+                }
+                else if (gameType === types_1.GameType.POKER) {
+                    msg = 'Cannot start game. Need at least 2 players.';
+                }
+                else if (gameType === types_1.GameType.BANANA_THIEF) {
+                    msg = 'Cannot start game. Need at least 4 players.';
+                }
             }
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: msg });
+            const currentRoom = result?.room ?? roomInfo;
+            if (currentRoom) {
+                this.broadcastRoomState(currentRoom);
+            }
         }
     }
     handleSetWord(data, client) {
@@ -407,6 +428,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const room = this.gamesService.updateConfig(data.code, client.id, data.config, data.cardGameConfig);
         if (room) {
             this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
@@ -443,6 +465,55 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleTTTMakeMove(data, client) {
+        if (data.requestId !== undefined) {
+            if (!this.actionReceiptService.isValidRequestId(data.requestId)) {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid requestId' });
+                return;
+            }
+            const room = this.gamesService.getRoom(data.code);
+            if (!room || room.gameType !== types_1.GameType.TIC_TAC_TOE) {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found or wrong game type' });
+                return;
+            }
+            const player = room.players.find((p) => p.socketId === client.id);
+            if (!player) {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not a member of this room' });
+                return;
+            }
+            const checkResult = this.actionReceiptService.check(data.code, player.id, types_1.SOCKET_EVENTS.TTT_MAKE_MOVE, data.requestId, data);
+            if (checkResult.kind === 'HIT' || checkResult.kind === 'CONFLICT') {
+                client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, checkResult.receipt);
+                return;
+            }
+            const updatedRoom = this.gamesService.tttMakeMove(data.code, client.id, data.index);
+            const now = Date.now();
+            if (updatedRoom) {
+                const receipt = {
+                    code: data.code.toUpperCase(),
+                    requestId: data.requestId,
+                    event: types_1.SOCKET_EVENTS.TTT_MAKE_MOVE,
+                    status: 'accepted',
+                    serverNow: now,
+                };
+                this.actionReceiptService.record(data.code, player.id, types_1.SOCKET_EVENTS.TTT_MAKE_MOVE, data.requestId, data, receipt, now);
+                client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+                this.broadcastRoomState(updatedRoom);
+            }
+            else {
+                const receipt = {
+                    code: data.code.toUpperCase(),
+                    requestId: data.requestId,
+                    event: types_1.SOCKET_EVENTS.TTT_MAKE_MOVE,
+                    status: 'rejected',
+                    reason: 'Invalid move.',
+                    serverNow: now,
+                };
+                this.actionReceiptService.record(data.code, player.id, types_1.SOCKET_EVENTS.TTT_MAKE_MOVE, data.requestId, data, receipt, now);
+                client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
+            }
+            return;
+        }
         const room = this.gamesService.tttMakeMove(data.code, client.id, data.index);
         if (room) {
             this.broadcastRoomState(room);
@@ -504,6 +575,56 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleRPSMakeChoice(data, client) {
+        if (data.requestId !== undefined) {
+            if (!this.actionReceiptService.isValidRequestId(data.requestId)) {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid requestId' });
+                return;
+            }
+            const room = this.gamesService.getRoom(data.code);
+            if (!room || room.gameType !== types_1.GameType.RPS) {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found or wrong game type' });
+                return;
+            }
+            const player = room.players.find((p) => p.socketId === client.id);
+            if (!player) {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not a member of this room' });
+                return;
+            }
+            const checkResult = this.actionReceiptService.check(data.code, player.id, types_1.SOCKET_EVENTS.RPS_MAKE_CHOICE, data.requestId, data);
+            if (checkResult.kind === 'HIT' || checkResult.kind === 'CONFLICT') {
+                client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, checkResult.receipt);
+                return;
+            }
+            const updatedRoom = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
+            const now = Date.now();
+            if (updatedRoom) {
+                const receipt = {
+                    code: data.code.toUpperCase(),
+                    requestId: data.requestId,
+                    event: types_1.SOCKET_EVENTS.RPS_MAKE_CHOICE,
+                    status: 'accepted',
+                    serverNow: now,
+                };
+                this.actionReceiptService.record(data.code, player.id, types_1.SOCKET_EVENTS.RPS_MAKE_CHOICE, data.requestId, data, receipt, now);
+                client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+                this.broadcastRoomState(updatedRoom);
+                this.maybeRecordGameResult(updatedRoom);
+            }
+            else {
+                const receipt = {
+                    code: data.code.toUpperCase(),
+                    requestId: data.requestId,
+                    event: types_1.SOCKET_EVENTS.RPS_MAKE_CHOICE,
+                    status: 'rejected',
+                    reason: 'Invalid choice or not your turn.',
+                    serverNow: now,
+                };
+                this.actionReceiptService.record(data.code, player.id, types_1.SOCKET_EVENTS.RPS_MAKE_CHOICE, data.requestId, data, receipt, now);
+                client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid choice or not your turn.' });
+            }
+            return;
+        }
         const room = this.gamesService.rpsMakeChoice(data.code, client.id, data.choice);
         if (room) {
             this.broadcastRoomState(room);
@@ -1055,6 +1176,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found' });
             return;
         }
+        if (room.config?.allowSpectators === false) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
+            return;
+        }
         this.leavePreviousRoom(client, room.code);
         client.join(room.code);
         client.data.spectatingRoomCode = room.code;
@@ -1407,8 +1532,17 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (event === types_1.SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
             return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
         }
+        if (event === types_1.SOCKET_EVENTS.SERVER_TIME_REQUEST) {
+            return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);
+        }
         if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code))
             return false;
+        if (data.requestId !== undefined &&
+            (typeof data.requestId !== 'string' ||
+                data.requestId.length < 1 ||
+                data.requestId.length > 64)) {
+            return false;
+        }
         if (event === types_1.SOCKET_EVENTS.JOIN_ROOM || event === types_1.SOCKET_EVENTS.SPECTATE_JOIN) {
             return (this.isValidName(data.name) &&
                 (data.reconnectToken === undefined ||
@@ -1568,6 +1702,14 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleGetGameSettings", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SERVER_TIME_REQUEST),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleServerTimeRequest", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.SET_GAME_ENABLED),
     __param(0, (0, websockets_1.MessageBody)()),
@@ -2174,6 +2316,7 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
         room_timer_service_1.RoomTimerService,
         private_state_service_1.PrivateStateService,
         game_settings_service_1.GameSettingsService,
-        artist_preset_service_1.ArtistPresetService])
+        artist_preset_service_1.ArtistPresetService,
+        action_receipt_service_1.ActionReceiptService])
 ], GamesGateway);
 //# sourceMappingURL=games.gateway.js.map
