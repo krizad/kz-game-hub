@@ -22,6 +22,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     const p1 = await p1Ctx.newPage(); // Host
     const p2 = await p2Ctx.newPage(); // Guest 1
     const p3 = await p3Ctx.newPage(); // Guest 2
+    await p1.setViewportSize({ width: 1280, height: 900 });
 
     // 1. Host creates room in Thai (default locale)
     await goToLobby(p1);
