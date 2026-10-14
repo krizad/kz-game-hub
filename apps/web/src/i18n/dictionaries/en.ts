@@ -1643,6 +1643,12 @@ export const en: Dictionary = {
     history: 'Action Log',
     noHistory: 'No actions recorded yet',
     none: 'None',
+    countdown: '{seconds}s remaining',
+    eligibleChallengers: 'Eligible to challenge: {names}',
+    eligibleBlockChallengers: 'Eligible to challenge block: {names}',
+    onlyTargetCanBlock: 'Only {target} can block this action',
+    anyoneCanBlock: 'Any guest can block this action',
+    exchangeSelectedCount: 'Selected: {selected} / {total} cards',
   },
   gameBananaThief: {
     phaseSetup: 'Ready Up',

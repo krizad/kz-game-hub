@@ -443,6 +443,17 @@ describe('CoupService (04 block)', () => {
     expect(after!.coupState!.influences['s2'].count).toBe(1);
     expect(after!.coupState!.coins['s1']).toBe(0);
   });
+
+  it('Assassinate can only be blocked by the target — non-target block returns null', () => {
+    const room = startRoom();
+    room.coupState!.coins['s1'] = 3;
+    service.declareAction(room, 's1', CoupActionType.ASSASSINATE, 's2');
+    service.handleChallengeTimeoutForRoom(room);
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+    expect(service.block(room, 's3')).toBeNull();
+    expect(room.coupState!.phase).toBe('AWAITING_BLOCK');
+    expect(room.coupState!.pendingBlock).toBeNull();
+  });
 });
 
 describe('CoupService (05 steal & exchange)', () => {

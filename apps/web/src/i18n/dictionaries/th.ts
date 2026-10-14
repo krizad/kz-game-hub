@@ -1602,6 +1602,12 @@ export const th: Dictionary = {
     history: 'ประวัติการเล่น',
     noHistory: 'ยังไม่มีประวัติการเล่น',
     none: 'ไม่มี',
+    countdown: 'เหลือเวลาอีก {seconds} วินาที',
+    eligibleChallengers: 'ผู้มีสิทธิ์ท้าทาย: {names}',
+    eligibleBlockChallengers: 'ผู้มีสิทธิ์ท้าคนขวาง: {names}',
+    onlyTargetCanBlock: 'เฉพาะ {target} เท่านั้นที่ยืนขวางได้',
+    anyoneCanBlock: 'แขกทุกคนในคฤหาสน์สามารถขวางได้',
+    exchangeSelectedCount: 'เลือกแล้ว: {selected} / {total} ใบ',
   },
   gameBananaThief: {
     phaseSetup: 'เตรียมพร้อม',

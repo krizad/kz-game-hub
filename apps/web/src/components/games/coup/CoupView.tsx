@@ -9,6 +9,7 @@ import { CoupRole, CoupActionType, CoupPhase } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useCoupSounds, type CoupSound } from '@/hooks/useCoupSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { useServerClock } from '@/hooks/useServerClock';
 
 const roleEmoji: Record<CoupRole, string> = {
   [CoupRole.DUKE]: '👒',
@@ -74,9 +75,39 @@ export function CoupView() {
   const [assassinateTarget, setAssassinateTarget] = useState<string>('');
   const [stealTarget, setStealTarget] = useState<string>('');
   const [exchangeKeep, setExchangeKeep] = useState<number[]>([]);
+  const [isExchangeSubmitting, setIsExchangeSubmitting] = useState<boolean>(false);
   const [actionHistory, setActionHistory] = useState<string[]>([]);
+  const { getRemainingMs } = useServerClock();
+  const [, setTick] = useState<number>(0);
 
   const state = room?.coupState;
+
+  const activeDeadline =
+    state?.phase === CoupPhase.AWAITING_CHALLENGE
+      ? state.challengeWindowDeadline
+      : state?.phase === CoupPhase.AWAITING_BLOCK
+        ? state.blockWindowDeadline
+        : null;
+
+  useEffect(() => {
+    if (!activeDeadline) return;
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 250);
+    return () => clearInterval(timer);
+  }, [activeDeadline]);
+
+  const getSecondsLeft = (deadline: number | null | undefined): number => {
+    if (!deadline) return 0;
+    return Math.max(0, Math.ceil(getRemainingMs(deadline) / 1000));
+  };
+
+  useEffect(() => {
+    if (state?.phase !== CoupPhase.AWAITING_EXCHANGE) {
+      setExchangeKeep([]);
+      setIsExchangeSubmitting(false);
+    }
+  }, [state?.phase]);
 
   // ── Action History Logging ─────────────────────────────────────────
   useEffect(() => {
@@ -410,21 +441,51 @@ export function CoupView() {
             })}{' '}
             — {t('gameCoup.challengeQuestion')}
           </div>
-          {state.pendingAction.actorId !== socketId &&
-            (state.influences[socketId]?.count ?? 0) > 0 && (
-              <button
-                onClick={() => coupChallenge()}
-                className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase"
-              >
-                {t('gameCoup.challenge')}
-              </button>
-            )}
-          {state.pendingAction.actorId === socketId && (
-            <div className="text-xs text-center mt-1 opacity-70">
-              {t('gameCoup.waitingChallenge')}
-            </div>
-          )}
-          <div className="text-[10px] text-center mt-1 opacity-60">{t('gameCoup.autoResolve')}</div>
+          {(() => {
+            const actorId = state.pendingAction.actorId;
+            const eligible = room.players.filter(
+              (p) => p.socketId !== actorId && (state.influences[p.socketId]?.count ?? 0) > 0,
+            );
+            const canChallenge =
+              actorId !== socketId && (state.influences[socketId]?.count ?? 0) > 0;
+            const secondsLeft = getSecondsLeft(state.challengeWindowDeadline);
+
+            return (
+              <>
+                <div
+                  data-testid="coup-countdown"
+                  className="text-xs font-black text-center mt-1 text-red-800"
+                >
+                  ⏱️ {t('gameCoup.countdown', { seconds: secondsLeft })}
+                </div>
+                <div
+                  data-testid="coup-eligible-responders"
+                  className="text-[11px] font-bold text-center mt-0.5 text-gray-800"
+                >
+                  {t('gameCoup.eligibleChallengers', {
+                    names: eligible.map((p) => p.name).join(', '),
+                  })}
+                </div>
+                {canChallenge && (
+                  <button
+                    data-testid="coup-challenge-button"
+                    onClick={() => coupChallenge()}
+                    className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase"
+                  >
+                    {t('gameCoup.challenge')}
+                  </button>
+                )}
+                {!canChallenge && (
+                  <div className="text-xs text-center mt-1 opacity-70">
+                    {t('gameCoup.waitingChallenge')}
+                  </div>
+                )}
+                <div className="text-[10px] text-center mt-1 opacity-60">
+                  {t('gameCoup.autoResolve')}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -439,16 +500,51 @@ export function CoupView() {
             })}{' '}
             — {t('gameCoup.challengeBlockQuestion')}
           </div>
-          {state.pendingBlock.blockerId !== socketId &&
-            (state.influences[socketId]?.count ?? 0) > 0 && (
-              <button
-                onClick={() => coupChallenge()}
-                className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase"
-              >
-                {t('gameCoup.challengeBlock')}
-              </button>
-            )}
-          <div className="text-[10px] text-center mt-1 opacity-60">{t('gameCoup.autoResolve')}</div>
+          {(() => {
+            const blockerId = state.pendingBlock.blockerId;
+            const eligible = room.players.filter(
+              (p) => p.socketId !== blockerId && (state.influences[p.socketId]?.count ?? 0) > 0,
+            );
+            const canChallengeBlock =
+              blockerId !== socketId && (state.influences[socketId]?.count ?? 0) > 0;
+            const secondsLeft = getSecondsLeft(state.challengeWindowDeadline);
+
+            return (
+              <>
+                <div
+                  data-testid="coup-countdown"
+                  className="text-xs font-black text-center mt-1 text-amber-900"
+                >
+                  ⏱️ {t('gameCoup.countdown', { seconds: secondsLeft })}
+                </div>
+                <div
+                  data-testid="coup-eligible-responders"
+                  className="text-[11px] font-bold text-center mt-0.5 text-gray-800"
+                >
+                  {t('gameCoup.eligibleBlockChallengers', {
+                    names: eligible.map((p) => p.name).join(', '),
+                  })}
+                </div>
+                {canChallengeBlock && (
+                  <button
+                    data-testid="coup-challenge-block-button"
+                    onClick={() => coupChallenge()}
+                    className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase"
+                  >
+                    {t('gameCoup.challengeBlock')}
+                  </button>
+                )}
+                {!canChallengeBlock && (
+                  <div className="text-xs text-center mt-1 opacity-70">
+                    {t('gameCoup.waitingChallenge')}
+                  </div>
+                )}
+                <div className="text-[10px] text-center mt-1 opacity-60">
+                  {t('gameCoup.autoResolve')}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -462,6 +558,8 @@ export function CoupView() {
             const isForeignAid = state.pendingAction!.type === 'FOREIGN_AID';
             const isAssassinate = state.pendingAction!.type === 'ASSASSINATE';
             const isSteal = state.pendingAction!.type === 'STEAL';
+            const secondsLeft = getSecondsLeft(state.blockWindowDeadline);
+
             const canBlockForeignAid =
               isForeignAid &&
               state.pendingAction!.actorId !== socketId &&
@@ -474,38 +572,63 @@ export function CoupView() {
               isSteal &&
               state.pendingAction!.targetId === socketId &&
               (state.influences[socketId]?.count ?? 0) > 0;
-            if (canBlockSteal) {
-              return (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => coupBlock(CoupRole.CAPTAIN)}
-                    className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
-                  >
-                    {roleLabel(CoupRole.CAPTAIN)}
-                  </button>
-                  <button
-                    onClick={() => coupBlock(CoupRole.AMBASSADOR)}
-                    className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
-                  >
-                    {roleLabel(CoupRole.AMBASSADOR)}
-                  </button>
-                </div>
-              );
-            }
-            if (canBlockForeignAid || canBlockAssassinate) {
-              return (
-                <button
-                  onClick={() => coupBlock()}
-                  className="mt-2 w-full bg-white border-4 border-black font-black py-2 text-xs uppercase"
-                >
-                  {t('gameCoup.block')}
-                </button>
-              );
-            }
+
+            const targetName =
+              room.players.find((p) => p.socketId === state.pendingAction!.targetId)?.name ??
+              t('gameCoup.none');
+
             return (
-              <div className="text-xs text-center mt-1 opacity-60">
-                {t('gameCoup.waitingBlock')}
-              </div>
+              <>
+                <div
+                  data-testid="coup-countdown"
+                  className="text-xs font-black text-center mt-1 text-blue-900"
+                >
+                  ⏱️ {t('gameCoup.countdown', { seconds: secondsLeft })}
+                </div>
+                <div
+                  data-testid="coup-eligible-responders"
+                  className="text-[11px] font-bold text-center mt-0.5 text-gray-800"
+                >
+                  {isForeignAid
+                    ? t('gameCoup.anyoneCanBlock')
+                    : t('gameCoup.onlyTargetCanBlock', { target: targetName })}
+                </div>
+
+                {canBlockSteal && (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button
+                      data-testid="coup-block-captain"
+                      onClick={() => coupBlock(CoupRole.CAPTAIN)}
+                      className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
+                    >
+                      {roleLabel(CoupRole.CAPTAIN)}
+                    </button>
+                    <button
+                      data-testid="coup-block-ambassador"
+                      onClick={() => coupBlock(CoupRole.AMBASSADOR)}
+                      className="bg-white border-4 border-black font-black py-2 text-xs uppercase"
+                    >
+                      {roleLabel(CoupRole.AMBASSADOR)}
+                    </button>
+                  </div>
+                )}
+
+                {(canBlockForeignAid || canBlockAssassinate) && (
+                  <button
+                    data-testid="coup-block-button"
+                    onClick={() => coupBlock()}
+                    className="mt-2 w-full bg-white border-4 border-black font-black py-2 text-xs uppercase"
+                  >
+                    {t('gameCoup.block')}
+                  </button>
+                )}
+
+                {!canBlockForeignAid && !canBlockAssassinate && !canBlockSteal && (
+                  <div className="text-xs text-center mt-1 opacity-60">
+                    {t('gameCoup.waitingBlock')}
+                  </div>
+                )}
+              </>
             );
           })()}
         </div>
@@ -518,22 +641,45 @@ export function CoupView() {
           </div>
           {state.pendingAction.actorId === socketId && hand && hand.length >= 3 ? (
             <>
+              <div
+                data-testid="coup-exchange-selected-count"
+                className="text-xs font-bold text-center mt-1 text-gray-800"
+              >
+                {t('gameCoup.exchangeSelectedCount', {
+                  selected: exchangeKeep.length,
+                  total: exchangeKeepCount,
+                })}
+              </div>
               <div className="grid grid-cols-4 gap-1 mt-2">
                 {hand.map((r, i) => {
                   const selected = exchangeKeep.includes(i);
+                  const toggleSelect = () => {
+                    setExchangeKeep((prev) =>
+                      prev.includes(i)
+                        ? prev.filter((x) => x !== i)
+                        : prev.length < exchangeKeepCount
+                          ? [...prev, i]
+                          : prev,
+                    );
+                  };
+
                   return (
                     <button
                       key={i}
-                      onClick={() =>
-                        setExchangeKeep((prev) =>
-                          prev.includes(i)
-                            ? prev.filter((x) => x !== i)
-                            : prev.length < exchangeKeepCount
-                              ? [...prev, i]
-                              : prev,
-                        )
-                      }
-                      className={`border-4 p-2 text-xs font-black ${selected ? 'bg-[#A3E635] border-black' : 'bg-white border-black'}`}
+                      data-testid={`coup-exchange-card-${i}`}
+                      aria-pressed={selected}
+                      aria-label={`${roleLabel(r)} ${selected ? '(Selected)' : ''}`}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleSelect();
+                        }
+                      }}
+                      onClick={toggleSelect}
+                      className={`border-4 p-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-black ${
+                        selected ? 'bg-[#A3E635] border-black' : 'bg-white border-black'
+                      }`}
                     >
                       {roleEmoji[r]} {roleLabel(r)}
                     </button>
@@ -541,10 +687,12 @@ export function CoupView() {
                 })}
               </div>
               <button
-                disabled={exchangeKeep.length !== exchangeKeepCount}
+                data-testid="coup-exchange-submit"
+                disabled={isExchangeSubmitting || exchangeKeep.length !== exchangeKeepCount}
                 onClick={() => {
+                  if (isExchangeSubmitting || exchangeKeep.length !== exchangeKeepCount) return;
+                  setIsExchangeSubmitting(true);
                   coupExchangeSelect(exchangeKeep);
-                  setExchangeKeep([]);
                 }}
                 className="mt-2 w-full bg-black text-white font-black py-2 text-xs uppercase disabled:bg-gray-300"
               >

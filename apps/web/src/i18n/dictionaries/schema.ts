@@ -1404,6 +1404,12 @@ export interface Dictionary {
     history: string;
     noHistory: string;
     none: string;
+    countdown: string;
+    eligibleChallengers: string;
+    eligibleBlockChallengers: string;
+    onlyTargetCanBlock: string;
+    anyoneCanBlock: string;
+    exchangeSelectedCount: string;
   };
   gameBananaThief: {
     phaseSetup: string;
