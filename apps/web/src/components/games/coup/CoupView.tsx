@@ -5,7 +5,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { CoupHelpModal } from './CoupHelpModal';
-import { CoupRole, CoupActionType, CoupPhase } from '@repo/types';
+import { CoupRole, CoupActionType, CoupPhase, type CoupState } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useCoupSounds, type CoupSound } from '@/hooks/useCoupSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
@@ -110,77 +110,187 @@ export function CoupView() {
   }, [state?.phase]);
 
   // ── Action History Logging ─────────────────────────────────────────
-  useEffect(() => {
-    if (!state?.pendingAction) return;
-    const actor =
-      room?.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name ?? 'Someone';
-    const actionName = actionLabel(state.pendingAction.type);
-    const target = state.pendingAction.targetId
-      ? room?.players.find((p) => p.socketId === state.pendingAction!.targetId)?.name
-      : undefined;
-    const role = state.pendingAction.claimedRole
-      ? roleLabel(state.pendingAction.claimedRole)
-      : undefined;
-    let entry = `${actor}: ${actionName}`;
-    if (role) entry += ` (${role})`;
-    if (target) entry += ` ➔ ${target}`;
-
-    setActionHistory((prev) => {
-      if (prev[0] === entry) return prev;
-      return [entry, ...prev.slice(0, 19)];
-    });
-  }, [state?.pendingAction]);
-
-  useEffect(() => {
-    if (!state?.pendingBlock) return;
-    const blocker =
-      room?.players.find((p) => p.socketId === state.pendingBlock!.blockerId)?.name ?? 'Someone';
-    const role = roleLabel(state.pendingBlock.claimedRole);
-    const entry = `🛡️ ${blocker} blocks as ${role}`;
-    setActionHistory((prev) => {
-      if (prev[0] === entry) return prev;
-      return [entry, ...prev.slice(0, 19)];
-    });
-  }, [state?.pendingBlock]);
-
-  useEffect(() => {
-    if (!state?.winnerId) return;
-    const winner = room?.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId;
-    const entry = `🏆 ${t('gameCoup.winner', { name: winner })}`;
-    setActionHistory((prev) => {
-      if (prev[0] === entry) return prev;
-      return [entry, ...prev.slice(0, 19)];
-    });
-  }, [state?.winnerId]);
-
-  const prevTurnRef = useRef<{ turn: string | null; coins: Record<string, number> }>({
-    turn: null,
+  const prevGameRef = useRef<{
+    phase: string | null;
+    pendingAction: NonNullable<CoupState['pendingAction']> | null;
+    pendingBlock: NonNullable<CoupState['pendingBlock']> | null;
+    influences: Record<string, { count: number; revealed: CoupRole[] }>;
+    coins: Record<string, number>;
+    currentTurn: string | null;
+    winnerId: string | null;
+  }>({
+    phase: null,
+    pendingAction: null,
+    pendingBlock: null,
+    influences: {},
     coins: {},
+    currentTurn: null,
+    winnerId: null,
   });
+
   useEffect(() => {
     if (!state) return;
-    const prev = prevTurnRef.current;
-    if (prev.turn !== null && prev.turn !== state.currentTurn) {
-      const prevActor = room?.players.find((p) => p.socketId === prev.turn)?.name ?? 'Someone';
-      const prevCoins = prev.coins[prev.turn] ?? 0;
-      const currentCoins = state.coins[prev.turn] ?? 0;
+    const prev = prevGameRef.current;
+    if (!prev.phase) {
+      prevGameRef.current = {
+        phase: state.phase,
+        pendingAction: state.pendingAction ? { ...state.pendingAction } : null,
+        pendingBlock: state.pendingBlock ? { ...state.pendingBlock } : null,
+        influences: JSON.parse(JSON.stringify(state.influences)),
+        coins: { ...state.coins },
+        currentTurn: state.currentTurn,
+        winnerId: state.winnerId,
+      };
+      return;
+    }
 
-      // Income (+1 coin)
-      if (currentCoins === prevCoins + 1 && !state.pendingAction) {
-        const entry = `${prevActor}: ${actionLabel(CoupActionType.INCOME)}`;
-        setActionHistory((h) => (h[0] === entry ? h : [entry, ...h.slice(0, 19)]));
-      }
-      // Coup (-7 coins)
-      else if (currentCoins === prevCoins - 7) {
-        const entry = `${prevActor}: ${actionLabel(CoupActionType.COUP)}`;
-        setActionHistory((h) => (h[0] === entry ? h : [entry, ...h.slice(0, 19)]));
+    const addHistory = (entry: string) => {
+      setActionHistory((h) => (h[0] === entry ? h : [entry, ...h.slice(0, 19)]));
+    };
+
+    // 1. Pending Action declared
+    if (
+      state.pendingAction &&
+      (!prev.pendingAction ||
+        prev.pendingAction.type !== state.pendingAction.type ||
+        prev.pendingAction.actorId !== state.pendingAction.actorId)
+    ) {
+      const actor =
+        room?.players.find((p) => p.socketId === state.pendingAction!.actorId)?.name ?? 'Someone';
+      const actionName = actionLabel(state.pendingAction.type);
+      const target = state.pendingAction.targetId
+        ? room?.players.find((p) => p.socketId === state.pendingAction!.targetId)?.name
+        : undefined;
+      const role = state.pendingAction.claimedRole
+        ? roleLabel(state.pendingAction.claimedRole)
+        : undefined;
+      let entry = `${actor}: ${actionName}`;
+      if (role) entry += ` (${role})`;
+      if (target) entry += ` ➔ ${target}`;
+      addHistory(entry);
+    }
+
+    // 2. Pending Block declared
+    if (
+      state.pendingBlock &&
+      (!prev.pendingBlock ||
+        prev.pendingBlock.blockerId !== state.pendingBlock.blockerId ||
+        prev.pendingBlock.claimedRole !== state.pendingBlock.claimedRole)
+    ) {
+      const blocker =
+        room?.players.find((p) => p.socketId === state.pendingBlock!.blockerId)?.name ?? 'Someone';
+      const role = roleLabel(state.pendingBlock.claimedRole);
+      const entry = `🛡️ ${blocker} blocks as ${role}`;
+      addHistory(entry);
+    }
+
+    // 3. Influence lost anywhere (challenge loss, assassination, coup)
+    for (const [pid, inf] of Object.entries(state.influences)) {
+      const prevInf = prev.influences[pid];
+      if (prevInf && inf.count < prevInf.count) {
+        const playerName = room?.players.find((p) => p.socketId === pid)?.name ?? pid;
+        const newRevealed = inf.revealed[inf.revealed.length - 1];
+        const roleText = newRevealed
+          ? `${roleEmoji[newRevealed]} ${roleLabel(newRevealed)}`
+          : 'status card';
+
+        // Check context of influence loss:
+        if (prev.pendingBlock) {
+          const blockerId = prev.pendingBlock.blockerId;
+          if (pid === blockerId) {
+            // Blocker lost -> block challenge succeeded (blocker caught bluffing)
+            addHistory(
+              t('gameCoup.blockChallengeSuccessLog', { blocker: playerName, role: roleText }),
+            );
+          } else {
+            // Challenger lost -> block challenge failed (blocker had the role)
+            const blockerName =
+              room?.players.find((p) => p.socketId === blockerId)?.name ?? 'Blocker';
+            addHistory(
+              t('gameCoup.blockChallengeFailLog', {
+                blocker: blockerName,
+                challenger: playerName,
+              }),
+            );
+          }
+        } else if (
+          prev.pendingAction &&
+          prev.pendingAction.claimedRole &&
+          prev.phase === 'AWAITING_CHALLENGE'
+        ) {
+          const actorId = prev.pendingAction.actorId;
+          // Action challenge context
+          if (pid === actorId) {
+            // Actor lost -> action challenge succeeded (actor caught bluffing)
+            addHistory(
+              t('gameCoup.actionChallengeSuccessLog', { actor: playerName, role: roleText }),
+            );
+          } else {
+            // Challenger lost -> action challenge failed (actor had the role)
+            const actorName =
+              room?.players.find((p) => p.socketId === actorId)?.name ?? 'Actor';
+            addHistory(
+              t('gameCoup.actionChallengeFailLog', {
+                actor: actorName,
+                challenger: playerName,
+              }),
+            );
+          }
+        } else {
+          // General influence loss (e.g. Coup or Assassinate)
+          addHistory(t('gameCoup.lostInfluenceLog', { player: playerName, role: roleText }));
+        }
       }
     }
-    prevTurnRef.current = {
-      turn: state.currentTurn,
+
+    // 4. Block stood via timeout (pendingBlock was present, now null, and no influence lost)
+    if (prev.pendingBlock && !state.pendingBlock && prev.phase === 'AWAITING_CHALLENGE') {
+      const blockerId = prev.pendingBlock.blockerId;
+      const influenceDropped = Object.entries(state.influences).some(
+        ([id, inf]) => (prev.influences[id]?.count ?? 0) > inf.count,
+      );
+      if (!influenceDropped && state.phase === 'PLAYING') {
+        const blocker =
+          room?.players.find((p) => p.socketId === blockerId)?.name ?? 'Someone';
+        const actionName = prev.pendingAction ? actionLabel(prev.pendingAction.type) : '';
+        addHistory(t('gameCoup.blockStoodLog', { blocker, action: actionName }));
+      }
+    }
+
+    // 5. Action resolved via timeout (Income, Tax, Foreign Aid, etc.)
+    if (prev.currentTurn && prev.currentTurn !== state.currentTurn) {
+      const prevActor =
+        room?.players.find((p) => p.socketId === prev.currentTurn)?.name ?? 'Someone';
+      const prevCoins = prev.coins[prev.currentTurn] ?? 0;
+      const currentCoins = state.coins[prev.currentTurn] ?? 0;
+
+      // Income (+1 coin)
+      if (currentCoins === prevCoins + 1 && !prev.pendingAction) {
+        addHistory(`${prevActor}: ${actionLabel(CoupActionType.INCOME)}`);
+      }
+      // Coup (-7 coins)
+      else if (currentCoins === prevCoins - 7 && !prev.pendingAction) {
+        addHistory(`${prevActor}: ${actionLabel(CoupActionType.COUP)}`);
+      }
+    }
+
+    // 6. Winner
+    if (state.winnerId && state.winnerId !== prev.winnerId) {
+      const winner =
+        room?.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId;
+      addHistory(`🏆 ${t('gameCoup.winner', { name: winner })}`);
+    }
+
+    prevGameRef.current = {
+      phase: state.phase,
+      pendingAction: state.pendingAction ? { ...state.pendingAction } : null,
+      pendingBlock: state.pendingBlock ? { ...state.pendingBlock } : null,
+      influences: JSON.parse(JSON.stringify(state.influences)),
       coins: { ...state.coins },
+      currentTurn: state.currentTurn,
+      winnerId: state.winnerId,
     };
-  }, [state, room?.players]);
+  }, [state, room?.players, t]);
 
   // ── Sound effects: derive cues from server-state deltas ─────────────
   // 1) a declared action (pendingAction appears) → sound per action type
@@ -357,6 +467,8 @@ export function CoupView() {
                 {Array.from({ length: count }).map((_, i) => (
                   <div
                     key={i}
+                    data-testid="coup-card-hidden"
+                    aria-label="Hidden influence"
                     className="w-6 h-8 border-2 border-black bg-black text-white flex items-center justify-center text-[10px]"
                   >
                     ?
@@ -365,6 +477,8 @@ export function CoupView() {
                 {revealed.map((r, i) => (
                   <div
                     key={`r-${i}`}
+                    data-testid="coup-card-revealed"
+                    aria-label={`Revealed: ${roleLabel(r)}`}
                     className="w-6 h-8 border-2 border-black bg-white flex items-center justify-center text-[10px]"
                   >
                     {roleEmoji[r]}
@@ -430,6 +544,14 @@ export function CoupView() {
 
       {state.phase === 'AWAITING_CHALLENGE' && state.pendingAction && !state.pendingBlock && (
         <div className="border-4 border-black p-3 bg-[#FECACA]">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span
+              data-testid="coup-challenge-kind"
+              className="bg-red-800 text-white text-[10px] font-black uppercase px-2 py-0.5"
+            >
+              {t('gameCoup.challengeActionLabel')}
+            </span>
+          </div>
           <div className="text-xs font-black uppercase text-center">
             {t('gameCoup.declaredAction', {
               name:
@@ -491,6 +613,14 @@ export function CoupView() {
 
       {state.phase === 'AWAITING_CHALLENGE' && state.pendingBlock && state.pendingAction && (
         <div className="border-4 border-black p-3 bg-[#FDE68A]">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span
+              data-testid="coup-challenge-kind"
+              className="bg-amber-800 text-white text-[10px] font-black uppercase px-2 py-0.5"
+            >
+              {t('gameCoup.challengeBlockLabel')}
+            </span>
+          </div>
           <div className="text-xs font-black uppercase text-center">
             {t('gameCoup.blocksAction', {
               name:
@@ -727,6 +857,16 @@ export function CoupView() {
               </span>
             )}
           </div>
+
+          {forcedCoup && isMyTurn && (
+            <div
+              data-testid="coup-mandatory-banner"
+              className="border-2 border-red-600 bg-red-100 text-red-900 p-2 text-xs font-bold mb-3 flex items-center gap-2"
+            >
+              <span>⚠️</span>
+              <span>{t('gameCoup.mustCoupHint')}</span>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3">
             {/* Untargeted actions */}
@@ -1029,10 +1169,29 @@ export function CoupView() {
       </details>
 
       {state.winnerId && (
-        <div className="border-4 border-black bg-[#A7F3D0] p-3 text-center font-black">
-          {t('gameCoup.winner', {
-            name: room.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId,
-          })}
+        <div
+          data-testid="coup-winner-banner"
+          className="border-4 border-black bg-[#A7F3D0] p-4 text-center font-black shadow-[4px_4px_0_0_#000]"
+        >
+          <div className="text-base sm:text-lg">
+            {t('gameCoup.winner', {
+              name:
+                room.players.find((p) => p.socketId === state.winnerId)?.name ?? state.winnerId,
+            })}
+          </div>
+          {room.roomHostId === socketId ? (
+            <button
+              data-testid="coup-rematch-button"
+              onClick={() => resetRoom()}
+              className="mt-3 w-full bg-black text-white hover:bg-gray-800 font-black py-2.5 px-4 text-xs uppercase tracking-wider shadow-[2px_2px_0_0_#000]"
+            >
+              🔄 {t('gameCoup.playAgain')}
+            </button>
+          ) : (
+            <div data-testid="coup-waiting-host" className="text-xs font-bold text-gray-700 mt-2">
+              ⏳ {t('gameCoup.waitingHostRestart')}
+            </div>
+          )}
         </div>
       )}
 

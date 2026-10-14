@@ -240,6 +240,10 @@ test.describe('Coup / Golden Sand House Experience (TASK-CP-001)', () => {
       timeout: 5000,
     });
 
+    const blockChallengeKind = turn1Active.locator('[data-testid="coup-challenge-kind"]');
+    await expect(blockChallengeKind).toBeVisible();
+    await expect(blockChallengeKind).toContainText(/Block Challenge|ท้าทายการยืนขวาง/i);
+
     const blockEligible = turn1Active.locator('[data-testid="coup-eligible-responders"]');
     await expect(blockEligible).toContainText(/Eligible to challenge block|ผู้มีสิทธิ์ท้าคนขวาง/i);
 
@@ -251,6 +255,14 @@ test.describe('Coup / Golden Sand House Experience (TASK-CP-001)', () => {
       timeout: 8000,
     });
 
+    // Verify hidden and revealed influence cards
+    const hiddenCards = turn1Active.locator('[data-testid="coup-card-hidden"]');
+    await expect(hiddenCards.first()).toBeVisible();
+    await expect(hiddenCards.first()).toHaveAttribute('aria-label', 'Hidden influence');
+    const revealedCards = turn1Active.locator('[data-testid="coup-card-revealed"]');
+    await expect(revealedCards.first()).toBeVisible();
+    await expect(revealedCards.first()).toHaveAttribute('aria-label', /Revealed:/);
+
     // 4. Turn 2: New active player takes Exchange (Switch the wills)
     activeIdx = await findActive();
     const turn2Active = pages[activeIdx];
@@ -261,9 +273,12 @@ test.describe('Coup / Golden Sand House Experience (TASK-CP-001)', () => {
     await expect(exchangeBtn).toBeEnabled({ timeout: 5000 });
     await exchangeBtn.click();
 
-    // In AWAITING_CHALLENGE for Exchange: countdown & eligible challengers visible
+    // In AWAITING_CHALLENGE for Exchange: countdown, badge & eligible challengers visible
     const exchangeCountdown = turn2Active.locator('[data-testid="coup-countdown"]');
     await expect(exchangeCountdown).toBeVisible({ timeout: 5000 });
+    const actionChallengeKind = turn2Active.locator('[data-testid="coup-challenge-kind"]');
+    await expect(actionChallengeKind).toBeVisible();
+    await expect(actionChallengeKind).toContainText(/Action Challenge|ท้าทายการกระทำ/i);
     const exchangeEligible = turn2Active.locator('[data-testid="coup-eligible-responders"]');
     await expect(exchangeEligible).toContainText(/Eligible to challenge:|ผู้มีสิทธิ์ท้าทาย:/i);
 
@@ -341,6 +356,152 @@ test.describe('Coup / Golden Sand House Experience (TASK-CP-001)', () => {
     // Target player can block as Captain or Ambassador
     await expect(targetPage.locator('[data-testid="coup-block-captain"]')).toBeVisible();
     await expect(targetPage.locator('[data-testid="coup-block-ambassador"]')).toBeVisible();
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+    await p3Ctx.close();
+  });
+
+  test('mandatory coup explanation banner, play-to-conclusion, and result rematch hostguard (TASK-CP-003)', async ({
+    browser,
+  }) => {
+    test.setTimeout(90000);
+    const p1Ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const p2Ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const p3Ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+    const p3 = await p3Ctx.newPage();
+
+    const roomCode = await createRoom(p1, 'HostP1', 'Golden Sand House');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'GuestP2');
+    await joinRoom(p3, origin, roomCode, 'GuestP3');
+
+    await expect(p1.getByText('GuestP2')).toBeVisible({ timeout: 10000 });
+    await expect(p1.getByText('GuestP3')).toBeVisible({ timeout: 10000 });
+    await p1.waitForTimeout(1000);
+
+    const startBtn = p1.getByText(/Start Game|เริ่มเกม/i);
+    await expect(startBtn).toBeVisible({ timeout: 5000 });
+    await startBtn.click();
+
+    await expect(p1.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
+      timeout: 10000,
+    });
+
+    const pages = [p1, p2, p3];
+    const findActive = async () => {
+      let activeIdx = -1;
+      await expect
+        .poll(
+          async () => {
+            for (let i = 0; i < pages.length; i++) {
+              if (
+                await pages[i]
+                  .getByText(/Your Turn|ตาของคุณ/i)
+                  .first()
+                  .isVisible()
+                  .catch(() => false)
+              ) {
+                activeIdx = i;
+                return true;
+              }
+            }
+            return false;
+          },
+          { timeout: 10000 },
+        )
+        .toBe(true);
+      return activeIdx;
+    };
+
+    // 1. Fast Income cycles until someone reaches 10+ coins
+    for (let r = 0; r < 35; r++) {
+      const activeIdx = await findActive();
+      const activePage = pages[activeIdx];
+      const mandatoryBanner = activePage.locator('[data-testid="coup-mandatory-banner"]');
+      if (await mandatoryBanner.isVisible().catch(() => false)) {
+        break;
+      }
+      const incomeBtn = activePage.getByRole('button', { name: /Polish stairs/i });
+      if (await incomeBtn.isEnabled().catch(() => false)) {
+        await incomeBtn.click();
+        await activePage.waitForTimeout(150);
+      }
+    }
+
+    // 2. Active player now has 10 coins -> verify mandatory coup explanation banner
+    const activeIdx = await findActive();
+    const activePage = pages[activeIdx];
+    const mandatoryBanner = activePage.locator('[data-testid="coup-mandatory-banner"]');
+    await expect(mandatoryBanner).toBeVisible({ timeout: 5000 });
+    await expect(mandatoryBanner).toContainText(
+      /With 10 or more coins, you must reveal the real will|มีเหรียญตั้งแต่ 10 ต้องกางพินัยกรรมตัวจริง/i,
+    );
+
+    // Verify non-coup actions are disabled by forced coup
+    const incomeBtn = activePage.getByRole('button', { name: /Polish stairs/i });
+    await expect(incomeBtn).toBeDisabled();
+
+    // 3. Perform Coup
+    const actionArea = activePage.locator('[data-testid="coup-action-area"]');
+    const coupSelect = actionArea.locator('select').last();
+    await coupSelect.selectOption({ index: 1 });
+    const coupBtn = activePage.getByRole('button', { name: /Reveal the real will/i });
+    await expect(coupBtn).toBeEnabled({ timeout: 5000 });
+    await coupBtn.click();
+
+    // Coup executes immediately (-7 coins, target loses influence)
+    await activePage.waitForTimeout(1000);
+    const revealedCards = activePage.locator('[data-testid="coup-card-revealed"]');
+    await expect(revealedCards.first()).toBeVisible({ timeout: 5000 });
+
+    // 4. Eliminate remaining rivals purely via instant Income + Coup (no 7s challenge timers)
+    for (let round = 0; round < 60; round++) {
+      if (await p1.locator('[data-testid="coup-winner-banner"]').isVisible().catch(() => false)) {
+        break;
+      }
+      const curIdx = await findActive();
+      const curPage = pages[curIdx];
+
+      const cSelect = curPage.locator('[data-testid="coup-action-area"] select').last();
+      const hasTarget = await cSelect
+        .locator('option')
+        .count()
+        .then((c) => c > 1)
+        .catch(() => false);
+      if (hasTarget) {
+        await cSelect.selectOption({ index: 1 }).catch(() => {});
+      }
+      const cBtn = curPage.getByRole('button', { name: /Reveal the real will/i });
+      if (await cBtn.isEnabled().catch(() => false)) {
+        await cBtn.click().catch(() => {});
+        await curPage.waitForTimeout(150);
+      } else {
+        const inBtn = curPage.getByRole('button', { name: /Polish stairs/i });
+        if (await inBtn.isEnabled().catch(() => false)) {
+          await inBtn.click().catch(() => {});
+          await curPage.waitForTimeout(150);
+        }
+      }
+    }
+
+    // 5. Verify game reached conclusion and test rematch host guard
+    await expect(p1.locator('[data-testid="coup-winner-banner"]')).toBeVisible({ timeout: 10000 });
+    // Host sees rematch button
+    await expect(p1.locator('[data-testid="coup-rematch-button"]')).toBeVisible();
+    // Guest sees waiting for host message and no rematch button
+    await expect(p2.locator('[data-testid="coup-waiting-host"]')).toBeVisible();
+    await expect(p2.locator('[data-testid="coup-rematch-button"]')).not.toBeVisible();
+
+    // Host clicks rematch -> resets room to Lobby
+    await p1.locator('[data-testid="coup-rematch-button"]').click();
+    await expect(p1.getByText(/Start Game|เริ่มเกม/i)).toBeVisible({ timeout: 8000 });
+    await expect(
+      p2.getByText(/Waiting for Room Host|รอเจ้าของห้องเริ่มเกม/i),
+    ).toBeVisible({ timeout: 8000 });
 
     await p1Ctx.close();
     await p2Ctx.close();

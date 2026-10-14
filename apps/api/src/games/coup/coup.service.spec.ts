@@ -87,6 +87,14 @@ describe('CoupService (01 scaffold)', () => {
     }
   });
 
+  it('resetGame fails if requester is not the room host', () => {
+    const room = makeRoom();
+    service.startGame(room, 's1');
+    expect(service.resetGame(room, 's2')).toBeNull();
+    expect(room.coupState).toBeDefined();
+    expect(room.status).toBe(RoomStatus.PLAYING);
+  });
+
   it('remapSocketId moves coins/influences/currentTurn', () => {
     const room = makeRoom();
     service.startGame(room, 's1');

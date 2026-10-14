@@ -1410,6 +1410,17 @@ export interface Dictionary {
     onlyTargetCanBlock: string;
     anyoneCanBlock: string;
     exchangeSelectedCount: string;
+    challengeActionLabel: string;
+    challengeBlockLabel: string;
+    playAgain: string;
+    waitingHostRestart: string;
+    actionChallengeSuccessLog: string;
+    actionChallengeFailLog: string;
+    blockChallengeSuccessLog: string;
+    blockChallengeFailLog: string;
+    blockStoodLog: string;
+    actionSucceededLog: string;
+    lostInfluenceLog: string;
   };
   gameBananaThief: {
     phaseSetup: string;
