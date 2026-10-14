@@ -10,10 +10,10 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 
 | id                          | game              | players | mode/config                                 | completion assertion           |
 | --------------------------- | ----------------- | ------- | ------------------------------------------- | ------------------------------ |
-| who-know-4p                 | Knowguise          | 4       | defaults (ROUND_ROBIN host)                 | Voting Results / winner banner |
-| who-know-random             | Knowguise          | 4       | host selection RANDOM                       | Voting Results / winner banner |
-| who-know-fixed              | Knowguise          | 4       | host selection FIXED                        | Voting Results / winner banner |
-| sounds-fishy-3p             | GuiseGuess      | 3       | defaults                                    | Round Over scores              |
+| who-know-4p                 | Knowguise         | 4       | defaults (ROUND_ROBIN host)                 | Voting Results / winner banner |
+| who-know-random             | Knowguise         | 4       | host selection RANDOM                       | Voting Results / winner banner |
+| who-know-fixed              | Knowguise         | 4       | host selection FIXED                        | Voting Results / winner banner |
+| sounds-fishy-3p             | GuiseGuess        | 3       | defaults                                    | Round Over scores              |
 | ttt-classic-2p              | Tic-Tac-Toe       | 2       | mode CLASSIC PVP                            | "wins" banner                  |
 | ttt-classic-bot-easy        | Tic-Tac-Toe       | 1       | mode CLASSIC, vs bot EASY                   | Play Again button              |
 | ttt-classic-bot-god         | Tic-Tac-Toe       | 1       | mode CLASSIC, vs bot GOD                    | Play Again button              |
@@ -23,7 +23,7 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 | rps-bestof3-rr              | Hand Duel         | 2       | BO3 round robin                             | "Wins the Match!"              |
 | rps-bestof3-chaos           | Hand Duel         | 2       | BO3 all at once                             | "Wins the Match!"              |
 | rps-allatonce-bo5           | Hand Duel         | 2       | BO5 all at once                             | "Wins the Match!"              |
-| detective-club-3p           | Cluecanvas    | 3       | defaults                                    | Scoring phase controls         |
+| detective-club-3p           | Cluecanvas        | 3       | defaults                                    | Scoring phase controls         |
 | whoami-player-input         | Who Am I          | 2       | PLAYER_INPUT, 1 round                       | Game Over after YES vote       |
 | whoami-host-input           | Who Am I          | 3       | HOST_INPUT (host moderates)                 | Game Over after YES vote       |
 | whoami-random               | Who Am I          | 2       | RANDOM + category (Animals)                 | Game Over after YES vote       |
@@ -35,10 +35,10 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 | music-trivia-gm             | Music Trivia      | 2       | GAME_MASTER, 5 rounds                       | Game Over!                     |
 | music-trivia-soundcloud     | Music Trivia      | 2       | SoundCloud source                           | external, skipped by default†  |
 | music-trivia-youtube        | Music Trivia      | 2       | YouTube source                              | external, skipped by default†  |
-| the-mind-normal             | Countaline          | 2       | NORMAL, max level 4                         | You Win! / Game Over           |
-| the-mind-extreme            | Countaline          | 2       | EXTREME, max level 3                        | You Win! / Game Over           |
-| the-mind-blind              | Countaline          | 2       | BLIND, max level 3                          | You Win! / Game Over           |
-| the-mind-timeattack         | Countaline          | 2       | TIME ATTACK, max level 3                    | You Win! / Game Over           |
+| the-mind-normal             | Countaline        | 2       | NORMAL, max level 4                         | You Win! / Game Over           |
+| the-mind-extreme            | Countaline        | 2       | EXTREME, max level 3                        | You Win! / Game Over           |
+| the-mind-blind              | Countaline        | 2       | BLIND, max level 3                          | You Win! / Game Over           |
+| the-mind-timeattack         | Countaline        | 2       | TIME ATTACK, max level 3                    | You Win! / Game Over           |
 | saboteur-3p                 | Saboteur          | 3       | defaults, full 3 rounds                     | Win overlay / back to lobby    |
 | saboteur-stone-ends         | Saboteur          | 3       | stone ends round instantly, 3 rounds        | Win overlay / back to lobby    |
 | saboteur-timer              | Saboteur          | 3       | turn timer on (60s auto-pass), 3 rounds     | Win overlay / back to lobby    |
