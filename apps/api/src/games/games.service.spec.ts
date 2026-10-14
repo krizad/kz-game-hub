@@ -25,6 +25,7 @@ import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { GameSettingsService } from './game-settings.service';
+import { RoomStartGuardService } from './room-start-guard.service';
 
 describe('GamesService', () => {
   let service: GamesService;
@@ -44,6 +45,7 @@ describe('GamesService', () => {
   let playerSessionService: PlayerSessionService;
   let privateStateService: PrivateStateService;
   let roomTimerService: RoomTimerService;
+  let roomStartGuardService: RoomStartGuardService;
 
   const mockGameServices = {
     whoKnow: {
@@ -237,6 +239,7 @@ describe('GamesService', () => {
         PrivateStateService,
         RoomTimerService,
         GameSettingsService,
+        RoomStartGuardService,
       ],
     }).compile();
 
@@ -257,6 +260,7 @@ describe('GamesService', () => {
     playerSessionService = module.get(PlayerSessionService);
     privateStateService = module.get(PrivateStateService);
     roomTimerService = module.get(RoomTimerService);
+    roomStartGuardService = module.get(RoomStartGuardService);
 
     // Real implementation so leave-mid-round tests exercise actual cancellation
     const cardGameInstance = new CardGameService(privateStateService);
@@ -1929,6 +1933,20 @@ describe('GamesService', () => {
         expect(service.saboteurTurnDeadline(room.code, 'p1', 60)).toBe(65_000);
       } finally {
         jest.useRealTimers();
+      }
+    });
+
+    it('invalidates in-flight start tickets when the room is deleted', () => {
+      const room = service.createRoom('host1', GameType.SOUNDS_FISHY);
+      const ticket = roomStartGuardService.begin(room.code, room);
+      expect(ticket).not.toBe('START_BUSY');
+      expect(roomStartGuardService.isBusy(room.code)).toBe(true);
+
+      service.deleteRoom(room.code);
+
+      expect(roomStartGuardService.isBusy(room.code)).toBe(false);
+      if (ticket !== 'START_BUSY') {
+        expect(roomStartGuardService.isCurrent(ticket, room)).toBe(false);
       }
     });
   });

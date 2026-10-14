@@ -23,9 +23,11 @@ import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
+import { RoomStartGuardService } from './room-start-guard.service';
 
 @Module({
   providers: [
+    RoomStartGuardService,
     GamesGateway,
     GamesService,
     WhoKnowService,

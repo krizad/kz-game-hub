@@ -41,6 +41,7 @@ import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
+import { RoomStartGuardService } from './room-start-guard.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 
@@ -93,6 +94,7 @@ export class GamesService {
     private readonly cardGameService: CardGameService,
     private readonly pokerService: PokerService,
     private readonly gameSettings: GameSettingsService,
+    private readonly roomStartGuardService: RoomStartGuardService,
   ) {}
 
   setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void {
@@ -582,6 +584,7 @@ export class GamesService {
     this.playerSessionService.clearRoom(code);
     this.musicTriviaService.deleteRoomData(code);
     this.privateStateService.clearRoom(code);
+    this.roomStartGuardService.invalidate(code);
   }
 
   getAvailableRooms(): {

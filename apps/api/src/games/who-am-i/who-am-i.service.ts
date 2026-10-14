@@ -3,6 +3,7 @@ import { RoomState, RoomStatus, UserState, WhoAmIGameState, WordCategory } from 
 import { prisma } from '@repo/database';
 import { GoogleGenAI } from '@google/genai';
 import { PrivateStateService } from '../private-state.service';
+import { RoomStartGuardService } from '../room-start-guard.service';
 
 const WAI_MY_WORD = 'waiMyWord';
 const WAI_VISIBLE_WORDS = 'waiVisibleWords';
@@ -12,7 +13,10 @@ const GEMINI_TIMEOUT_MS = 15000;
 
 @Injectable()
 export class WhoAmIService {
-  constructor(private readonly privateState: PrivateStateService) {}
+  constructor(
+    private readonly privateState: PrivateStateService,
+    private readonly startGuard: RoomStartGuardService,
+  ) {}
 
   private shuffleArray<T>(arr: T[]): T[] {
     const a = [...arr];
@@ -163,21 +167,26 @@ export class WhoAmIService {
     if (room.config.wordMode !== 'AI_GENERATED') return null;
     if (room.players.length < 2) return null;
 
-    const lang = room.config.language || 'th';
-    const isThai = lang === 'th';
-    const langLabel = isThai ? 'Thai' : 'English';
-    const example = isThai
-      ? '["หมูปิ้ง", "ช้าง", "นายกรัฐมนตรี"]'
-      : '["Elephant", "Harry Potter", "Pizza"]';
+    const ticket = this.startGuard.begin(room.code, room);
+    if (ticket === 'START_BUSY') return null;
 
-    const promptCategory = room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
+    try {
+      const lang = room.config.language || 'th';
+      const isThai = lang === 'th';
+      const langLabel = isThai ? 'Thai' : 'English';
+      const example = isThai
+        ? '["หมูปิ้ง", "ช้าง", "นายกรัฐมนตรี"]'
+        : '["Elephant", "Harry Potter", "Pizza"]';
 
-    let words: string[] = [];
+      const promptCategory =
+        room.config.wordCategory || (isThai ? 'สิ่งของรอบตัว' : 'Random things');
 
-    if (process.env.GEMINI_API_KEY) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const prompt = `You are an expert game master generating words for the game "Who Am I".
+      let words: string[] = [];
+
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          const prompt = `You are an expert game master generating words for the game "Who Am I".
 Target Language: ${langLabel}
 Category: "${promptCategory}"
 Count: ${room.players.length} words
@@ -193,98 +202,104 @@ BAD EXAMPLES: ["A big animal with a trunk", "Running in the park", "The man who 
 
 Output ONLY a JSON array containing exactly ${room.players.length} strings. No markdown formatting.`;
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
-        try {
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              abortSignal: controller.signal,
-            },
-          });
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+          try {
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: prompt,
+              config: {
+                responseMimeType: 'application/json',
+                abortSignal: controller.signal,
+              },
+            });
 
-          const responseText = response.text;
-          const cleanText = responseText
-            .replace(/```json/g, '')
-            .replace(/```/g, '')
-            .trim();
-          const parsed = JSON.parse(cleanText);
-          if (Array.isArray(parsed)) {
-            words = [
-              ...new Set(
-                parsed
-                  .filter((w): w is string => typeof w === 'string')
-                  .map((w) => w.trim())
-                  .filter((w) => w && w.length <= MAX_WORD_LENGTH),
-              ),
-            ];
+            const responseText = response.text;
+            const cleanText = responseText
+              .replace(/```json/g, '')
+              .replace(/```/g, '')
+              .trim();
+            const parsed = JSON.parse(cleanText);
+            if (Array.isArray(parsed)) {
+              words = [
+                ...new Set(
+                  parsed
+                    .filter((w): w is string => typeof w === 'string')
+                    .map((w) => w.trim())
+                    .filter((w) => w && w.length <= MAX_WORD_LENGTH),
+                ),
+              ];
+            }
+          } finally {
+            clearTimeout(timeout);
           }
-        } finally {
-          clearTimeout(timeout);
+        } catch (error) {
+          console.error('Error calling Gemini API:', error);
         }
-      } catch (error) {
-        console.error('Error calling Gemini API:', error);
       }
-    }
 
-    if (words.length < room.players.length) {
-      console.log('Falling back to database for words...');
-      let category = room.config.wordCategory;
-      if (!category) {
-        // The seeded database has no generic bucket; fall back to a random
-        // category that actually exists and can cover the whole table.
-        const categories = (await this.getCategories(lang)).filter(
-          (c) => c.count >= room.players.length,
-        );
-        if (categories.length === 0) return null;
-        category = categories[Math.floor(Math.random() * categories.length)].name;
-      }
-      const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
-      if (dbWords.length < room.players.length) return null;
-      words = dbWords.map((w) => (w.emoji ? `${w.emoji} ${w.word}` : w.word));
-    } else {
-      // Asynchronously insert generated words into DB
-      Promise.resolve().then(async () => {
-        try {
-          const existingWords = await prisma.word.findMany({
-            where: {
-              category: promptCategory,
-              lang: lang,
-              word: { in: words },
-            },
-            select: { word: true },
-          });
-          const existingSet = new Set(existingWords.map((w) => w.word.toLowerCase()));
-          const newWords = words.filter((w) => !existingSet.has(w.toLowerCase()));
-
-          if (newWords.length > 0) {
-            await prisma.word.createMany({
-              data: newWords.map((w) => ({
-                word: w,
+      if (words.length < room.players.length) {
+        console.log('Falling back to database for words...');
+        let category = room.config.wordCategory;
+        if (!category) {
+          // The seeded database has no generic bucket; fall back to a random
+          // category that actually exists and can cover the whole table.
+          const categories = (await this.getCategories(lang)).filter(
+            (c) => c.count >= room.players.length,
+          );
+          if (categories.length === 0) return null;
+          category = categories[Math.floor(Math.random() * categories.length)].name;
+        }
+        const dbWords = await this.fetchRandomWords(category, lang, room.players.length);
+        if (dbWords.length < room.players.length) return null;
+        words = dbWords.map((w) => (w.emoji ? `${w.emoji} ${w.word}` : w.word));
+      } else {
+        // Asynchronously insert generated words into DB
+        Promise.resolve().then(async () => {
+          try {
+            const existingWords = await prisma.word.findMany({
+              where: {
                 category: promptCategory,
                 lang: lang,
-              })),
+                word: { in: words },
+              },
+              select: { word: true },
             });
+            const existingSet = new Set(existingWords.map((w) => w.word.toLowerCase()));
+            const newWords = words.filter((w) => !existingSet.has(w.toLowerCase()));
+
+            if (newWords.length > 0) {
+              await prisma.word.createMany({
+                data: newWords.map((w) => ({
+                  word: w,
+                  category: promptCategory,
+                  lang: lang,
+                })),
+              });
+            }
+          } catch (dbError) {
+            console.error('Failed to save AI words to DB:', dbError);
           }
-        } catch (dbError) {
-          console.error('Failed to save AI words to DB:', dbError);
-        }
+        });
+      }
+
+      // Revalidate room state before mutating room and private state
+      if (!this.startGuard.isCurrent(ticket, room)) return null;
+
+      room.status = RoomStatus.PLAYING;
+
+      const shuffledPlayers = this.shuffleArray(room.players);
+      shuffledPlayers.forEach((p, idx) => {
+        this.setMyWord(room, p.socketId, words[idx]);
       });
+      this.syncVisibleWords(room);
+
+      const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
+      room.whoAmIState = gameState;
+      return room;
+    } finally {
+      this.startGuard.release(ticket);
     }
-
-    room.status = RoomStatus.PLAYING;
-
-    const shuffledPlayers = this.shuffleArray(room.players);
-    shuffledPlayers.forEach((p, idx) => {
-      this.setMyWord(room, p.socketId, words[idx]);
-    });
-    this.syncVisibleWords(room);
-
-    const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
-    room.whoAmIState = gameState;
-    return room;
   }
 
   // ─── Start Game (RANDOM mode) ─────────────────────────────────────
@@ -297,24 +312,34 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     const category = room.config.wordCategory;
     if (!category) return null;
 
-    const lang = room.config.language || 'th';
+    const ticket = this.startGuard.begin(room.code, room);
+    if (ticket === 'START_BUSY') return null;
 
-    const words = await this.fetchRandomWords(category, lang, room.players.length);
+    try {
+      const lang = room.config.language || 'th';
 
-    if (words.length < room.players.length) return null; // not enough words in DB
+      const words = await this.fetchRandomWords(category, lang, room.players.length);
 
-    room.status = RoomStatus.PLAYING;
+      if (words.length < room.players.length) return null; // not enough words in DB
 
-    const shuffledPlayers = this.shuffleArray(room.players);
-    shuffledPlayers.forEach((p, idx) => {
-      const w = words[idx];
-      this.setMyWord(room, p.socketId, w.emoji ? `${w.emoji} ${w.word}` : w.word);
-    });
-    this.syncVisibleWords(room);
+      // Revalidate room state before mutating room and private state
+      if (!this.startGuard.isCurrent(ticket, room)) return null;
 
-    const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
-    room.whoAmIState = gameState;
-    return room;
+      room.status = RoomStatus.PLAYING;
+
+      const shuffledPlayers = this.shuffleArray(room.players);
+      shuffledPlayers.forEach((p, idx) => {
+        const w = words[idx];
+        this.setMyWord(room, p.socketId, w.emoji ? `${w.emoji} ${w.word}` : w.word);
+      });
+      this.syncVisibleWords(room);
+
+      const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
+      room.whoAmIState = gameState;
+      return room;
+    } finally {
+      this.startGuard.release(ticket);
+    }
   }
 
   // ─── Start Game (HOST_INPUT) — waiting for host to submit all words ─
