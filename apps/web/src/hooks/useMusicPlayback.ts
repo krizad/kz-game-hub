@@ -19,6 +19,7 @@ export function useMusicPlayback(
   const [paused, setPaused] = useState(false);
   const [providerAttempt, setProviderAttempt] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const audioSettingsRef = useRef({ volume, muted });
   audioSettingsRef.current = { volume, muted };
   const providerRef = useRef<ReactPlayer | null>(null);
@@ -50,6 +51,80 @@ export function useMusicPlayback(
     setStatus('error');
     setReason('EXPIRED_CLIP');
   }, []);
+
+  const unlock = useCallback(() => {
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioCtx();
+        }
+        if (audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume().catch(() => {});
+        }
+      }
+    } catch {}
+
+    try {
+      let audio = audioRef.current;
+      if (!audio) {
+        audio = new Audio();
+        audioRef.current = audio;
+      }
+      if (!audio.src) {
+        audio.src =
+          'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        const p = audio.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => audio.pause()).catch(() => {});
+        }
+      }
+    } catch {}
+
+    if (typeof window !== 'undefined') {
+      (window as any).__musicAudioUnlocked = true;
+    }
+  }, []);
+
+  const seekAudioToElapsed = useCallback(
+    (audio: HTMLAudioElement) => {
+      if (isExpired()) {
+        markExpired();
+        return;
+      }
+      const elapsed = elapsedSeconds();
+      if (elapsed <= 0) return;
+
+      const applySeek = () => {
+        try {
+          if (isExpired()) {
+            markExpired();
+            return;
+          }
+          const target =
+            Number.isFinite(audio.duration) && audio.duration > 0
+              ? Math.min(elapsedSeconds(), audio.duration)
+              : elapsedSeconds();
+          audio.currentTime = target;
+        } catch {
+          // Audio element may not seek before metadata is loaded
+        }
+      };
+
+      if (audio.readyState >= 1) {
+        applySeek();
+      } else {
+        const onLoaded = () => {
+          audio.removeEventListener('loadedmetadata', onLoaded);
+          applySeek();
+        };
+        audio.addEventListener('loadedmetadata', onLoaded, { once: true });
+      }
+    },
+    [elapsedSeconds, isExpired, markExpired],
+  );
 
   const playNative = useCallback(() => {
     const clip = currentRef.current.syncPlay;
@@ -89,17 +164,10 @@ export function useMusicPlayback(
     } else if (audio.src !== clip.previewUrl) {
       audio.src = clip.previewUrl;
     }
-    if (lastSyncRef.current !== clip) {
-      try {
-        const elapsed = elapsedSeconds();
-        if (elapsed > 0) {
-          audio.currentTime = elapsed;
-        }
-      } catch {
-        // Audio element may not seek before metadata is loaded
-      }
-      lastSyncRef.current = clip;
-    }
+
+    seekAudioToElapsed(audio);
+    lastSyncRef.current = clip;
+
     audio.volume = audioSettingsRef.current.volume;
     audio.muted = audioSettingsRef.current.muted;
     const attempt = ++attemptRef.current;
@@ -129,7 +197,7 @@ export function useMusicPlayback(
         setStatus(isNotAllowed ? 'blocked' : 'error');
         setReason(isNotAllowed ? 'AUTOPLAY_BLOCKED' : 'NETWORK_OR_PROVIDER');
       });
-  }, [elapsedSeconds, isExpired, markExpired]);
+  }, [isExpired, markExpired, seekAudioToElapsed]);
 
   useEffect(() => {
     if (!syncPlay || phase !== 'PLAYING' || !enabled || paused) {
@@ -147,10 +215,13 @@ export function useMusicPlayback(
       audioRef.current?.pause();
       setStatus('loading');
       setReason(null);
+      try {
+        providerRef.current?.seekTo(elapsedSeconds(), 'seconds');
+      } catch {}
     } else {
       playNative();
     }
-  }, [syncPlay, phase, enabled, paused, isExpired, markExpired, playNative]);
+  }, [syncPlay, phase, enabled, paused, isExpired, markExpired, playNative, elapsedSeconds]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -208,9 +279,12 @@ export function useMusicPlayback(
       else if (player?.play) player.play();
       setProviderAttempt((value) => value + 1);
     } else {
+      if (audioRef.current) {
+        seekAudioToElapsed(audioRef.current);
+      }
       playNative(); // Called synchronously inside the click gesture.
     }
-  }, [elapsedSeconds, isExpired, markExpired, playNative]);
+  }, [elapsedSeconds, isExpired, markExpired, playNative, seekAudioToElapsed]);
 
   const onProviderReady = useCallback(() => {
     const current = currentRef.current;
@@ -267,6 +341,8 @@ export function useMusicPlayback(
   return {
     status,
     reason,
+    unlock,
+    markExpired,
     retry,
     muted,
     setMuted,

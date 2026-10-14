@@ -561,5 +561,46 @@ describe('MusicTriviaService', () => {
       room.musicTriviaState!.mode = 'TYPING';
       expect(service.getCurrentHostAnswer(room, 'host-1')).toBeNull();
     });
+
+    it('remaps socket ID across scores, round state, struck-outs, buzzer, and ready IDs without resetting timer', () => {
+      const state = room.musicTriviaState!;
+      state.scores['player-2'] = 3;
+      state.readyPlayerIds = ['player-2', 'host-1'];
+      state.currentRound!.currentBuzzerId = 'player-2';
+      state.currentRound!.winnerId = 'player-2';
+      state.currentRound!.struckOutIds = ['player-2'];
+      state.currentRound!.buzzerPresses = [
+        { playerId: 'player-2', timestamp: Date.now() - 1000, reactionTimeMs: 1200 },
+      ];
+      state.roundHistory = [
+        {
+          roundNumber: 1,
+          winnerId: 'player-2',
+          trackTitle: 'Old song',
+          artistName: 'Old artist',
+        },
+      ];
+      const initialPlayStartTime = state.playStartTime;
+
+      service.remapSocketId(state, 'player-2', 'player-2-reconnected');
+
+      expect(state.scores['player-2']).toBeUndefined();
+      expect(state.scores['player-2-reconnected']).toBe(3);
+      expect(state.readyPlayerIds).toEqual(['player-2-reconnected', 'host-1']);
+      expect(state.currentRound!.currentBuzzerId).toBe('player-2-reconnected');
+      expect(state.currentRound!.winnerId).toBe('player-2-reconnected');
+      expect(state.currentRound!.struckOutIds).toEqual(['player-2-reconnected']);
+      expect(state.currentRound!.buzzerPresses[0].playerId).toBe('player-2-reconnected');
+      expect(state.roundHistory[0].winnerId).toBe('player-2-reconnected');
+      // Timer and round number must NOT be reset
+      expect(state.playStartTime).toBe(initialPlayStartTime);
+      expect(state.currentRound!.roundNumber).toBe(2);
+    });
+
+    it('ensures guest reconnecting in TYPING mode never receives host answer', () => {
+      room.musicTriviaState!.mode = 'TYPING';
+      expect(service.getCurrentHostAnswer(room, 'player-2')).toBeNull();
+      expect(service.getCurrentHostAnswer(room, 'host-1')).toBeNull();
+    });
   });
 });

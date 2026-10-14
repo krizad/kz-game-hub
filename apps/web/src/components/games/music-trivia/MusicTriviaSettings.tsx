@@ -390,6 +390,7 @@ export function MusicTriviaSettings() {
             </label>
             {isHost ? (
               <NeobrutalismSelect
+                data-testid="music-audio-playback-select"
                 value={room.config?.musicTriviaAudioPlayback || 'EVERYONE'}
                 options={[
                   { value: 'EVERYONE', label: t('gameMusicTrivia.lobby.playbackEveryone') },

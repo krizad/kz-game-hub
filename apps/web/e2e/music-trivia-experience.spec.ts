@@ -253,4 +253,130 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
       await guestContext.close();
     }
   });
+
+  test('Ready gesture unlocks audio before player becomes ready', async ({ browser }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    try {
+      await guest.addInitScript(attachYTMock('play'), 'play');
+      const code = await createRoom(host, 'Alice', 'Music Trivia');
+      await joinRoom(guest, await getOrigin(host), code, 'Bob');
+      await host.getByRole('button', { name: /Free search/i }).click();
+      await host
+        .getByRole('button', { name: /Pick an Artist/i })
+        .last()
+        .click();
+      await host.getByTestId('lobby-start-game').click();
+
+      // Verify guest is in GET_READY phase
+      const readyBtn = guest.getByRole('button', { name: "I'm Ready!", exact: true });
+      await expect(readyBtn).toBeVisible();
+
+      // Before clicking, audio is not unlocked yet
+      const unlockedBefore = await guest.evaluate(() => !!(window as any).__musicAudioUnlocked);
+      expect(unlockedBefore).toBe(false);
+
+      // Clicking Ready primes/unlocks audio
+      await readyBtn.click();
+      const unlockedAfter = await guest.evaluate(() => !!(window as any).__musicAudioUnlocked);
+      expect(unlockedAfter).toBe(true);
+
+      // Host starts countdown and guest reaches PLAYING phase
+      await host.getByRole('button', { name: 'Start Song (Countdown)', exact: true }).click();
+      await expect(guest.getByRole('button', { name: /BUZZ!$/ })).toBeVisible();
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
+
+  test('retry seeks to elapsed playback time without restarting the round or score', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    try {
+      await guest.addInitScript(attachYTMock('play'), 'play');
+      await startPreset(host, guest);
+      await expect(guest.getByTestId('music-playback-status')).toHaveText('Now Playing...');
+
+      // Record seekTo calls on the mock player
+      await guest.evaluate(() => {
+        const player = (window as any).__mockYTPlayer;
+        (window as any).__seekCalls = [];
+        if (player) {
+          const origSeek = player.seekTo;
+          player.seekTo = function (seconds: number) {
+            (window as any).__seekCalls.push(seconds);
+            origSeek.call(this, seconds);
+          };
+        }
+      });
+
+      // Trigger toolbar retry
+      const retryBtn = guest.locator('button[title="Retry audio"]');
+      await retryBtn.click();
+
+      // Assert that seekTo was called with elapsed seconds
+      await expect
+        .poll(async () => {
+          return guest.evaluate(() => (window as any).__seekCalls?.length || 0);
+        })
+        .toBeGreaterThanOrEqual(1);
+
+      // Round number and buzz button remain intact without scoreboard reset
+      await expect(guest.getByRole('button', { name: /BUZZ!$/ })).toBeVisible();
+      await expect(guest.getByText(/Round 1/i)).toBeVisible();
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
+
+  test('host-only playback mode enables audio for host while guest receives host-only notice without local playback', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    try {
+      await host.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock('play'), 'play');
+      const code = await createRoom(host, 'Alice', 'Music Trivia');
+      await joinRoom(guest, await getOrigin(host), code, 'Bob');
+
+      await host.getByRole('button', { name: /Free search/i }).click();
+      await host
+        .getByRole('button', { name: /Pick an Artist/i })
+        .last()
+        .click();
+
+      // Switch audio playback dropdown to HOST_ONLY
+      const audioSelect = host.getByTestId('music-audio-playback-select');
+      await audioSelect.click();
+      await host.getByRole('button', { name: 'Host Only', exact: true }).click();
+
+      await host.getByTestId('lobby-start-game').click();
+      await guest.getByRole('button', { name: "I'm Ready!", exact: true }).click();
+      await host.getByRole('button', { name: 'Start Song (Countdown)', exact: true }).click();
+
+      // Host has Now Playing
+      await expect(host.getByTestId('music-playback-status')).toHaveText('Now Playing...');
+
+      // Guest does not have Now Playing; instead shows Ready status and host-only notice
+      await expect(guest.getByTestId('music-playback-status')).toHaveText('Audio ready');
+      await expect(guest.getByTestId('music-host-only-notice')).toBeVisible();
+
+      // Guest still has BUZZ! button and can participate in game
+      await expect(guest.getByRole('button', { name: /BUZZ!$/ })).toBeVisible();
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
 });

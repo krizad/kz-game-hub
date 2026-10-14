@@ -88,10 +88,13 @@ test.describe('TASK-SH-001: Clock Offset & Wire Contract', () => {
 
 test.describe('TASK-SH-001: Phase Prompts System for all 14 GameTypes', () => {
   const baseRoom = (gameType: GameType): RoomState => ({
+    id: 'ROOM01',
     code: 'ROOM01',
     gameType,
     status: RoomStatus.PLAYING,
+    roomHostId: 'host-socket',
     hostPlayerId: 'host-socket',
+    createdAt: new Date(),
     players: [
       {
         id: 'p1',
@@ -347,18 +350,20 @@ test.describe('TASK-SH-001: Phase Prompts System for all 14 GameTypes', () => {
         buzzerPresses: [],
         currentBuzzerId: null,
         struckOutIds: [],
+        answeredCorrectly: false,
+        winnerId: null,
       },
       roundHistory: [],
       scores: {},
       totalRounds: 5,
-    };
+    } as any;
 
     // Nobody buzzed
     verifyPrompt(getGamePrompt(room, 'sock-bob'), 'gamePrompts.musicTrivia.pressBuzzer');
 
     // Bob buzzed
-    room.musicTriviaState.phase = 'BUZZED';
-    room.musicTriviaState.currentRound.currentBuzzerId = 'sock-bob';
+    room.musicTriviaState!.phase = 'BUZZED';
+    room.musicTriviaState!.currentRound!.currentBuzzerId = 'sock-bob';
     verifyPrompt(getGamePrompt(room, 'sock-bob'), 'gamePrompts.musicTrivia.youBuzzed');
     verifyPrompt(getGamePrompt(room, 'sock-alice'), 'gamePrompts.musicTrivia.hostJudging');
     const charliePrompt = getGamePrompt(room, 'sock-charlie');
@@ -375,6 +380,7 @@ test.describe('TASK-SH-001: Phase Prompts System for all 14 GameTypes', () => {
       lives: 3,
       shuriken: 1,
       pileTop: 0,
+      pileTopPlayerId: null,
       playedCards: [],
       handSizes: {},
       readyPlayers: ['sock-alice'],
@@ -390,7 +396,7 @@ test.describe('TASK-SH-001: Phase Prompts System for all 14 GameTypes', () => {
     verifyPrompt(getGamePrompt(room, 'sock-bob'), 'gamePrompts.theMind.getReady');
 
     // Playing
-    room.theMindState.phase = 'PLAYING' as any;
+    room.theMindState!.phase = 'PLAYING' as any;
     verifyPrompt(getGamePrompt(room, 'sock-alice'), 'gamePrompts.theMind.playCard');
   });
 
@@ -472,19 +478,19 @@ test.describe('TASK-SH-001: Phase Prompts System for all 14 GameTypes', () => {
       minRaise: 20,
       currentBet: 20,
       activePlayerId: 'sock-alice',
-      seats: [],
+      seats: {},
       pots: [],
       communityCards: [],
       actionLog: [],
       eliminatedSeats: [],
-    };
+    } as any;
 
     verifyPrompt(getGamePrompt(room, 'sock-alice'), 'gamePrompts.poker.yourTurn');
     const bobPrompt = getGamePrompt(room, 'sock-bob');
     verifyPrompt(bobPrompt, 'gamePrompts.poker.waitingTurn');
     expect(bobPrompt.params?.name).toBe('Alice');
 
-    room.pokerState.phase = 'SHOWDOWN';
+    room.pokerState!.phase = 'SHOWDOWN';
     verifyPrompt(getGamePrompt(room, 'sock-alice'), 'gamePrompts.poker.showdown');
   });
 

@@ -17,10 +17,12 @@ export function MusicTriviaView() {
   const [answerInput, setAnswerInput] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [answerTimeLeft, setAnswerTimeLeft] = useState<number | null>(null);
+  const serverOffset = useGameStore((s) => s.serverOffset);
   const playback = useMusicPlayback(
     musicTriviaSyncPlay,
     state?.phase,
     room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' ? isHost : true,
+    serverOffset,
   );
   const [hasTestedAudio, setHasTestedAudio] = useState(false);
 
@@ -330,6 +332,7 @@ export function MusicTriviaView() {
               {!state.readyPlayerIds?.includes(socketId) && (
                 <button
                   onClick={() => {
+                    playback.unlock();
                     setHasTestedAudio(true);
                     musicTriviaGameAction({ type: 'PLAYER_READY' });
                   }}
@@ -350,7 +353,10 @@ export function MusicTriviaView() {
                     </span>
                   </div>
                   <button
-                    onClick={() => musicTriviaGameAction({ type: 'START_COUNTDOWN' })}
+                    onClick={() => {
+                      playback.unlock();
+                      musicTriviaGameAction({ type: 'START_COUNTDOWN' });
+                    }}
                     className="w-full h-20 text-2xl font-black bg-rose-400 hover:bg-rose-300 text-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-2 active:shadow-none uppercase tracking-widest "
                   >
                     {t('gameMusicTrivia.game.getReadyStartBtn')}
@@ -415,6 +421,7 @@ export function MusicTriviaView() {
                       onReady={playback.onProviderReady}
                       onPlay={playback.onProviderPlay}
                       onError={playback.onProviderError}
+                      onEnded={playback.markExpired}
                     />
                   </div>
                 )}
@@ -438,73 +445,84 @@ export function MusicTriviaView() {
                     {t(`gameMusicTrivia.game.playbackReason.${playback.reason}`)}
                   </p>
                 )}
+                {room?.config.musicTriviaAudioPlayback === 'HOST_ONLY' && !isHost && (
+                  <p
+                    data-testid="music-host-only-notice"
+                    className="text-black font-bold text-sm bg-pink-200 px-3 py-1 border-2 border-black inline-block mt-2"
+                  >
+                    📢 {t('gameMusicTrivia.lobby.playbackHostHint')}
+                  </p>
+                )}
                 <p className="text-black font-bold text-xl bg-yellow-300 px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
                   {t('gameMusicTrivia.game.listenCarefully')}
                 </p>
-                {playback.reason !== 'EXPIRED_CLIP' && (
-                  <div>
-                    <button
-                      onClick={playback.retry}
-                      className="px-6 py-3 bg-white text-black border-4 border-black font-black uppercase tracking-widest hover:bg-slate-200 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform"
-                    >
-                      {playback.status === 'blocked'
-                        ? t('gameMusicTrivia.game.enableAudio')
-                        : t('gameMusicTrivia.game.retryPlayback')}
-                    </button>
-                  </div>
-                )}
+                {playback.reason !== 'EXPIRED_CLIP' &&
+                  (room?.config.musicTriviaAudioPlayback !== 'HOST_ONLY' || isHost) && (
+                    <div>
+                      <button
+                        onClick={playback.retry}
+                        className="px-6 py-3 bg-white text-black border-4 border-black font-black uppercase tracking-widest hover:bg-slate-200 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform"
+                      >
+                        {playback.status === 'blocked'
+                          ? t('gameMusicTrivia.game.enableAudio')
+                          : t('gameMusicTrivia.game.retryPlayback')}
+                      </button>
+                    </div>
+                  )}
               </div>
 
               {/* Enhanced Audio Controls */}
-              <div className="w-full max-w-sm flex flex-col gap-3 bg-pink-300 p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => playback.setPaused(!playback.paused)}
-                      disabled={playback.reason === 'EXPIRED_CLIP'}
-                      className={`h-12 w-12 flex items-center justify-center font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none ${playback.paused ? 'bg-yellow-300 text-black' : 'bg-white text-black'}`}
-                      title={playback.paused ? 'Play' : 'Pause'}
-                    >
-                      {playback.paused ? '▶️' : '⏸️'}
-                    </button>
-                    <button
-                      onClick={playback.retry}
-                      disabled={playback.reason === 'EXPIRED_CLIP'}
-                      className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
-                      title={t('gameMusicTrivia.game.retryPlayback')}
-                    >
-                      🔄
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => playback.setMuted(!playback.muted)}
-                      aria-label={t(
-                        playback.muted
-                          ? 'gameMusicTrivia.game.unmuteAudio'
-                          : 'gameMusicTrivia.game.muteAudio',
-                      )}
-                      aria-pressed={playback.muted}
-                      className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
-                    >
-                      {playback.muted ? '🔇' : '🔊'}
-                    </button>
-                  </div>
-                  <div className="flex items-center space-x-3 flex-1 ml-4 bg-white p-2 border-4 border-black">
-                    <span className="text-black font-black">🔉</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={playback.volume}
-                      onChange={(e) => playback.setVolume(parseFloat(e.target.value))}
-                      className="w-full h-3 bg-black appearance-none cursor-pointer accent-yellow-400 border-2 border-black"
-                      aria-label="Volume control"
-                    />
-                    <span className="text-black font-black">🔊</span>
+              {(room?.config.musicTriviaAudioPlayback !== 'HOST_ONLY' || isHost) && (
+                <div className="w-full max-w-sm flex flex-col gap-3 bg-pink-300 p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => playback.setPaused(!playback.paused)}
+                        disabled={playback.reason === 'EXPIRED_CLIP'}
+                        className={`h-12 w-12 flex items-center justify-center font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none ${playback.paused ? 'bg-yellow-300 text-black' : 'bg-white text-black'}`}
+                        title={playback.paused ? 'Play' : 'Pause'}
+                      >
+                        {playback.paused ? '▶️' : '⏸️'}
+                      </button>
+                      <button
+                        onClick={playback.retry}
+                        disabled={playback.reason === 'EXPIRED_CLIP'}
+                        className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
+                        title={t('gameMusicTrivia.game.retryPlayback')}
+                      >
+                        🔄
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => playback.setMuted(!playback.muted)}
+                        aria-label={t(
+                          playback.muted
+                            ? 'gameMusicTrivia.game.unmuteAudio'
+                            : 'gameMusicTrivia.game.muteAudio',
+                        )}
+                        aria-pressed={playback.muted}
+                        className="h-12 w-12 flex items-center justify-center bg-white font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none text-black hover:bg-slate-200"
+                      >
+                        {playback.muted ? '🔇' : '🔊'}
+                      </button>
+                    </div>
+                    <div className="flex items-center space-x-3 flex-1 ml-4 bg-white p-2 border-4 border-black">
+                      <span className="text-black font-black">🔉</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={playback.volume}
+                        onChange={(e) => playback.setVolume(parseFloat(e.target.value))}
+                        className="w-full h-3 bg-black appearance-none cursor-pointer accent-yellow-400 border-2 border-black"
+                        aria-label="Volume control"
+                      />
+                      <span className="text-black font-black">🔊</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {!isHost || state.hostPlays ? (
                 <div className="w-full max-w-xs flex flex-col items-center gap-4 mt-8">
