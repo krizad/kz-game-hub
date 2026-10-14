@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GamesService, RoomLifecycleEvent } from './games.service';
+import { GamesGateway } from './games.gateway';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -19,7 +20,7 @@ import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
-import { RoomState, RoomStatus, GameType, Role } from '@repo/types';
+import { RoomState, RoomStatus, GameType, Role, SOCKET_EVENTS } from '@repo/types';
 import { PlayerSessionService } from './player-session.service';
 import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
@@ -468,6 +469,39 @@ describe('GamesService', () => {
       expect(updatedRoom!.players).toHaveLength(1);
       expect(updatedRoom!.players[0].socketId).toBe('newSock');
       expect(updatedRoom!.players[0].connected).toBe(true);
+    });
+
+    it('recognizes a seated reconnect only when the token and player name both match', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'oldSock', name: 'Original', socketId: 'oldSock' });
+      const reconnectToken = service.getReconnectToken(room.code, 'oldSock')!;
+
+      expect(service.hasSeatedSession(room.code, reconnectToken, 'Original')).toBe(true);
+      expect(service.hasSeatedSession(room.code, reconnectToken, 'Changed')).toBe(false);
+    });
+
+    it('does not create a late viewer when a real seated token is used with a new name', () => {
+      const room = service.createRoom('oldSock');
+      service.joinRoom(room.code, { id: 'oldSock', name: 'Original', socketId: 'oldSock' });
+      const reconnectToken = service.getReconnectToken(room.code, 'oldSock')!;
+      room.status = RoomStatus.PLAYING;
+      const gateway = new GamesGateway(
+        service,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+      const client = { id: 'newSock', emit: jest.fn(), data: {} };
+
+      gateway.handleJoinRoom({ code: room.code, name: 'Changed', reconnectToken }, client as never);
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+        message: 'SPECTATORS_DISABLED',
+      });
+      expect(room.players).toHaveLength(1);
+      expect(room.players[0].name).toBe('Original');
+      expect(room.players[0].isViewer).toBeUndefined();
     });
 
     it('should keep host ownership when refresh reconnect races the old socket disconnect', () => {

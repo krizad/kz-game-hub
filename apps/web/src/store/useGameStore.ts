@@ -166,6 +166,7 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set, get) => {
+  let pendingSpectatorJoin: { code: string; previousIsSpectator: boolean } | null = null;
   /**
    * Standard game-action emitter: guards on socket/room/loading state,
    * flips `actionLoading`, and sends `{ code, ...payload }`.
@@ -352,6 +353,7 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on(SOCKET_EVENTS.ROOM_STATE_UPDATED, (room: RoomState) => {
+        if (pendingSpectatorJoin?.code === room.code) pendingSpectatorJoin = null;
         // Check if the current player is still in the room
         const isMe = room.players.some((p) => p.socketId === socket.id);
 
@@ -441,7 +443,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
         let redirectedFromMissingInviteRoom = false;
-        if (message === 'SPECTATORS_DISABLED') clearRoomSession();
+        if (message === 'SPECTATORS_DISABLED' && pendingSpectatorJoin) {
+          set({ isSpectator: pendingSpectatorJoin.previousIsSpectator });
+          pendingSpectatorJoin = null;
+        }
         if (message === 'Room not found') {
           localStorage.removeItem(STORAGE_KEYS.roomCode);
           localStorage.removeItem(STORAGE_KEYS.reconnectToken);
@@ -811,8 +816,10 @@ export const useGameStore = create<GameState>((set, get) => {
     spectateJoin: (code: string) => {
       const { socket, myName } = get();
       if (socket && myName) {
+        const normalizedCode = code.toUpperCase();
+        pendingSpectatorJoin = { code: normalizedCode, previousIsSpectator: get().isSpectator };
         set({ isLoading: true, isSpectator: true });
-        socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: code.toUpperCase(), name: myName });
+        socket.emit(SOCKET_EVENTS.SPECTATE_JOIN, { code: normalizedCode, name: myName });
       }
     },
   };

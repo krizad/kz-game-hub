@@ -74,6 +74,43 @@ test('unlisted room stays out of catalog, accepts code joins and reconnects, and
   await observer.close();
 });
 
+test('a denied spectator request keeps the current seated room and session', async ({
+  browser,
+  page,
+}) => {
+  const originalCode = await createRoom(page, 'CurrentHost', 'Knowguise');
+  const otherHost = await browser.newPage();
+  const deniedCode = await createRoom(otherHost, 'OtherHost', 'Knowguise');
+  const before = await page.evaluate(() => {
+    const state = (window as any).__useGameStore.getState();
+    return {
+      playerId: state.playerId,
+      reconnectToken: localStorage.getItem('kz-reconnectToken'),
+    };
+  });
+  expect(before.playerId).toBeTruthy();
+  expect(before.reconnectToken).toBeTruthy();
+
+  await page.evaluate(
+    (code) => (window as any).__useGameStore.getState().spectateJoin(code),
+    deniedCode,
+  );
+  await expect(page.getByText('This room does not allow spectators.')).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__useGameStore.getState().room?.code))
+    .toBe(originalCode);
+  expect(await page.evaluate(() => (window as any).__useGameStore.getState().playerId)).toBe(
+    before.playerId,
+  );
+  expect(await page.evaluate(() => (window as any).__useGameStore.getState().isSpectator)).toBe(
+    false,
+  );
+  expect(await page.evaluate(() => localStorage.getItem('kz-reconnectToken'))).toBe(
+    before.reconnectToken,
+  );
+  await otherHost.close();
+});
+
 for (const { width, height, language } of [
   { width: 360, height: 800, language: 'th' },
   { width: 390, height: 844, language: 'en' },

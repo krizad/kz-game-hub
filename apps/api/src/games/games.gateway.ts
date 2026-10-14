@@ -332,10 +332,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
       return;
     }
+    const name = data.name.trim();
     const isSeatedMember =
-      targetRoom.players.some((p) => p.socketId === client.id) ||
-      (!!data.reconnectToken &&
-        this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken));
+      !!data.reconnectToken &&
+      this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken, name);
     // A fresh join after play starts becomes a viewer. Keep that path subject
     // to the same policy as SPECTATE_JOIN, without locking out seated reconnects.
     if (
@@ -355,7 +355,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       data.code.toUpperCase(),
       {
         id: client.id, // using socketId as temp ID
-        name: data.name.trim(),
+        name,
         socketId: client.id,
       },
       data.reconnectToken,

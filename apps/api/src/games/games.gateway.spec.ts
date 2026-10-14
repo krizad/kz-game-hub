@@ -123,8 +123,53 @@ describe('GamesGateway payload guard', () => {
       { code: room.code, name: 'Returning', reconnectToken: 'valid' },
       client as never,
     );
-    expect(hasSeatedSession).toHaveBeenCalledWith(room.code, 'valid');
+    expect(hasSeatedSession).toHaveBeenCalledWith(room.code, 'valid', 'Returning');
     expect(joinRoom).toHaveBeenCalled();
+  });
+
+  it('does not treat a different name on the same socket or token as a seated reconnect', () => {
+    const room = {
+      code: 'ABC123',
+      gameType: GameType.WHO_KNOW,
+      status: RoomStatus.PLAYING,
+      config: { allowSpectators: false },
+      players: [{ id: 'seat1', name: 'Original', socketId: 'oldSock' }],
+    };
+    const joinRoom = jest.fn(() => null);
+    const hasSeatedSession = jest.fn(() => false);
+    const admissionGateway = new GamesGateway(
+      {
+        getRoom: jest.fn(() => room),
+        findRoomCodeBySocketId: jest.fn(() => null),
+        isGameEnabled: jest.fn(() => true),
+        hasSeatedSession,
+        joinRoom,
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+    const client = { id: 'oldSock', join: jest.fn(), emit: jest.fn(), data: {} };
+
+    admissionGateway.handleJoinRoom({ code: room.code, name: 'Changed' }, client as never);
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'SPECTATORS_DISABLED',
+    });
+    expect(joinRoom).not.toHaveBeenCalled();
+
+    room.players[0].socketId = 'otherSock';
+    client.emit.mockClear();
+    admissionGateway.handleJoinRoom(
+      { code: room.code, name: 'Changed', reconnectToken: 'valid' },
+      client as never,
+    );
+    expect(hasSeatedSession).toHaveBeenCalledWith(room.code, 'valid', 'Changed');
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'SPECTATORS_DISABLED',
+    });
+    expect(joinRoom).not.toHaveBeenCalled();
   });
 
   it('accepts exchange selections of any small size and rejects malformed ones', () => {
@@ -404,10 +449,14 @@ describe('GamesGateway payload guard', () => {
     const disabledRoom = {
       code: 'ABC123',
       gameType: GameType.COUP,
-      players: [{ socketId: 'member1' }],
+      players: [{ socketId: 'member1', name: 'Member' }],
     };
+    const hasSeatedSession = jest.fn(
+      (_code: string, token: string, name: string) => token === 'valid' && name === 'Member',
+    );
     const gamesService = {
       joinRoom,
+      hasSeatedSession,
       findRoomCodeBySocketId: jest.fn(() => null),
       getRoom: jest.fn(() => disabledRoom),
       isGameEnabled: jest.fn(() => false),
@@ -435,7 +484,10 @@ describe('GamesGateway payload guard', () => {
       message: 'This game is currently disabled.',
     });
 
-    gateway.handleJoinRoom({ code: 'abc123', name: 'Member' }, member as never);
+    gateway.handleJoinRoom(
+      { code: 'abc123', name: 'Member', reconnectToken: 'valid' },
+      member as never,
+    );
     expect(joinRoom).toHaveBeenCalled();
   });
 

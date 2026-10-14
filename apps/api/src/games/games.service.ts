@@ -134,16 +134,15 @@ export class GamesService {
   }
 
   /**
-   * Whether a reconnect token belongs to a player still seated in the room.
-   * Used by the disabled-game gate so a refreshed browser (new socket id) can
-   * still reclaim its seat instead of being locked out of its own room.
+   * Whether a token and name identify a player who joinRoom can actually
+   * restore. The disabled-game and spectator gates use this before admission.
    */
-  hasSeatedSession(code: string, reconnectToken: string): boolean {
+  hasSeatedSession(code: string, reconnectToken: string, name: string): boolean {
     const room = this.rooms.get(code);
     if (!room) return false;
     const playerId = this.playerSessionService.verify(code, reconnectToken);
     if (!playerId) return false;
-    return room.players.some((player) => player.id === playerId);
+    return room.players.some((player) => player.id === playerId && player.name === name);
   }
 
   createRoom(
