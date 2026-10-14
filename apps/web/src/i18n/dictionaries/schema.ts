@@ -80,6 +80,9 @@ export interface Dictionary {
     leave: string;
     confirmLeave: string;
     players: string;
+    togglePlayers: string;
+    showRoster: string;
+    hideRoster: string;
     score: string;
     offline: string;
     you: string;
@@ -944,7 +947,13 @@ export interface Dictionary {
   };
   result: {
     winners: string;
+    winner: string;
     playAgain: string;
+    gameOver: string;
+    waitingForHost: string;
+    scores: string;
+    rank: string;
+    backToLobby: string;
   };
   whoFirst: {
     lobby: {

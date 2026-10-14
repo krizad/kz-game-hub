@@ -139,6 +139,9 @@ export const th: Dictionary = {
     leave: 'ออกจากห้อง',
     confirmLeave: 'ยืนยันการออก',
     players: 'ผู้เล่น',
+    togglePlayers: 'ผู้เล่น',
+    showRoster: 'แสดงรายชื่อผู้เล่น',
+    hideRoster: 'ซ่อนรายชื่อผู้เล่น',
     score: 'คะแนน',
     offline: 'ออฟไลน์',
     you: 'คุณ',
@@ -1122,7 +1125,13 @@ export const th: Dictionary = {
   },
   result: {
     winners: 'ผู้ชนะ',
+    winner: 'ผู้ชนะ',
     playAgain: 'เล่นอีกครั้ง',
+    gameOver: 'จบเกม',
+    waitingForHost: 'รอเจ้าของห้องเริ่มเกมใหม่...',
+    scores: 'คะแนน',
+    rank: 'อันดับ',
+    backToLobby: 'กลับสู่ล็อบบี้',
   },
   whoFirst: {
     lobby: {

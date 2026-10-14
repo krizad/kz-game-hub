@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { GameActionArea } from '@/components/core/GameActionArea';
 
 export function RPSView() {
   const {
@@ -212,7 +213,7 @@ export function RPSView() {
                 </span>
               </div>
             ) : (
-              <div className="flex gap-3 sm:gap-4 flex-wrap justify-center">
+              <GameActionArea docked={false} ariaLabel={t('lobby.gameNames.handDuel')}>
                 {(
                   [
                     { id: 'ROCK', label: t('gameRps.rock') },
@@ -234,7 +235,7 @@ export function RPSView() {
                     </span>
                   </button>
                 ))}
-              </div>
+              </GameActionArea>
             )}
           </div>
         )}

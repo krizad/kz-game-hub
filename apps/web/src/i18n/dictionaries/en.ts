@@ -141,6 +141,9 @@ export const en: Dictionary = {
     leave: 'Leave Room',
     confirmLeave: 'Confirm Leave',
     players: 'Players',
+    togglePlayers: 'Players',
+    showRoster: 'Show Players',
+    hideRoster: 'Hide Players',
     score: 'Score',
     offline: 'OFFLINE',
     you: 'YOU',
@@ -1150,7 +1153,13 @@ export const en: Dictionary = {
   },
   result: {
     winners: 'Winners',
+    winner: 'Winner',
     playAgain: 'Play Again',
+    gameOver: 'Game Over',
+    waitingForHost: 'Waiting for host to start a new game...',
+    scores: 'Scores',
+    rank: 'Rank',
+    backToLobby: 'Back to Lobby',
   },
   whoFirst: {
     lobby: {
