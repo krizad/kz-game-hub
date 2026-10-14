@@ -28,6 +28,7 @@ export function RPSView() {
   const isMyTurn = rps.activePlayers.includes(socketId);
   const mySideIndex = rps.activePlayers.indexOf(socketId);
   const myChoice = privateState.rpsChoice as string | undefined;
+  const isMyChoiceLocked = !!myChoice || (isMyTurn && rps.choicesMade.includes(socketId));
   const isHost = room.roomHostId === socketId;
 
   const bestOf = room.config.rpsBestOf || 3;
@@ -39,6 +40,18 @@ export function RPSView() {
     if (choice === 'SCISSORS') return '✌️';
     return '?';
   };
+
+  const getChoiceLabel = (choice: string | null) => {
+    if (choice === 'ROCK') return t('gameRps.rock');
+    if (choice === 'PAPER') return t('gameRps.paper');
+    if (choice === 'SCISSORS') return t('gameRps.scissors');
+    return '';
+  };
+
+  const waitingPlayers = rps.activePlayers
+    .filter((id) => !rps.choicesMade.includes(id))
+    .map((id) => room.players.find((p) => p.socketId === id)?.name)
+    .filter(Boolean) as string[];
 
   const isWinnerId = (winner: string | string[] | undefined, playerId: string): boolean => {
     if (!winner) return false;
@@ -86,6 +99,20 @@ export function RPSView() {
           <span className="text-black text-xs mt-1 bg-white px-2 py-0.5 border-2 border-black font-black">
             {score} / {targetScore}
           </span>
+          {room.status === RoomStatus.PLAYING && (
+            <span
+              data-testid={`rps-player-status-${playerId}`}
+              className={`text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black mt-1 ${
+                rps.choicesMade.includes(playerId)
+                  ? 'bg-emerald-300 text-black'
+                  : 'bg-yellow-200 text-black'
+              }`}
+            >
+              {rps.choicesMade.includes(playerId)
+                ? `✓ ${t('gameRps.ready')}`
+                : `⏳ ${t('gameRps.choosing')}`}
+            </span>
+          )}
         </div>
 
         {room.status === RoomStatus.RESULT && choice && (
@@ -148,27 +175,62 @@ export function RPSView() {
         {room.status === RoomStatus.PLAYING && (
           <div className="w-full flex flex-col items-center gap-6 mt-8">
             {!isMyTurn ? (
-              <div className="text-2xl font-black text-black uppercase tracking-widest bg-gray-300 px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ">
-                {t('gameRps.spectating')}
+              <div className="flex flex-col items-center gap-2 max-w-sm w-full">
+                <div className="text-xl sm:text-2xl font-black text-black uppercase tracking-widest bg-gray-300 px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {t('gameRps.spectating')}
+                </div>
+                {waitingPlayers.length > 0 && (
+                  <span
+                    data-testid="rps-spectator-waiting"
+                    className="text-xs sm:text-sm font-bold bg-white border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-center"
+                  >
+                    {t('gameRps.waitingFor', { names: waitingPlayers.join(', ') })}
+                  </span>
+                )}
               </div>
-            ) : myChoice ? (
-              <div className="text-xl font-black text-black text-center bg-yellow-300 px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
-                {t('gameRps.choiceLocked')}
-                <br />
-                <span className="text-sm font-bold mt-2 block bg-white border-2 border-black px-2 py-1">
-                  {t('gameRps.waitingOpponent')}
+            ) : isMyChoiceLocked ? (
+              <div
+                data-testid="rps-choice-locked"
+                className="text-lg sm:text-xl font-black text-black text-center bg-yellow-300 px-6 sm:px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 max-w-sm w-full"
+              >
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <span>{t('gameRps.choiceLocked')}</span>
+                  {myChoice && (
+                    <span className="bg-white border-2 border-black px-2 py-0.5 text-sm sm:text-base font-black">
+                      {getEmoji(myChoice)} {getChoiceLabel(myChoice)}
+                    </span>
+                  )}
+                </div>
+                <span
+                  data-testid="rps-waiting-status"
+                  className="text-xs sm:text-sm font-bold block bg-white border-2 border-black px-3 py-1.5 w-full"
+                >
+                  {waitingPlayers.length > 0
+                    ? t('gameRps.waitingFor', { names: waitingPlayers.join(', ') })
+                    : t('gameRps.waitingOpponent')}
                 </span>
               </div>
             ) : (
-              <div className="flex gap-4 flex-wrap justify-center">
-                {(['ROCK', 'PAPER', 'SCISSORS'] as const).map((choice) => (
+              <div className="flex gap-3 sm:gap-4 flex-wrap justify-center">
+                {(
+                  [
+                    { id: 'ROCK', label: t('gameRps.rock') },
+                    { id: 'PAPER', label: t('gameRps.paper') },
+                    { id: 'SCISSORS', label: t('gameRps.scissors') },
+                  ] as const
+                ).map(({ id, label }) => (
                   <button
-                    key={choice}
+                    key={id}
+                    data-testid={`rps-choice-${id.toLowerCase()}`}
+                    aria-label={label}
                     disabled={actionLoading}
-                    onClick={() => rpsMakeChoice(choice)}
-                    className="w-20 h-20 sm:w-28 sm:h-28 bg-white hover:bg-yellow-200 flex items-center justify-center text-5xl sm:text-6xl transition-all hover:scale-105 active:translate-y-1 active:shadow-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => rpsMakeChoice(id)}
+                    className="w-24 h-28 sm:w-32 sm:h-36 bg-white hover:bg-yellow-200 flex flex-col items-center justify-center gap-1.5 transition-all hover:scale-105 active:translate-y-1 active:shadow-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
-                    <span className="drop-">{getEmoji(choice)}</span>
+                    <span className="text-4xl sm:text-5xl drop-">{getEmoji(id)}</span>
+                    <span className="text-xs sm:text-sm font-black text-black uppercase tracking-wider group-hover:text-indigo-600">
+                      {label}
+                    </span>
                   </button>
                 ))}
               </div>

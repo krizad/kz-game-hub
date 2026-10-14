@@ -827,6 +827,9 @@ export interface Dictionary {
     spectating: string;
     choiceLocked: string;
     waitingOpponent: string;
+    waitingFor: string;
+    ready: string;
+    choosing: string;
     draw: string;
     winsMatch: string;
     winsRound: string;
