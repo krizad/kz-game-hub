@@ -123,6 +123,7 @@ test.describe('Cluecanvas Gameplay', () => {
     // With only one Picture Reader, at most one vote can expose the Improviser.
     // The displayed verdict must agree with the server's 5-point escape award.
     await expect(p1.getByText('Improviser Escaped!', { exact: true })).toBeVisible();
+    await expect(p1.getByTestId('cluecanvas-score-reasons')).toBeVisible();
 
     await Promise.all(contexts.map((c) => c.close()));
   });

@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { SoundToggle } from '@/components/core/SoundToggle';
+import { GameDialog } from '@/components/core/GameDialog';
 import { useBananaThiefSounds, type BananaThiefSound } from '@/hooks/useBananaThiefSounds';
 import { RoleArtwork } from './RoleArtwork';
 import {
@@ -229,6 +230,7 @@ export function BananaThiefView() {
   const [peekTarget, setPeekTarget] = useState('');
   const [myVote, setMyVote] = useState<string | null>(null);
   const [showPeekResult, setShowPeekResult] = useState(false);
+  const [showForceStartConfirm, setShowForceStartConfirm] = useState(false);
   const [floaters, setFloaters] = useState<
     { seq: number; emoji: string; fromName: string; x: number }[]
   >([]);
@@ -250,6 +252,8 @@ export function BananaThiefView() {
   const peekResult = ps?.ctPeekResult as
     | { targetName: string; die: number; role?: BananaThiefRole }
     | undefined;
+  const serverVote = ps?.ctVote as string | undefined;
+  const effectiveVote = serverVote ?? myVote;
 
   // Narration phrases (i18n-aware); stable callbacks for the narrator hook.
   // HOST-narrator mode silences the synth — the host reads the script aloud.
@@ -405,7 +409,7 @@ export function BananaThiefView() {
   };
 
   const submitVote = (targetId: string) => {
-    if (myVote) return;
+    if (effectiveVote) return;
     setMyVote(targetId);
     bananaThiefVote(targetId);
   };
@@ -540,9 +544,13 @@ export function BananaThiefView() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: [1, 0.75, 1], y: 0 }}
           transition={{ opacity: { repeat: Infinity, duration: 2 } }}
+          data-testid="banana-thief-awake-status"
           className="w-full max-w-sm bg-amber-400 text-black border-4 border-black p-3 text-center shadow-[4px_4px_0_0_#000]"
         >
           <div className="text-xl font-black">👁️ {t('gameBananaThief.awake')}</div>
+          <div className="text-[10px] font-black uppercase tracking-widest opacity-80">
+            {t('gameBananaThief.awakeSubtitle')}
+          </div>
           <div className="text-xs font-black mt-1">
             {awakePeers.length > 0
               ? `${t('gameBananaThief.awakePeersTitle')} ${awakePeers.join(', ')}`
@@ -553,10 +561,14 @@ export function BananaThiefView() {
         <motion.div
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ repeat: Infinity, duration: 3 }}
+          data-testid="banana-thief-awake-status"
           className="w-full max-w-sm bg-slate-900 border-4 border-slate-700 p-3 text-center"
         >
           <div className="text-xl font-black text-slate-300">
             😴 {t('gameBananaThief.sleeping')}
+          </div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            {t('gameBananaThief.sleepingSubtitle')}
           </div>
         </motion.div>
       )}
@@ -671,6 +683,7 @@ export function BananaThiefView() {
     const iAmReady = readyIds.includes(socketId);
     const readyCount = readyIds.length;
     const total = participants.length;
+    const unreadyParticipants = participants.filter((p) => !readyIds.includes(p.socketId));
     const unlockNarrator = () => {
       // First user gesture: unlock audio playback with ready cue
       if (soundsEnabled) {
@@ -690,6 +703,14 @@ export function BananaThiefView() {
           <div className="text-xs font-bold text-slate-400 mt-1">
             {t('gameBananaThief.setupHint')}
           </div>
+        </div>
+
+        <div className="text-xs font-black px-3 py-1.5 border-2 border-slate-700 bg-slate-800 text-slate-300 flex items-center gap-2">
+          {soundsEnabled ? (
+            <span className="text-lime-400">{t('gameBananaThief.soundActive')}</span>
+          ) : (
+            <span className="text-amber-300">{t('gameBananaThief.soundMutedHint')}</span>
+          )}
         </div>
 
         <div
@@ -758,13 +779,51 @@ export function BananaThiefView() {
           {t('gameBananaThief.readyCount', { count: readyCount, total })}
         </div>
         {isHost && readyCount < total && (
-          <button
-            onClick={() => bananaThiefReady(true)}
-            data-testid="banana-thief-force-start"
-            className="bg-amber-400 hover:bg-amber-300 text-black border-2 border-black px-4 py-2 text-xs font-black uppercase shadow-[2px_2px_0_0_#000]"
-          >
-            ⏩ {t('gameBananaThief.forceStartNight')}
-          </button>
+          <>
+            <button
+              onClick={() => setShowForceStartConfirm(true)}
+              data-testid="banana-thief-force-start"
+              className="bg-amber-400 hover:bg-amber-300 text-black border-2 border-black px-4 py-2 text-xs font-black uppercase shadow-[2px_2px_0_0_#000]"
+            >
+              ⏩ {t('gameBananaThief.forceStartNight')}
+            </button>
+            <GameDialog
+              open={showForceStartConfirm}
+              onClose={() => setShowForceStartConfirm(false)}
+              title={t('gameBananaThief.forceStartConfirmTitle')}
+            >
+              <div className="space-y-3 p-2 text-black">
+                <div className="text-sm font-bold text-gray-700">
+                  {t('gameBananaThief.forceStartUnreadyList', {
+                    names: unreadyParticipants.map((p) => p.name).join(', '),
+                  })}
+                </div>
+                <div className="text-xs font-semibold text-amber-700 bg-amber-50 p-2 border border-amber-300">
+                  {t('gameBananaThief.forceStartWarning')}
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForceStartConfirm(false)}
+                    className="border-2 border-black px-3 py-1.5 text-xs font-black uppercase bg-white hover:bg-gray-100"
+                  >
+                    {t('gameBananaThief.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForceStartConfirm(false);
+                      bananaThiefReady(true);
+                    }}
+                    data-testid="banana-thief-force-start-confirm"
+                    className="border-2 border-black px-3 py-1.5 text-xs font-black uppercase bg-amber-400 hover:bg-amber-300 text-black shadow-[2px_2px_0_0_#000]"
+                  >
+                    {t('gameBananaThief.confirmForceStart')}
+                  </button>
+                </div>
+              </div>
+            </GameDialog>
+          </>
         )}
       </div>
     );
@@ -968,25 +1027,37 @@ export function BananaThiefView() {
         </div>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full max-w-md">
-        {voteTargets.map((p) => (
-          <button
-            key={p.socketId}
-            onClick={() => submitVote(p.socketId)}
-            disabled={!!myVote}
-            data-testid={`banana-thief-vote-${p.socketId}`}
-            className={`border-4 border-black px-2 py-3 font-black text-sm truncate transition-all shadow-[3px_3px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] ${
-              myVote === p.socketId ? 'bg-amber-300' : 'bg-white hover:bg-red-100'
-            } disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0`}
-          >
-            {p.avatar} {p.name}
-          </button>
-        ))}
+        {voteTargets.map((p) => {
+          const isSelected = effectiveVote === p.socketId;
+          return (
+            <button
+              key={p.socketId}
+              onClick={() => submitVote(p.socketId)}
+              disabled={!!effectiveVote}
+              data-testid={`banana-thief-vote-${p.socketId}`}
+              className={`border-4 border-black px-2 py-3 font-black text-sm truncate transition-all shadow-[3px_3px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] ${
+                isSelected ? 'bg-amber-300' : 'bg-white hover:bg-red-100'
+              } disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0`}
+            >
+              {p.avatar} {p.name}
+            </button>
+          );
+        })}
       </div>
-      {myVote && (
-        <div className="bg-lime-200 border-2 border-black px-4 py-2 text-sm font-black">
-          ✅ {t('gameBananaThief.voted', { count: state.votesRecorded, total: state.votesTotal })}
-        </div>
-      )}
+      <div data-testid="banana-thief-vote-status" className="w-full max-w-md">
+        {effectiveVote ? (
+          <div className="bg-lime-200 border-2 border-black px-4 py-2 text-sm font-black flex items-center justify-center gap-1.5">
+            <span>✅ {t('gameBananaThief.voteSubmitted')}</span>
+            <span className="text-xs text-lime-900 font-bold">
+              ({t('gameBananaThief.waitingForOtherVotes')})
+            </span>
+          </div>
+        ) : (
+          <div className="bg-amber-100 border-2 border-black px-4 py-2 text-sm font-black text-amber-900 text-center">
+            ⏳ {t('gameBananaThief.waitingYourVote')}
+          </div>
+        )}
+      </div>
       {renderReactionBar()}
     </div>
   );

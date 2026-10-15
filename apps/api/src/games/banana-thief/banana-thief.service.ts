@@ -29,6 +29,7 @@ const CT_SEES_THIEF = 'ctSeesThief';
 const CT_SPECIAL = 'ctSpecial';
 const CT_TWIN_PARTNER = 'ctTwinPartner';
 const CT_CHOSEN_FOLLOWERS = 'ctChosenFollowers';
+const CT_VOTE = 'ctVote';
 
 /** DLC needs a bigger table so specials don't crowd out the plain mice. */
 const BANANA_THIEF_DLC_MIN_PLAYERS = BANANA_THIEF_MIN_PLAYERS + 1;
@@ -226,6 +227,7 @@ export class BananaThiefService {
       this.privateState.delete(room.code, id, CT_CHOSEN_FOLLOWERS);
       this.privateState.delete(room.code, id, CT_SPECIAL);
       this.privateState.delete(room.code, id, CT_TWIN_PARTNER);
+      this.privateState.delete(room.code, id, CT_VOTE);
     }
 
     this.maybeAssignSpecials(
@@ -612,6 +614,9 @@ export class BananaThiefService {
     state.votesRecorded = 0;
     state.votesTotal = participants.length;
     this.setVotes(room, {});
+    for (const id of participants) {
+      this.privateState.delete(room.code, id, CT_VOTE);
+    }
     return room;
   }
 
@@ -628,6 +633,7 @@ export class BananaThiefService {
     if (votes[socketId]) return null; // ballots are final
     votes[socketId] = targetId;
     this.setVotes(room, votes);
+    this.privateState.set(room.code, socketId, CT_VOTE, targetId);
     state.votesRecorded = Object.keys(votes).filter((v) => participants.has(v)).length;
 
     if (state.votesRecorded >= state.votesTotal) {
@@ -805,6 +811,10 @@ export class BananaThiefService {
         remapped[newVoter] = newTarget;
       }
       if (changed) this.privateState.set(code, ROOM_KEY, CT_ROOM_VOTES, remapped);
+    }
+    const myVote = this.privateState.get<string>(code, newSocketId, CT_VOTE);
+    if (myVote === oldSocketId) {
+      this.privateState.set(code, newSocketId, CT_VOTE, newSocketId);
     }
   }
 

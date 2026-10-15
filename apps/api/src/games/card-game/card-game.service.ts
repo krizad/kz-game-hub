@@ -253,6 +253,9 @@ export class CardGameService {
           id === oldSocketId ? newSocketId : id,
         );
       }
+      if (state.result.deltas) {
+        state.result.deltas = this.remapRecord(state.result.deltas, oldSocketId, newSocketId);
+      }
     }
   }
 
@@ -370,6 +373,7 @@ export class CardGameService {
           outcomeTags: outcome.outcomeTags,
           winnerIds: outcome.winnerIds,
           revealedHands: outcome.revealedHands,
+          deltas: outcome.deltas,
         },
       },
       config.visibility,

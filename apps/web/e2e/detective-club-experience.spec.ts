@@ -56,6 +56,7 @@ for (const { viewport, language } of [
         name: language === 'th' ? /วางการ์ด.*1/ : /Play card 1/,
       });
       await expect(inspect).toBeVisible();
+      await expect(turnPage.getByTestId('cluecanvas-card-preview-0')).toBeVisible();
       await expect(play).toBeVisible();
       await turnPage.screenshot({
         path: testInfo.outputPath(
@@ -100,6 +101,7 @@ test('keyboard inspection and confirmation trap focus, Escape restores focus, an
   try {
     const inspect = turnPage.getByRole('button', { name: 'Inspect card 1' });
     const play = turnPage.getByRole('button', { name: 'Play card 1' });
+    await expect(turnPage.getByTestId('cluecanvas-card-preview-0')).toBeVisible();
     await turnPage.screenshot({
       path: testInfo.outputPath('detective-club-controls-en-1280x900.png'),
       fullPage: true,
@@ -117,6 +119,7 @@ test('keyboard inspection and confirmation trap focus, Escape restores focus, an
     await turnPage.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
     await expect(inspect).toBeFocused();
+    await expect(turnPage.getByTestId('cluecanvas-card-preview-0')).toBeFocused();
 
     const before = await playedCount(turnPage);
     await play.focus();

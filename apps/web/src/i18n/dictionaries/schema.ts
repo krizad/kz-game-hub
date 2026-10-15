@@ -583,14 +583,19 @@ export interface Dictionary {
     mustEnterFake: string;
     typeAnswerPlaceholder: string;
     submitAnswer: string;
+    submitTrueAnswer: string;
     otherFishesTyping: string;
     revealEveryoneFirst: string;
+    revealOthersFirst: string;
     allRevealedEliminate: string;
     revealAnswer: string;
     eliminateLooksFishy: string;
     eliminated: string;
     youHavePointsPrefix: string;
     youHavePointsSuffix: string;
+    bankSummaryTitle: string;
+    bankSummaryRisk: string;
+    eliminateFirstToScore: string;
     bankPointsAndEnd: string;
     roundOver: string;
     howEveryoneScored: string;
@@ -600,6 +605,14 @@ export interface Dictionary {
     plusPointsPrefix: string;
     plusPointsSuffix: string;
     playNextRound: string;
+    outcomeBlueCaught: string;
+    outcomeBanked: string;
+    outcomeAllRedEliminated: string;
+    resultEliminated: string;
+    resultSurvived: string;
+    resultAnswer: string;
+    resultRoundScore: string;
+    resultTotalScore: string;
   };
   gameWhoAmI: {
     lobby: {
@@ -750,6 +763,19 @@ export interface Dictionary {
     playNextRound: string;
     endGame: string;
     waitingForHostNextRound: string;
+    imageUnavailable: string;
+    round1Badge: string;
+    round2Badge: string;
+    scoreReasonsTitle: string;
+    informerBonus: string;
+    informerNoBonus: string;
+    conspiratorBonus: string;
+    conspiratorCaughtNoPoints: string;
+    detectiveCorrect: string;
+    detectiveIncorrect: string;
+    votesLockedInCount: string;
+    votedStatus: string;
+    votingStatus: string;
   };
   gameTicTacToe: {
     lobby: string;
@@ -854,6 +880,18 @@ export interface Dictionary {
     pass: string;
     waiting: string;
     resultLine: string;
+    finishOrder: string;
+    trickInfo: string;
+    reasons: {
+      selectCards: string;
+      sameRank: string;
+      maxThree: string;
+      threeOfClubs: string;
+      matchCount: string;
+      higherRank: string;
+      validPlay: string;
+      passLeading: string;
+    };
   };
   cardGameLog: {
     title: string;
@@ -910,6 +948,15 @@ export interface Dictionary {
     stand: string;
     waiting: string;
     revealing: string;
+    settlement: string;
+    chipsBefore: string;
+    chipsAfter: string;
+    delta: string;
+    score: string;
+    win: string;
+    lose: string;
+    tie: string;
+    multiplier: string;
   };
   cardGameRules: {
     title: string;
@@ -975,6 +1022,22 @@ export interface Dictionary {
       POK_9: string;
       POK_8: string;
       NORMAL: string;
+    };
+    suits: {
+      CLUBS: string;
+      DIAMONDS: string;
+      HEARTS: string;
+      SPADES: string;
+    };
+    sort: {
+      sortBy: string;
+      rank: string;
+      suit: string;
+      default: string;
+      totalCount: string;
+    };
+    timer: {
+      autoAction: string;
     };
   };
   cardGameSettings: {
@@ -1587,6 +1650,18 @@ export interface Dictionary {
     settingsDiscussion: string;
     settingsMin: string;
     settingsVote: string;
+    forceStartConfirmTitle: string;
+    forceStartUnreadyList: string;
+    forceStartWarning: string;
+    confirmForceStart: string;
+    cancel: string;
+    soundActive: string;
+    soundMutedHint: string;
+    voteSubmitted: string;
+    waitingForOtherVotes: string;
+    waitingYourVote: string;
+    awakeSubtitle: string;
+    sleepingSubtitle: string;
   };
   gameWhoKnow: {
     roleCard: {
@@ -1670,6 +1745,12 @@ export interface Dictionary {
       yourCards: string;
       seconds: string;
       rankings: string;
+      additionalChips: string;
+      stackAfter: string;
+      potBreakdown: string;
+      eligiblePlayers: string;
+      mainPot: string;
+      sidePot: string;
       phase: {
         PREFLOP: string;
         FLOP: string;
@@ -1702,6 +1783,10 @@ export interface Dictionary {
       uncalled: string;
       awardPrompt: string;
       award: string;
+      confirmAwardTitle: string;
+      confirmAwardDesc: string;
+      selectedWinnersCount: string;
+      cancel: string;
     };
     result: {
       nextHand: string;

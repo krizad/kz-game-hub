@@ -19,6 +19,15 @@ export function VotingPhase() {
   const hasVoted = myPlayer?.votedFor != null;
   const isInformer = privateState.dcRole === DetectiveClubRole.INFORMER;
 
+  const votingPlayers = Object.values(state.players).filter(
+    (p) =>
+      p.id !== state.informerId &&
+      room.players.some(
+        (member) => member.socketId === p.id && member.connected !== false && !member.isViewer,
+      ),
+  );
+  const votesSubmittedCount = votingPlayers.filter((p) => p.votedFor !== null).length;
+
   if (isInformer) {
     return (
       <div className="flex-1 flex flex-col space-y-6 items-center justify-center font-mono">
@@ -55,13 +64,48 @@ export function VotingPhase() {
 
       {hasVoted ? (
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="bg-emerald-400 p-8 border-8 border-black text-center shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] -">
+          <div className="bg-emerald-400 p-8 border-8 border-black text-center shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-md w-full">
             <p className="text-black font-black text-2xl mb-4 uppercase tracking-widest bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               {t('gameDetectiveClub.voteLockedIn')}
             </p>
-            <p className="text-black font-bold text-lg bg-yellow-300 px-3 py-1 border-2 border-black inline-block - shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <p className="text-black font-bold text-lg bg-yellow-300 px-3 py-1 border-2 border-black inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mb-6">
               {t('gameDetectiveClub.waitingForOtherPlayers')}
             </p>
+            <div className="bg-white border-4 border-black p-4 text-left shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <p className="text-sm font-black uppercase tracking-wider text-black mb-3">
+                {t('gameDetectiveClub.votesLockedInCount', {
+                  count: votesSubmittedCount,
+                  total: votingPlayers.length,
+                })}
+              </p>
+              <div className="space-y-2">
+                {votingPlayers.map((vp) => {
+                  const name =
+                    room.players.find((p) => p.socketId === vp.id)?.name ||
+                    t('gameDetectiveClub.unknownRole');
+                  const isDone = vp.votedFor !== null;
+                  return (
+                    <div
+                      key={vp.id}
+                      className="flex items-center justify-between text-sm font-bold border-b border-gray-200 pb-1"
+                    >
+                      <span title={name} className="truncate max-w-[180px]">
+                        {name} {vp.id === socketId && `(${t('lobby.you')})`}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 border border-black text-xs font-black ${
+                          isDone ? 'bg-emerald-300 text-black' : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {isDone
+                          ? t('gameDetectiveClub.votedStatus')
+                          : t('gameDetectiveClub.votingStatus')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       ) : (
@@ -88,7 +132,8 @@ export function VotingPhase() {
               >
                 <div className="flex-1">
                   <span
-                    className={`text-xl font-black bg-white px-3 py-1 border-2 border-black inline-block ${selectedPlayer === pid ? 'text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black'}`}
+                    title={pName}
+                    className={`text-xl font-black bg-white px-3 py-1 border-2 border-black inline-block truncate max-w-[140px] sm:max-w-[200px] ${selectedPlayer === pid ? 'text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black'}`}
                   >
                     {pName}
                   </span>
@@ -103,6 +148,11 @@ export function VotingPhase() {
                         setViewCardUrl(cardUrl);
                       }}
                     >
+                      <span className="absolute top-0.5 left-0.5 bg-yellow-300 text-black font-black text-[9px] px-1 border border-black z-10 leading-none">
+                        {idx === 0
+                          ? t('gameDetectiveClub.round1Badge')
+                          : t('gameDetectiveClub.round2Badge')}
+                      </span>
                       <img
                         src={cardUrl}
                         alt={t('gameDetectiveClub.cardAlt', { number: idx + 1 })}

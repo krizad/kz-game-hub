@@ -1,5 +1,6 @@
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { DetectiveClubRole } from '@repo/types';
 import { getRoleLabel } from '../DetectiveClubView';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
@@ -59,6 +60,80 @@ export function ScoringPhase() {
             <p className="text-black font-bold">{t('gameDetectiveClub.nobodyCaught')}</p>
           </div>
         )}
+      </div>
+
+      {/* Score Calculation Breakdown */}
+      <div
+        data-testid="cluecanvas-score-reasons"
+        className="bg-yellow-200 border-8 border-black p-4 sm:p-6 w-full md:max-w-2xl md:mx-auto shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]"
+      >
+        <h3 className="text-black font-black uppercase tracking-widest text-lg mb-6 text-center bg-white px-4 py-2 border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          {t('gameDetectiveClub.scoreReasonsTitle')}
+        </h3>
+
+        <div className="space-y-4">
+          {room.players.map((p) => {
+            const pState = state.players[p.socketId];
+            if (!pState) return null;
+            const isMe = p.socketId === socketId;
+            const delta = state.scoreDeltas?.[p.socketId] ?? 0;
+            const role = pState.role;
+
+            let reasonText = '';
+            if (role === DetectiveClubRole.INFORMER) {
+              reasonText =
+                delta > 0
+                  ? t('gameDetectiveClub.informerBonus')
+                  : t('gameDetectiveClub.informerNoBonus');
+            } else if (role === DetectiveClubRole.CONSPIRATOR) {
+              reasonText =
+                delta > 0
+                  ? t('gameDetectiveClub.conspiratorBonus')
+                  : t('gameDetectiveClub.conspiratorCaughtNoPoints');
+            } else {
+              reasonText =
+                delta > 0
+                  ? t('gameDetectiveClub.detectiveCorrect')
+                  : t('gameDetectiveClub.detectiveIncorrect');
+            }
+
+            return (
+              <div
+                key={p.socketId}
+                className="p-4 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+              >
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-lg text-black truncate max-w-[150px]">
+                      {p.name} {isMe && `(${t('lobby.you')})`}
+                    </span>
+                    <span
+                      className={`text-xs uppercase font-black px-2 py-0.5 border-2 border-black ${
+                        role === DetectiveClubRole.INFORMER
+                          ? 'bg-indigo-300 text-black'
+                          : role === DetectiveClubRole.CONSPIRATOR
+                            ? 'bg-rose-300 text-black'
+                            : 'bg-emerald-300 text-black'
+                      }`}
+                    >
+                      {getRoleLabel(role, t)}
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-700 mt-1">{reasonText}</p>
+                </div>
+                <div className="text-right self-end sm:self-auto">
+                  <span
+                    className={`text-xl font-black px-3 py-1 border-2 border-black inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                      delta > 0 ? 'bg-emerald-400 text-black' : 'bg-gray-200 text-black'
+                    }`}
+                  >
+                    {delta > 0 ? `+${delta}` : '0'} {t('gameDetectiveClub.pts')}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex-1 bg-cyan-300 border-8 border-black p-4 sm:p-6 overflow-y-auto w-full md:max-w-2xl md:mx-auto shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] -">

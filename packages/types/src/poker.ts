@@ -66,6 +66,7 @@ export interface PokerPot {
 export interface PokerPotResult {
   amount: number;
   winnerIds: string[];
+  eligiblePlayerIds?: string[];
   /** ONLINE only: winning hand category. */
   handCategory?: PokerHandCategory;
   /** ONLINE only: the best five cards. */

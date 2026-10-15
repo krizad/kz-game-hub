@@ -15,6 +15,7 @@ import {
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from '@/components/games/card-game/CardHand';
+import { GameDialog } from '@/components/core/GameDialog';
 import { PokerHandRankings } from './PokerHandRankings';
 
 const POKER_STREETS: PokerPhase[] = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
@@ -49,6 +50,7 @@ export function PokerView() {
   const [now, setNow] = useState(() => Date.now());
   const [betAmount, setBetAmount] = useState<number | null>(null);
   const [awardSelection, setAwardSelection] = useState<string[]>([]);
+  const [showAwardConfirm, setShowAwardConfirm] = useState(false);
   const [adjustDrafts, setAdjustDrafts] = useState<Record<string, string>>({});
   const [showRankings, setShowRankings] = useState(false);
 
@@ -56,6 +58,16 @@ export function PokerView() {
   useEffect(() => {
     setBetAmount(null);
   }, [state?.handNumber, state?.phase, state?.activePlayerId]);
+
+  useEffect(() => {
+    setAwardSelection([]);
+    setShowAwardConfirm(false);
+  }, [
+    state?.handNumber,
+    state?.phase,
+    state?.showdown?.pendingPots?.[0]?.amount,
+    state?.showdown?.pendingPots?.[0]?.eligiblePlayerIds?.join(','),
+  ]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);
@@ -91,11 +103,12 @@ export function PokerView() {
 
   const act = (action: PokerAction) => {
     pokerAction(action);
-    setAwardSelection([]);
   };
 
   // Effective bet amount (clamped into the legal window; server re-checks).
   const amount = Math.min(Math.max(betAmount ?? raiseMin, raiseMin), myMax);
+  const additionalChips = mySeat ? Math.max(0, amount - mySeat.bet) : 0;
+  const stackAfter = mySeat ? Math.max(0, mySeat.chips - additionalChips) : 0;
   const quickAmounts = [
     { key: 'min', value: raiseMin },
     {
@@ -387,8 +400,14 @@ export function PokerView() {
                 ))}
               </div>
               <div className="flex min-w-0 flex-wrap gap-2 items-center">
-                <span className="font-black text-xs uppercase">{t('poker.action.raiseTo')}</span>
+                <label
+                  htmlFor="poker-bet-input"
+                  className="font-black text-xs uppercase cursor-pointer"
+                >
+                  {state.currentBet === 0 ? t('poker.action.bet') : t('poker.action.raiseTo')}
+                </label>
                 <input
+                  id="poker-bet-input"
                   type="number"
                   data-testid="poker-bet-input"
                   className="w-28 border-4 border-black px-2 py-1 font-black bg-white"
@@ -408,6 +427,19 @@ export function PokerView() {
                   {state.currentBet === 0 ? t('poker.action.bet') : t('poker.action.raiseTo')}{' '}
                   {amount}
                 </button>
+              </div>
+              <div
+                className="flex gap-4 text-xs font-bold text-slate-700 mt-1 flex-wrap"
+                data-testid="poker-bet-preview"
+              >
+                <span data-testid="poker-bet-additional">
+                  {t('poker.table.additionalChips')}:{' '}
+                  <strong className="text-black font-black">🪙 {additionalChips}</strong>
+                </span>
+                <span data-testid="poker-bet-stack-after">
+                  {t('poker.table.stackAfter')}:{' '}
+                  <strong className="text-black font-black">🪙 {stackAfter}</strong>
+                </span>
               </div>
             </div>
           )}
@@ -441,57 +473,173 @@ export function PokerView() {
           className="border-4 border-black bg-white p-3 flex flex-col gap-2"
           data-testid="poker-hand-result"
         >
-          {state.handResult?.pots.map((pot, index) => (
-            <p key={index} className="font-black text-sm">
-              {pot.winnerIds.map((id) => playerName[id] ?? '???').join(' + ')}{' '}
-              {pot.winnerIds.length > 1 ? t('poker.showdown.splitPot') : t('poker.showdown.winner')}{' '}
-              🪙 {pot.amount}
-              {pot.handCategory ? ` — ${t(`poker.handNames.${pot.handCategory}`)}` : ''}
-            </p>
-          ))}
-          {state.handResult?.uncalledRefund && (
-            <p className="text-xs font-bold opacity-70">
-              {t('poker.showdown.uncalled')} —{' '}
-              {playerName[state.handResult.uncalledRefund.playerId]} 🪙{' '}
-              {state.handResult.uncalledRefund.amount}
-            </p>
-          )}
+          {/* Pot breakdown */}
+          <div data-testid="poker-pot-breakdown" className="flex flex-col gap-2">
+            <span className="font-black text-xs uppercase opacity-80">
+              {t('poker.table.potBreakdown')}
+            </span>
+            {state.handResult?.pots.map((pot, index) => {
+              const isMainPot = index === 0;
+              const potLabel = isMainPot
+                ? t('poker.table.mainPot')
+                : t('poker.table.sidePot', { index });
+              const perWinner =
+                pot.winnerIds.length > 0 ? Math.floor(pot.amount / pot.winnerIds.length) : 0;
+              return (
+                <div
+                  key={index}
+                  className="border-2 border-black p-2 bg-slate-50 flex flex-col gap-1"
+                >
+                  <div className="flex justify-between items-center font-black text-sm">
+                    <span>
+                      {potLabel}: 🪙 {pot.amount}
+                    </span>
+                    {pot.winnerIds.length > 1 && (
+                      <span className="text-xs bg-amber-200 px-1 border border-black font-black">
+                        {t('poker.showdown.splitPot')}
+                      </span>
+                    )}
+                  </div>
+                  {pot.eligiblePlayerIds && pot.eligiblePlayerIds.length > 0 && (
+                    <p className="text-xs text-slate-600 font-bold">
+                      {t('poker.table.eligiblePlayers')}:{' '}
+                      {pot.eligiblePlayerIds.map((id) => playerName[id] ?? '???').join(', ')}
+                    </p>
+                  )}
+                  <p className="font-bold text-xs">
+                    {pot.winnerIds.length > 1
+                      ? t('poker.showdown.splitPot')
+                      : t('poker.showdown.winner')}
+                    :{' '}
+                    {pot.winnerIds
+                      .map((id) => `${playerName[id] ?? '???'} (+🪙${perWinner})`)
+                      .join(' + ')}
+                    {pot.handCategory ? ` — ${t(`poker.handNames.${pot.handCategory}`)}` : ''}
+                  </p>
+                </div>
+              );
+            })}
+            {state.mode === 'CHIPS_LEDGER' &&
+              state.showdown?.pendingPots.map((pot, index) => {
+                const isMainPot = (state.handResult?.pots.length ?? 0) + index === 0;
+                const potLabel = isMainPot
+                  ? t('poker.table.mainPot')
+                  : t('poker.table.sidePot', {
+                      index: (state.handResult?.pots.length ?? 0) + index,
+                    });
+                return (
+                  <div
+                    key={`pending-${index}`}
+                    className="border-2 border-black p-2 bg-amber-50 flex flex-col gap-1"
+                  >
+                    <div className="flex justify-between items-center font-black text-sm">
+                      <span>
+                        {potLabel}: 🪙 {pot.amount} ({t('poker.showdown.awardPrompt')})
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 font-bold">
+                      {t('poker.table.eligiblePlayers')}:{' '}
+                      {pot.eligiblePlayerIds.map((id) => playerName[id] ?? '???').join(', ')}
+                    </p>
+                  </div>
+                );
+              })}
+            {state.handResult?.uncalledRefund && (
+              <p className="text-xs font-bold text-slate-700 bg-amber-100 p-1 border border-black">
+                {t('poker.showdown.uncalled')} —{' '}
+                {playerName[state.handResult.uncalledRefund.playerId]} 🪙{' '}
+                {state.handResult.uncalledRefund.amount}
+              </p>
+            )}
+          </div>
 
           {/* LEDGER: host awards pending pots one by one */}
           {isHost && pendingPot && (
             <div className="flex flex-col gap-2 border-2 border-black p-2 bg-amber-50">
-              <p className="font-black text-xs uppercase">
-                {t('poker.showdown.award')} 🪙 {pendingPot.amount}
-              </p>
+              <div className="flex justify-between items-center flex-wrap gap-1">
+                <p className="font-black text-xs uppercase">
+                  {t('poker.showdown.award')} 🪙 {pendingPot.amount}
+                </p>
+                <span
+                  className="text-xs font-bold text-slate-700"
+                  data-testid="poker-selected-count"
+                >
+                  {t('poker.showdown.selectedWinnersCount', { count: awardSelection.length })}
+                </span>
+              </div>
               <p className="text-xs font-bold opacity-70">{t('poker.showdown.awardPrompt')}</p>
               <div className="flex gap-2 flex-wrap">
-                {pendingPot.eligiblePlayerIds.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    data-testid={`poker-award-${id}`}
-                    onClick={() =>
-                      setAwardSelection((prev) =>
-                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-                      )
-                    }
-                    className={`px-2 py-1 border-2 border-black font-black text-xs uppercase ${
-                      awardSelection.includes(id) ? 'bg-lime-300' : 'bg-white hover:bg-amber-100'
-                    }`}
-                  >
-                    {playerName[id] ?? '???'}
-                  </button>
-                ))}
+                {pendingPot.eligiblePlayerIds.map((id) => {
+                  const selected = awardSelection.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={selected}
+                      data-testid={`poker-award-${id}`}
+                      onClick={() =>
+                        setAwardSelection((prev) =>
+                          prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                        )
+                      }
+                      className={`px-2 py-1 border-2 border-black font-black text-xs uppercase transition-colors ${
+                        selected ? 'bg-lime-300' : 'bg-white hover:bg-amber-100'
+                      }`}
+                    >
+                      {playerName[id] ?? '???'}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 type="button"
                 data-testid="poker-award-confirm"
-                disabled={awardSelection.length === 0}
-                className="bg-lime-300 hover:bg-lime-200 disabled:opacity-40 border-4 border-black font-black uppercase py-2 shadow-[3px_3px_0_0_#000]"
-                onClick={() => act({ type: 'POT_AWARD', targetIds: awardSelection })}
+                disabled={awardSelection.length === 0 || actionLoading}
+                className="bg-lime-300 hover:bg-lime-200 disabled:opacity-40 border-4 border-black font-black uppercase py-2 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none"
+                onClick={() => setShowAwardConfirm(true)}
               >
                 {t('poker.showdown.award')}
               </button>
+
+              <GameDialog
+                open={showAwardConfirm}
+                onClose={() => setShowAwardConfirm(false)}
+                title={t('poker.showdown.confirmAwardTitle')}
+              >
+                <div className="flex flex-col gap-3 p-2 text-black">
+                  <p className="text-sm font-bold">
+                    {t('poker.showdown.confirmAwardDesc', {
+                      amount: pendingPot.amount,
+                      count: awardSelection.length,
+                    })}
+                  </p>
+                  <div className="bg-slate-100 p-2 border-2 border-black text-xs font-bold">
+                    {awardSelection.map((id) => playerName[id] ?? '???').join(', ')}
+                  </div>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <button
+                      type="button"
+                      data-testid="poker-award-dialog-cancel"
+                      onClick={() => setShowAwardConfirm(false)}
+                      className="border-2 border-black px-3 py-1.5 text-xs font-black uppercase bg-white hover:bg-gray-100"
+                    >
+                      {t('poker.showdown.cancel')}
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="poker-award-dialog-confirm"
+                      disabled={actionLoading || awardSelection.length === 0}
+                      onClick={() => {
+                        setShowAwardConfirm(false);
+                        act({ type: 'POT_AWARD', targetIds: awardSelection });
+                      }}
+                      className="border-2 border-black px-3 py-1.5 text-xs font-black uppercase bg-lime-300 hover:bg-lime-200 text-black shadow-[2px_2px_0_0_#000] disabled:opacity-40"
+                    >
+                      {t('poker.showdown.award')}
+                    </button>
+                  </div>
+                </div>
+              </GameDialog>
             </div>
           )}
 

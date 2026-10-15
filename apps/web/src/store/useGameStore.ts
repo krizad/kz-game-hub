@@ -489,6 +489,7 @@ export const useGameStore = create<GameState>((set, get) => {
             isLoading: false,
             actionLoading: hasPendingAction,
           });
+        } else {
           // Clear host answer when state updates (if not current host or not in active GM phase)
           const isCurrentHost = room.roomHostId === socket.id;
           const activeHostPhases = ['GET_READY', 'COUNTDOWN', 'PLAYING', 'BUZZED', 'ANSWERING'];

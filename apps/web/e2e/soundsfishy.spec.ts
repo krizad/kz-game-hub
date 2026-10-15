@@ -45,6 +45,11 @@ test.describe('GuiseGuess Gameplay', () => {
       )
         break;
       for (const page of pages) {
+        const trueBtn = page.getByTestId('fishy-submit-true-answer');
+        if (await trueBtn.isVisible().catch(() => false)) {
+          await trueBtn.click({ timeout: 1500 }).catch(() => {});
+          continue;
+        }
         const input = page.locator('input#answerInput');
         if (await input.isVisible().catch(() => false)) {
           // The blue fish MUST submit the exact true answer shown on their

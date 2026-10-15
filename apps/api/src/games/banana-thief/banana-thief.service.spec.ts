@@ -381,6 +381,7 @@ describe('BananaThiefService', () => {
       expect(service.vote(room, 'p1', 'ghost')).toBeNull();
       expect(service.vote(room, 'p1', 'p2')!).not.toBeNull();
       expect(votes()['p1']).toBe('p2');
+      expect(privateState.get(room.code, 'p1', 'ctVote')).toBe('p2');
       expect(service.vote(room, 'p1', 'p3')).toBeNull(); // double vote
 
       const state = room.bananaThiefState!;
@@ -471,6 +472,7 @@ describe('BananaThiefService', () => {
 
       expect(thiefId()).toBe('p2-new');
       expect(votes()['p1-new']).toBe('p3');
+      expect(privateState.get(room.code, 'p1-new', 'ctVote')).toBe('p3');
       expect(followerIds()).toContain('p1-new');
       expect(privateState.get<BananaThiefRole>(room.code, 'p2-new', 'ctRole')).toBe(
         BananaThiefRole.THIEF,

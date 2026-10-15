@@ -158,8 +158,15 @@ test.describe('Poker (ADR 0009: ONLINE + CHIPS_LEDGER modes)', () => {
     const confirm = host.getByTestId('poker-award-confirm');
     await expect(confirm).toBeVisible({ timeout: 15000 });
     // Pick the first eligible player then confirm the award.
-    await host.locator('[data-testid^="poker-award-"]').first().click();
+    await host
+      .locator('button[data-testid^="poker-award-"]:not([data-testid="poker-award-confirm"])')
+      .first()
+      .click();
     await confirm.click();
+    const dialogConfirm = host.getByTestId('poker-award-dialog-confirm');
+    if (await dialogConfirm.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await dialogConfirm.click();
+    }
     await expect(host.getByTestId('poker-hand-result')).toBeVisible({ timeout: 15000 });
 
     // Host ends the match: standings appear from the recorded scores.

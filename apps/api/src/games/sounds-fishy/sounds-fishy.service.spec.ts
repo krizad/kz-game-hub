@@ -525,6 +525,81 @@ describe('SoundsFishyService', () => {
     });
   });
 
+  describe('bankPoints', () => {
+    it('banks points safely, awards score to picker, and reveals roles and true answer on result', () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      privateState.set(room.code, '__room__', 'sfRoomBlueFish', 'p2');
+      privateState.set(room.code, '__room__', 'sfRoomRedHerrings', ['p3']);
+      privateState.set(room.code, '__room__', 'sfRoomTrueAnswer', 'The Truth');
+      room.soundsFishyState = {
+        currentPhase: SoundsFishyPhase.THE_HUNT,
+        pickerId: 'p1',
+        blueFishId: null,
+        redHerringIds: [],
+        question: { id: '1', question: 'Topic?', lang: 'th' },
+        playerAnswers: {
+          p2: { playerId: 'p2', answer: 'The Truth', isRevealed: true },
+          p3: { playerId: 'p3', answer: 'Fake Ans', isRevealed: true },
+        },
+        answeredPlayerIds: ['p2', 'p3'],
+        eliminatedPlayers: ['p3'],
+        roundScorePool: 1,
+        roundPoints: {},
+        typingPlayerIds: [],
+      } as unknown as RoomState['soundsFishyState'];
+
+      // Non-picker cannot bank points
+      expect(service.bankPoints(room, 'p2')).toBeNull();
+
+      const result = service.bankPoints(room, 'p1');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.RESULT);
+      expect(result!.soundsFishyState!.currentPhase).toBe(SoundsFishyPhase.SCORING);
+      expect(result!.players.find((p) => p.socketId === 'p1')!.score).toBe(1);
+      expect(result!.soundsFishyState!.roundPoints['p1']).toBe(1);
+      expect(result!.soundsFishyState!.roundPoints['p2']).toBe(0);
+      expect(result!.soundsFishyState!.roundPoints['p3']).toBe(0);
+      expect(result!.soundsFishyState!.blueFishId).toBe('p2');
+      expect(result!.soundsFishyState!.question!.answer).toBe('The Truth');
+    });
+
+    it('rejects banking when score pool is zero', () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.soundsFishyState = {
+        currentPhase: SoundsFishyPhase.THE_HUNT,
+        pickerId: 'p1',
+        blueFishId: null,
+        redHerringIds: [],
+        question: { id: '1', question: 'Topic?', lang: 'th' },
+        playerAnswers: {},
+        answeredPlayerIds: [],
+        eliminatedPlayers: [],
+        roundScorePool: 0,
+        roundPoints: {},
+        typingPlayerIds: [],
+      } as unknown as RoomState['soundsFishyState'];
+
+      expect(service.bankPoints(room, 'p1')).toBeNull();
+    });
+  });
+
+  describe('reset / nextRound', () => {
+    it('returns room to LOBBY and cleans up state for next round', () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      room.status = RoomStatus.RESULT;
+      room.soundsFishyState = {
+        currentPhase: SoundsFishyPhase.SCORING,
+      } as unknown as RoomState['soundsFishyState'];
+      privateState.set(room.code, 'p2', 'sfMyAnswer', { playerId: 'p2', answer: 'Old' });
+
+      const res = service.reset(room, 'p1');
+      expect(res).not.toBeNull();
+      expect(res!.status).toBe(RoomStatus.LOBBY);
+      expect(res!.soundsFishyState).toBeUndefined();
+      expect(privateState.get(room.code, 'p2', 'sfMyAnswer')).toBeUndefined();
+    });
+  });
+
   describe('handlePlayerDisconnect and answer resolution', () => {
     const setupRoom = (): RoomState => {
       const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);

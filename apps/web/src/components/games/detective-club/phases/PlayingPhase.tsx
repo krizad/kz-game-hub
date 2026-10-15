@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/useGameStore';
 import { DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ZoomIn } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardViewerModal } from '../CardViewerModal';
@@ -20,6 +20,15 @@ export function PlayingPhase() {
   const isConspirator = privateState.dcRole === DetectiveClubRole.CONSPIRATOR;
   const myHand = (privateState.dcHand as string[] | undefined) ?? [];
   const secretWord = privateState.dcWord as string | undefined;
+
+  useEffect(() => {
+    myHand.forEach((url) => {
+      if (url) {
+        const img = new Image();
+        img.src = url;
+      }
+    });
+  }, [myHand]);
 
   const activePlayerName =
     room.players.find((p) => p.socketId === state.activePlayerId)?.name ||
@@ -69,7 +78,8 @@ export function PlayingPhase() {
                 className={`flex flex-col items-center p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-w-[120px] bg-white ${isActive ? 'scale-105 bg-cyan-200' : '-'}`}
               >
                 <span
-                  className={`text-md font-black mb-3 truncate max-w-[100px] bg-white px-2 py-1 border-2 border-black ${isActive ? 'text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black'}`}
+                  title={pName}
+                  className={`text-md font-black mb-3 truncate max-w-[120px] bg-white px-2 py-1 border-2 border-black ${isActive ? 'text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black'}`}
                 >
                   {pName}
                 </span>
@@ -85,6 +95,11 @@ export function PlayingPhase() {
                         number: idx + 1,
                       })}
                     >
+                      <span className="absolute top-1 left-1 bg-yellow-300 text-black font-black text-xs px-1.5 py-0.5 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] z-10">
+                        {idx === 0
+                          ? t('gameDetectiveClub.round1Badge')
+                          : t('gameDetectiveClub.round2Badge')}
+                      </span>
                       <img
                         src={cardUrl}
                         alt={t('gameDetectiveClub.playedCardAlt')}
@@ -103,9 +118,14 @@ export function PlayingPhase() {
                   }).map((_, i) => (
                     <div
                       key={`empty-${i}`}
-                      className={`w-20 h-28 sm:w-24 sm:h-32 border-4 border-black border-dashed flex items-center justify-center bg-gray-100`}
+                      className={`relative w-20 h-28 sm:w-24 sm:h-32 border-4 border-black border-dashed flex flex-col items-center justify-center bg-gray-100 p-1 text-center`}
                     >
-                      {isActive && <div className="w-8 h-8 bg-black animate-spin"></div>}
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">
+                        {player.playedCards.length + i === 0
+                          ? t('gameDetectiveClub.round1Badge')
+                          : t('gameDetectiveClub.round2Badge')}
+                      </span>
+                      {isActive && <div className="w-8 h-8 bg-black animate-spin mt-2"></div>}
                     </div>
                   ))}
                 </div>
@@ -146,6 +166,7 @@ export function PlayingPhase() {
               <div className="flex flex-col gap-1 p-1">
                 <button
                   type="button"
+                  data-testid={`cluecanvas-card-preview-${idx}`}
                   onClick={() => setViewCardUrl(cardUrl)}
                   className="flex min-h-11 items-center justify-center gap-1 bg-white text-black border-2 border-black font-bold text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500"
                   aria-label={t('gameDetectiveClub.inspectHandCard', { number: idx + 1 })}

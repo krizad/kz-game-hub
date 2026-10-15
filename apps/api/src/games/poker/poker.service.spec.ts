@@ -283,16 +283,28 @@ describe('PokerService', () => {
       }),
     ).toBeNull();
 
+    // Target not in eligiblePlayerIds is rejected.
+    expect(
+      service.handleAction(room, 's1', {
+        type: 'POT_AWARD',
+        targetIds: ['non_existent_player'],
+      }),
+    ).toBeNull();
+
     const winners = pot.eligiblePlayerIds.slice(0, 2); // force a split
     expect(
       service.handleAction(room, 's1', { type: 'POT_AWARD', targetIds: winners }),
     ).not.toBeNull();
     expect(state.phase).toBe('HAND_RESULT');
     expect(state.handResult!.pots[0].winnerIds.sort()).toEqual([...winners].sort());
+    expect(state.handResult!.pots[0].eligiblePlayerIds).toEqual(pot.eligiblePlayerIds);
     expect(state.handResult!.pots[0].amount).toBe(60);
     const winnerChips = winners.reduce((sum, id) => sum + state.seats[id].chips, 0);
     expect(winnerChips).toBe(2 * 1000 - 40 + 60); // two blinds lost + pot split
     expect(totalChips(state)).toBe(3000);
+
+    // Duplicate award when pendingPots is empty is rejected.
+    expect(service.handleAction(room, 's1', { type: 'POT_AWARD', targetIds: winners })).toBeNull();
   });
 
   it('supports host rebuy and ledger chip adjustments', () => {

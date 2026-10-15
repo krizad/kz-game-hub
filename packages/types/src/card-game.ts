@@ -140,6 +140,7 @@ export interface CardGameResult {
   placements?: string[];
   winnerIds: string[];
   revealedHands: Record<string, PlayingCard[]>;
+  deltas?: Record<string, number>;
 }
 
 /** Public view of the trick currently on the table (Slave). Played cards are revealed. */

@@ -200,6 +200,7 @@ describe('CardGameService', () => {
     expect(result.cardGameState?.result?.outcomeTags.p2).toBe('POK_9');
     expect(result.cardGameState?.result?.winnerIds).toEqual(['p2']);
     expect(result.cardGameState?.result?.dealerScore).toBe(5);
+    expect(result.cardGameState?.result?.deltas).toEqual({ p1: -2, p2: 2 });
     expect(result.cardGameChips).toEqual({ p1: 98, p2: 102 });
   });
 
@@ -242,5 +243,7 @@ describe('CardGameService', () => {
     expect(result.cardGameState!.chips['p2']).toBe(99);
     expect(result.cardGameState!.result!.outcomeTags['p1-new']).toBeDefined();
     expect(result.cardGameState!.result!.outcomeTags['p1']).toBeUndefined();
+    expect(result.cardGameState!.result!.deltas?.['p1-new']).toBeDefined();
+    expect(result.cardGameState!.result!.deltas?.['p1']).toBeUndefined();
   });
 });

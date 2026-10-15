@@ -32,6 +32,7 @@ export function CardGameActionPanel() {
         })}
         {isHost && (
           <button
+            data-testid="card-game-next-round"
             onClick={() => cardGameAction({ type: 'NEXT_ROUND' })}
             disabled={actionLoading}
             className="ml-3 border-4 border-black bg-white px-3 py-1 shadow-[2px_2px_0_0_#000] disabled:opacity-50"
@@ -44,18 +45,28 @@ export function CardGameActionPanel() {
   }
 
   if (myTurn) {
+    const autoActionKind = room.cardGameConfig?.actions.autoAction ?? 'STAND';
     return (
-      <div className="flex gap-3" data-testid="card-game-actions">
-        {allowedActions.map((kind) => (
-          <button
-            key={kind}
-            disabled={actionLoading}
-            onClick={() => cardGameAction({ type: kind })}
-            className={`border-4 border-black px-5 py-3 font-black shadow-[4px_4px_0_0_#000] disabled:opacity-50 ${kind === 'DRAW' ? 'bg-red-400' : 'bg-white'}`}
-          >
-            {t(`cardGameRules.actionNames.${kind}`)}
-          </button>
-        ))}
+      <div className="space-y-2">
+        {state.turnDeadline && (
+          <div data-testid="card-game-timer" className="text-xs font-bold text-zinc-600">
+            {t('cardGameRules.timer.autoAction', {
+              action: t(`cardGameRules.actionNames.${autoActionKind}` as any) || autoActionKind,
+            })}
+          </div>
+        )}
+        <div className="flex gap-3" data-testid="card-game-actions">
+          {allowedActions.map((kind) => (
+            <button
+              key={kind}
+              disabled={actionLoading}
+              onClick={() => cardGameAction({ type: kind })}
+              className={`border-4 border-black px-5 py-3 font-black shadow-[4px_4px_0_0_#000] disabled:opacity-50 ${kind === 'DRAW' ? 'bg-red-400' : 'bg-white'}`}
+            >
+              {t(`cardGameRules.actionNames.${kind}`)}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }

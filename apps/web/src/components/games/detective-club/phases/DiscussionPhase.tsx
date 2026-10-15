@@ -51,17 +51,28 @@ export function DiscussionPhase() {
                 className={`flex flex-col items-center p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-w-[120px] bg-white ${isMe ? ' scale-105' : '-'}`}
               >
                 <span
-                  className={`text-md font-black mb-3 truncate max-w-[100px] bg-white px-2 py-1 border-2 border-black ${isMe ? 'text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black'}`}
+                  title={pName}
+                  className={`text-md font-black mb-3 truncate max-w-[120px] bg-white px-2 py-1 border-2 border-black ${isMe ? 'text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-black'}`}
                 >
                   {pName} {isMe && `(${t('lobby.you')})`}
                 </span>
                 <div className="flex gap-3 min-h-[140px]">
                   {player.playedCards.map((cardUrl, idx) => (
-                    <div
+                    <button
+                      type="button"
                       key={idx}
-                      className="relative group w-24 h-32 sm:w-28 sm:h-40 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-2 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer bg-white "
+                      className="relative group w-24 h-32 sm:w-28 sm:h-40 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-2 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer bg-white text-left"
                       onClick={() => setViewCardUrl(cardUrl)}
+                      aria-label={t('gameDetectiveClub.inspectPlayedCard', {
+                        name: pName,
+                        number: idx + 1,
+                      })}
                     >
+                      <span className="absolute top-1 left-1 bg-yellow-300 text-black font-black text-xs px-1.5 py-0.5 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] z-10">
+                        {idx === 0
+                          ? t('gameDetectiveClub.round1Badge')
+                          : t('gameDetectiveClub.round2Badge')}
+                      </span>
                       <img
                         src={cardUrl}
                         alt={t('gameDetectiveClub.playedCardAlt')}
@@ -70,7 +81,7 @@ export function DiscussionPhase() {
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <ZoomIn className="text-white w-8 h-8 drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>

@@ -618,6 +618,11 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
     )
       break;
     for (const p of players) {
+      const trueBtn = p.getByTestId('fishy-submit-true-answer');
+      if (await trueBtn.isVisible().catch(() => false)) {
+        await trueBtn.click({ timeout: 2000 }).catch(() => {});
+        continue;
+      }
       // 1. Submit an answer when the input is up
       const input = p.locator('input#answerInput');
       if (await input.isVisible().catch(() => false)) {
@@ -1565,7 +1570,7 @@ async function playCardGame(s: SimSession, entry: MatrixEntry): Promise<void> {
           await threeClubs.click().catch(() => {});
         }
         if (!(await playBtn.isEnabled().catch(() => false))) {
-          const cards = actor.locator('[data-testid^="card-"]');
+          const cards = actor.getByTestId('card-hand').locator('button');
           const n = await cards.count();
           for (let c = 0; c < n; c++) {
             await cards
@@ -1613,8 +1618,16 @@ async function playPoker(s: SimSession, entry: MatrixEntry): Promise<void> {
 
     // LEDGER showdown: the host awards the pending pot to the first candidate.
     if (isLedger) {
+      const dialogConfirm = host.getByTestId('poker-award-dialog-confirm');
+      if (await dialogConfirm.isVisible().catch(() => false)) {
+        await dialogConfirm.click().catch(() => {});
+        await host.waitForTimeout(STEP);
+        continue;
+      }
       const confirm = host.getByTestId('poker-award-confirm');
       if (await confirm.isVisible().catch(() => false)) {
+        const cand = host.locator('[data-testid^="poker-award-"]').first();
+        if (await cand.isVisible().catch(() => false)) await cand.click().catch(() => {});
         if (await confirm.isEnabled()) {
           await confirm.click().catch(() => {});
           await host.waitForTimeout(STEP);
