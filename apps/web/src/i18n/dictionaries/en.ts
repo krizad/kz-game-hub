@@ -22,6 +22,7 @@ export const en: Dictionary = {
     invited: "You've been invited!",
     joinRoomInfo: 'Join room',
     displayName: 'Display Name',
+    randomizeName: 'Random Name',
     enterNamePlaceholder: 'Enter your name to play',
     enterNameShort: 'Enter your name',
     enterGame: 'Enter Game',

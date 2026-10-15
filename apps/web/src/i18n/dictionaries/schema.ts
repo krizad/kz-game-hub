@@ -18,6 +18,7 @@ export interface Dictionary {
     invited: string;
     joinRoomInfo: string;
     displayName: string;
+    randomizeName: string;
     enterNamePlaceholder: string;
     enterNameShort: string;
     enterGame: string;

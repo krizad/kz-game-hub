@@ -10,6 +10,7 @@ import { AppInfoModal } from '@/components/core/AppInfoModal';
 import { RulesModal } from '@/components/RulesModal';
 import { AdminGameSettings } from './AdminGameSettings';
 import { GAME_CATALOG, GameStyle } from './game-catalog';
+import { useAutoRandomName } from '@/hooks/useAutoRandomName';
 
 const getGameName = (gameType: GameType, t: any) => {
   switch (gameType) {
@@ -50,6 +51,7 @@ export function HomeView() {
   const { connected, myName, setName, createRoom, joinRoom, availableRooms, isGameEnabled } =
     useGameStore();
   const { t } = useTranslate();
+  const { randomizeName } = useAutoRandomName();
 
   const [joinCode, setJoinCode] = useState('');
 
@@ -121,12 +123,25 @@ export function HomeView() {
 
           <div className="space-y-6">
             <div>
-              <label
-                htmlFor="lobbyNameInput"
-                className="block text-sm font-black text-black mb-2 uppercase"
-              >
-                {t('lobby.displayName')}
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="lobbyNameInput"
+                  className="block text-sm font-black text-black uppercase"
+                >
+                  {t('lobby.displayName')}
+                </label>
+                <button
+                  type="button"
+                  id="randomizeNameBtn"
+                  data-testid="randomize-name-btn"
+                  onClick={randomizeName}
+                  className="text-xs font-black bg-[#E0E7FF] hover:bg-[#C7D2FE] text-black border-2 border-black px-2.5 py-1 shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                  title={t('lobby.randomizeName')}
+                >
+                  <span aria-hidden="true">🎲</span>
+                  <span>{t('lobby.randomizeName')}</span>
+                </button>
+              </div>
               <input
                 id="lobbyNameInput"
                 name="displayName"

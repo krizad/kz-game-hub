@@ -12,8 +12,32 @@ test.describe('Lobby Page', () => {
     await expect(page.locator('#lobbyNameInput')).toBeVisible();
   });
 
+  test('auto-generates a random funny name on landing', async ({ page }) => {
+    await goToLobby(page);
+    const nameInput = page.locator('#lobbyNameInput');
+    await expect(nameInput).not.toHaveValue('', { timeout: 5000 });
+    const val = await nameInput.inputValue();
+    expect(val.length).toBeGreaterThan(2);
+  });
+
+  test('can re-roll random name with the randomize button', async ({ page }) => {
+    await goToLobby(page);
+    const nameInput = page.locator('#lobbyNameInput');
+    await expect(nameInput).not.toHaveValue('', { timeout: 5000 });
+    await page.locator('#randomizeNameBtn').click();
+    await expect(nameInput).not.toHaveValue('', { timeout: 5000 });
+  });
+
+  test('can randomize name in English', async ({ page }) => {
+    await goToLobbyInEnglish(page);
+    await page.locator('#randomizeNameBtn').click();
+    const val = await page.locator('#lobbyNameInput').inputValue();
+    expect(val).toMatch(/^[A-Za-z]+$/);
+  });
+
   test('create room buttons are disabled without name', async ({ page }) => {
     await goToLobbyInEnglish(page);
+    await page.locator('#lobbyNameInput').clear();
     await expect(page.locator('button:has-text("Knowguise")').first()).toBeDisabled();
   });
 
@@ -33,6 +57,7 @@ test.describe('Lobby Page', () => {
 
   test('join room button is disabled without a display name', async ({ page }) => {
     await goToLobbyInEnglish(page);
+    await page.locator('#lobbyNameInput').clear();
     await page.locator('#roomCodeInput').fill('ABC123');
     await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeDisabled();
   });
@@ -57,6 +82,8 @@ test.describe('Lobby Page', () => {
     const hostCtx = await browser.newContext();
     const host = await hostCtx.newPage();
     const roomCode = await createRoom(host, 'LobbyHost', 'Knowguise');
+    await host.getByTestId('lobby-advanced-settings').locator('summary').click();
+    await host.getByRole('button', { name: 'Public', exact: true }).click();
 
     // A fresh visitor sees the public lobby entry for the created room
     const visitor = await browser.newContext();

@@ -6,12 +6,14 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 
 import { RulesModal } from '@/components/RulesModal';
+import { useAutoRandomName } from '@/hooks/useAutoRandomName';
 
 export function InviteView() {
   const { connected, myName, setName, joinRoom } = useGameStore();
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room') || '';
   const { t } = useTranslate();
+  const { randomizeName } = useAutoRandomName();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-amber-50 text-black font-mono relative overflow-x-hidden">
@@ -42,9 +44,22 @@ export function InviteView() {
 
         <div className="space-y-6">
           <div>
-            <label htmlFor="inviteNameInput" className="block text-sm font-medium text-black mb-2">
-              {t('lobby.displayName')}
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="inviteNameInput" className="block text-sm font-medium text-black">
+                {t('lobby.displayName')}
+              </label>
+              <button
+                type="button"
+                id="randomizeInviteNameBtn"
+                data-testid="randomize-invite-name-btn"
+                onClick={randomizeName}
+                className="text-xs font-bold bg-indigo-100 hover:bg-indigo-200 text-black border-2 border-black px-2.5 py-1 shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                title={t('lobby.randomizeName')}
+              >
+                <span aria-hidden="true">🎲</span>
+                <span>{t('lobby.randomizeName')}</span>
+              </button>
+            </div>
             <input
               id="inviteNameInput"
               name="displayName"

@@ -21,6 +21,7 @@ export const th: Dictionary = {
     invited: 'คุณได้รับคำเชิญ!',
     joinRoomInfo: 'เข้าร่วมห้อง',
     displayName: 'ชื่อที่แสดง',
+    randomizeName: 'สุ่มชื่อ',
     enterNamePlaceholder: 'กรอกชื่อของคุณเพื่อเริ่มเล่น',
     enterNameShort: 'กรอกชื่อของคุณ',
     enterGame: 'เข้าสู่เกม',

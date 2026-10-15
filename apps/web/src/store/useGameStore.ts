@@ -352,7 +352,16 @@ export const useGameStore = create<GameState>((set, get) => {
     musicTriviaSyncPlay: null,
     lastBananaThiefReaction: null,
 
-    setName: (name) => set({ myName: name }),
+    setName: (name) => {
+      set({ myName: name });
+      if (typeof window !== 'undefined') {
+        if (name && name.trim()) {
+          localStorage.setItem(STORAGE_KEYS.name, name);
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.name);
+        }
+      }
+    },
 
     isGameEnabled: (gameType) => get().gameSettings[gameType] ?? true,
 
