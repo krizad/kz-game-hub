@@ -2,7 +2,7 @@
 goal: 'Development backlog index for KZ Game Hub'
 version: '1.1'
 date_created: '2026-10-13'
-last_updated: '2026-10-14'
+last_updated: '2026-10-15'
 owner: 'KZ Game Hub maintainers'
 status: 'In Progress'
 tags: ['planning', 'backlog']
@@ -40,7 +40,7 @@ tags: ['planning', 'backlog']
 
 คิวนี้เป็นลำดับแนะนำ ไม่ใช่ dependency chain ทั้งหมด. เอา dependency ที่เกิดเพียงเพราะไฟล์ชนกันออกแล้ว; SH-004 ต้องรอ SH-006, SH-005 ต้องรอ SH-001 และ dependencies รายเกมยังคงอยู่ใน manifest. Shared store/gateway/types/dictionaries ต้องแก้ทีละ changesetเพื่อไม่ชนกัน.
 
-Playtest เริ่มหลัง pilot controls/reliability ไม่ต้องรอปรับครบ14เกม. ผ่าน implementation/review แล้ว 6/54 tasks; เหลือ 48 tasks รวม 5 workflow และ1 deferred public-growth. ดู Completed/Date และ completed_tasks ใน manifest.
+Playtest เริ่มหลัง pilot controls/reliability ไม่ต้องรอปรับครบ14เกม. ตรวจ implementation และ regression แล้ว 51/54 tasks; เหลือ HUB-004 ที่รอผลทดสอบคนจริง และ HUB-005/SH-007 ที่ On Hold ตามโฟกัสห้องส่วนตัว. รายละเอียดผลทดสอบปัจจุบันและข้อจำกัดอยู่ใน [HUB delivery audit](../../qa/2026-10-15-hub-workflows.md). ดู Completed/Date และ completed_tasks ใน manifest.
 
 ไม่ทำ urgent fixes ซ้ำ: Poker raise/short all-in, Join/Coup overflow, Slave scroll26, Rules dialog, local test DB และ Music preset/reconnect เสร็จแล้วตาม [delivery evidence](../../qa/2026-10-13-urgent-fixes.md).
 
@@ -48,22 +48,22 @@ Playtest เริ่มหลัง pilot controls/reliability ไม่ต้�
 
 | แผน                                       | ID    | ไฟล์                                                                                           | สถานะ       | Tasks |
 | ----------------------------------------- | ----- | ---------------------------------------------------------------------------------------------- | ----------- | ----- |
-| ภาพรวม                                    | `HUB` | [design-game-hub-improvement-1.md](../../../plan/design-game-hub-improvement-1.md)             | Planned     | 5     |
+| ภาพรวม                                    | `HUB` | [design-game-hub-improvement-1.md](../../../plan/design-game-hub-improvement-1.md)             | In Progress     | 5     |
 | ระบบร่วม                                  | `SH`  | [refactor-shared-gameplay-1.md](../../../plan/refactor-shared-gameplay-1.md)                   | In Progress | 7     |
-| Who Know / Knowguise                      | `WK`  | [feature-who-know-experience-1.md](../../../plan/feature-who-know-experience-1.md)             | Planned     | 3     |
-| Tic-Tac-Toe: Classic / Gobbler / Ultimate | `TT`  | [feature-tic-tac-toe-experience-1.md](../../../plan/feature-tic-tac-toe-experience-1.md)       | In Progress | 3     |
-| RPS / Hand Duel                           | `RP`  | [feature-rps-experience-1.md](../../../plan/feature-rps-experience-1.md)                       | Planned     | 3     |
-| Sounds Fishy / GuiseGuess                 | `SF`  | [feature-sounds-fishy-experience-1.md](../../../plan/feature-sounds-fishy-experience-1.md)     | Planned     | 3     |
-| Detective Club / Cluecanvas               | `DC`  | [feature-detective-club-experience-1.md](../../../plan/feature-detective-club-experience-1.md) | In Progress | 3     |
-| Who Am I                                  | `WA`  | [feature-who-am-i-experience-1.md](../../../plan/feature-who-am-i-experience-1.md)             | In Progress | 3     |
-| Who First                                 | `WF`  | [feature-who-first-experience-1.md](../../../plan/feature-who-first-experience-1.md)           | Planned     | 3     |
-| Music Trivia                              | `MT`  | [feature-music-trivia-experience-1.md](../../../plan/feature-music-trivia-experience-1.md)     | In Progress | 3     |
-| The Mind / Countaline                     | `TM`  | [feature-the-mind-experience-1.md](../../../plan/feature-the-mind-experience-1.md)             | Planned     | 3     |
-| Saboteur                                  | `SA`  | [feature-saboteur-experience-1.md](../../../plan/feature-saboteur-experience-1.md)             | Planned     | 3     |
-| Coup / บ้านทรายทอง                        | `CP`  | [feature-coup-experience-1.md](../../../plan/feature-coup-experience-1.md)                     | Planned     | 3     |
-| Thai Card Game: ป๊อกเด้ง / Slave          | `CA`  | [feature-card-game-experience-1.md](../../../plan/feature-card-game-experience-1.md)           | Planned     | 3     |
-| Banana Thief                              | `BT`  | [feature-banana-thief-experience-1.md](../../../plan/feature-banana-thief-experience-1.md)     | Planned     | 3     |
-| Poker: Online / Chips Ledger              | `PK`  | [feature-poker-experience-1.md](../../../plan/feature-poker-experience-1.md)                   | Planned     | 3     |
+| Who Know / Knowguise                      | `WK`  | [feature-who-know-experience-1.md](../../../plan/feature-who-know-experience-1.md)             | Completed     | 3     |
+| Tic-Tac-Toe: Classic / Gobbler / Ultimate | `TT`  | [feature-tic-tac-toe-experience-1.md](../../../plan/feature-tic-tac-toe-experience-1.md)       | Completed | 3     |
+| RPS / Hand Duel                           | `RP`  | [feature-rps-experience-1.md](../../../plan/feature-rps-experience-1.md)                       | Completed     | 3     |
+| Sounds Fishy / GuiseGuess                 | `SF`  | [feature-sounds-fishy-experience-1.md](../../../plan/feature-sounds-fishy-experience-1.md)     | Completed     | 3     |
+| Detective Club / Cluecanvas               | `DC`  | [feature-detective-club-experience-1.md](../../../plan/feature-detective-club-experience-1.md) | Completed | 3     |
+| Who Am I                                  | `WA`  | [feature-who-am-i-experience-1.md](../../../plan/feature-who-am-i-experience-1.md)             | Completed | 3     |
+| Who First                                 | `WF`  | [feature-who-first-experience-1.md](../../../plan/feature-who-first-experience-1.md)           | Completed     | 3     |
+| Music Trivia                              | `MT`  | [feature-music-trivia-experience-1.md](../../../plan/feature-music-trivia-experience-1.md)     | Completed | 3     |
+| The Mind / Countaline                     | `TM`  | [feature-the-mind-experience-1.md](../../../plan/feature-the-mind-experience-1.md)             | Completed     | 3     |
+| Saboteur                                  | `SA`  | [feature-saboteur-experience-1.md](../../../plan/feature-saboteur-experience-1.md)             | Completed     | 3     |
+| Coup / บ้านทรายทอง                        | `CP`  | [feature-coup-experience-1.md](../../../plan/feature-coup-experience-1.md)                     | Completed     | 3     |
+| Thai Card Game: ป๊อกเด้ง / Slave          | `CA`  | [feature-card-game-experience-1.md](../../../plan/feature-card-game-experience-1.md)           | Completed     | 3     |
+| Banana Thief                              | `BT`  | [feature-banana-thief-experience-1.md](../../../plan/feature-banana-thief-experience-1.md)     | Completed     | 3     |
+| Poker: Online / Chips Ledger              | `PK`  | [feature-poker-experience-1.md](../../../plan/feature-poker-experience-1.md)                   | Completed     | 3     |
 
 ## วิธีกลับมาพัฒนา
 

@@ -201,6 +201,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
       await page.locator('#inviteNameInput').waitFor({ state: 'hidden' });
     }
     await selectWordMode(host, /โฮสต์เป็นคนตั้ง/);
+    await host.getByTestId('lobby-advanced-settings').locator('summary').click();
     await host.getByRole('button', { name: 'อนุญาต', exact: true }).click();
     await goToLobby(viewer);
     await viewer.evaluate((code) => {
@@ -444,8 +445,10 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
       .toBe('ASKING');
 
     // Host moderator assertion: host is moderator, not a guesser
-    await expect(host.getByText('ผู้ดำเนินเกม (โฮสต์)')).toBeVisible({ timeout: 10000 });
-    await expect(host.getByText('ผู้ดูแล')).toBeVisible();
+    await expect(host.getByText('ผู้ดำเนินเกม (โฮสต์)', { exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(host.getByText('👑 ผู้ดูแล', { exact: true })).toBeVisible();
 
     // Current asker is distinct from host moderator
     const activePlayerId = await host.evaluate(

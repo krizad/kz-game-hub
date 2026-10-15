@@ -15,8 +15,8 @@ async function startPreset(host: Page, guest: Page) {
   await expect(guest.getByRole('button', { name: /BUZZ!$/ })).toBeVisible();
 }
 
-function attachYTMock(initialMode: 'play' | 'blocked' | 'error') {
-  return () => {
+function attachYTMock() {
+  return (initialMode: string) => {
     let currentMode = initialMode;
     (window as any).__setYTMockMode = (m: 'play' | 'blocked' | 'error') => {
       currentMode = m;
@@ -106,7 +106,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
       await startPreset(host, guest);
       await expect(guest.getByTestId('music-playback-status')).toHaveText('Now Playing...');
     } finally {
@@ -121,7 +121,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('blocked'), 'blocked');
+      await guest.addInitScript(attachYTMock(), 'blocked');
       await startPreset(host, guest);
       await expect(guest.getByTestId('music-playback-status')).toHaveText('Audio blocked');
       await expect(guest.getByTestId('music-playback-reason')).toHaveText(
@@ -149,7 +149,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('error'), 'error');
+      await guest.addInitScript(attachYTMock(), 'error');
       await startPreset(host, guest);
       await expect(guest.getByTestId('music-playback-status')).toHaveText('Audio unavailable');
       await expect(guest.getByTestId('music-playback-reason')).toHaveText(
@@ -180,7 +180,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
       await startPreset(host, guest);
       await expect(guest.getByTestId('music-playback-status')).toHaveText('Now Playing...');
 
@@ -225,7 +225,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
       await startPreset(host, guest);
       await expect(guest.getByTestId('music-playback-status')).toHaveText('Now Playing...');
 
@@ -260,7 +260,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
       const code = await createRoom(host, 'Alice', 'Music Trivia');
       await joinRoom(guest, await getOrigin(host), code, 'Bob');
       await host.getByRole('button', { name: /Free search/i }).click();
@@ -300,7 +300,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
       await startPreset(host, guest);
       await expect(guest.getByTestId('music-playback-status')).toHaveText('Now Playing...');
 
@@ -345,8 +345,8 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await host.addInitScript(attachYTMock('play'), 'play');
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await host.addInitScript(attachYTMock(), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
       const code = await createRoom(host, 'Alice', 'Music Trivia');
       await joinRoom(guest, await getOrigin(host), code, 'Bob');
 
@@ -434,6 +434,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
           store.setState({
             room: {
               ...room,
+              status: 'PLAYING',
               musicTriviaState: {
                 phase: 'SETUP',
                 currentTrackIndex: 0,
@@ -462,6 +463,7 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
           store.setState({
             room: {
               ...room,
+              status: 'PLAYING',
               musicTriviaState: {
                 phase: 'SETUP',
                 currentTrackIndex: 0,
@@ -494,8 +496,8 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
     const host = await hostContext.newPage();
     const guest = await guestContext.newPage();
     try {
-      await host.addInitScript(attachYTMock('play'), 'play');
-      await guest.addInitScript(attachYTMock('play'), 'play');
+      await host.addInitScript(attachYTMock(), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
 
       const code = await createRoom(host, 'Alice', 'Music Trivia');
       await joinRoom(guest, await getOrigin(host), code, 'Bob');

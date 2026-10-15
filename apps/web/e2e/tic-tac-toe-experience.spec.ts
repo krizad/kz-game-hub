@@ -58,6 +58,9 @@ for (const { mode, viewport, language, cellPrefix, firstCell, secondCell } of mo
     try {
       const code = await createRoom(host, `Host${mode}`, 'Tic-Tac-Toe', mode);
       const origin = await getOrigin(host);
+      if ((await host.getByTestId('lobby-advanced-settings').getAttribute('open')) === null) {
+        await host.getByTestId('lobby-advanced-settings').locator('summary').click();
+      }
       await host.getByRole('button', { name: 'Allowed', exact: true }).click();
       await joinRoom(guest, origin, code, `Guest${mode}`);
 
@@ -175,6 +178,9 @@ test('ULTIMATE: touch/focus next-board preview, disabled reasons, and 360px view
   try {
     const code = await createRoom(host, 'HostU', 'Tic-Tac-Toe', 'ULTIMATE');
     const origin = await getOrigin(host);
+    if ((await host.getByTestId('lobby-advanced-settings').getAttribute('open')) === null) {
+      await host.getByTestId('lobby-advanced-settings').locator('summary').click();
+    }
     await host.getByRole('button', { name: 'Allowed', exact: true }).click();
     await joinRoom(guest, origin, code, 'GuestU');
 
@@ -241,7 +247,7 @@ test('Unified results, rematch mode/bot persistence, and change mode', async ({ 
     // Bot is seated as O and game starts
     await expect(host.getByTestId('ttt-current-mode-badge')).toBeVisible();
     await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Classic/);
-    await expect(host.getByText('BOT (God)')).toBeVisible();
+    await expect(host.getByText('Bot 🤖 (God Mode)', { exact: true })).toBeVisible();
 
     // Play moves until result
     for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8]) {
@@ -268,7 +274,7 @@ test('Unified results, rematch mode/bot persistence, and change mode', async ({ 
 
     // Should restart playing immediately, keeping vs Bot and God difficulty
     await expect(host.getByTestId('ttt-cell-0')).toBeVisible();
-    await expect(host.getByText('BOT (God)')).toBeVisible();
+    await expect(host.getByText('Bot 🤖 (God Mode)', { exact: true })).toBeVisible();
     await expect(host.getByTestId('ttt-current-mode-badge')).toContainText(/Classic/);
 
     // 2. Change mode: host clicks change mode to return to lobby
@@ -296,6 +302,9 @@ test('Unified results, rematch mode/bot persistence, and change mode', async ({ 
 
     // Guest joins Gobbler room
     const origin = await getOrigin(host);
+    if ((await host.getByTestId('lobby-advanced-settings').getAttribute('open')) === null) {
+      await host.getByTestId('lobby-advanced-settings').locator('summary').click();
+    }
     await host.getByRole('button', { name: 'Allowed', exact: true }).click();
     await joinRoom(guest, origin, code, 'GuestGobbler');
 

@@ -4,7 +4,7 @@ import { createRoom, joinRoom, getOrigin } from './helpers';
 test.describe('Banana Thief Experience (TASK-BT-001, TASK-BT-002, TASK-BT-003)', () => {
   test('end-to-end banana thief experience with force-start dialog, wake cues, vote persistence, and result breakdown', async ({
     browser,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(180000);
 
     const contexts = await Promise.all([
@@ -84,15 +84,15 @@ test.describe('Banana Thief Experience (TASK-BT-001, TASK-BT-002, TASK-BT-003)',
 
       // Screenshots for SETUP in 3 viewports
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/setup-1280.png',
+        path: testInfo.outputPath('setup-1280.png'),
       });
       await p1.setViewportSize({ width: 390, height: 844 });
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/setup-390.png',
+        path: testInfo.outputPath('setup-390.png'),
       });
       await p1.setViewportSize({ width: 360, height: 800 });
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/setup-360.png',
+        path: testInfo.outputPath('setup-360.png'),
       });
       await p1.setViewportSize({ width: 1280, height: 900 });
 
@@ -114,15 +114,15 @@ test.describe('Banana Thief Experience (TASK-BT-001, TASK-BT-002, TASK-BT-003)',
 
       // Screenshots for NIGHT
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/night-1280.png',
+        path: testInfo.outputPath('night-1280.png'),
       });
       await p1.setViewportSize({ width: 390, height: 844 });
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/night-390.png',
+        path: testInfo.outputPath('night-390.png'),
       });
       await p1.setViewportSize({ width: 360, height: 800 });
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/night-360.png',
+        path: testInfo.outputPath('night-360.png'),
       });
       await p1.setViewportSize({ width: 1280, height: 900 });
 
@@ -150,34 +150,57 @@ test.describe('Banana Thief Experience (TASK-BT-001, TASK-BT-002, TASK-BT-003)',
         await expect(p.getByTestId('banana-thief-vote-status')).toContainText(/waiting/i);
       }
 
-      // Host casts vote for first candidate
-      const candidateBtn = p1.locator('button[data-testid^="banana-thief-vote-"]').first();
+      // A non-thief reload preserves its ballot; the thief leaving intentionally forfeits.
+      let voter = p2;
+      for (const page of [p2, p3, p4]) {
+        const role = await page.evaluate(
+          () => (window as any).__useGameStore.getState().privateState.ctRole,
+        );
+        if (role !== 'THIEF') {
+          voter = page;
+          break;
+        }
+      }
+      // Cast vote for first candidate
+      const candidateBtn = voter.locator('button[data-testid^="banana-thief-vote-"]').first();
       await expect(candidateBtn).toBeVisible();
       await candidateBtn.click();
 
-      // Host vote status updates to Submitted
-      await expect(p1.getByTestId('banana-thief-vote-status')).toContainText(/submitted/i);
+      // The voter sees their submitted ballot
+      await expect(voter.getByTestId('banana-thief-vote-status')).toContainText(/submitted/i);
 
-      // Candidate buttons are now disabled for host
+      // Candidate buttons are now disabled for this voter
       await expect(candidateBtn).toBeDisabled();
 
-      // Persistence check: Reload host page during voting
-      await p1.reload();
-      await expect(p1.getByTestId('banana-thief-vote-status')).toBeVisible({ timeout: 15000 });
-      await expect(p1.getByTestId('banana-thief-vote-status')).toContainText(/submitted/i);
-      await expect(p1.locator('button[data-testid^="banana-thief-vote-"]').first()).toBeDisabled();
+      // Reload this voter during voting
+      await voter.reload();
+      await expect(voter.getByTestId('banana-thief-vote-status')).toBeVisible({ timeout: 15000 });
+      await expect(voter.getByTestId('banana-thief-vote-status')).toContainText(/submitted/i);
+      await expect(
+        voter.locator('button[data-testid^="banana-thief-vote-"]').first(),
+      ).toBeDisabled();
 
       // Screenshots for VOTING
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/voting-1280.png',
+        path: testInfo.outputPath('voting-1280.png'),
       });
 
       // Remaining players cast their votes
-      for (const p of [p2, p3, p4]) {
+      for (const p of [p1, p2, p3, p4].filter((page) => page !== voter)) {
         const btn = p.locator('button[data-testid^="banana-thief-vote-"]').first();
         if (await btn.isVisible().catch(() => false)) {
           await btn.click();
-          await expect(p.getByTestId('banana-thief-vote-status')).toContainText(/submitted/i);
+          await expect
+            .poll(() =>
+              p.evaluate(() => {
+                const state = (window as any).__useGameStore.getState();
+                return (
+                  state.privateState.ctVote != null ||
+                  state.room.bananaThiefState.phase === 'RESULT'
+                );
+              }),
+            )
+            .toBe(true);
         }
       }
 
@@ -186,20 +209,24 @@ test.describe('Banana Thief Experience (TASK-BT-001, TASK-BT-002, TASK-BT-003)',
       // ==========================================
       // When all votes are in, game enters RESULT
       for (const p of [p1, p2, p3, p4]) {
-        await expect(p.locator('body')).toContainText(/Thief|Mice|ชนะ|โจร/i, { timeout: 15000 });
+        await expect
+          .poll(() =>
+            p.evaluate(() => (window as any).__useGameStore.getState().room.bananaThiefState.phase),
+          )
+          .toBe('RESULT');
       }
 
       // Screenshots for RESULT
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/result-1280.png',
+        path: testInfo.outputPath('result-1280.png'),
       });
       await p1.setViewportSize({ width: 390, height: 844 });
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/result-390.png',
+        path: testInfo.outputPath('result-390.png'),
       });
       await p1.setViewportSize({ width: 360, height: 800 });
       await p1.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/banana-thief/result-360.png',
+        path: testInfo.outputPath('result-360.png'),
       });
     } finally {
       await Promise.all(contexts.map((c) => c.close().catch(() => {})));

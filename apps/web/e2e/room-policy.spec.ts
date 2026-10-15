@@ -7,6 +7,7 @@ test('unlisted room stays out of catalog, accepts code joins and reconnects, and
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const code = await createRoom(page, 'PolicyHost', 'Knowguise');
+  await page.getByTestId('lobby-advanced-settings').locator('summary').click();
   await expect(page.getByRole('button', { name: 'Unlisted', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -33,6 +34,7 @@ test('unlisted room stays out of catalog, accepts code joins and reconnects, and
   const origin = await getOrigin(page);
   const guest = await browser.newPage();
   await joinRoom(guest, origin, code, 'PolicyGuest');
+  await guest.getByTestId('lobby-advanced-settings').locator('summary').click();
   await expect(guest.getByRole('button', { name: 'Public', exact: true })).toBeDisabled();
   const playerId = await guest.evaluate(
     () => (window as any).__useGameStore.getState().playerId as string,
@@ -95,7 +97,9 @@ test('a denied spectator request keeps the current seated room and session', asy
     (code) => (window as any).__useGameStore.getState().spectateJoin(code),
     deniedCode,
   );
-  await expect(page.getByText('This room does not allow spectators.')).toBeVisible();
+  await expect(page.getByTestId('game-start-error')).toHaveText(
+    'This room does not allow spectators.',
+  );
   await expect
     .poll(() => page.evaluate(() => (window as any).__useGameStore.getState().room?.code))
     .toBe(originalCode);
@@ -121,6 +125,7 @@ for (const { width, height, language } of [
     await page.setViewportSize({ width, height });
     await createRoom(page, `Host${width}`, 'Knowguise');
     if (language === 'th') await page.getByText('TH', { exact: true }).click();
+    await page.getByTestId('lobby-advanced-settings').locator('summary').click();
     const publicLabel = language === 'th' ? 'สาธารณะ' : 'Public';
     const unlistedLabel = language === 'th' ? 'ไม่แสดงในรายการ' : 'Unlisted';
     await expect(page.getByRole('button', { name: unlistedLabel, exact: true })).toBeVisible();
