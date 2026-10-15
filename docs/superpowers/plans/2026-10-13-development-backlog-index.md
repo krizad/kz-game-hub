@@ -48,22 +48,22 @@ Playtest เริ่มหลัง pilot controls/reliability ไม่ต้�
 
 | แผน                                       | ID    | ไฟล์                                                                                           | สถานะ       | Tasks |
 | ----------------------------------------- | ----- | ---------------------------------------------------------------------------------------------- | ----------- | ----- |
-| ภาพรวม                                    | `HUB` | [design-game-hub-improvement-1.md](../../../plan/design-game-hub-improvement-1.md)             | In Progress     | 5     |
+| ภาพรวม                                    | `HUB` | [design-game-hub-improvement-1.md](../../../plan/design-game-hub-improvement-1.md)             | In Progress | 5     |
 | ระบบร่วม                                  | `SH`  | [refactor-shared-gameplay-1.md](../../../plan/refactor-shared-gameplay-1.md)                   | In Progress | 7     |
-| Who Know / Knowguise                      | `WK`  | [feature-who-know-experience-1.md](../../../plan/feature-who-know-experience-1.md)             | Completed     | 3     |
-| Tic-Tac-Toe: Classic / Gobbler / Ultimate | `TT`  | [feature-tic-tac-toe-experience-1.md](../../../plan/feature-tic-tac-toe-experience-1.md)       | Completed | 3     |
-| RPS / Hand Duel                           | `RP`  | [feature-rps-experience-1.md](../../../plan/feature-rps-experience-1.md)                       | Completed     | 3     |
-| Sounds Fishy / GuiseGuess                 | `SF`  | [feature-sounds-fishy-experience-1.md](../../../plan/feature-sounds-fishy-experience-1.md)     | Completed     | 3     |
-| Detective Club / Cluecanvas               | `DC`  | [feature-detective-club-experience-1.md](../../../plan/feature-detective-club-experience-1.md) | Completed | 3     |
-| Who Am I                                  | `WA`  | [feature-who-am-i-experience-1.md](../../../plan/feature-who-am-i-experience-1.md)             | Completed | 3     |
-| Who First                                 | `WF`  | [feature-who-first-experience-1.md](../../../plan/feature-who-first-experience-1.md)           | Completed     | 3     |
-| Music Trivia                              | `MT`  | [feature-music-trivia-experience-1.md](../../../plan/feature-music-trivia-experience-1.md)     | Completed | 3     |
-| The Mind / Countaline                     | `TM`  | [feature-the-mind-experience-1.md](../../../plan/feature-the-mind-experience-1.md)             | Completed     | 3     |
-| Saboteur                                  | `SA`  | [feature-saboteur-experience-1.md](../../../plan/feature-saboteur-experience-1.md)             | Completed     | 3     |
-| Coup / บ้านทรายทอง                        | `CP`  | [feature-coup-experience-1.md](../../../plan/feature-coup-experience-1.md)                     | Completed     | 3     |
-| Thai Card Game: ป๊อกเด้ง / Slave          | `CA`  | [feature-card-game-experience-1.md](../../../plan/feature-card-game-experience-1.md)           | Completed     | 3     |
-| Banana Thief                              | `BT`  | [feature-banana-thief-experience-1.md](../../../plan/feature-banana-thief-experience-1.md)     | Completed     | 3     |
-| Poker: Online / Chips Ledger              | `PK`  | [feature-poker-experience-1.md](../../../plan/feature-poker-experience-1.md)                   | Completed     | 3     |
+| Who Know / Knowguise                      | `WK`  | [feature-who-know-experience-1.md](../../../plan/feature-who-know-experience-1.md)             | Completed   | 3     |
+| Tic-Tac-Toe: Classic / Gobbler / Ultimate | `TT`  | [feature-tic-tac-toe-experience-1.md](../../../plan/feature-tic-tac-toe-experience-1.md)       | Completed   | 3     |
+| RPS / Hand Duel                           | `RP`  | [feature-rps-experience-1.md](../../../plan/feature-rps-experience-1.md)                       | Completed   | 3     |
+| Sounds Fishy / GuiseGuess                 | `SF`  | [feature-sounds-fishy-experience-1.md](../../../plan/feature-sounds-fishy-experience-1.md)     | Completed   | 3     |
+| Detective Club / Cluecanvas               | `DC`  | [feature-detective-club-experience-1.md](../../../plan/feature-detective-club-experience-1.md) | Completed   | 3     |
+| Who Am I                                  | `WA`  | [feature-who-am-i-experience-1.md](../../../plan/feature-who-am-i-experience-1.md)             | Completed   | 3     |
+| Who First                                 | `WF`  | [feature-who-first-experience-1.md](../../../plan/feature-who-first-experience-1.md)           | Completed   | 3     |
+| Music Trivia                              | `MT`  | [feature-music-trivia-experience-1.md](../../../plan/feature-music-trivia-experience-1.md)     | Completed   | 3     |
+| The Mind / Countaline                     | `TM`  | [feature-the-mind-experience-1.md](../../../plan/feature-the-mind-experience-1.md)             | Completed   | 3     |
+| Saboteur                                  | `SA`  | [feature-saboteur-experience-1.md](../../../plan/feature-saboteur-experience-1.md)             | Completed   | 3     |
+| Coup / บ้านทรายทอง                        | `CP`  | [feature-coup-experience-1.md](../../../plan/feature-coup-experience-1.md)                     | Completed   | 3     |
+| Thai Card Game: ป๊อกเด้ง / Slave          | `CA`  | [feature-card-game-experience-1.md](../../../plan/feature-card-game-experience-1.md)           | Completed   | 3     |
+| Banana Thief                              | `BT`  | [feature-banana-thief-experience-1.md](../../../plan/feature-banana-thief-experience-1.md)     | Completed   | 3     |
+| Poker: Online / Chips Ledger              | `PK`  | [feature-poker-experience-1.md](../../../plan/feature-poker-experience-1.md)                   | Completed   | 3     |
 
 ## วิธีกลับมาพัฒนา
 

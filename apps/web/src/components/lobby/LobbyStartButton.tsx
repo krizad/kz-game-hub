@@ -39,6 +39,7 @@ export function LobbyStartButton() {
   const getMinPlayers = () => {
     switch (room.gameType) {
       case GameType.WHO_KNOW:
+      case GameType.CIPHER_GRID:
         return 4;
       case GameType.SOUNDS_FISHY:
       case GameType.DETECTIVE_CLUB:

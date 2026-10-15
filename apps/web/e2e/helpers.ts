@@ -76,6 +76,8 @@ export async function extractRoomCode(page: Page): Promise<string> {
     'THAI CARD GAME',
     'Ultimate Tic-Tac-Toe',
     'Banana Thief',
+    'Ciphergrid',
+    'สายลับคำใบ้',
   ];
   for (const name of knownNames) {
     const idx = bodyText.indexOf(name);

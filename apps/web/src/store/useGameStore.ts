@@ -30,6 +30,8 @@ import {
   DeleteArtistPayload,
   ActionReceipt,
   ServerTimeResponsePayload,
+  CipherAssignTeamPayload,
+  CipherClueCount,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -171,6 +173,16 @@ interface GameState {
   bananaThiefReaction: (emoji: string) => void;
   cardGameAction: (action: CardGameAction) => void;
   pokerAction: (action: PokerAction) => void;
+  cipherAssignTeam: (payload: CipherAssignTeamPayload) => void;
+  cipherRandomizeTeams: () => void;
+  cipherStartMatch: () => void;
+  cipherGiveClue: (word: string, count: CipherClueCount) => void;
+  cipherPingCard: (cardIndex: number) => void;
+  cipherRevealCard: (cardIndex: number) => void;
+  cipherEndTurn: () => void;
+  cipherChallengeClue: () => void;
+  cipherNextRound: () => void;
+  cipherReset: () => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -984,6 +996,49 @@ export const useGameStore = create<GameState>((set, get) => {
         loading: false,
         payload: () => ({ emoji }),
       });
+    },
+
+    cipherAssignTeam: (payload: CipherAssignTeamPayload) => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_ASSIGN_TEAM, { payload: () => ({ ...payload }) });
+    },
+
+    cipherRandomizeTeams: () => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_RANDOMIZE_TEAMS);
+    },
+
+    cipherStartMatch: () => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_START_MATCH);
+    },
+
+    cipherGiveClue: (word: string, count: CipherClueCount) => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_GIVE_CLUE, { payload: () => ({ word, count }) });
+    },
+
+    cipherPingCard: (cardIndex: number) => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_PING_CARD, {
+        loading: false,
+        payload: () => ({ cardIndex }),
+      });
+    },
+
+    cipherRevealCard: (cardIndex: number) => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_REVEAL_CARD, { payload: () => ({ cardIndex }) });
+    },
+
+    cipherEndTurn: () => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_END_TURN);
+    },
+
+    cipherChallengeClue: () => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_CHALLENGE_CLUE);
+    },
+
+    cipherNextRound: () => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_NEXT_ROUND);
+    },
+
+    cipherReset: () => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_RESET);
     },
 
     spectateJoin: (code: string) => {

@@ -16,6 +16,7 @@ import { CoupRules } from './games/coup/CoupRules';
 import { CardGameRules } from './games/card-game/CardGameRules';
 import { PokerRules } from './games/poker/PokerRules';
 import { BananaThiefRules } from './games/banana-thief/BananaThiefRules';
+import { CipherGridRules } from './games/cipher-grid/CipherGridRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
 import { GameDialog } from './core/GameDialog';
@@ -79,6 +80,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <BananaThiefRules />;
       case GameType.POKER:
         return <PokerRules />;
+      case GameType.CIPHER_GRID:
+        return <CipherGridRules />;
       default:
         return null;
     }
@@ -274,6 +277,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.POKER ? 'bg-emerald-300 text-black border-2 border-black border border-emerald-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.poker')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.CIPHER_GRID) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.CIPHER_GRID)}
+                      className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CIPHER_GRID ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.cipherGrid')}
                     </button>
                   )}
                 </div>

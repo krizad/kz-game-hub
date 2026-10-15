@@ -15,4 +15,5 @@ export * from './banana-thief';
 export * from './ultimate-tic-tac-toe';
 export * from './card-game';
 export * from './poker';
+export * from './cipher-grid';
 export * from './utils';

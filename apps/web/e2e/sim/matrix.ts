@@ -481,6 +481,16 @@ export const GAME_MATRIX: MatrixEntry[] = [
     configure: ['poker-mode:CHIPS_LEDGER'],
     timeout: 240000,
   },
+
+  // --- Ciphergrid (สายลับคำใบ้) ---
+  {
+    id: 'cipher-grid-4p',
+    game: 'CIPHER_GRID',
+    lobbyButton: 'Ciphergrid',
+    players: 4,
+    description: '4-player team deduction (Solar vs Lunar), clue giving and decoding',
+    timeout: 180000,
+  },
 ];
 
 export function filterMatrix(idsOrPrefixes: string[]): MatrixEntry[] {

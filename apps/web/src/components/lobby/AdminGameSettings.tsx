@@ -23,6 +23,7 @@ const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.CARD_GAME, labelKey: 'rules.modal.tabs.pokDeng' },
   { type: GameType.POKER, labelKey: 'rules.modal.tabs.poker' },
   { type: GameType.BANANA_THIEF, labelKey: 'rules.modal.tabs.bananaThief' },
+  { type: GameType.CIPHER_GRID, labelKey: 'rules.modal.tabs.cipherGrid' },
 ];
 
 interface AdminGameSettingsProps {

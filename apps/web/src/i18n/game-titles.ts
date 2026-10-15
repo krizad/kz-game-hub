@@ -6,6 +6,7 @@ export const REBRANDED_TITLES = {
     theMind: 'นับในใจ',
     coup: 'บ้านทรายทอง',
     whoKnow: 'รู้แล้วเนียน',
+    cipherGrid: 'สายลับคำใบ้',
   },
   en: {
     soundsFishy: 'GuiseGuess',
@@ -13,5 +14,6 @@ export const REBRANDED_TITLES = {
     theMind: 'Countaline',
     coup: 'Golden Sand House',
     whoKnow: 'Knowguise',
+    cipherGrid: 'Ciphergrid',
   },
 } as const;

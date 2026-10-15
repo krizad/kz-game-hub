@@ -25,6 +25,7 @@ import {
   CardGamePublicState,
 } from './card-game';
 import { PokerMode, PokerPublicState } from './poker';
+import { CipherGridState } from './cipher-grid';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -54,6 +55,7 @@ export enum GameType {
   CARD_GAME = 'CARD_GAME',
   BANANA_THIEF = 'BANANA_THIEF',
   POKER = 'POKER',
+  CIPHER_GRID = 'CIPHER_GRID',
 }
 
 /**
@@ -176,6 +178,17 @@ export const SOCKET_EVENTS = {
   BANANA_THIEF_ROLL_DIE: 'banana_thief_roll_die',
   // Poker (ADR 0009): one shared betting engine, ONLINE + CHIPS_LEDGER modes
   POKER_ACTION: 'poker_action',
+  // Ciphergrid specific events
+  CIPHER_ASSIGN_TEAM: 'cipher_assign_team',
+  CIPHER_RANDOMIZE_TEAMS: 'cipher_randomize_teams',
+  CIPHER_START_MATCH: 'cipher_start_match',
+  CIPHER_GIVE_CLUE: 'cipher_give_clue',
+  CIPHER_CHALLENGE_CLUE: 'cipher_challenge_clue',
+  CIPHER_PING_CARD: 'cipher_ping_card',
+  CIPHER_REVEAL_CARD: 'cipher_reveal_card',
+  CIPHER_END_TURN: 'cipher_end_turn',
+  CIPHER_NEXT_ROUND: 'cipher_next_round',
+  CIPHER_RESET: 'cipher_reset',
   // Shared gameplay receipt (TASK-SH-002)
   ACTION_RECEIPT: 'action_receipt',
   // Server clock sync (TASK-SH-001)
@@ -302,6 +315,9 @@ export interface RoomConfig {
   pokerAnte?: number;
   pokerTurnTimerEnabled?: boolean;
   pokerTurnTimerSeconds?: number;
+  // Ciphergrid config
+  /** Seconds per team turn (clue + decoding). 0 or missing = no turn timer. */
+  cipherGridTurnSeconds?: number;
 }
 
 export interface RoomState {
@@ -342,6 +358,8 @@ export interface RoomState {
   cardGameLog?: CardGameLogEntry[];
   /** Poker hand state — deck order and hole cards live in private state only. */
   pokerState?: PokerPublicState;
+  /** Ciphergrid board — unrevealed card colours live in private state only. */
+  cipherGridState?: CipherGridState;
 }
 
 export interface AvailableRoom {

@@ -42,6 +42,9 @@ import {
   TTT_MODE_FLAGS,
   BANANA_THIEF_REACTIONS,
   BananaThiefChooseFollowerPayload,
+  CipherAssignTeamPayload,
+  CipherGiveCluePayload,
+  CipherCardIndexPayload,
 } from '@repo/types';
 
 /** Server string the client localizes via i18n/serverErrors. */
@@ -449,6 +452,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           msg = 'Cannot start game. Need at least 2 players.';
         } else if (gameType === GameType.BANANA_THIEF) {
           msg = 'Cannot start game. Need at least 4 players.';
+        } else if (gameType === GameType.CIPHER_GRID) {
+          msg = 'Cannot start game. Need at least 4 players.';
         }
       }
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
@@ -569,6 +574,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         'music-trivia-countdown',
         'music-trivia-answer',
         'banana-thief',
+        'cipher-grid',
       ]) {
         this.roomTimerService.cancel(room.code, timerName);
       }
@@ -1710,6 +1716,143 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     });
   }
 
+  // --- Ciphergrid Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_ASSIGN_TEAM)
+  handleCipherAssignTeam(
+    @MessageBody() data: { code: string } & CipherAssignTeamPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherAssignTeam(
+      data.code,
+      client.id,
+      data.team ?? null,
+      data.role,
+      data.targetId,
+    );
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot assign team right now.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_RANDOMIZE_TEAMS)
+  handleCipherRandomizeTeams(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherRandomizeTeams(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot randomize teams.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_START_MATCH)
+  handleCipherStartMatch(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.cipherStartMatch(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, {
+        message: 'Cannot start match. Each team needs 1 Lead and at least 1 Tracker.',
+      });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_GIVE_CLUE)
+  handleCipherGiveClue(
+    @MessageBody() data: { code: string } & CipherGiveCluePayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const res = this.gamesService.cipherGiveClue(data.code, client.id, data.word, data.count);
+    if (res.room) {
+      this.broadcastRoomState(res.room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: res.error ?? 'Invalid clue.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_PING_CARD)
+  handleCipherPingCard(
+    @MessageBody() data: { code: string } & CipherCardIndexPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherPingCard(data.code, client.id, data.cardIndex);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot ping card.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_REVEAL_CARD)
+  handleCipherRevealCard(
+    @MessageBody() data: { code: string } & CipherCardIndexPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherRevealCard(data.code, client.id, data.cardIndex);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot reveal card.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_END_TURN)
+  handleCipherEndTurn(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.cipherEndTurn(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, {
+        message: 'Must make at least 1 guess before ending turn.',
+      });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_CHALLENGE_CLUE)
+  handleCipherChallengeClue(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherChallengeClue(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+      this.maybeRecordGameResult(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot challenge clue.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_NEXT_ROUND)
+  handleCipherNextRound(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.cipherNextRound(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Only host can start next round.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_RESET)
+  handleCipherReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.resetGame(data.code, client.id);
+    if (room) {
+      this.roomTimerService.cancel(room.code, 'cipher-grid');
+      this.broadcastRoomState(room);
+      this.server.emit(
+        SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
+        this.gamesService.getAvailableRooms(),
+      );
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+    }
+  }
+
   // --- Leaderboard ---
 
   @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)
@@ -1775,6 +1918,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
     if (room.gameType === GameType.BANANA_THIEF) {
       this.syncBananaThiefTimer(room);
+    }
+    if (room.gameType === GameType.CIPHER_GRID) {
+      this.syncCipherGridTimer(room);
     }
   }
 
@@ -1995,6 +2141,34 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       );
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
+      }
+    });
+  }
+
+  /** Turn timer for Ciphergrid (config-gated). */
+  private syncCipherGridTimer(room: RoomState): void {
+    const deadline = room.cipherGridState?.turnEndsAt ?? null;
+    if (
+      !deadline ||
+      (room.cipherGridState?.phase !== 'CLUE_GIVING' && room.cipherGridState?.phase !== 'DECODING')
+    ) {
+      this.roomTimerService.cancel(room.code, 'cipher-grid');
+      return;
+    }
+
+    this.roomTimerService.schedule(room.code, 'cipher-grid', deadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (
+        !currentRoom ||
+        currentRoom.gameType !== GameType.CIPHER_GRID ||
+        currentRoom.cipherGridState?.turnEndsAt !== deadline
+      ) {
+        return;
+      }
+
+      const updated = this.gamesService.cipherTurnTimeout(room.code, deadline);
+      if (updated) {
+        this.broadcastRoomState(updated);
       }
     });
   }
@@ -2289,6 +2463,36 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
     if (event === SOCKET_EVENTS.BANANA_THIEF_REACTION) {
       return (BANANA_THIEF_REACTIONS as readonly string[]).includes(data.emoji as string);
+    }
+    if (event === SOCKET_EVENTS.CIPHER_ASSIGN_TEAM) {
+      return (
+        (data.team === null ||
+          data.team === undefined ||
+          data.team === 'SOLAR' ||
+          data.team === 'LUNAR') &&
+        (data.role === undefined || data.role === 'CIPHER_LEAD' || data.role === 'TRACKER') &&
+        (data.targetId === undefined || typeof data.targetId === 'string')
+      );
+    }
+    if (event === SOCKET_EVENTS.CIPHER_GIVE_CLUE) {
+      return (
+        typeof data.word === 'string' &&
+        data.word.trim().length >= 1 &&
+        data.word.trim().length <= 50 &&
+        (data.count === 'UNLIMITED' ||
+          (typeof data.count === 'number' &&
+            Number.isInteger(data.count) &&
+            data.count >= 0 &&
+            data.count <= 9))
+      );
+    }
+    if (event === SOCKET_EVENTS.CIPHER_PING_CARD || event === SOCKET_EVENTS.CIPHER_REVEAL_CARD) {
+      return (
+        typeof data.cardIndex === 'number' &&
+        Number.isInteger(data.cardIndex) &&
+        data.cardIndex >= 0 &&
+        data.cardIndex < 25
+      );
     }
     return true;
   }

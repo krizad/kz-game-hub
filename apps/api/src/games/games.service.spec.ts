@@ -18,6 +18,7 @@ import { BananaThiefService } from './banana-thief/banana-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
+import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
 import { RoomState, RoomStatus, GameType, Role, SOCKET_EVENTS } from '@repo/types';
@@ -212,6 +213,40 @@ describe('GamesService', () => {
       remapSocketId: BananaThiefService.prototype.remapSocketId,
       remapRoomSecrets: jest.fn(),
     },
+    cipherGrid: {
+      createInitialState: jest.fn(() => ({
+        phase: 'TEAM_SETUP',
+        round: 0,
+        teams: {},
+        cipherLeads: {},
+        board: [],
+        startingTeam: null,
+        currentTeam: null,
+        currentClue: null,
+        guessesThisTurn: 0,
+        pings: {},
+        remaining: { SOLAR: 0, LUNAR: 0 },
+        winner: null,
+        winReason: null,
+        history: [],
+        scores: { SOLAR: 0, LUNAR: 0 },
+        turnEndsAt: null,
+      })),
+      startGame: jest.fn(),
+      resetGame: jest.fn(),
+      assignTeam: jest.fn(),
+      randomizeTeams: jest.fn(),
+      startMatch: jest.fn(),
+      nextRound: jest.fn(),
+      giveClue: jest.fn(),
+      pingCard: jest.fn(),
+      revealCard: jest.fn(),
+      endTurn: jest.fn(),
+      challengeClue: jest.fn(),
+      handleTurnTimeout: jest.fn(),
+      remapSocketId: jest.fn(),
+      handlePlayerRemoved: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -236,6 +271,7 @@ describe('GamesService', () => {
         { provide: UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
         { provide: CardGameService, useValue: mockGameServices.cardGame },
         { provide: PokerService, useValue: mockGameServices.poker },
+        { provide: CipherGridService, useValue: mockGameServices.cipherGrid },
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

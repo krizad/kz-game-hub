@@ -21,6 +21,7 @@ Built as a modern web application within a Turborepo.
 - **Thai Card Game (เกมไพ่ไทย):** Classic Thai card games with virtual chips — **Pok Deng** (ป๊อกเด้ง) and **Slave** (ไพ่ตกน้ำ), with host-editable advanced rules.
 - **Banana Thief (ลิงขโมยกล้วย):** A nighttime social deduction game — one player is the thief who secretly steals the banana while mice wake at their die-roll hours to peek and investigate, then everyone votes. Host-tunable followers, optional special roles (Detective, Twins, Sycophant, Scapegoat), and a live player-requirement calculator in the lobby.
 - **Poker (โป๊กเกอร์):** No-Limit Texas Hold'em with full side pots in two modes the host picks in the waiting room — **Online** (the web deals cards, evaluates showdowns, and settles pots) or **Chips ledger** (play a real deck at the table while everyone bets from their phones and the app tracks stacks, blinds, and pots). Host rebuys, adjustable turn timer, and chip standings recorded to the leaderboard.
+- **Ciphergrid (สายลับคำใบ้ / cipher-grid):** A two-team deduction game dividing players into Solar and Lunar teams on a 5×5 grid. Cipher Leads provide one-word clues and card counts, while Trackers deduce and reveal words without hitting the instant-loss Virus card. Includes interactive Challenge Clues for rule violations.
 
 ## ✨ Core Features
 

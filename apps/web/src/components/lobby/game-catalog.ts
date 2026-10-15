@@ -190,6 +190,18 @@ export const GAME_CATALOG: GameCatalogItem[] = [
     textRequired: false,
     styles: ['competitive'],
   },
+  {
+    type: GameType.CIPHER_GRID,
+    icon: '🕵️',
+    catalogKey: 'cipherGrid',
+    color: 'bg-cyan-400',
+    minPlayers: 4,
+    maxPlayers: 12,
+    cooperative: false,
+    audioRequired: false,
+    textRequired: true,
+    styles: ['party', 'competitive'],
+  },
 ];
 
 export function getGameCatalogItem(type: GameType): GameCatalogItem | undefined {

@@ -43,6 +43,7 @@ export interface Dictionary {
       cardGame: string;
       bananaThief: string;
       poker: string;
+      cipherGrid: string;
     };
     gameCards: {
       whoKnow: { category: string; description: string; players: string };
@@ -59,6 +60,7 @@ export interface Dictionary {
       cardGame: { category: string; description: string; players: string };
       bananaThief: { category: string; description: string; players: string };
       poker: { category: string; description: string; players: string };
+      cipherGrid: { category: string; description: string; players: string };
     };
     or: string;
     roomCodePlaceholder: string;
@@ -282,6 +284,16 @@ export interface Dictionary {
       waitingVotes: string;
       roundResult: string;
     };
+    cipherGrid: {
+      teamSetup: string;
+      giveClue: string;
+      waitClueMyTeam: string;
+      waitClueEnemy: string;
+      decodeCards: string;
+      watchTrackers: string;
+      challengeOpportunity: string;
+      roundEnd: string;
+    };
   };
   errors: {
     enterNameFirst: string;
@@ -335,6 +347,7 @@ export interface Dictionary {
         pokDeng: string;
         bananaThief: string;
         poker: string;
+        cipherGrid: string;
       };
       closeBtn: string;
       closeLabel: string;
@@ -414,6 +427,28 @@ export interface Dictionary {
       dlcTwins: string;
       dlcScapegoat: string;
       dlcNote: string;
+    };
+    cipherGrid: {
+      title: string;
+      overview: string;
+      rolesTitle: string;
+      leadRoleTitle: string;
+      leadRoleDesc: string;
+      trackerRoleTitle: string;
+      trackerRoleDesc: string;
+      cardsTitle: string;
+      cardSolarTitle: string;
+      cardSolarDesc: string;
+      cardLunarTitle: string;
+      cardLunarDesc: string;
+      cardDecoyTitle: string;
+      cardDecoyDesc: string;
+      cardVirusTitle: string;
+      cardVirusDesc: string;
+      challengeTitle: string;
+      challengeDesc: string;
+      winTitle: string;
+      winDesc: string;
     };
     whoKnow: {
       setupTitle: string;
@@ -1856,5 +1891,46 @@ export interface Dictionary {
       hostBody: string;
       handsTitle: string;
     };
+  };
+  cipherGrid: {
+    title: string;
+    solarTeam: string;
+    lunarTeam: string;
+    leadRole: string;
+    trackerRole: string;
+    unassigned: string;
+    switchTeam: string;
+    randomizeTeams: string;
+    startMatch: string;
+    needFourPlayers: string;
+    needLeadAndTracker: string;
+    waitingHostStart: string;
+    round: string;
+    score: string;
+    clueWordPlaceholder: string;
+    clueCount: string;
+    giveClueBtn: string;
+    peekKeycard: string;
+    hideKeycard: string;
+    pingCardBtn: string;
+    revealCardBtn: string;
+    endTurnBtn: string;
+    challengeClueBtn: string;
+    challengeConfirmTitle: string;
+    challengeConfirmDesc: string;
+    confirmChallenge: string;
+    cancel: string;
+    guessesLeft: string;
+    unlimited: string;
+    cardRemaining: string;
+    solarWon: string;
+    lunarWon: string;
+    winReasonAllFound: string;
+    winReasonVirus: string;
+    nextRoundBtn: string;
+    backToLobby: string;
+    historyTitle: string;
+    challengedBadge: string;
+    turnTimeRemaining: string;
   };
 }

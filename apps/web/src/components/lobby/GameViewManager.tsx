@@ -20,6 +20,7 @@ import { SlaveView } from '@/components/games/card-game/SlaveView';
 import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
 import { PokerView } from '@/components/games/poker/PokerView';
 import { PokerSettings } from '@/components/games/poker/PokerSettings';
+import { CipherGridView } from '@/components/games/cipher-grid/CipherGridView';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -139,6 +140,17 @@ function getGameStatus(
             : null;
       }
       break;
+    case GameType.CIPHER_GRID:
+      if (room.cipherGridState) {
+        phase = room.cipherGridState.phase;
+        if (room.cipherGridState.phase === 'CLUE_GIVING') {
+          const activeTeam = room.cipherGridState.currentTeam;
+          activePlayerId = activeTeam
+            ? (room.cipherGridState.cipherLeads[activeTeam] ?? null)
+            : null;
+        }
+      }
+      break;
     default:
       break;
   }
@@ -167,6 +179,7 @@ function getGameStatus(
     [GameType.CARD_GAME]: 'bg-amber-500',
     [GameType.POKER]: 'bg-emerald-300',
     [GameType.BANANA_THIEF]: 'bg-lime-400',
+    [GameType.CIPHER_GRID]: 'bg-amber-400',
   };
 
   return {
@@ -212,6 +225,9 @@ export function GameViewManager() {
     }
     if (room.gameType === GameType.POKER && room.status !== RoomStatus.LOBBY) {
       return <PokerView />;
+    }
+    if (room.gameType === GameType.CIPHER_GRID && room.status !== RoomStatus.LOBBY) {
+      return <CipherGridView />;
     }
 
     return (

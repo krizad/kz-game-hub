@@ -25,6 +25,7 @@ import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
+import { CipherGridService } from './cipher-grid/cipher-grid.service';
 
 @Module({
   providers: [
@@ -54,6 +55,7 @@ import { ActionReceiptService } from './action-receipt.service';
     PokerService,
     GameSettingsService,
     ArtistPresetService,
+    CipherGridService,
   ],
 })
 export class GamesModule {}

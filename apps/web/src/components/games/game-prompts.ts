@@ -435,6 +435,33 @@ export function getGamePrompt(
       }
       break;
     }
+
+    case GameType.CIPHER_GRID: {
+      const state = room.cipherGridState;
+      if (isSpectator) return { key: 'gamePrompts.spectating' };
+      if (!state) return { key: 'gamePrompts.spectating' };
+      if (state.phase === 'TEAM_SETUP') {
+        return { key: 'gamePrompts.cipherGrid.teamSetup' };
+      }
+      if (state.phase === 'CLUE_GIVING') {
+        const isMyTeam = state.teams[socketId] === state.currentTeam;
+        const isLead = state.cipherLeads[state.currentTeam ?? 'SOLAR'] === socketId;
+        if (isLead) return { key: 'gamePrompts.cipherGrid.giveClue' };
+        if (isMyTeam) return { key: 'gamePrompts.cipherGrid.waitClueMyTeam' };
+        return { key: 'gamePrompts.cipherGrid.waitClueEnemy' };
+      }
+      if (state.phase === 'DECODING') {
+        const isMyTeam = state.teams[socketId] === state.currentTeam;
+        const isLead = state.cipherLeads[state.teams[socketId] ?? 'SOLAR'] === socketId;
+        if (isMyTeam && !isLead) return { key: 'gamePrompts.cipherGrid.decodeCards' };
+        if (isMyTeam && isLead) return { key: 'gamePrompts.cipherGrid.watchTrackers' };
+        return { key: 'gamePrompts.cipherGrid.challengeOpportunity' };
+      }
+      if (state.phase === 'ROUND_END') {
+        return { key: 'gamePrompts.cipherGrid.roundEnd' };
+      }
+      break;
+    }
   }
 
   return { key: 'gameStatus.groupAction' };

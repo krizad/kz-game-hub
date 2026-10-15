@@ -1657,6 +1657,97 @@ async function playPoker(s: SimSession, entry: MatrixEntry): Promise<void> {
   await expect(host.getByTestId('poker-pot')).toBeVisible();
 }
 
+async function playCipherGrid(s: SimSession): Promise<void> {
+  const { host, players } = s;
+
+  // 1. In Lobby: host starts game when 4 players are present
+  const startBtn = host.locator('button').filter({ hasText: /Start Game|เริ่มเกม/ });
+  await expect(startBtn).toBeEnabled({ timeout: 15000 });
+  await startBtn.click();
+
+  // 2. TEAM_SETUP phase: assign 4 players
+  await expect(host.locator('[data-testid="ciphergrid-team-setup"]')).toBeVisible({
+    timeout: 10000,
+  });
+  await players[0].locator('[data-testid="join-solar-lead-btn"]').click();
+  await players[0].waitForTimeout(300);
+  await players[1].locator('[data-testid="join-solar-tracker-btn"]').click();
+  await players[1].waitForTimeout(300);
+  await players[2].locator('[data-testid="join-lunar-lead-btn"]').click();
+  await players[2].waitForTimeout(300);
+  await players[3].locator('[data-testid="join-lunar-tracker-btn"]').click();
+  await players[3].waitForTimeout(300);
+
+  // Host starts the match
+  const startMatchBtn = host.locator('[data-testid="start-match-btn"]');
+  await expect(startMatchBtn).toBeEnabled({ timeout: 10000 });
+  await startMatchBtn.click();
+
+  // 3. Active game board
+  await expect(host.locator('[data-testid="ciphergrid-container"]')).toBeVisible({
+    timeout: 10000,
+  });
+
+  // Play turns or until round end
+  for (let turn = 0; turn < 15; turn++) {
+    // Check if round ended
+    if (
+      await host
+        .locator('[data-testid="round-end-banner"]')
+        .isVisible()
+        .catch(() => false)
+    ) {
+      break;
+    }
+
+    // Check if any lead has clue input visible
+    let leadSubmitted = false;
+    for (const p of [players[0], players[2]]) {
+      const clueInput = p.locator('[data-testid="clue-word-input"]');
+      if (await clueInput.isVisible({ timeout: 300 }).catch(() => false)) {
+        await clueInput.fill('SIMCLUE');
+        await p.locator('[data-testid="give-clue-btn"]').click();
+        leadSubmitted = true;
+        break;
+      }
+    }
+
+    if (leadSubmitted) {
+      await host.waitForTimeout(STEP);
+      continue;
+    }
+
+    // Check if any tracker can reveal a card
+    let trackerRevealed = false;
+    for (const p of [players[1], players[3]]) {
+      const banner = p.locator('[data-testid="current-clue-banner"]');
+      if (await banner.isVisible({ timeout: 300 }).catch(() => false)) {
+        const unrevealedTiles = p.locator('[data-testid^="card-tile-"][data-revealed="false"]');
+        const count = await unrevealedTiles.count();
+        if (count > 0) {
+          await unrevealedTiles.first().click();
+          const revealBtn = p.locator('[data-testid="reveal-card-btn"]');
+          if (await revealBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+            await revealBtn.click();
+            trackerRevealed = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (trackerRevealed) {
+      await host.waitForTimeout(STEP);
+      continue;
+    }
+
+    await host.waitForTimeout(STEP);
+  }
+
+  // Verify board is still healthy and container is visible
+  await expect(host.locator('[data-testid="ciphergrid-container"]')).toBeVisible();
+}
+
 /* ------------------------------------------------------------------ */
 /* Dispatch                                                            */
 /* ------------------------------------------------------------------ */
@@ -1692,6 +1783,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playCardGame(s, entry);
     case 'POKER':
       return playPoker(s, entry);
+    case 'CIPHER_GRID':
+      return playCipherGrid(s);
     default:
       throw new Error(`No driver for game ${entry.game}`);
   }
