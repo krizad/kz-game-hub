@@ -319,8 +319,8 @@ test.describe('Full Game Demos', () => {
 
     // Majority YES ends the match -> Game Over with revealed words
     await activePage.getByRole('button', { name: /Continue/i }).click();
-    await expect(p1.getByText('Game Over')).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText('Game Over')).toBeVisible({ timeout: 5000 });
+    await expect(p1.getByText('Game Over').first()).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText('Game Over').first()).toBeVisible({ timeout: 5000 });
     await expect(p1.getByText('Elephant').first()).toBeVisible();
     await expect(p1.getByText('Tiger').first()).toBeVisible();
     await p1.waitForTimeout(2500);
@@ -461,10 +461,7 @@ test.describe('Full Game Demos', () => {
 
     // Every non-host player votes for a suspect
     for (const page of [p2, p3, p4]) {
-      const voteBtn = page
-        .locator('button')
-        .filter({ hasText: /^P[123]$/ })
-        .first();
+      const voteBtn = page.locator('[data-testid^="wk-vote-target-"]').first();
       if (
         await voteBtn
           .waitFor({ state: 'visible', timeout: 8000 })
@@ -777,14 +774,21 @@ test.describe('Full Game Demos', () => {
             .then(() => true)
             .catch(() => false)
         ) {
-          // Click the overlay div that actually has the onClick handler
-          const playOverlay = page
-            .locator('div.absolute')
-            .filter({ hasText: /^Play$|^วาง$/i })
+          // Select card in hand then confirm play
+          const handCard = page
+            .getByRole('button', { name: /Play card \d+|เล่นการ์ด \d+/i })
             .first();
-          await playOverlay.click({ force: true });
+          if (await handCard.isVisible({ timeout: 2000 }).catch(() => false)) {
+            await handCard.click({ timeout: 2000 }).catch(() => {});
+          } else {
+            const playOverlay = page
+              .locator('div.absolute')
+              .filter({ hasText: /^Play$|^วาง$/i })
+              .first();
+            await playOverlay.click({ force: true }).catch(() => {});
+          }
 
-          const playBtn = page.locator('button', { hasText: /Play Card|วางการ์ด/i }).first();
+          const playBtn = page.locator('button', { hasText: /Play Card|วางการ์ด/i }).last();
           await playBtn.waitFor({ state: 'visible', timeout: 3000 });
           await playBtn.click();
           await page.waitForTimeout(1000);

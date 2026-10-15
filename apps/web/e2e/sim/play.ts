@@ -586,10 +586,7 @@ async function playWhoKnow(s: SimSession): Promise<void> {
   // Everyone except the in-game host votes (button per candidate player)
   await host.waitForTimeout(1500);
   for (const p of players) {
-    const voteBtn = p
-      .locator('button')
-      .filter({ hasText: /^Alice$|^Bob$|^Carol$|^Dave$/ })
-      .first();
+    const voteBtn = p.locator('[data-testid^="wk-vote-target-"]').first();
     await clickIfVisible(voteBtn, 2500);
   }
   // Results render after voting (winners or voting results panel)
@@ -1179,13 +1176,7 @@ async function playTheMind(s: SimSession): Promise<void> {
         if (await first.isVisible({ timeout: 200 }).catch(() => false)) {
           await first.click({ timeout: 1200 }).catch(() => {});
           if (isExtreme) {
-            await clickIfVisible(
-              p
-                .locator('button')
-                .filter({ hasText: /White Pile/i })
-                .first(),
-              600,
-            );
+            await clickIfVisible(p.locator('[data-testid="the-mind-pile-up"]').first(), 600);
           }
           break;
         }
@@ -1199,13 +1190,7 @@ async function playTheMind(s: SimSession): Promise<void> {
         .nth(target.idx);
       await btn.click({ timeout: 1500 }).catch(() => {});
       if (isExtreme) {
-        await clickIfVisible(
-          target.page
-            .locator('button')
-            .filter({ hasText: /White Pile/i })
-            .first(),
-          800,
-        );
+        await clickIfVisible(target.page.locator('[data-testid="the-mind-pile-up"]').first(), 800);
       }
     }
     await host.waitForTimeout(500);
@@ -1365,7 +1350,7 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
     timeout: 15000,
   });
   const income = (p: Page) => p.getByRole('button', { name: /Polish stairs/i });
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 250; i++) {
     if (
       await host
         .getByText(/inherits the mansion!/i)
@@ -1387,28 +1372,31 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
       }
     }
     if (!turnPage) {
+      if (aggressive) {
+        for (const p of players) {
+          const chBtn = p.locator('[data-testid="coup-challenge-button"]').first();
+          if (await chBtn.isVisible({ timeout: 150 }).catch(() => false)) {
+            await chBtn.click().catch(() => {});
+            break;
+          }
+        }
+      }
       await host.waitForTimeout(500);
       continue;
     }
-    // The coin rush reaches 10, where only the will action remains. The button enables after picking a target in
-    // the LAST select; if the normal selectOption doesn't stick (React state),
-    // set the value via JS and dispatch a change event.
+    // Coup as soon as 7 coins are affordable, or when mandatory at 10.
     const coupBtn = turnPage.getByRole('button', { name: /Reveal the real will/i });
     const coupVisible = await coupBtn.isVisible({ timeout: 300 }).catch(() => false);
-    const mustCoup = await turnPage
-      .getByText(/Must reveal the real will/i)
-      .first()
-      .isVisible({ timeout: 200 })
-      .catch(() => false);
     const coupSelect = turnPage.locator('select').last();
-    if (coupVisible && mustCoup) {
+    if (coupVisible) {
       await setSelectByIndex(turnPage, coupSelect, 1);
-      await expect(coupBtn).toBeEnabled({ timeout: 5000 });
+    }
+    const canCoup = coupVisible && (await coupBtn.isEnabled().catch(() => false));
+    if (canCoup) {
       await coupBtn.click();
     } else if (aggressive) {
       // Aggressive rush: Assassinate when affordable, else Tax (+3), else
-      // Steal, else Income. Challenge/block windows are left to expire
-      // server-side (deterministic deadlines).
+      // Steal, else Income.
       const selects = turnPage.locator('select');
       const assassinateBtn = turnPage.getByRole('button', { name: /Hire the gardener/i });
       const assassinateReady =

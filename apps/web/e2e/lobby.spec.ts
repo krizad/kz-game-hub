@@ -84,6 +84,11 @@ test.describe('Lobby Page', () => {
     const roomCode = await createRoom(host, 'LobbyHost', 'Knowguise');
     await host.getByTestId('lobby-advanced-settings').locator('summary').click();
     await host.getByRole('button', { name: 'Public', exact: true }).click();
+    await expect(host.getByRole('button', { name: 'Public', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+      { timeout: 5000 },
+    );
 
     // A fresh visitor sees the public lobby entry for the created room
     const visitor = await browser.newContext();
