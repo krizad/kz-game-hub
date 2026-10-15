@@ -146,3 +146,41 @@ test('keyboard inspection and confirmation trap focus, Escape restores focus, an
     await Promise.all(contexts.map((context) => context.close()));
   }
 });
+
+test('rejected card keeps confirmation and selected artwork until authoritative hand changes', async ({
+  browser,
+}) => {
+  const { contexts, turnPage } = await startPlaying(browser, { width: 360, height: 800 }, true);
+  try {
+    const panel = turnPage.getByTestId('cluecanvas-role-score');
+    await expect(panel).not.toHaveAttribute('open');
+    const play = turnPage.getByRole('button', { name: 'Play card 1' });
+    await expect(play).toBeVisible();
+    await play.click();
+    const dialog = turnPage.getByRole('dialog');
+    const artwork = await dialog.getByRole('img').getAttribute('src');
+    const before = await playedCount(turnPage);
+    // Send a deliberately invalid index through the actual server action.
+    await turnPage.evaluate(() => {
+      const store = (window as any).__useGameStore;
+      const original = store.getState().detectiveClubPlayCard;
+      (window as any).__validPlay = original;
+      store.setState({ detectiveClubPlayCard: () => original(999) });
+    });
+    await dialog.getByRole('button', { name: 'Play Card', exact: true }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('img')).toHaveAttribute('src', artwork!);
+    expect(await playedCount(turnPage)).toBe(before);
+    await expect(dialog.getByRole('button', { name: 'Play Card', exact: true })).toBeEnabled();
+    await turnPage.evaluate(() => {
+      (window as any).__useGameStore.setState({
+        detectiveClubPlayCard: (window as any).__validPlay,
+      });
+    });
+    await dialog.getByRole('button', { name: 'Play Card', exact: true }).click();
+    await expect.poll(() => playedCount(turnPage)).toBe(before + 1);
+    await expect(dialog).toBeHidden();
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});

@@ -27,29 +27,6 @@ export function SetupPhase() {
         </p>
       </div>
 
-      {/* Your Hand - shown for ALL players */}
-      {myHand.length > 0 && (
-        <div className="bg-white border-4 border-black p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
-          <h3 className="text-black font-black uppercase tracking-widest text-sm mb-4 text-center bg-pink-300 px-3 py-1 border-2 border-black inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
-            {t('gameDetectiveClub.yourHandCards')}
-          </h3>
-          <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-6 justify-start sm:justify-center items-center px-4">
-            {myHand.map((cardUrl, idx) => (
-              <div
-                key={`hand-${idx}`}
-                className="relative flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all bg-white"
-              >
-                <img
-                  src={cardUrl}
-                  alt={t('gameDetectiveClub.cardAlt', { number: idx + 1 })}
-                  className="w-full h-full object-cover border-4 border-white"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Informer word input */}
       {isInformer ? (
         <div className="w-full max-w-md mx-auto space-y-6 bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ">
@@ -57,6 +34,7 @@ export function SetupPhase() {
             {t('gameDetectiveClub.typeWordConnectedToCards')}
           </p>
           <input
+            aria-label={t('gameDetectiveClub.typeWordConnectedToCards')}
             id="wordInput"
             name="word"
             autoComplete="off"
@@ -66,7 +44,10 @@ export function SetupPhase() {
             placeholder={t('gameDetectiveClub.wordPlaceholder')}
             className="w-full bg-white border-4 border-black text-black px-4 py-3 outline-none focus:ring-4 focus:ring-black font-black text-center text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
             onKeyDown={(e) =>
-              e.key === 'Enter' && wordInput.trim() && detectiveClubSubmitWord(wordInput)
+              e.key === 'Enter' &&
+              !actionLoading &&
+              wordInput.trim() &&
+              detectiveClubSubmitWord(wordInput)
             }
           />
           <button
@@ -83,6 +64,34 @@ export function SetupPhase() {
           <p className="text-black font-black uppercase tracking-widest bg-white px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             {t('gameDetectiveClub.waitingForInformer')}
           </p>
+        </div>
+      )}
+      {/* Your Hand - shown for ALL players */}
+      {myHand.length > 0 && (
+        <div className="bg-white border-4 border-black p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -">
+          <h3 className="text-black font-black uppercase tracking-widest text-sm mb-4 text-center bg-pink-300 px-3 py-1 border-2 border-black inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ">
+            {t('gameDetectiveClub.yourHandCards')}
+          </h3>
+          <div
+            role="region"
+            aria-label={t('gameDetectiveClub.yourHandCards')}
+            className="flex gap-4 sm:gap-6 overflow-x-auto pb-6 justify-start sm:justify-center items-center px-4"
+          >
+            {myHand.map((cardUrl, idx) => (
+              <div
+                key={`hand-${idx}`}
+                tabIndex={0}
+                aria-label={t('gameDetectiveClub.cardAlt', { number: idx + 1 })}
+                className="relative flex-shrink-0 w-24 h-36 sm:w-32 sm:h-48 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all bg-white"
+              >
+                <img
+                  src={cardUrl}
+                  alt={t('gameDetectiveClub.cardAlt', { number: idx + 1 })}
+                  className="w-full h-full object-cover border-4 border-white"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

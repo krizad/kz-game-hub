@@ -13,6 +13,23 @@ export function PlayingPhase() {
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
   const [confirmPlayIndex, setConfirmPlayIndex] = useState<number | null>(null);
 
+  const handKey = JSON.stringify(privateState.dcHand ?? []);
+  const phase = room?.detectiveClubState?.currentPhase;
+  const activePlayerId = room?.detectiveClubState?.activePlayerId;
+  useEffect(() => {
+    setConfirmPlayIndex(null);
+  }, [handKey, phase, activePlayerId]);
+
+  useEffect(() => {
+    const hand = (privateState.dcHand as string[] | undefined) ?? [];
+    hand.forEach((url) => {
+      if (url) {
+        const img = new Image();
+        img.src = url;
+      }
+    });
+  }, [handKey]);
+
   if (!room || !room.detectiveClubState) return null;
 
   const state = room.detectiveClubState;
@@ -20,15 +37,6 @@ export function PlayingPhase() {
   const isConspirator = privateState.dcRole === DetectiveClubRole.CONSPIRATOR;
   const myHand = (privateState.dcHand as string[] | undefined) ?? [];
   const secretWord = privateState.dcWord as string | undefined;
-
-  useEffect(() => {
-    myHand.forEach((url) => {
-      if (url) {
-        const img = new Image();
-        img.src = url;
-      }
-    });
-  }, [myHand]);
 
   const activePlayerName =
     room.players.find((p) => p.socketId === state.activePlayerId)?.name ||
@@ -58,6 +66,62 @@ export function PlayingPhase() {
             total: 2,
           })}
         </p>
+      </div>
+
+      {/* Your Hand */}
+      <div className="bg-white border-4 border-black p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+        <div
+          className={`absolute top-0 left-0 w-full py-2 text-center text-sm font-black uppercase tracking-widest border-b-4 border-black ${isMyTurn ? 'bg-emerald-400 text-black shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-300 text-black'}`}
+        >
+          {isMyTurn
+            ? t('gameDetectiveClub.yourTurnPlayCard')
+            : t('gameDetectiveClub.waitingFor', { name: activePlayerName })}
+        </div>
+
+        <h3 className="text-black font-black uppercase tracking-widest text-sm mb-6 text-center mt-10 bg-pink-300 px-3 py-1 border-2 border-black inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          {t('gameDetectiveClub.yourHand')}
+        </h3>
+        <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-6 justify-start sm:justify-center items-center px-4">
+          {myHand.map((cardUrl, idx) => (
+            <div
+              key={idx}
+              className={`relative flex-shrink-0 w-32 border-4 border-black transition-all bg-white ${
+                isMyTurn
+                  ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              }`}
+            >
+              <img
+                src={cardUrl}
+                alt={t('gameDetectiveClub.handCardAlt')}
+                className="w-full h-36 sm:h-44 object-cover border-4 border-white"
+              />
+              <div className="flex flex-col gap-1 p-1">
+                <button
+                  type="button"
+                  data-testid={`cluecanvas-card-preview-${idx}`}
+                  onClick={() => setViewCardUrl(cardUrl)}
+                  className="flex min-h-11 items-center justify-center gap-1 bg-white text-black border-2 border-black font-bold text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500"
+                  aria-label={t('gameDetectiveClub.inspectHandCard', { number: idx + 1 })}
+                >
+                  <ZoomIn aria-hidden="true" className="w-5 h-5" />
+                  {t('gameDetectiveClub.viewLarger')}
+                </button>
+                {isMyTurn && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmPlayIndex(idx)}
+                    disabled={actionLoading}
+                    className="min-h-11 bg-yellow-300 text-black border-2 border-black font-black uppercase text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500 disabled:opacity-50"
+                    aria-label={t('gameDetectiveClub.selectHandCard', { number: idx + 1 })}
+                  >
+                    {t('gameDetectiveClub.play')}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Table / Played Cards Area */}
@@ -135,62 +199,6 @@ export function PlayingPhase() {
         </div>
       </div>
 
-      {/* Your Hand */}
-      <div className="bg-white border-4 border-black p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden - mt-6">
-        <div
-          className={`absolute top-0 left-0 w-full py-2 text-center text-sm font-black uppercase tracking-widest border-b-4 border-black ${isMyTurn ? 'bg-emerald-400 text-black shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-300 text-black'}`}
-        >
-          {isMyTurn
-            ? t('gameDetectiveClub.yourTurnPlayCard')
-            : t('gameDetectiveClub.waitingFor', { name: activePlayerName })}
-        </div>
-
-        <h3 className="text-black font-black uppercase tracking-widest text-sm mb-6 text-center mt-10 bg-pink-300 px-3 py-1 border-2 border-black inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          {t('gameDetectiveClub.yourHand')}
-        </h3>
-        <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-6 justify-start sm:justify-center items-center px-4">
-          {myHand.map((cardUrl, idx) => (
-            <div
-              key={idx}
-              className={`relative flex-shrink-0 w-32 border-4 border-black transition-all bg-white ${
-                isMyTurn
-                  ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                  : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              }`}
-            >
-              <img
-                src={cardUrl}
-                alt={t('gameDetectiveClub.handCardAlt')}
-                className="w-full h-36 sm:h-44 object-cover border-4 border-white"
-              />
-              <div className="flex flex-col gap-1 p-1">
-                <button
-                  type="button"
-                  data-testid={`cluecanvas-card-preview-${idx}`}
-                  onClick={() => setViewCardUrl(cardUrl)}
-                  className="flex min-h-11 items-center justify-center gap-1 bg-white text-black border-2 border-black font-bold text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500"
-                  aria-label={t('gameDetectiveClub.inspectHandCard', { number: idx + 1 })}
-                >
-                  <ZoomIn aria-hidden="true" className="w-5 h-5" />
-                  {t('gameDetectiveClub.viewLarger')}
-                </button>
-                {isMyTurn && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmPlayIndex(idx)}
-                    disabled={actionLoading}
-                    className="min-h-11 bg-yellow-300 text-black border-2 border-black font-black uppercase text-sm hover:bg-yellow-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-500 disabled:opacity-50"
-                    aria-label={t('gameDetectiveClub.selectHandCard', { number: idx + 1 })}
-                  >
-                    {t('gameDetectiveClub.play')}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Confirmation Modal */}
       {confirmPlayIndex !== null && (
         <GameDialog
@@ -226,7 +234,6 @@ export function PlayingPhase() {
                 type="button"
                 onClick={() => {
                   detectiveClubPlayCard(confirmPlayIndex);
-                  setConfirmPlayIndex(null);
                 }}
                 disabled={actionLoading}
                 className="flex-1 py-4 px-4 bg-emerald-400 hover:bg-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale text-black font-black border-4 border-black transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none uppercase tracking-widest text-lg"

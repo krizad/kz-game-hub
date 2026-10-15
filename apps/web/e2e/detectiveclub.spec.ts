@@ -124,6 +124,17 @@ test.describe('Cluecanvas Gameplay', () => {
     // The displayed verdict must agree with the server's 5-point escape award.
     await expect(p1.getByText('Improviser Escaped!', { exact: true })).toBeVisible();
     await expect(p1.getByTestId('cluecanvas-score-reasons')).toBeVisible();
+    await expect(p1.getByTestId('cluecanvas-revealed-word')).toContainText('Mystery');
+    await expect(p2.getByRole('button', { name: 'Play Next Round', exact: true })).toHaveCount(0);
+    await p1.getByRole('button', { name: 'Play Next Round', exact: true }).dblclick();
+    await expect
+      .poll(() =>
+        p1.evaluate(
+          () => (window as any).__useGameStore.getState().room.detectiveClubState.currentPhase,
+        ),
+      )
+      .toBe('SETUP');
+    await expect(p1.getByTestId('cluecanvas-revealed-word')).toHaveCount(0);
 
     await Promise.all(contexts.map((c) => c.close()));
   });

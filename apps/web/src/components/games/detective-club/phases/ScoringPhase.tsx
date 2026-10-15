@@ -43,6 +43,13 @@ export function ScoringPhase() {
           </span>
         </p>
 
+        <p data-testid="cluecanvas-revealed-word" className="break-words text-black font-bold">
+          {t('gameDetectiveClub.informer')}:{' '}
+          {room.players.find((p) => p.socketId === state.informerId)?.name}
+          {' · '}
+          {t('gameDetectiveClub.theSecretWord')}: {state.word}
+        </p>
+
         {!conspiratorEscaped ? (
           <div className="mt-6 bg-emerald-400 border-4 border-black p-4 inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -">
             <p className="text-black font-black uppercase tracking-widest mb-2 text-xl bg-white px-2 py-1 border-2 border-black">
