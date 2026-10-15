@@ -76,13 +76,17 @@ export class WhoKnowService {
 
     const roles: Record<string, Role> = {};
     room.players.forEach((p) => {
+      delete p.role;
+      if (p.isViewer || p.connected === false) {
+        this.privateState.delete(room.code, p.socketId, WK_ROLE);
+        return;
+      }
       let role = Role.Unknow;
       if (p.socketId === hostPlayer.socketId) role = Role.Host;
       else if (p.socketId === knowPlayer.socketId) role = Role.Know;
 
       this.setRole(room, p.socketId, role);
       roles[p.socketId] = role;
-      delete p.role;
     });
 
     room.hostPlayerId = hostPlayer.socketId;

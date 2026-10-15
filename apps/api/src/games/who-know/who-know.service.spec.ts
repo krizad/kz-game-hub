@@ -69,6 +69,21 @@ describe('WhoKnowService', () => {
       expect(roles).toContain(Role.Unknow);
     });
 
+    it('never assigns roles to viewers or disconnected seats, including stale roles from a prior round', () => {
+      const room = createRoom([
+        ...fourPlayers(),
+        { socketId: 'viewer', isViewer: true },
+        { socketId: 'offline', connected: false },
+      ]);
+      privateState.set(room.code, 'viewer', 'wkRole', Role.Know);
+      const result = service.assignRoles(room, 'p1');
+      expect(Object.keys(result!.roles).sort()).toEqual(['p1', 'p2', 'p3', 'p4']);
+      expect(privateState.get(room.code, 'viewer', 'wkRole')).toBeUndefined();
+      expect(privateState.get(room.code, 'offline', 'wkRole')).toBeUndefined();
+      service.setWord(room, 'secret', 'p1', new Map());
+      expect(privateState.get(room.code, 'viewer', 'wkRole')).toBeUndefined();
+    });
+
     it('should fail if connected players count < 4', () => {
       const room = createRoom([
         { socketId: 'p1' },

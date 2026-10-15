@@ -1,5 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-import { createRoom, joinRoom, getOrigin } from './helpers';
+import { test, expect } from '@playwright/test';
+import { createRoom, joinRoom, getOrigin, waitForAnyVisible } from './helpers';
 
 test.describe('Who Know Experience & Role Lifecycle', () => {
   test('role card flips on click, has aria-expanded, closes on blur/visibilitychange without auto-reopening', async ({
@@ -33,22 +33,34 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
       await expect(startBtn).toBeVisible({ timeout: 10000 });
       await startBtn.click();
 
-      // Find player whose role card is visible
+      // Non-keeper roles are dispatched only after the keeper submits the word.
       const players = [host, p1, p2, p3];
-      let testPage: Page | null = null;
-      for (const p of players) {
-        if (
-          await p
-            .locator('[data-testid="role-card-flip"]')
-            .isVisible({ timeout: 3000 })
-            .catch(() => false)
-        ) {
-          testPage = p;
+      const secretInput = await waitForAnyVisible(
+        players.map((page) => page.locator('#secretWordModalInput')),
+      );
+      expect(secretInput).not.toBeNull();
+      await secretInput!.fill('LifecycleSecret');
+      await secretInput!.press('Enter');
+      await expect
+        .poll(() =>
+          host.evaluate(() => (window as any).__useGameStore.getState().room.hostPlayerId),
+        )
+        .toBeTruthy();
+      const keeperId = await host.evaluate(
+        () => (window as any).__useGameStore.getState().room.hostPlayerId,
+      );
+      let page = p1;
+      for (const candidate of players) {
+        const socketId = await candidate.evaluate(
+          () => (window as any).__useGameStore.getState().socketId,
+        );
+        if (socketId !== keeperId) {
+          page = candidate;
           break;
         }
       }
-      expect(testPage).not.toBeNull();
-      const page = testPage!;
+      await page.bringToFront();
+      await expect(page.getByTestId('role-card-flip')).toBeVisible();
 
       const flipBtn = page.locator('[data-testid="role-card-flip"]');
       const toggleBtn = page.locator('[data-testid="role-card-toggle"]');
@@ -122,11 +134,16 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
       await joinRoom(p2, origin, roomCode, 'Player2');
       await joinRoom(p3, origin, roomCode, 'Player3');
 
+      await host.getByTestId('lobby-advanced-settings').locator('summary').click();
+      await host.getByRole('button', { name: 'Allowed', exact: true }).click();
+
       // Viewer joins room as spectator
       await viewer.goto(`${origin}/?room=${roomCode}`);
       await viewer.locator('#inviteNameInput').waitFor({ state: 'visible', timeout: 15000 });
       await viewer.evaluate((code) => {
-        (window as any).__useGameStore.getState().spectateJoin(code);
+        const store = (window as any).__useGameStore.getState();
+        store.setName('Observer');
+        store.spectateJoin(code);
       }, roomCode);
       await expect
         .poll(() => viewer.evaluate(() => (window as any).__useGameStore.getState().isSpectator))
@@ -142,7 +159,23 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
       await expect(viewer.locator('[data-testid="role-card-target-word"]')).toHaveCount(0);
 
       // Spectator sees spectator guidance in WORD_SETTING
-      await expect(viewer.getByText(/Spectating|กำลังรับชม/i)).toBeVisible({ timeout: 10000 });
+      await expect(viewer.getByRole('heading', { name: /Spectating|กำลังรับชม/i })).toBeVisible({
+        timeout: 10000,
+      });
+      const input = await waitForAnyVisible(
+        [host, p1, p2, p3].map((page) => page.locator('#secretWordModalInput')),
+      );
+      expect(input).not.toBeNull();
+      await input!.fill('ViewerPrivacySecret');
+      await input!.press('Enter');
+      await expect
+        .poll(() => viewer.evaluate(() => (window as any).__useGameStore.getState().room.status))
+        .toBe('QUESTIONING');
+      expect(
+        await viewer.evaluate(() => (window as any).__useGameStore.getState().myRole),
+      ).toBeNull();
+      await expect(viewer.getByTestId('role-card-flip')).toHaveCount(0);
+      await expect(viewer.getByText('ViewerPrivacySecret')).toHaveCount(0);
     } finally {
       await Promise.all(contexts.map((c) => c.close()));
     }
@@ -175,21 +208,14 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
 
       // Find Word Keeper modal and submit secret word
       const players = [host, p1, p2, p3];
-      let wordKeeperPage = host;
-      for (const page of players) {
-        const visible = await page
-          .locator('#secretWordModalInput')
-          .isVisible({ timeout: 3000 })
-          .catch(() => false);
-        if (visible) {
-          wordKeeperPage = page;
-          break;
-        }
-      }
-      const wordInput = wordKeeperPage.locator('#secretWordModalInput');
-      await expect(wordInput).toBeVisible({ timeout: 5000 });
-      await wordInput.fill('ExperienceSecretWord');
-      await wordInput.press('Enter');
+      const wordInput = await waitForAnyVisible(
+        players.map((page) => page.locator('#secretWordModalInput')),
+      );
+      expect(wordInput).not.toBeNull();
+      const wordKeeperPage = wordInput!.page();
+      await expect(wordInput!).toBeVisible({ timeout: 5000 });
+      await wordInput!.fill('ExperienceSecretWord');
+      await wordInput!.press('Enter');
 
       // Word keeper ends questioning phase
       const endBtn = wordKeeperPage
@@ -204,10 +230,7 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
       const firstVoter = voters[0];
 
       // First voter submits vote for someone
-      const targetBtn = firstVoter
-        .locator('button')
-        .filter({ hasText: /Player|Host/i })
-        .first();
+      const targetBtn = firstVoter.locator('[data-testid^="wk-vote-target-"]').first();
       await expect(targetBtn).toBeVisible({ timeout: 10000 });
       await targetBtn.click();
 
@@ -224,10 +247,7 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
 
       // Remaining voters cast votes to conclude round
       for (const remaining of voters.slice(1)) {
-        const btn = remaining
-          .locator('button')
-          .filter({ hasText: /Player|Host/i })
-          .first();
+        const btn = remaining.locator('[data-testid^="wk-vote-target-"]').first();
         await expect(btn).toBeVisible({ timeout: 10000 });
         await btn.click();
       }
@@ -240,7 +260,11 @@ test.describe('Who Know Experience & Role Lifecycle', () => {
       await expect(host.locator('[data-testid="wk-win-reason"]')).toBeVisible();
 
       // Secondary rules button is present
-      await expect(host.getByRole('button', { name: /Rules|วิธีเล่น/i })).toBeVisible();
+      await expect(
+        host
+          .getByRole('region', { name: 'Game Results' })
+          .getByRole('button', { name: 'Rules', exact: true }),
+      ).toBeVisible();
 
       // Room host has play again button; non-hosts have waiting message
       await expect(host.locator('[data-testid="wk-play-again-btn"]')).toBeVisible();
