@@ -61,6 +61,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
         if (room.players.length < 2)
             return null;
         const config = room.config;
+        const isGameMaster = (config.musicTriviaMode || 'TYPING') === 'GAME_MASTER';
         const presetMode = !!config.musicTriviaArtistPresetId;
         room.musicTriviaState = {
             phase: 'SETUP',
@@ -72,7 +73,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             roundHistory: [],
             readyPlayerIds: [],
             scores: {},
-            hostPlays: config.musicTriviaHostPlays ?? true,
+            hostPlays: isGameMaster ? false : (config.musicTriviaHostPlays ?? true),
             answerTimeoutMs: config.musicTriviaAnswerTimeoutMs || 15000,
         };
         for (const p of room.players) {
@@ -259,6 +260,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             const rawTracks = await adapter.search(query.trim(), fetchLimit, action.searchOptions);
             if (rawTracks.length === 0) {
                 state.phase = 'SETUP';
+                state.errorReason = 'NO_TRACKS';
                 state.errorMessage = 'No songs found for this search. Try a different artist or genre.';
                 return { room };
             }
@@ -278,6 +280,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
         catch (error) {
             this.logger.error('configureSource failed', error);
             state.phase = 'SETUP';
+            state.errorReason = 'PROVIDER_UNAVAILABLE';
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while configuring source';
             state.errorMessage = errorMessage;
             return { room };
@@ -292,6 +295,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             const catalog = await this.artistPresets.getCatalog(presetId);
             if (!catalog) {
                 state.phase = 'SETUP';
+                state.errorReason = 'PROVIDER_UNAVAILABLE';
                 state.errorMessage = 'This artist preset is no longer available. Pick another one.';
                 return { room };
             }
@@ -313,6 +317,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
             const selected = this.selectPresetTracks(candidates, state.level, state.totalRounds);
             if (selected.length === 0) {
                 state.phase = 'SETUP';
+                state.errorReason = 'NO_TRACKS';
                 state.errorMessage = 'No playable songs in this artist catalog.';
                 return { room };
             }
@@ -322,6 +327,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
         catch (error) {
             this.logger.error('configureFromPreset failed', error);
             state.phase = 'SETUP';
+            state.errorReason = 'PROVIDER_UNAVAILABLE';
             state.errorMessage = 'Could not load the artist catalog. Try again later.';
             return { room };
         }
@@ -366,6 +372,7 @@ let MusicTriviaService = MusicTriviaService_1 = class MusicTriviaService {
         state.phase = 'GET_READY';
         state.readyPlayerIds = [];
         state.errorMessage = undefined;
+        state.errorReason = undefined;
         const result = { room };
         if (state.mode === 'GAME_MASTER' && !state.hostPlays) {
             const trackAnswer = this.getTrackAnswer(room, 1);

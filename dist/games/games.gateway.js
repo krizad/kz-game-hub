@@ -327,6 +327,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 else if (gameType === types_1.GameType.BANANA_THIEF) {
                     msg = 'Cannot start game. Need at least 4 players.';
                 }
+                else if (gameType === types_1.GameType.CIPHER_GRID) {
+                    msg = 'Cannot start game. Need at least 4 players.';
+                }
             }
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: msg });
             const currentRoom = result?.room ?? roomInfo;
@@ -412,6 +415,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 'music-trivia-countdown',
                 'music-trivia-answer',
                 'banana-thief',
+                'cipher-grid',
             ]) {
                 this.roomTimerService.cancel(room.code, timerName);
             }
@@ -1166,6 +1170,104 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             emoji: data.emoji,
         });
     }
+    handleCipherAssignTeam(data, client) {
+        const room = this.gamesService.cipherAssignTeam(data.code, client.id, data.team ?? null, data.role, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot assign team right now.' });
+        }
+    }
+    handleCipherRandomizeTeams(data, client) {
+        const room = this.gamesService.cipherRandomizeTeams(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot randomize teams.' });
+        }
+    }
+    handleCipherStartMatch(data, client) {
+        const room = this.gamesService.cipherStartMatch(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, {
+                message: 'Cannot start match. Each team needs 1 Lead and at least 1 Tracker.',
+            });
+        }
+    }
+    handleCipherGiveClue(data, client) {
+        const res = this.gamesService.cipherGiveClue(data.code, client.id, data.word, data.count);
+        if (res.room) {
+            this.broadcastRoomState(res.room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: res.error ?? 'Invalid clue.' });
+        }
+    }
+    handleCipherPingCard(data, client) {
+        const room = this.gamesService.cipherPingCard(data.code, client.id, data.cardIndex);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot ping card.' });
+        }
+    }
+    handleCipherRevealCard(data, client) {
+        const room = this.gamesService.cipherRevealCard(data.code, client.id, data.cardIndex);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot reveal card.' });
+        }
+    }
+    handleCipherEndTurn(data, client) {
+        const room = this.gamesService.cipherEndTurn(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, {
+                message: 'Must make at least 1 guess before ending turn.',
+            });
+        }
+    }
+    handleCipherChallengeClue(data, client) {
+        const room = this.gamesService.cipherChallengeClue(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+            this.maybeRecordGameResult(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot challenge clue.' });
+        }
+    }
+    handleCipherNextRound(data, client) {
+        const room = this.gamesService.cipherNextRound(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Only host can start next round.' });
+        }
+    }
+    handleCipherReset(data, client) {
+        const room = this.gamesService.resetGame(data.code, client.id);
+        if (room) {
+            this.roomTimerService.cancel(room.code, 'cipher-grid');
+            this.broadcastRoomState(room);
+            this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+        }
+    }
     async handleLeaderboardGet(data, client) {
         const leaderboard = await this.leaderboardService.getLeaderboard(data?.gameType);
         client.emit(types_1.SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
@@ -1214,6 +1316,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (room.gameType === types_1.GameType.BANANA_THIEF) {
             this.syncBananaThiefTimer(room);
+        }
+        if (room.gameType === types_1.GameType.CIPHER_GRID) {
+            this.syncCipherGridTimer(room);
         }
     }
     emitMusicTriviaSyncPlay(code, client) {
@@ -1390,6 +1495,26 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             const updatedRoom = this.gamesService.pokerAction(currentRoom.code, auto.playerId, auto.action);
             if (updatedRoom) {
                 this.broadcastRoomState(updatedRoom);
+            }
+        });
+    }
+    syncCipherGridTimer(room) {
+        const deadline = room.cipherGridState?.turnEndsAt ?? null;
+        if (!deadline ||
+            (room.cipherGridState?.phase !== 'CLUE_GIVING' && room.cipherGridState?.phase !== 'DECODING')) {
+            this.roomTimerService.cancel(room.code, 'cipher-grid');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'cipher-grid', deadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            if (!currentRoom ||
+                currentRoom.gameType !== types_1.GameType.CIPHER_GRID ||
+                currentRoom.cipherGridState?.turnEndsAt !== deadline) {
+                return;
+            }
+            const updated = this.gamesService.cipherTurnTimeout(room.code, deadline);
+            if (updated) {
+                this.broadcastRoomState(updated);
             }
         });
     }
@@ -1627,6 +1752,30 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (event === types_1.SOCKET_EVENTS.BANANA_THIEF_REACTION) {
             return types_1.BANANA_THIEF_REACTIONS.includes(data.emoji);
+        }
+        if (event === types_1.SOCKET_EVENTS.CIPHER_ASSIGN_TEAM) {
+            return ((data.team === null ||
+                data.team === undefined ||
+                data.team === 'SOLAR' ||
+                data.team === 'LUNAR') &&
+                (data.role === undefined || data.role === 'CIPHER_LEAD' || data.role === 'TRACKER') &&
+                (data.targetId === undefined || typeof data.targetId === 'string'));
+        }
+        if (event === types_1.SOCKET_EVENTS.CIPHER_GIVE_CLUE) {
+            return (typeof data.word === 'string' &&
+                data.word.trim().length >= 1 &&
+                data.word.trim().length <= 50 &&
+                (data.count === 'UNLIMITED' ||
+                    (typeof data.count === 'number' &&
+                        Number.isInteger(data.count) &&
+                        data.count >= 0 &&
+                        data.count <= 9)));
+        }
+        if (event === types_1.SOCKET_EVENTS.CIPHER_PING_CARD || event === types_1.SOCKET_EVENTS.CIPHER_REVEAL_CARD) {
+            return (typeof data.cardIndex === 'number' &&
+                Number.isInteger(data.cardIndex) &&
+                data.cardIndex >= 0 &&
+                data.cardIndex < 25);
         }
         return true;
     }
@@ -2286,6 +2435,86 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleBananaThiefReaction", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_ASSIGN_TEAM),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherAssignTeam", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_RANDOMIZE_TEAMS),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherRandomizeTeams", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_START_MATCH),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherStartMatch", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_GIVE_CLUE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherGiveClue", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_PING_CARD),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherPingCard", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_REVEAL_CARD),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherRevealCard", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_END_TURN),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherEndTurn", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_CHALLENGE_CLUE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherChallengeClue", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_NEXT_ROUND),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherNextRound", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_RESET),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherReset", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.LEADERBOARD_GET),
     __param(0, (0, websockets_1.MessageBody)()),

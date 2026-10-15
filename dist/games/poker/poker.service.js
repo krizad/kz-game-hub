@@ -143,6 +143,7 @@ let PokerService = class PokerService {
             state.handResult.pots = state.handResult.pots.map((pot) => ({
                 ...pot,
                 winnerIds: pot.winnerIds.map((id) => (id === oldSocketId ? newSocketId : id)),
+                eligiblePlayerIds: pot.eligiblePlayerIds?.map((id) => id === oldSocketId ? newSocketId : id),
             }));
             if (state.handResult.uncalledRefund?.playerId === oldSocketId) {
                 state.handResult.uncalledRefund.playerId = newSocketId;
@@ -420,6 +421,7 @@ let PokerService = class PokerService {
             results.push({
                 amount: pot.amount,
                 winnerIds: winners,
+                eligiblePlayerIds: pot.eligiblePlayerIds,
                 handCategory: best.category,
                 bestCards: winners.length === 1 ? best.best : undefined,
             });
@@ -463,7 +465,7 @@ let PokerService = class PokerService {
         }
         state.seats[winnerId].chips += award;
         state.handResult = {
-            pots: [{ amount: award, winnerIds: [winnerId] }],
+            pots: [{ amount: award, winnerIds: [winnerId], eligiblePlayerIds: [winnerId] }],
             ...(refund && refund.playerId === winnerId ? { uncalledRefund: refund } : {}),
         };
         for (const id of state.playerOrder) {
@@ -489,7 +491,10 @@ let PokerService = class PokerService {
             return false;
         this.distribute(room, pot.amount, targetIds);
         state.handResult = {
-            pots: [...(state.handResult?.pots ?? []), { amount: pot.amount, winnerIds: [...targetIds] }],
+            pots: [
+                ...(state.handResult?.pots ?? []),
+                { amount: pot.amount, winnerIds: [...targetIds], eligiblePlayerIds: pot.eligiblePlayerIds },
+            ],
         };
         state.showdown.pendingPots = state.showdown.pendingPots.slice(1);
         if (state.showdown.pendingPots.length === 0) {

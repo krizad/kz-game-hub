@@ -28,6 +28,7 @@ const CT_SEES_THIEF = 'ctSeesThief';
 const CT_SPECIAL = 'ctSpecial';
 const CT_TWIN_PARTNER = 'ctTwinPartner';
 const CT_CHOSEN_FOLLOWERS = 'ctChosenFollowers';
+const CT_VOTE = 'ctVote';
 const BANANA_THIEF_DLC_MIN_PLAYERS = types_1.BANANA_THIEF_MIN_PLAYERS + 1;
 const CT_ROOM_THIEF = 'ctRoomThief';
 const CT_ROOM_FOLLOWERS = 'ctRoomFollowers';
@@ -178,6 +179,7 @@ let BananaThiefService = BananaThiefService_1 = class BananaThiefService {
             this.privateState.delete(room.code, id, CT_CHOSEN_FOLLOWERS);
             this.privateState.delete(room.code, id, CT_SPECIAL);
             this.privateState.delete(room.code, id, CT_TWIN_PARTNER);
+            this.privateState.delete(room.code, id, CT_VOTE);
         }
         this.maybeAssignSpecials(room, participants.filter((id) => id !== thiefId));
         room.status = types_1.RoomStatus.PLAYING;
@@ -505,6 +507,9 @@ let BananaThiefService = BananaThiefService_1 = class BananaThiefService {
         state.votesRecorded = 0;
         state.votesTotal = participants.length;
         this.setVotes(room, {});
+        for (const id of participants) {
+            this.privateState.delete(room.code, id, CT_VOTE);
+        }
         return room;
     }
     vote(room, socketId, targetId) {
@@ -520,6 +525,7 @@ let BananaThiefService = BananaThiefService_1 = class BananaThiefService {
             return null;
         votes[socketId] = targetId;
         this.setVotes(room, votes);
+        this.privateState.set(room.code, socketId, CT_VOTE, targetId);
         state.votesRecorded = Object.keys(votes).filter((v) => participants.has(v)).length;
         if (state.votesRecorded >= state.votesTotal) {
             this.finalize(room);
@@ -669,6 +675,10 @@ let BananaThiefService = BananaThiefService_1 = class BananaThiefService {
             }
             if (changed)
                 this.privateState.set(code, ROOM_KEY, CT_ROOM_VOTES, remapped);
+        }
+        const myVote = this.privateState.get(code, newSocketId, CT_VOTE);
+        if (myVote === oldSocketId) {
+            this.privateState.set(code, newSocketId, CT_VOTE, newSocketId);
         }
     }
     remapSocketId(state, oldSocketId, newSocketId) {

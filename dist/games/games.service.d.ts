@@ -21,6 +21,8 @@ import { PokerService } from './poker/poker.service';
 import { GameSettingsService } from './game-settings.service';
 import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
+import { CipherGridService } from './cipher-grid/cipher-grid.service';
+import { CipherTeam, CipherRole, CipherClueCount } from '@repo/types';
 export type LeaveRoomResult = {
     outcome: 'ROOM_CLOSED';
     code: string;
@@ -60,6 +62,7 @@ export declare class GamesService {
     private readonly roomTimerService;
     private readonly cardGameService;
     private readonly pokerService;
+    private readonly cipherGridService;
     private readonly gameSettings;
     private readonly roomStartGuardService;
     private readonly actionReceiptService;
@@ -68,7 +71,7 @@ export declare class GamesService {
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, cipherGridService: CipherGridService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
@@ -216,5 +219,18 @@ export declare class GamesService {
     bananaThiefChooseFollower(code: string, clientId: string, targetId: string): RoomState | null;
     bananaThiefChooseFollowerTimeout(code: string): RoomState | null;
     bananaThiefNextRound(code: string, clientId: string): RoomState | null;
+    cipherAssignTeam(code: string, clientId: string, team: CipherTeam | null, role?: CipherRole, targetId?: string): RoomState | null;
+    cipherRandomizeTeams(code: string, clientId: string): RoomState | null;
+    cipherStartMatch(code: string, clientId: string): RoomState | null;
+    cipherGiveClue(code: string, clientId: string, word: string, count: CipherClueCount): {
+        room?: RoomState;
+        error?: string;
+    };
+    cipherPingCard(code: string, clientId: string, cardIndex: number): RoomState | null;
+    cipherRevealCard(code: string, clientId: string, cardIndex: number): RoomState | null;
+    cipherEndTurn(code: string, clientId: string): RoomState | null;
+    cipherChallengeClue(code: string, clientId: string): RoomState | null;
+    cipherNextRound(code: string, clientId: string): RoomState | null;
+    cipherTurnTimeout(code: string, deadline: number): RoomState | null;
     private getPlayerId;
 }

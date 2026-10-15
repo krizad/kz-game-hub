@@ -38,9 +38,10 @@ const room_start_guard_service_1 = require("./room-start-guard.service");
 const action_receipt_service_1 = require("./action-receipt.service");
 const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
+const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -60,6 +61,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.roomTimerService = roomTimerService;
         this.cardGameService = cardGameService;
         this.pokerService = pokerService;
+        this.cipherGridService = cipherGridService;
         this.gameSettings = gameSettings;
         this.roomStartGuardService = roomStartGuardService;
         this.actionReceiptService = actionReceiptService;
@@ -221,6 +223,10 @@ let GamesService = GamesService_1 = class GamesService {
             room.config.bananaThiefFollowerCount = 1;
             room.config.bananaThiefSelectedSpecials = [];
         }
+        else if (gameType === types_1.GameType.CIPHER_GRID) {
+            room.config.cipherGridTurnSeconds = 0;
+            room.cipherGridState = this.cipherGridService.createInitialState();
+        }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
@@ -306,6 +312,9 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.pokerState) {
                 this.pokerService.remapSocketId(room.pokerState, oldSocketId, user.socketId);
+            }
+            if (room.cipherGridState) {
+                this.cipherGridService.remapSocketId(room.cipherGridState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
@@ -464,6 +473,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.gameType === types_1.GameType.BANANA_THIEF && room.bananaThiefState) {
             this.bananaThiefService.handlePlayerDisconnect(room, socketId);
+        }
+        if (room.gameType === types_1.GameType.CIPHER_GRID && room.cipherGridState) {
+            this.cipherGridService.handlePlayerRemoved(room, socketId);
         }
     }
     transferHost(room, formerHostSocketId) {
@@ -726,6 +738,7 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('pokerAnte', 0, 100_000);
         copyBoolean('pokerTurnTimerEnabled');
         copyInteger('pokerTurnTimerSeconds', 5, 300);
+        copyInteger('cipherGridTurnSeconds', 0, 300);
         return result;
     }
     isViewerClient(room, socketId) {
@@ -824,6 +837,10 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.pokerService.startMatch(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.CIPHER_GRID) {
+            const startedRoom = this.withRoom(code, (r) => this.cipherGridService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
         }
@@ -920,6 +937,8 @@ let GamesService = GamesService_1 = class GamesService {
                 return this.withRoom(code, (r) => this.saboteurService.reset(r, requesterId));
             case types_1.GameType.BANANA_THIEF:
                 return this.withRoom(code, (r) => this.bananaThiefService.reset(r, requesterId));
+            case types_1.GameType.CIPHER_GRID:
+                return this.withRoom(code, (r) => this.cipherGridService.resetGame(r, requesterId));
             default:
                 return null;
         }
@@ -1342,6 +1361,90 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.bananaThiefService.startRound(room, clientId));
     }
+    cipherAssignTeam(code, clientId, team, role, targetId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.assignTeam(room, clientId, team, role, targetId);
+            return res.room ?? null;
+        });
+    }
+    cipherRandomizeTeams(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.randomizeTeams(room, clientId);
+            return res.room ?? null;
+        });
+    }
+    cipherStartMatch(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.startMatch(room, clientId);
+            return res.room ?? null;
+        });
+    }
+    cipherGiveClue(code, clientId, word, count) {
+        if (this.rejectViewer(code, clientId))
+            return { error: 'VIEWER_REJECTED' };
+        const room = this.rooms.get(code);
+        if (!room)
+            return { error: 'ROOM_NOT_FOUND' };
+        const res = this.cipherGridService.giveClue(room, clientId, word, count);
+        if (res.room) {
+            this.rooms.set(code, res.room);
+            return { room: res.room };
+        }
+        return { error: res.error };
+    }
+    cipherPingCard(code, clientId, cardIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.pingCard(room, clientId, cardIndex);
+            return res.room ?? null;
+        });
+    }
+    cipherRevealCard(code, clientId, cardIndex) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.revealCard(room, clientId, cardIndex);
+            return res.room ?? null;
+        });
+    }
+    cipherEndTurn(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.endTurn(room, clientId);
+            return res.room ?? null;
+        });
+    }
+    cipherChallengeClue(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.challengeClue(room, clientId);
+            return res.room ?? null;
+        });
+    }
+    cipherNextRound(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const res = this.cipherGridService.nextRound(room, clientId);
+            return res.room ?? null;
+        });
+    }
+    cipherTurnTimeout(code, deadline) {
+        return this.withRoom(code, (room) => {
+            if (room.gameType !== types_1.GameType.CIPHER_GRID)
+                return null;
+            return this.cipherGridService.handleTurnTimeout(room, deadline);
+        });
+    }
     getPlayerId(room, socketId) {
         return room.players.find((player) => player.socketId === socketId)?.id ?? null;
     }
@@ -1369,6 +1472,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         room_timer_service_1.RoomTimerService,
         card_game_service_1.CardGameService,
         poker_service_1.PokerService,
+        cipher_grid_service_1.CipherGridService,
         game_settings_service_1.GameSettingsService,
         room_start_guard_service_1.RoomStartGuardService,
         action_receipt_service_1.ActionReceiptService])

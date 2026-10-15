@@ -47,6 +47,12 @@ let WhoKnowService = class WhoKnowService {
         if (connectedPlayers.length < 4)
             return null;
         room.status = types_1.RoomStatus.WORD_SETTING;
+        room.votes = undefined;
+        room.winner = undefined;
+        room.endTime = undefined;
+        for (const p of room.players) {
+            this.privateState.delete(room.code, p.socketId, WK_VOTE);
+        }
         let hostPlayer;
         if (room.config.hostSelection === 'FIXED') {
             hostPlayer =
@@ -71,6 +77,11 @@ let WhoKnowService = class WhoKnowService {
         const knowPlayer = remainingPlayers[knowIndex];
         const roles = {};
         room.players.forEach((p) => {
+            delete p.role;
+            if (p.isViewer || p.connected === false) {
+                this.privateState.delete(room.code, p.socketId, WK_ROLE);
+                return;
+            }
             let role = types_1.Role.Unknow;
             if (p.socketId === hostPlayer.socketId)
                 role = types_1.Role.Host;
@@ -78,7 +89,6 @@ let WhoKnowService = class WhoKnowService {
                 role = types_1.Role.Know;
             this.setRole(room, p.socketId, role);
             roles[p.socketId] = role;
-            delete p.role;
         });
         room.hostPlayerId = hostPlayer.socketId;
         return { room, roles };

@@ -7,7 +7,7 @@ import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -299,6 +299,36 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         code: string;
         emoji: string;
     }, client: Socket): void;
+    handleCipherAssignTeam(data: {
+        code: string;
+    } & CipherAssignTeamPayload, client: Socket): void;
+    handleCipherRandomizeTeams(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCipherStartMatch(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCipherGiveClue(data: {
+        code: string;
+    } & CipherGiveCluePayload, client: Socket): void;
+    handleCipherPingCard(data: {
+        code: string;
+    } & CipherCardIndexPayload, client: Socket): void;
+    handleCipherRevealCard(data: {
+        code: string;
+    } & CipherCardIndexPayload, client: Socket): void;
+    handleCipherEndTurn(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCipherChallengeClue(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCipherNextRound(data: {
+        code: string;
+    }, client: Socket): void;
+    handleCipherReset(data: {
+        code: string;
+    }, client: Socket): void;
     handleLeaderboardGet(data: {
         gameType?: string;
     }, client: Socket): Promise<void>;
@@ -316,6 +346,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncCardGameTimer;
     private syncBananaThiefTimer;
     private syncPokerTimer;
+    private syncCipherGridTimer;
     private emitPrivateStates;
     private emitSessionToken;
     private applyMusicTriviaTimers;

@@ -194,6 +194,9 @@ let CardGameService = class CardGameService {
             if (state.result.placements) {
                 state.result.placements = state.result.placements.map((id) => id === oldSocketId ? newSocketId : id);
             }
+            if (state.result.deltas) {
+                state.result.deltas = this.remapRecord(state.result.deltas, oldSocketId, newSocketId);
+            }
         }
     }
     appendLog(room, socketId, action) {
@@ -299,6 +302,7 @@ let CardGameService = class CardGameService {
                 outcomeTags: outcome.outcomeTags,
                 winnerIds: outcome.winnerIds,
                 revealedHands: outcome.revealedHands,
+                deltas: outcome.deltas,
             },
         }, config.visibility);
         room.status = types_1.RoomStatus.RESULT;

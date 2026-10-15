@@ -200,6 +200,10 @@ class SlaveRuntime {
                 placements: [winnerId, ...state.playerOrder.filter((id) => id !== winnerId)],
                 winnerIds: [winnerId],
                 revealedHands,
+                deltas: Object.fromEntries(state.playerOrder.map((id) => [
+                    id,
+                    id === winnerId ? (state.playerOrder.length - 1) * stake : -stake,
+                ])),
             },
         }, config.visibility);
         room.status = types_1.RoomStatus.RESULT;

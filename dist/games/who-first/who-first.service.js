@@ -178,7 +178,7 @@ let WhoFirstService = class WhoFirstService {
             return null;
         room.status = types_1.RoomStatus.LOBBY;
         room.whoFirstState = {
-            phase: 'COUNTDOWN',
+            phase: 'LOBBY',
             presses: [],
             currentRound: 1,
             maxRounds: room.config.whoFirstInfiniteRounds
