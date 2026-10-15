@@ -1,0 +1,215 @@
+{
+  "url": "http://127.0.0.1:3000/",
+  "viewport": {
+    "width": 360,
+    "height": 800
+  },
+  "scroll": {
+    "width": 360,
+    "height": 2764
+  },
+  "headings": ["GAME LOBBY"],
+  "buttons": [
+    {
+      "text": "EN",
+      "disabled": false,
+      "rect": {
+        "x": 33,
+        "y": 25,
+        "width": 29.3125,
+        "height": 23
+      }
+    },
+    {
+      "text": "TH",
+      "disabled": false,
+      "rect": {
+        "x": 66.3125,
+        "y": 25,
+        "width": 29.09375,
+        "height": 23
+      }
+    },
+    {
+      "text": "Info",
+      "disabled": false,
+      "rect": {
+        "x": 156,
+        "y": 16.5,
+        "width": 56,
+        "height": 40
+      }
+    },
+    {
+      "text": "Rules",
+      "disabled": false,
+      "rect": {
+        "x": 220,
+        "y": 16.5,
+        "width": 56,
+        "height": 40
+      }
+    },
+    {
+      "text": "⚙️Admin",
+      "disabled": false,
+      "rect": {
+        "x": 284,
+        "y": 16.5,
+        "width": 52,
+        "height": 40
+      }
+    },
+    {
+      "text": "Join",
+      "disabled": true,
+      "rect": {
+        "x": 214.734375,
+        "y": 473,
+        "width": 101.265625,
+        "height": 56
+      }
+    },
+    {
+      "text": "🎭Party · Social deductionKnowguiseAsk clever questions and find who does not know the secret word.👥 4+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 561,
+        "width": 272,
+        "height": 153
+      }
+    },
+    {
+      "text": "💬Party · BluffingGuiseGuessGive a convincing answer, then spot the fakes.👥 3+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 726,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "❌Strategy · Tic-tac-toeTic-Tac-ToeChoose Classic, Gobbler, or Ultimate. Play a friend or the bot.👥 1 player vs bot or 2 players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 874.5,
+        "width": 272,
+        "height": 153
+      }
+    },
+    {
+      "text": "✊Competitive · RPSHand DuelChoose at the same time and race to win the match.👥 2+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1039.5,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "🖼️Party · DeductionCluecanvasPlay cards from a clue and uncover the odd one out.👥 3+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1188,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "🤔❓Guessing · PartyWho Am IAsk friends questions to guess the word on your head.👥 2+ players · Word submission mode needs 3+",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1336.5,
+        "width": 272,
+        "height": 151.5
+      }
+    },
+    {
+      "text": "🛎️Reflex · CompetitiveWho FirstWait for the signal, then press as fast as you can.👥 2+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1500,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "🎵Music quiz · PartyMusic TriviaListen to a track and race to name the song or artist.👥 2+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1648.5,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "⏳Cooperative · Number cardsCountalinePlay cards from low to high without signaling each other.👥 2+ players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1797,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "⛏️Cooperative · Hidden rolesSaboteurDig a path to the gold while watching for a saboteur.👥 3–10 players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1945.5,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "🏠📜Bluffing · StrategyGolden Sand HouseClaim roles, use their powers, and call bluffs.👥 3–6 players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 2094,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "🃏Card game · CompetitiveThai Card GameChoose Pok Deng or the trick-taking Slave mode.👥 Pok Deng 2–6 · Slave 2–4",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 2242.5,
+        "width": 272,
+        "height": 136.5
+      }
+    },
+    {
+      "text": "🐒Party · Social deductionBanana ThiefWake mice at the right time, discuss, and vote for the thief.👥 4+ players · Some roles need more",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 2391,
+        "width": 272,
+        "height": 151.5
+      }
+    },
+    {
+      "text": "🅰️Card Game · StrategyPokerNo-Limit Texas Hold’em on the web, or a chips-only ledger for a real deck👥 2–10 players",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 2554.5,
+        "width": 272,
+        "height": 153
+      }
+    }
+  ],
+  "text": "EN\nTH\n⚙️\nGAME LOBBY\nDISPLAY NAME\nOR\nJOIN\n🎭\nPARTY · SOCIAL DEDUCTION\nKnowguise\nAsk clever questions and find who does not know the secret word.\n👥 4+ players\n💬\nPARTY · BLUFFING\nGuiseGuess\nGive a convincing answer, then spot the fakes.\n👥 3+ players\n❌\nSTRATEGY · TIC-TAC-TOE\nTic-Tac-Toe\nChoose Classic, Gobbler, or Ultimate. Play a friend or the bot.\n👥 1 player vs bot or 2 players\n✊\nCOMPETITIVE · RPS\nHand Duel\nChoose at the same time and race to win the match.\n👥 2+ players\n🖼️\nPARTY · DEDUCTION\nCluecanvas\nPlay cards from a clue and uncover the odd one out.\n👥 3+ players\n🤔❓\nGUESSING · PARTY\nWho Am I\nAsk friends questions to guess the word on your head.\n👥 2+ players · Word submission mode needs 3+\n🛎️\nREFLEX · COMPETITIVE\nWho First\nWait for the signal, then press as fast as you can.\n👥 2+ players\n🎵\nMUSIC QUIZ · PARTY\nMusic Trivia\nListen to a track and race to name the song or artist.\n👥 2+ players\n⏳\nCOOPERATIVE · NUMBER CARDS\nCountaline\nPlay cards from low to high without signaling each other.\n👥 2+ players\n⛏️\nCOOPERATIVE · HIDDEN ROLES\nSaboteur\nDig a path to the gold while watching for a saboteur.\n👥 3–10 players\n🏠📜\nBLUFFING · STRATEGY\nGolden Sand House\nClaim roles, use their powers, and call bluffs.\n👥 3–6 players\n🃏\nCARD GAME · COMPETITIVE\nThai Card Game\nChoose Pok Deng or the trick-taking Slave mode.\n👥 Pok Deng 2–6 · Slave 2–4\n🐒\nPARTY · SOCIAL DEDUCTION\nBanana Thief\nWake mice at the right time, discuss, and vote for the thief.\n👥 4+ players · Some roles need more\n🅰️\nCARD GAME · STRATEGY\nPoker\nNo-Limit Texas Hold’em on the web, or a chips-only ledger for a real deck\n👥 2–10 players"
+}

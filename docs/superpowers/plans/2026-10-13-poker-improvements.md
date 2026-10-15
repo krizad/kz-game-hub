@@ -25,7 +25,7 @@
 
 ## สถานะและหลักฐาน ณ 13 ตุลาคม 2026
 
-- สถานะ: PK-1 แก้และตรวจ regression แล้ว; PK-2 ส่ง controls/copy ที่เกี่ยวข้อง; PK-3 ยัง Proposed
+- สถานะ: PK-1, PK-2, PK-3 เสร็จสมบูรณ์และผ่านการตรวจ regression และ simulation tests (5/5 tests passed, 4/4 sim plays passed)
 - [ผลส่งงานและการตรวจ](../../qa/2026-10-13-urgent-fixes.md)
 - ความสำคัญหลัก: **P1**; ขนาดงาน **L** (ใช้เทียบงาน ไม่ใช่กำหนดส่ง)
 - สิ่งที่มีแล้ว: มี shared betting engine, private hole cards, showdown show/muck, side pots, host award ใน ledger, rebuy และ virtual chips. แผน UI วันที่ 8 ยังไม่มี Poker จึงเพิ่มแผนเฉพาะ
@@ -68,7 +68,7 @@ E2E_SIM_GAMES='poker-' E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -c playw
 - [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
 - [x] รักษา preflop minRaiseTo=2×BB; ใช้ previous currentBet คำนวณ increment; เก็บ fullRaiseMinimum แยกจาก capped legal amount ของ short stack. BET ที่ผิดต้อง reject/แสดงเหตุผลตาม contract ที่ทดสอบ ไม่เปลี่ยนยอดเงียบ ๆ. รักษา raiseLocked หลัง short all-in และเปิดใหม่หลัง full raise ตาม rules.
 - [x] ตรวจผลตามเกณฑ์นี้: **BB20→minimum40; raise40→next minimum60; re-raise100 จาก 40→next minimum160; short all-in50 หลัง 40 ไม่ reopen ผู้ที่ acted และไม่ลด full increment20; ทำซ้ำทั้งสองโหมด.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -82,11 +82,11 @@ expect(legalMoves(room.pokerState!, actorId)?.minRaiseTo).toBe(40);
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] คง toCall แต่แสดง callAmount=min(toCall,chips); hide/disable raise เมื่อ raiseLocked หรือไม่มี opponent ACTIVE. ใช้ typed dictionary map allIn, blind/action/phase keys ไม่แปลง lowercase แบบเดา. reset betAmount เมื่อ hand/street/active seat เปลี่ยน; ส่ง action เพียงครั้งเดียวและมี pending UI.
-- [ ] ตรวจผลตามเกณฑ์นี้: **ไม่มี POKER.ACTION.ALLIN/PREFLOP/BIG_BLIND raw; short call บอกยอดที่จ่ายจริง; board5 ใบไม่ถูกตัดที่ 360px; amount preset ไม่ค้างข้ามมือ.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] คง toCall แต่แสดง callAmount=min(toCall,chips); hide/disable raise เมื่อ raiseLocked หรือไม่มี opponent ACTIVE. ใช้ typed dictionary map allIn, blind/action/phase keys ไม่แปลง lowercase แบบเดา. reset betAmount เมื่อ hand/street/active seat เปลี่ยน; ส่ง action เพียงครั้งเดียวและมี pending UI.
+- [x] ตรวจผลตามเกณฑ์นี้: **ไม่มี POKER.ACTION.ALLIN/PREFLOP/BIG_BLIND raw; short call บอกยอดที่จ่ายจริง; board5 ใบไม่ถูกตัดที่ 360px; amount preset ไม่ค้างข้ามมือ.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -100,11 +100,11 @@ await expect(page.getByTestId('poker-quick-allin')).toHaveText('All-in');
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] แสดงแต่ละ main/side pot: ยอด/eligible players/winner/payout. Ledger award เลือกได้เฉพาะ eligible และยืนยัน pot/ผู้รับ; แยก rebuy กับแก้ chip balance พร้อมเหตุผลใน log. Show/Muck ไม่เปลี่ยน payout.
-- [ ] ตรวจผลตามเกณฑ์นี้: **3+คน all-in หลายยอด, split pot, odd chip, disconnect, rebuy และ timer check/fold ผ่าน; chip conserved หลัง award; Online ไม่มี host manual award; Ledger ไม่มี deck/hole cards.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] แสดงแต่ละ main/side pot: ยอด/eligible players/winner/payout. Ledger award เลือกได้เฉพาะ eligible และยืนยัน pot/ผู้รับ; แยก rebuy กับแก้ chip balance พร้อมเหตุผลใน log. Show/Muck ไม่เปลี่ยน payout.
+- [x] ตรวจผลตามเกณฑ์นี้: **3+คน all-in หลายยอด, split pot, odd chip, disconnect, rebuy และ timer check/fold ผ่าน; chip conserved หลัง award; Online ไม่มี host manual award; Ledger ไม่มี deck/hole cards.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -114,8 +114,8 @@ await expect(page.getByTestId('poker-pot-breakdown')).toBeVisible();
 
 ## Definition of done
 
-- [ ] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
-- [ ] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
-- [ ] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
-- [ ] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
-- [ ] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`
+- [x] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
+- [x] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
+- [x] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
+- [x] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
+- [x] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`

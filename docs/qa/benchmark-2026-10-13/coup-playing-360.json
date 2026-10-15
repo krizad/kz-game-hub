@@ -1,0 +1,175 @@
+{
+  "url": "http://127.0.0.1:3000/",
+  "viewport": {
+    "width": 360,
+    "height": 800
+  },
+  "scroll": {
+    "width": 360,
+    "height": 1525
+  },
+  "headings": ["Players", "Golden Sand House — Inheritance feud"],
+  "buttons": [
+    {
+      "text": "Copy Link",
+      "disabled": false,
+      "rect": {
+        "x": 20,
+        "y": 61.5,
+        "width": 38,
+        "height": 30
+      }
+    },
+    {
+      "text": "QR Code",
+      "disabled": false,
+      "rect": {
+        "x": 70,
+        "y": 61.5,
+        "width": 38,
+        "height": 30
+      }
+    },
+    {
+      "text": "EN",
+      "disabled": false,
+      "rect": {
+        "x": 121,
+        "y": 65,
+        "width": 29.3125,
+        "height": 23
+      }
+    },
+    {
+      "text": "TH",
+      "disabled": false,
+      "rect": {
+        "x": 154.3125,
+        "y": 65,
+        "width": 29.09375,
+        "height": 23
+      }
+    },
+    {
+      "text": "Rules",
+      "disabled": false,
+      "rect": {
+        "x": 244,
+        "y": 42.5,
+        "width": 44,
+        "height": 28
+      }
+    },
+    {
+      "text": "Leave Room",
+      "disabled": false,
+      "rect": {
+        "x": 296,
+        "y": 40.5,
+        "width": 44,
+        "height": 32
+      }
+    },
+    {
+      "text": "? Household guide",
+      "disabled": false,
+      "rect": {
+        "x": 28,
+        "y": 300.25,
+        "width": 153.8125,
+        "height": 36
+      }
+    },
+    {
+      "text": "🔊",
+      "disabled": false,
+      "rect": {
+        "x": 189.8125,
+        "y": 300.25,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "text": "Return to lobby",
+      "disabled": false,
+      "rect": {
+        "x": 28,
+        "y": 344.25,
+        "width": 130.15625,
+        "height": 24
+      }
+    },
+    {
+      "text": "Polish stairs +1",
+      "disabled": false,
+      "rect": {
+        "x": 44,
+        "y": 1013.25,
+        "width": 132,
+        "height": 56
+      }
+    },
+    {
+      "text": "Ask garden house +2",
+      "disabled": false,
+      "rect": {
+        "x": 184,
+        "y": 1013.25,
+        "width": 132,
+        "height": 56
+      }
+    },
+    {
+      "text": "Maintenance fee +3",
+      "disabled": false,
+      "rect": {
+        "x": 44,
+        "y": 1077.25,
+        "width": 132,
+        "height": 56
+      }
+    },
+    {
+      "text": "Hire the gardener (3)",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1193.25,
+        "width": 272,
+        "height": 40
+      }
+    },
+    {
+      "text": "Demand allowance +2",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1293.25,
+        "width": 272,
+        "height": 40
+      }
+    },
+    {
+      "text": "Switch the wills",
+      "disabled": false,
+      "rect": {
+        "x": 44,
+        "y": 1341.25,
+        "width": 272,
+        "height": 40
+      }
+    },
+    {
+      "text": "Reveal the real will (7)",
+      "disabled": true,
+      "rect": {
+        "x": 44,
+        "y": 1441.25,
+        "width": 272,
+        "height": 40
+      }
+    }
+  ],
+  "text": "ERZCB9\nAlice\nEN\nTH\nGAME PHASE\nPlaying\n\nYour turn — choose your next move\n\nGolden Sand House — Inheritance feud\n? HOUSEHOLD GUIDE\n🔊\nRETURN TO LOBBY\nAlice (YOU) ◀\nCoins: 2 💰\nStatus: 2\n?\n?\nBob\nCoins: 2 💰\nStatus: 2\n?\n?\nCarol\nCoins: 2 💰\nStatus: 2\n?\n?\nLOST STATUS CARDS: 0 CARDS\n— No cards yet —\nMansion deck: 9 cards\nYOUR STATUS CARDS (2)\n📜\nThe Stern Eldest Son\nExchange 2 cards / blocks an allowance demand\n🧺\nThe Basket Girl\nBlocks the Fiery Heiress’s plot\nYour allowance: 2 💰 Your Turn!\nYOUR TURN!\nPOLISH STAIRS +1\nASK GARDEN HOUSE +2\nMAINTENANCE FEE +3\nChoose a target\nBob\nCarol\nHIRE THE GARDENER (3)\nChoose a target\nBob\nCarol\nDEMAND ALLOWANCE +2\nSWITCH THE WILLS\nChoose a target\nBob\nCarol\nREVEAL THE REAL WILL (7)"
+}

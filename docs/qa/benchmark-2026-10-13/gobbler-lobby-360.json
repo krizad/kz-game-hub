@@ -1,0 +1,125 @@
+{
+  "url": "http://127.0.0.1:3000/",
+  "viewport": {
+    "width": 360,
+    "height": 800
+  },
+  "scroll": {
+    "width": 360,
+    "height": 998
+  },
+  "headings": ["Players", "Gobbler"],
+  "buttons": [
+    {
+      "text": "Copy Link",
+      "disabled": false,
+      "rect": {
+        "x": 20,
+        "y": -136.5,
+        "width": 38,
+        "height": 30
+      }
+    },
+    {
+      "text": "QR Code",
+      "disabled": false,
+      "rect": {
+        "x": 70,
+        "y": -136.5,
+        "width": 38,
+        "height": 30
+      }
+    },
+    {
+      "text": "EN",
+      "disabled": false,
+      "rect": {
+        "x": 121,
+        "y": -133,
+        "width": 29.3125,
+        "height": 23
+      }
+    },
+    {
+      "text": "TH",
+      "disabled": false,
+      "rect": {
+        "x": 154.3125,
+        "y": -133,
+        "width": 29.09375,
+        "height": 23
+      }
+    },
+    {
+      "text": "Rules",
+      "disabled": false,
+      "rect": {
+        "x": 244,
+        "y": -155.5,
+        "width": 44,
+        "height": 28
+      }
+    },
+    {
+      "text": "Leave Room",
+      "disabled": false,
+      "rect": {
+        "x": 296,
+        "y": -157.5,
+        "width": 44,
+        "height": 32
+      }
+    },
+    {
+      "text": "❌⭕️Classic (3x3)",
+      "disabled": false,
+      "rect": {
+        "x": 24,
+        "y": 152.163330078125,
+        "width": 98.65625,
+        "height": 80
+      }
+    },
+    {
+      "text": "🦃Gobbler",
+      "disabled": false,
+      "rect": {
+        "x": 130.65625,
+        "y": 153.836669921875,
+        "width": 98.671875,
+        "height": 80
+      }
+    },
+    {
+      "text": "⚡Ultimate (9x9)",
+      "disabled": false,
+      "rect": {
+        "x": 237.328125,
+        "y": 154,
+        "width": 98.65625,
+        "height": 80
+      }
+    },
+    {
+      "text": "XJoin X",
+      "disabled": false,
+      "rect": {
+        "x": 44,
+        "y": 608,
+        "width": 128,
+        "height": 148
+      }
+    },
+    {
+      "text": "OJoin O",
+      "disabled": false,
+      "rect": {
+        "x": 188,
+        "y": 608,
+        "width": 128,
+        "height": 148
+      }
+    }
+  ],
+  "text": "TSHM5I\nAlice\nEN\nTH\nPLAYERS\n2\nPLAYERS\tSCORE\n\n🐵\nAlice(YOU)\n0\n\n🦏\nBob\n0\n🎮\nGAME MODE\n❌⭕️\nCLASSIC (3X3)\n🦃\nGOBBLER\n⚡\nULTIMATE (9X9)\n\nBigger pieces devour smaller ones on a 3x3 board\n\n🦃\nGOBBLER\n\nLarger pieces can gobble smaller ones! Select your team to begin.\n\nX\nJOIN X\nO\nJOIN O"
+}

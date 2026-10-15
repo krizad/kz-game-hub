@@ -1,0 +1,142 @@
+[
+  {
+    "capture": "home-th-360",
+    "viewport": {
+      "width": 360,
+      "height": 800
+    },
+    "scroll": {
+      "width": 360,
+      "height": 2749
+    },
+    "selectedActions": []
+  },
+  {
+    "capture": "home-en-360",
+    "viewport": {
+      "width": 360,
+      "height": 800
+    },
+    "scroll": {
+      "width": 360,
+      "height": 2764
+    },
+    "selectedActions": []
+  },
+  {
+    "capture": "coup-playing-360",
+    "viewport": {
+      "width": 360,
+      "height": 800
+    },
+    "scroll": {
+      "width": 360,
+      "height": 1525
+    },
+    "selectedActions": [
+      {
+        "text": "Polish stairs +1",
+        "disabled": false,
+        "rect": {
+          "x": 44,
+          "y": 1013.25,
+          "width": 132,
+          "height": 56
+        }
+      }
+    ]
+  },
+  {
+    "capture": "coup-playing-390",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 1461
+    },
+    "selectedActions": [
+      {
+        "text": "Polish stairs +1",
+        "disabled": false,
+        "rect": {
+          "x": 44,
+          "y": 981.25,
+          "width": 147,
+          "height": 40
+        }
+      }
+    ]
+  },
+  {
+    "capture": "coup-playing-desktop",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "scroll": {
+      "width": 1280,
+      "height": 1152
+    },
+    "selectedActions": [
+      {
+        "text": "Polish stairs +1",
+        "disabled": false,
+        "rect": {
+          "x": 404,
+          "y": 792.25,
+          "width": 400,
+          "height": 40
+        }
+      }
+    ]
+  },
+  {
+    "capture": "detective-initial-360",
+    "viewport": {
+      "width": 360,
+      "height": 800
+    },
+    "scroll": {
+      "width": 360,
+      "height": 1420
+    },
+    "selectedActions": [
+      {
+        "text": "Confirm Word",
+        "disabled": true,
+        "rect": {
+          "x": 52,
+          "y": 1299.5,
+          "width": 256,
+          "height": 68
+        }
+      }
+    ]
+  },
+  {
+    "capture": "saboteur-playing-360",
+    "viewport": {
+      "width": 360,
+      "height": 800
+    },
+    "scroll": {
+      "width": 360,
+      "height": 1025
+    },
+    "selectedActions": []
+  },
+  {
+    "capture": "gobbler-lobby-360",
+    "viewport": {
+      "width": 360,
+      "height": 800
+    },
+    "scroll": {
+      "width": 360,
+      "height": 998
+    },
+    "selectedActions": []
+  }
+]

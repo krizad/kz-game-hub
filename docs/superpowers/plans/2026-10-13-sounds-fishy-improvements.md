@@ -61,11 +61,11 @@ E2E_SIM_GAMES='sounds-fishy-3p' E2E_SIM_PLAYS=2 pnpm -F web exec playwright test
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] แยกผลคลังว่าง/ภาษาไม่มีข้อมูล/DB ใช้ไม่ได้เป็น error ที่ gateway ส่งกลับตามกลไก ERROR เดิม; คืน lobby และปลด loading เสมอ. ใช้ข้อความไทย/อังกฤษ พร้อมลองใหม่หรือเปลี่ยนเกม. ห้ามเติมคำถามสมมติอัตโนมัติ.
-- [ ] ตรวจผลตามเกณฑ์นี้: **mock DB timeout และ empty result แล้วไม่มี STARTING ค้าง; retry หลัง DB กลับมาได้; picker ไม่เห็น answer จาก error.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] แยกผลคลังว่าง/ภาษาไม่มีข้อมูล/DB ใช้ไม่ได้เป็น error ที่ gateway ส่งกลับตามกลไก ERROR เดิม; คืน lobby และปลด loading เสมอ. ใช้ข้อความไทย/อังกฤษ พร้อมลองใหม่หรือเปลี่ยนเกม. ห้ามเติมคำถามสมมติอัตโนมัติ.
+- [x] ตรวจผลตามเกณฑ์นี้: **mock DB timeout และ empty result แล้วไม่มี STARTING ค้าง; retry หลัง DB กลับมาได้; picker ไม่เห็น answer จาก error.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -79,11 +79,11 @@ await expect(page.getByTestId('game-start-error')).toContainText('Questions are 
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] Blue Fish ใช้ปุ่มส่งคำตอบจริงจาก sfTrueAnswer ของตัวเอง; Red Herring ยังพิมพ์คำลวง. รวม effect ล้าง draft เหลือหนึ่งชุด; จำกัด input 200 ตัวตาม server และบอกข้อความส่งแล้ว.
-- [ ] ตรวจผลตามเกณฑ์นี้: **Blue Fish ไม่ถูกติดขัดเพราะช่องว่าง/สะกดต่าง; picker ไม่มีปุ่มหรือคำตอบจริง; draft เปลี่ยนรอบแล้วว่าง.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] Blue Fish ใช้ปุ่มส่งคำตอบจริงจาก sfTrueAnswer ของตัวเอง; Red Herring ยังพิมพ์คำลวง. รวม effect ล้าง draft เหลือหนึ่งชุด; จำกัด input 200 ตัวตาม server และบอกข้อความส่งแล้ว.
+- [x] ตรวจผลตามเกณฑ์นี้: **Blue Fish ไม่ถูกติดขัดเพราะช่องว่าง/สะกดต่าง; picker ไม่มีปุ่มหรือคำตอบจริง; draft เปลี่ยนรอบแล้วว่าง.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -97,11 +97,11 @@ await expect(page.getByTestId('fishy-submit-true-answer')).toBeVisible();
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] ทำแต่ละคำตอบเป็นแถวเดียว: เปิดดู → คัดออก; bank แสดงแต้มที่จะเก็บและความเสี่ยงอ่านง่าย. ผลรอบแสดงเลือกใคร/บทบาทที่เฉลย/แต้มแต่ละคน โดยคงสูตร service.
-- [ ] ตรวจผลตามเกณฑ์นี้: **picker ไม่เผลอคัดออกขณะตั้งใจเปิด; keyboard เล่นจน Round Over ได้; มือถือไม่ต้องเลื่อนกลับหาปุ่ม bank ซ้ำ.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] ทำแต่ละคำตอบเป็นแถวเดียว: เปิดดู → คัดออก; bank แสดงแต้มที่จะเก็บและความเสี่ยงอ่านง่าย. ผลรอบแสดงเลือกใคร/บทบาทที่เฉลย/แต้มแต่ละคน โดยคงสูตร service.
+- [x] ตรวจผลตามเกณฑ์นี้: **picker ไม่เผลอคัดออกขณะตั้งใจเปิด; keyboard เล่นจน Round Over ได้; มือถือไม่ต้องเลื่อนกลับหาปุ่ม bank ซ้ำ.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -111,8 +111,8 @@ await expect(page.getByTestId('fishy-bank-summary')).toContainText(/points/i);
 
 ## Definition of done
 
-- [ ] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
-- [ ] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
-- [ ] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
-- [ ] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
-- [ ] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`
+- [x] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
+- [x] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
+- [x] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
+- [x] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
+- [x] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`

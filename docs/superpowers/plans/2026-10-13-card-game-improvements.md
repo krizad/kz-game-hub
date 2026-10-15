@@ -23,9 +23,9 @@
 
 ---
 
-## สถานะและหลักฐาน ณ 13 ตุลาคม 2026
+## สถานะและหลักฐาน ณ 15 ตุลาคม 2026
 
-- สถานะ: CA-1 ส่งส่วน scroll/selection semantics แล้ว; sort และ CA-2/CA-3 ยัง Proposed
+- สถานะ: CA-1, CA-2, CA-3 เสร็จสมบูรณ์และผ่านการทดสอบ regression, E2E และ simulation plays (4/4 E2E passed, 6/6 sim plays passed, 74/74 API unit tests passed)
 - [ผลส่งงานและการตรวจ](../../qa/2026-10-13-urgent-fixes.md)
 - ความสำคัญหลัก: **P1**; ขนาดงาน **L** (ใช้เทียบงาน ไม่ใช่กำหนดส่ง)
 - สิ่งที่มีแล้ว: มี configurable engine/presets/allowedOptions/virtual chips/timer/log; Slave รองรับ single/pair/triple และ 3♣ opener ตาม ADR ไม่ใช่ครบทุกกติกาไพ่สลาฟเชิงพาณิชย์
@@ -64,11 +64,11 @@ E2E_SIM_GAMES='card-' E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -c playwr
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] CardHand เพิ่ม scroll/wrap mode ไม่ย่อไพ่จนอ่าน rank/suit ไม่ได้; sort เฉพาะลำดับแสดงผลแต่ส่ง stable card.id เดิม. selectable card มี aria-pressed และชื่อ rank/suit ที่แปล; hand container เลื่อนได้ด้วย touch/keyboard และแสดงจำนวนทั้งหมด.
-- [ ] ตรวจผลตามเกณฑ์นี้: **26 ใบเข้าถึงได้ครบที่ 360px; selection คงตรง id หลัง sort; ไม่ส่ง hand คนอื่น; shared CardHand ไม่ทำ Poker community cards ล้น.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] CardHand เพิ่ม scroll/wrap mode ไม่ย่อไพ่จนอ่าน rank/suit ไม่ได้; sort เฉพาะลำดับแสดงผลแต่ส่ง stable card.id เดิม. selectable card มี aria-pressed และชื่อ rank/suit ที่แปล; hand container เลื่อนได้ด้วย touch/keyboard และแสดงจำนวนทั้งหมด.
+- [x] ตรวจผลตามเกณฑ์นี้: **26 ใบเข้าถึงได้ครบที่ 360px; selection คงตรง id หลัง sort; ไม่ส่ง hand คนอื่น; shared CardHand ไม่ทำ Poker community cards ล้น.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -82,11 +82,11 @@ await expect(page.getByTestId('card-hand-scroll')).toHaveAttribute('tabindex', '
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] แสดงชุดที่เลือก/ชุดที่ต้องตี/3♣ opening/pass-leading rule; ใช้ contract validation จาก types ที่ไม่ import backend. UI hint เป็นเพียง preview, server ยืนยัน. เก็บ selected cards จน authoritative turn/hand เปลี่ยน แทนล้างก่อนทราบผล.
-- [ ] ตรวจผลตามเกณฑ์นี้: **ชุดหน้าไม่เท่ากัน/จำนวนไม่เท่ากับ trick/ต่ำกว่า trick/ไม่มี 3♣ตอนเปิด มีเหตุผล; reject แล้วมือเดิมยังเลือก; pass reset ถูก; ไม่เพิ่มห้าชุด/Joker/exchange นอก MVP.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] แสดงชุดที่เลือก/ชุดที่ต้องตี/3♣ opening/pass-leading rule; ใช้ contract validation จาก types ที่ไม่ import backend. UI hint เป็นเพียง preview, server ยืนยัน. เก็บ selected cards จน authoritative turn/hand เปลี่ยน แทนล้างก่อนทราบผล.
+- [x] ตรวจผลตามเกณฑ์นี้: **ชุดหน้าไม่เท่ากัน/จำนวนไม่เท่ากับ trick/ต่ำกว่า trick/ไม่มี 3♣ตอนเปิด มีเหตุผล; reject แล้วมือเดิมยังเลือก; pass reset ถูก; ไม่เพิ่มห้าชุด/Joker/exchange นอก MVP.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -102,11 +102,11 @@ await expect(page.getByTestId('slave-selection-reason')).toContainText(
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] แปล phase ผ่าน dictionary, แสดง preset/tie/dealer/multipliers ที่เปิดจริง. ผลแจกแจงคะแนน dealer/player, multiplier, delta และ chip ก่อน→หลัง; time expiry ระบุ auto action ที่กติกาเลือก. คง natural 8/9 และ virtual chips.
-- [ ] ตรวจผลตามเกณฑ์นี้: **natural dealer จบทันที; DRAW/STAND/tie/multiplier/rotation ตรง engine; ผลรวม chip conservation ตามกติกาและ debt policy; host skip/reset ไม่สร้างผลซ้ำ.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] แปล phase ผ่าน dictionary, แสดง preset/tie/dealer/multipliers ที่เปิดจริง. ผลแจกแจงคะแนน dealer/player, multiplier, delta และ chip ก่อน→หลัง; time expiry ระบุ auto action ที่กติกาเลือก. คง natural 8/9 และ virtual chips.
+- [x] ตรวจผลตามเกณฑ์นี้: **natural dealer จบทันที; DRAW/STAND/tie/multiplier/rotation ตรง engine; ผลรวม chip conservation ตามกติกาและ debt policy; host skip/reset ไม่สร้างผลซ้ำ.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -116,8 +116,8 @@ await expect(page.getByTestId('pok-deng-settlement')).toContainText(/before|afte
 
 ## Definition of done
 
-- [ ] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
-- [ ] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
-- [ ] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
-- [ ] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
-- [ ] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`
+- [x] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
+- [x] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
+- [x] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
+- [x] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
+- [x] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`

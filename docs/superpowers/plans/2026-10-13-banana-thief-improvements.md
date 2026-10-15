@@ -23,9 +23,9 @@
 
 ---
 
-## สถานะและหลักฐาน ณ 13 ตุลาคม 2026
+## สถานะและหลักฐาน ณ 15 ตุลาคม 2026
 
-- สถานะ: Proposed — ยังไม่ได้แก้ implementation
+- สถานะ: Completed — ดำเนินการเสร็จสมบูรณ์ (15 ตุลาคม 2026)
 - ความสำคัญหลัก: **P2**; ขนาดงาน **L** (ใช้เทียบงาน ไม่ใช่กำหนดส่ง)
 - สิ่งที่มีแล้ว: มี special roles, ready gate, reroll, auto/host narrator, private peek, role artwork, subtitles ที่เป็นข้อความสาธารณะ และคะแนนผลโหวต
 - หลักฐาน: CODE/UI: UI มี force-start ของ host ก่อนทุกคน ready; peek แสดงชั่วคราวตามกติกา; narrator ใช้เสียงไฟล์และ speech fallback. เป็นจุดเสี่ยง onboarding ต้องทดสอบกับผู้เล่นจริง ไม่ใช่หลักฐานว่า timer/peek ผิด. audit ได้ SETUP role/die/ready เท่านั้น.
@@ -61,11 +61,11 @@ E2E_SIM_GAMES='banana-thief-' E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] แสดง audio ready ต่อเครื่อง/คำอธิบายกด ready; force-start เป็น secondary action พร้อม dialog รายชื่อที่ยังไม่พร้อม. บอกว่าตัวละครตื่นเมื่อใดเฉพาะเจ้าของ; number of specials/min players อ้าง getBananaThiefRequiredPlayerCount.
-- [ ] ตรวจผลตามเกณฑ์นี้: **mute/blocked audio ยังเห็นข้อความ public clock; host force start ต้องเห็นผลต่อคนไม่พร้อม; ไม่เปิด die/role ในรายชื่อ public.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] แสดง audio ready ต่อเครื่อง/คำอธิบายกด ready; force-start เป็น secondary action พร้อม dialog รายชื่อที่ยังไม่พร้อม. บอกว่าตัวละครตื่นเมื่อใดเฉพาะเจ้าของ; number of specials/min players อ้าง getBananaThiefRequiredPlayerCount.
+- [x] ตรวจผลตามเกณฑ์นี้: **mute/blocked audio ยังเห็นข้อความ public clock; host force start ต้องเห็นผลต่อคนไม่พร้อม; ไม่เปิด die/role ในรายชื่อ public.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -79,11 +79,11 @@ await expect(page.getByTestId('banana-thief-force-start-confirm')).toBeVisible()
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] ใช้ awake/sleep state แบบข้อความ+ภาพ ไม่ใช้เสียงล้วน; peek font/contrast และ focus ชัด ขณะหน้าต่างเดิมเปิด. รักษาระยะเวลาที่ service/rules กำหนด; ถ้าจะเพิ่ม notebook/history ต้องแยกทดลองกติกา ห้ามทำเป็น QoL โดยอัตโนมัติ.
-- [ ] ตรวจผลตามเกณฑ์นี้: **DETECTIVE/TWINS/SYCOPHANT/SCAPEGOAT/FOLLOWER ต่างเห็นข้อมูลตามสิทธิ์; no-sound และ reduced-motion ไม่พลาดเพราะสัญญาณหาย; background tab ไม่เล่นเสียงชั่วโมงเก่ารัว.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] ใช้ awake/sleep state แบบข้อความ+ภาพ ไม่ใช้เสียงล้วน; peek font/contrast และ focus ชัด ขณะหน้าต่างเดิมเปิด. รักษาระยะเวลาที่ service/rules กำหนด; ถ้าจะเพิ่ม notebook/history ต้องแยกทดลองกติกา ห้ามทำเป็น QoL โดยอัตโนมัติ.
+- [x] ตรวจผลตามเกณฑ์นี้: **DETECTIVE/TWINS/SYCOPHANT/SCAPEGOAT/FOLLOWER ต่างเห็นข้อมูลตามสิทธิ์; no-sound และ reduced-motion ไม่พลาดเพราะสัญญาณหาย; background tab ไม่เล่นเสียงชั่วโมงเก่ารัว.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -97,11 +97,11 @@ await expect(page.getByTestId('banana-thief-awake-status')).toContainText(/awake
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] ทำ countdown discussion/voting ชัด; หลังส่ง vote แสดงยืนยันจาก private/server ไม่ใช่ local flag อย่างเดียว. ผลบอก wrong target/tie/thief caught/scapegoat และแต้มรายคน.
-- [ ] ตรวจผลตามเกณฑ์นี้: **refresh ขณะ vote ยังส่งแล้ว; host rotation ใน narrator mode ไปต่อได้; follower1/2 และทุก special มีผลถูก; no private night events ใน public result ก่อนเวลา.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] ทำ countdown discussion/voting ชัด; หลังส่ง vote แสดงยืนยันจาก private/server ไม่ใช่ local flag อย่างเดียว. ผลบอก wrong target/tie/thief caught/scapegoat และแต้มรายคน.
+- [x] ตรวจผลตามเกณฑ์นี้: **refresh ขณะ vote ยังส่งแล้ว; host rotation ใน narrator mode ไปต่อได้; follower1/2 และทุก special มีผลถูก; no private night events ใน public result ก่อนเวลา.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -111,8 +111,8 @@ await expect(page.getByTestId('banana-thief-vote-status')).toContainText(/submit
 
 ## Definition of done
 
-- [ ] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
-- [ ] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
-- [ ] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
-- [ ] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
-- [ ] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`
+- [x] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
+- [x] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
+- [x] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
+- [x] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
+- [x] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`
