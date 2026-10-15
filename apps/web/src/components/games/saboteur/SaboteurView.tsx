@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   RoomStatus,
   SaboteurActionKind,
+  SaboteurBoardCell,
   SaboteurLogEntry,
   SaboteurPhase,
   SaboteurRole,
@@ -59,6 +60,9 @@ export function SaboteurView() {
   const [rotation, setRotation] = useState<0 | 180>(0);
   const [targeting, setTargeting] = useState<Targeting>(null);
   const [roleHidden, setRoleHidden] = useState(false);
+  const [zoom, setZoom] = useState<1 | 1.5 | 2>(1);
+  const [logExpanded, setLogExpanded] = useState<boolean>(true);
+  const [actionReason, setActionReason] = useState<string | null>(null);
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const playSound = useSaboteurSounds(soundsEnabled);
 
@@ -133,6 +137,23 @@ export function SaboteurView() {
       : undefined;
   const selectedDef = selectedCard ? saboteurGetCardDef(selectedCard.cardId) : undefined;
 
+  // Clear selection only on authoritative hand change or turn change
+  const lastTurnPlayerRef = useRef<string | null>(state.activePlayerId);
+  const lastHandLengthRef = useRef<number>(myHand.length);
+  useEffect(() => {
+    if (
+      state.activePlayerId !== lastTurnPlayerRef.current ||
+      myHand.length !== lastHandLengthRef.current
+    ) {
+      lastTurnPlayerRef.current = state.activePlayerId;
+      lastHandLengthRef.current = myHand.length;
+      setSelectedCardIndex(null);
+      setRotation(0);
+      setTargeting(null);
+      setActionReason(null);
+    }
+  }, [state.activePlayerId, myHand.length]);
+
   // Cheap enough to recompute per render (9×5 grid).
   const validPlacements = (() => {
     if (!isMyTurn || !selectedDef || selectedDef.kind !== 'PATH' || toolsBroken) {
@@ -154,10 +175,76 @@ export function SaboteurView() {
   const playerAvatar = (id: string) => getAvatarEmoji(playerName(id));
   const toolWord = (tool: SaboteurTool) => t(`gameSaboteur.tool_${tool.toLowerCase()}`);
 
+  const getCardName = (cardId: string): string => {
+    if (cardId.startsWith('path-')) return t('gameSaboteur.cardPath');
+    switch (cardId) {
+      case 'action-break-lantern':
+        return t('gameSaboteur.cardBreakLantern');
+      case 'action-break-cart':
+        return t('gameSaboteur.cardBreakCart');
+      case 'action-break-pickaxe':
+        return t('gameSaboteur.cardBreakPickaxe');
+      case 'action-repair-lantern':
+        return t('gameSaboteur.cardRepairLantern');
+      case 'action-repair-cart':
+        return t('gameSaboteur.cardRepairCart');
+      case 'action-repair-pickaxe':
+        return t('gameSaboteur.cardRepairPickaxe');
+      case 'action-repair-lantern-cart':
+        return t('gameSaboteur.cardRepairLanternCart');
+      case 'action-repair-lantern-pickaxe':
+        return t('gameSaboteur.cardRepairLanternPickaxe');
+      case 'action-repair-cart-pickaxe':
+        return t('gameSaboteur.cardRepairCartPickaxe');
+      case 'action-map':
+        return t('gameSaboteur.cardMap');
+      case 'action-rockfall':
+        return t('gameSaboteur.cardRockfall');
+      default:
+        return cardId;
+    }
+  };
+
+  const getCellAriaLabel = (
+    x: number,
+    y: number,
+    cell: SaboteurBoardCell | undefined,
+    isGoal: boolean,
+    goalIndex: number,
+    ghostHere: boolean,
+    targetable: boolean,
+  ): string => {
+    if (isGoal) {
+      if (state.revealedGoals[goalIndex]) {
+        return state.revealedGoals[goalIndex] === 'GOLD'
+          ? t('gameSaboteur.cellGoalRevealedGold', { index: goalIndex + 1 })
+          : t('gameSaboteur.cellGoalRevealedStone', { index: goalIndex + 1 });
+      }
+      return t('gameSaboteur.cellGoal', { index: goalIndex + 1 });
+    }
+    if (cell?.cardId === 'start') {
+      return t('gameSaboteur.cellStart');
+    }
+    if (cell) {
+      return t('gameSaboteur.cellPath', { x, y });
+    }
+    if (ghostHere) {
+      return t('gameSaboteur.cellPlacement', { x, y });
+    }
+    if (targetable && targeting === 'MAP') {
+      return t('gameSaboteur.cellMapTarget', { index: goalIndex + 1 });
+    }
+    if (targetable && targeting === 'ROCKFALL') {
+      return t('gameSaboteur.cellRockfallTarget', { x, y });
+    }
+    return t('gameSaboteur.cellEmpty', { x, y });
+  };
+
   const resetSelection = () => {
     setSelectedCardIndex(null);
     setRotation(0);
     setTargeting(null);
+    setActionReason(null);
   };
 
   const handleHandClick = (index: number) => {
@@ -168,6 +255,7 @@ export function SaboteurView() {
     }
     setSelectedCardIndex(index);
     setRotation(0);
+    setActionReason(null);
     const def = saboteurGetCardDef(myHand[index].cardId);
     if (def?.kind === 'ACTION' && def.action) {
       switch (def.action.kind) {
@@ -192,35 +280,71 @@ export function SaboteurView() {
   const handleBoardCellClick = (x: number, y: number) => {
     if (!isMyTurn || actionLoading || selectedCardIndex === null) return;
     const key = saboteurCellKey(x, y);
+    const cell = state.board[key];
+    const isGoal = cell?.cardId === 'goal';
 
     if (targeting === 'ROCKFALL') {
+      if (isGoal || cell?.cardId === 'start' || !cell) {
+        setActionReason(t('gameSaboteur.cannotRockfallSpecial'));
+        return;
+      }
+      setActionReason(null);
       saboteurPlayAction({ cardIndex: selectedCardIndex, targetX: x, targetY: y });
-      resetSelection();
       return;
     }
-    if (targeting === 'MAP' && state.board[key]?.cardId === 'goal') {
+    if (targeting === 'MAP') {
+      if (!isGoal) {
+        setActionReason(t('gameSaboteur.cannotMapNonGoal'));
+        return;
+      }
       const goalIndex = state.goalCells.findIndex((g) => g.x === x && g.y === y);
       if (goalIndex >= 0) {
+        setActionReason(null);
         saboteurPlayAction({ cardIndex: selectedCardIndex, goalIndex });
-        resetSelection();
       }
       return;
     }
-    if (selectedDef?.kind === 'PATH' && validPlacements.has(key)) {
-      saboteurPlacePath(selectedCardIndex, x, y, rotation);
-      resetSelection();
+    if (selectedDef?.kind === 'PATH') {
+      if (toolsBroken) {
+        setActionReason(t('gameSaboteur.brokenToolCanNotBuild'));
+        return;
+      }
+      if (validPlacements.has(key)) {
+        setActionReason(null);
+        saboteurPlacePath(selectedCardIndex, x, y, rotation);
+      } else {
+        setActionReason(t('gameSaboteur.noPlacement'));
+      }
     }
   };
 
   const handlePlayerClick = (targetPlayerId: string) => {
     if (!isMyTurn || actionLoading || selectedCardIndex === null) return;
     if (targeting !== 'BREAK' && targeting !== 'REPAIR') return;
-    if (targetPlayerId === socketId && targeting === 'BREAK') return;
+    if (targetPlayerId === socketId && targeting === 'BREAK') {
+      setActionReason(t('gameSaboteur.cannotBreakSelf'));
+      return;
+    }
+    const targetPlayer = state.players[targetPlayerId];
+    if (targeting === 'REPAIR' && selectedDef?.action?.tools) {
+      const hasMatchingBroken = selectedDef.action.tools.some((tl) =>
+        targetPlayer?.brokenTools.includes(tl),
+      );
+      if (!hasMatchingBroken) {
+        setActionReason(t('gameSaboteur.noMatchingBrokenTool'));
+        return;
+      }
+    }
+    setActionReason(null);
     saboteurPlayAction({
       cardIndex: selectedCardIndex,
       targetPlayerId,
     });
-    resetSelection();
+  };
+
+  const handleDiscard = () => {
+    if (selectedCardIndex === null || !isMyTurn || actionLoading) return;
+    saboteurDiscard(selectedCardIndex);
   };
 
   // ---------- Sub renders ----------
@@ -238,6 +362,7 @@ export function SaboteurView() {
           (targeting === 'ROCKFALL' && !!cell && !isGoal && cell.cardId !== 'start') ||
           (targeting === 'MAP' && isGoal);
         const peek = goalIndex >= 0 ? peekedGoals[String(goalIndex)] : undefined;
+        const ariaLabel = getCellAriaLabel(x, y, cell, isGoal, goalIndex, ghostHere, targetable);
 
         cells.push(
           <button
@@ -245,6 +370,7 @@ export function SaboteurView() {
             data-testid={`saboteur-cell-${key}`}
             onClick={() => handleBoardCellClick(x, y)}
             disabled={!ghostHere && !targetable}
+            aria-label={ariaLabel}
             className={clsx(
               'relative aspect-[7/10] transition-all',
               isGoal
@@ -281,7 +407,10 @@ export function SaboteurView() {
               />
             ) : null}
             {peek && goalIndex >= 0 && !state.revealedGoals[goalIndex] && (
-              <span className="absolute bottom-0 right-0 text-[10px] bg-white/90 rounded px-0.5 leading-tight">
+              <span
+                data-testid={`saboteur-peek-${goalIndex}`}
+                className="absolute bottom-0 right-0 text-[10px] bg-white/95 rounded px-0.5 leading-tight font-black shadow border border-amber-900/40"
+              >
                 {peek === 'GOLD' ? '💰' : '🪨'}
               </span>
             )}
@@ -295,6 +424,70 @@ export function SaboteurView() {
         style={{ gridTemplateColumns: 'repeat(9, minmax(0, 1fr))' }}
       >
         {cells}
+      </div>
+    );
+  };
+
+  const renderBoardWithControls = () => {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-1 bg-white border-2 border-black rounded-lg px-2 py-0.5 shadow-[2px_2px_0_0_#000]">
+            <span className="text-[10px] font-black uppercase text-stone-500 mr-0.5">
+              🔍 {t('gameSaboteur.zoom')}:
+            </span>
+            <button
+              data-testid="saboteur-zoom-out"
+              onClick={() => setZoom((z) => (z === 2 ? 1.5 : 1))}
+              disabled={zoom === 1}
+              title={t('gameSaboteur.zoomOut')}
+              className="text-xs font-black px-1.5 py-0.5 rounded border border-black bg-stone-100 hover:bg-stone-200 disabled:opacity-40"
+            >
+              -
+            </button>
+            <button
+              data-testid="saboteur-zoom-reset"
+              onClick={() => setZoom(1)}
+              title={t('gameSaboteur.zoomReset')}
+              className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black bg-stone-100 hover:bg-stone-200"
+            >
+              {zoom}x
+            </button>
+            <button
+              data-testid="saboteur-zoom-in"
+              onClick={() => setZoom((z) => (z === 1 ? 1.5 : 2))}
+              disabled={zoom === 2}
+              title={t('gameSaboteur.zoomIn')}
+              className="text-xs font-black px-1.5 py-0.5 rounded border border-black bg-stone-100 hover:bg-stone-200 disabled:opacity-40"
+            >
+              +
+            </button>
+          </div>
+          {actionReason && (
+            <div
+              data-testid="saboteur-action-reason"
+              className="text-[10px] font-black text-rose-700 bg-rose-100 border border-rose-400 rounded-lg px-2 py-0.5 animate-pulse truncate"
+            >
+              ⚠️ {actionReason}
+            </div>
+          )}
+        </div>
+
+        <div
+          data-testid="saboteur-board-viewport"
+          tabIndex={0}
+          className="w-full overflow-x-auto overflow-y-visible py-2 px-1 rounded-2xl border-2 border-amber-950/20 bg-amber-950/10 focus:outline-none"
+        >
+          <div
+            className="transition-transform duration-200 origin-top flex justify-center min-w-[540px] sm:min-w-0"
+            style={{
+              transform: `scale(${zoom})`,
+              marginBottom: zoom > 1 ? `${(zoom - 1) * 320}px` : 0,
+            }}
+          >
+            {renderBoard()}
+          </div>
+        </div>
       </div>
     );
   };
@@ -368,6 +561,7 @@ export function SaboteurView() {
         const isSelected = selectedCardIndex === index;
         const def = saboteurGetCardDef(handCard.cardId);
         const pathBlocked = def?.kind === 'PATH' && toolsBroken;
+        const cardName = getCardName(handCard.cardId);
         return (
           <div
             key={index}
@@ -378,11 +572,10 @@ export function SaboteurView() {
           >
             <button
               data-testid={`saboteur-hand-${index}`}
+              aria-label={cardName}
               onClick={() => handleHandClick(index)}
               disabled={!isMyTurn}
-              title={
-                pathBlocked ? `${t('gameSaboteur.brokenToolCanNotBuild')}` : `${handCard.cardId}`
-              }
+              title={pathBlocked ? `${t('gameSaboteur.brokenToolCanNotBuild')}` : cardName}
               className={clsx(
                 'w-14 h-20 sm:w-16 sm:h-24 rounded-xl border-4 border-black overflow-hidden transition-all bg-white',
                 isSelected
@@ -402,23 +595,25 @@ export function SaboteurView() {
                 <ActionCardFace cardId={handCard.cardId} />
               )}
             </button>
+            <span className="text-[9px] font-black text-stone-600 truncate max-w-[4.5rem] text-center">
+              {cardName}
+            </span>
             {isSelected && (
               <div className="flex gap-1">
                 {def?.kind === 'PATH' && (
                   <button
+                    data-testid="saboteur-rotate-btn"
                     onClick={() => setRotation((r) => (r === 0 ? 180 : 0))}
                     title={t('gameSaboteur.rotate')}
-                    className="text-[10px] font-black bg-sky-300 border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000]"
+                    className="text-[10px] font-black bg-sky-300 hover:bg-sky-200 border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000]"
                   >
                     ⟳ {rotation === 0 ? '180°' : '0°'}
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    saboteurDiscard(selectedCardIndex!);
-                    resetSelection();
-                  }}
-                  className="text-[10px] font-black bg-red-300 border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000]"
+                  data-testid="saboteur-discard-btn"
+                  onClick={handleDiscard}
+                  className="text-[10px] font-black bg-red-300 hover:bg-red-200 border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000]"
                 >
                   {t('gameSaboteur.discard')}
                 </button>
@@ -539,11 +734,136 @@ export function SaboteurView() {
         <span className="text-xs font-black flex-1">{labels[targeting]}</span>
         <button
           onClick={resetSelection}
-          className="text-[10px] font-black bg-white border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000]"
+          className="text-[10px] font-black bg-white border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000] hover:bg-stone-50"
         >
           ✕ {t('gameSaboteur.cancel')}
         </button>
       </motion.div>
+    );
+  };
+
+  const renderPublicLastAction = () => {
+    const log = state.log ?? [];
+    const lastEntry = log.length > 0 ? log[log.length - 1] : null;
+    let text = t('gameSaboteur.roundStarted', { round: state.round });
+    let icon = '⛏️';
+
+    if (lastEntry) {
+      const name = playerName(lastEntry.playerId);
+      const target = lastEntry.targetId ? playerName(lastEntry.targetId) : '';
+      switch (lastEntry.kind) {
+        case 'PLACE':
+          icon = '🛠️';
+          text = t('gameSaboteur.logPlace', { name, x: lastEntry.x ?? 0, y: lastEntry.y ?? 0 });
+          break;
+        case 'BREAK':
+          icon = '🔨';
+          text = t('gameSaboteur.logBreak', { name, target });
+          break;
+        case 'REPAIR':
+          icon = '🔧';
+          text = t('gameSaboteur.logRepair', { name, target });
+          break;
+        case 'MAP':
+          icon = '🗺️';
+          text = t('gameSaboteur.logMap', { name, goal: (lastEntry.goalIndex ?? 0) + 1 });
+          break;
+        case 'ROCKFALL':
+          icon = '🪨';
+          text = t('gameSaboteur.logRockfall', { name, x: lastEntry.x ?? 0, y: lastEntry.y ?? 0 });
+          break;
+        case 'DISCARD':
+          icon = '🗑️';
+          text = t('gameSaboteur.logDiscard', { name });
+          break;
+        case 'PASS':
+          icon = '⏭️';
+          text = t('gameSaboteur.logPass', { name });
+          break;
+        case 'PICK_GOLD':
+          icon = '🪙';
+          text = t('gameSaboteur.logGold', { name, value: lastEntry.value ?? 0 });
+          break;
+        case 'MINERS_WIN':
+          icon = '💰';
+          text = t('gameSaboteur.logMinersWin', { goal: (lastEntry.goalIndex ?? 0) + 1 });
+          break;
+        case 'SABOTEURS_WIN':
+          icon = '💣';
+          text = t('gameSaboteur.logSaboteursWin');
+          break;
+      }
+    }
+
+    return (
+      <div
+        data-testid="saboteur-public-last-action"
+        className="bg-amber-50 border-2 border-black rounded-xl px-3 py-1.5 shadow-[2px_2px_0_0_#000] flex items-center gap-2 text-xs font-bold text-amber-950"
+      >
+        <span className="text-base flex-shrink-0">{icon}</span>
+        <span className="flex-1 truncate">{text}</span>
+      </div>
+    );
+  };
+
+  const pathBlockedHint = isMyTurn && toolsBroken;
+
+  const hint = (() => {
+    if (state.currentPhase === SaboteurPhase.GOLD_PICK) return t('gameSaboteur.goldPickTitle');
+    if (!isMyTurn) {
+      return t('gameSaboteur.waitingFor', { name: playerName(state.activePlayerId ?? '') });
+    }
+    if (pathBlockedHint) return t('gameSaboteur.brokenToolCanNotBuild');
+    if (targeting) {
+      const labels: Record<Exclude<Targeting, null>, string> = {
+        BREAK: t('gameSaboteur.chooseBreakTarget'),
+        REPAIR: t('gameSaboteur.chooseRepairTarget'),
+        MAP: t('gameSaboteur.chooseGoalToPeek'),
+        ROCKFALL: t('gameSaboteur.chooseRockfallCell'),
+      };
+      return labels[targeting];
+    }
+    if (selectedDef?.kind === 'PATH') {
+      return validPlacements.size > 0
+        ? t('gameSaboteur.choosePlacement')
+        : t('gameSaboteur.noPlacement');
+    }
+    return t('gameSaboteur.selectCardHint');
+  })();
+
+  const renderSelectionHelp = () => {
+    return (
+      <div
+        data-testid="saboteur-selection-help"
+        className={clsx(
+          'border-2 border-black rounded-xl px-3 py-1.5 text-xs font-black shadow-[2px_2px_0_0_#000] flex items-center justify-between gap-2',
+          isMyTurn
+            ? selectedCard
+              ? 'bg-amber-200 text-amber-950'
+              : 'bg-lime-200 text-lime-950'
+            : 'bg-stone-100 text-stone-700',
+        )}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span>{isMyTurn ? (selectedCard ? '👉' : '⏳') : '💤'}</span>
+            <span className="truncate">{hint}</span>
+          </div>
+          {selectedCard && (
+            <div className="text-[10px] font-bold text-stone-600 mt-0.5">
+              {getCardName(selectedCard.cardId)}
+            </div>
+          )}
+        </div>
+        {selectedCard && isMyTurn && (
+          <button
+            onClick={resetSelection}
+            className="text-[10px] font-black bg-white border border-black rounded px-2 py-1 shadow-[1px_1px_0_0_#000] hover:bg-stone-50 flex-shrink-0"
+          >
+            ✕ {t('gameSaboteur.cancel')}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -608,45 +928,36 @@ export function SaboteurView() {
       );
     };
     return (
-      <div className="bg-white border-4 border-black rounded-xl shadow-[3px_3px_0_0_#000] p-2">
-        <div className="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-1">
-          📜 {t('gameSaboteur.logTitle')}
+      <div
+        data-testid="saboteur-log-panel"
+        className="bg-white border-4 border-black rounded-xl shadow-[3px_3px_0_0_#000] p-2"
+      >
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
+            📜 {t('gameSaboteur.logTitle')}
+          </span>
+          <button
+            data-testid="saboteur-log-toggle"
+            onClick={() => setLogExpanded((v) => !v)}
+            className="text-[9px] font-black bg-stone-100 hover:bg-stone-200 border border-black rounded px-1.5 py-0.5"
+          >
+            {logExpanded
+              ? `▲ ${t('gameSaboteur.collapseLog')}`
+              : `▼ ${t('gameSaboteur.expandLog')}`}
+          </button>
         </div>
-        <div className="space-y-1 max-h-44 lg:max-h-60 overflow-y-auto pr-1">
-          {entries.length === 0 ? (
-            <div className="text-[10px] font-bold text-stone-400">—</div>
-          ) : (
-            entries.map(renderEntry)
-          )}
-        </div>
+        {logExpanded && (
+          <div className="space-y-1 max-h-44 lg:max-h-60 overflow-y-auto pr-1">
+            {entries.length === 0 ? (
+              <div className="text-[10px] font-bold text-stone-400">—</div>
+            ) : (
+              entries.map(renderEntry)
+            )}
+          </div>
+        )}
       </div>
     );
   };
-
-  const pathBlockedHint = isMyTurn && toolsBroken;
-
-  const hint = (() => {
-    if (state.currentPhase === SaboteurPhase.GOLD_PICK) return t('gameSaboteur.goldPickTitle');
-    if (!isMyTurn) {
-      return t('gameSaboteur.waitingFor', { name: playerName(state.activePlayerId ?? '') });
-    }
-    if (pathBlockedHint) return t('gameSaboteur.brokenToolCanNotBuild');
-    if (targeting) {
-      const labels: Record<Exclude<Targeting, null>, string> = {
-        BREAK: t('gameSaboteur.chooseBreakTarget'),
-        REPAIR: t('gameSaboteur.chooseRepairTarget'),
-        MAP: t('gameSaboteur.chooseGoalToPeek'),
-        ROCKFALL: t('gameSaboteur.chooseRockfallCell'),
-      };
-      return labels[targeting];
-    }
-    if (selectedDef?.kind === 'PATH') {
-      return validPlacements.size > 0
-        ? t('gameSaboteur.choosePlacement')
-        : t('gameSaboteur.noPlacement');
-    }
-    return t('gameSaboteur.selectCardHint');
-  })();
 
   const renderRoundEndOrGameOver = () => {
     if (state.currentPhase === SaboteurPhase.GAME_OVER && state.finalResults) {
@@ -656,6 +967,7 @@ export function SaboteurView() {
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
+            data-testid="saboteur-round-result"
             className="bg-amber-100 border-4 border-black shadow-[8px_8px_0_0_#000] w-full max-w-sm p-6 space-y-4 rounded-2xl"
           >
             <h3 className="text-2xl font-black text-center uppercase tracking-widest">
@@ -665,7 +977,7 @@ export function SaboteurView() {
               {ranked.map(([id, score]) => (
                 <div
                   key={id}
-                  className="flex justify-between items-center bg-white border-2 border-black px-3 py-2 font-black rounded-lg"
+                  className="flex justify-between items-center bg-white border-2 border-black px-3 py-2 font-black rounded-lg shadow-[2px_2px_0_0_#000]"
                 >
                   <span>
                     {playerAvatar(id)} {playerName(id)}
@@ -695,6 +1007,7 @@ export function SaboteurView() {
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
+          data-testid="saboteur-round-result"
           className="bg-amber-100 border-4 border-black shadow-[8px_8px_0_0_#000] w-full max-w-sm p-6 space-y-4 rounded-2xl"
         >
           <h3 className="text-xl font-black text-center uppercase tracking-widest">
@@ -706,7 +1019,7 @@ export function SaboteurView() {
             {Object.values(state.players).map((player) => (
               <div
                 key={player.id}
-                className="flex justify-between items-center bg-white border-2 border-black px-3 py-1.5 text-sm font-black rounded-lg"
+                className="flex justify-between items-center bg-white border-2 border-black px-3 py-1.5 text-sm font-black rounded-lg shadow-[2px_2px_0_0_#000]"
               >
                 <span>
                   {player.role === SaboteurRole.MINER ? '⛏️' : '💣'} {playerName(player.id)}
@@ -714,26 +1027,30 @@ export function SaboteurView() {
                 </span>
                 <span className="flex gap-2">
                   {result.picks?.[player.id] !== undefined && (
-                    <span className="text-yellow-600">+🪙{result.picks[player.id]}</span>
+                    <span className="text-yellow-600 font-black">+🪙{result.picks[player.id]}</span>
                   )}
                   {result.winnerRole === SaboteurRole.SABOTEUR &&
                     player.role === SaboteurRole.SABOTEUR && (
-                      <span className="text-yellow-600">+🪙{result.saboteurBonus}</span>
+                      <span className="text-yellow-600 font-black">+🪙{result.saboteurBonus}</span>
                     )}
-                  <span>Σ {player.score}</span>
+                  <span className="font-black">Σ {player.score}</span>
                 </span>
               </div>
             ))}
           </div>
           {isHost ? (
             <button
+              data-testid="saboteur-next-round-btn"
               onClick={() => saboteurNextRound()}
               className="w-full bg-lime-400 hover:bg-lime-300 text-black border-4 border-black font-black py-3 uppercase tracking-widest shadow-[4px_4px_0_0_#000] rounded-xl"
             >
               {t('gameSaboteur.nextRound')}
             </button>
           ) : (
-            <div className="text-center text-sm font-bold">
+            <div
+              data-testid="saboteur-waiting-host"
+              className="text-center text-sm font-bold bg-white/70 border border-black rounded-lg py-2"
+            >
               {t('gameSaboteur.waitingHostNextRound')}
             </div>
           )}
@@ -757,7 +1074,10 @@ export function SaboteurView() {
           <h3 className="text-xl font-black text-center uppercase tracking-widest">
             💰 {t('gameSaboteur.goldPickTitle')}
           </h3>
-          <p className="text-center text-sm font-bold bg-white border-2 border-black rounded-lg px-2 py-1">
+          <p
+            data-testid="saboteur-gold-picker-status"
+            className="text-center text-sm font-black bg-white border-2 border-black rounded-lg px-2 py-1 shadow-[2px_2px_0_0_#000]"
+          >
             {isMyPick
               ? t('gameSaboteur.yourPick')
               : t('gameSaboteur.pickingNow', {
@@ -785,8 +1105,9 @@ export function SaboteurView() {
                   disabled={!isMyPick || actionLoading}
                   className={clsx(
                     'transition-transform',
-                    isMyPick && 'hover:scale-110 hover:-translate-y-1 cursor-pointer',
-                    !isMyPick && 'cursor-default',
+                    isMyPick &&
+                      'hover:scale-110 hover:-translate-y-1 cursor-pointer ring-4 ring-lime-400 rounded-lg',
+                    !isMyPick && 'cursor-not-allowed opacity-60',
                   )}
                 >
                   <GoldNuggetValue value={value} className="w-14 h-14" />
@@ -816,24 +1137,18 @@ export function SaboteurView() {
           <span className="bg-white border-2 border-black rounded-lg px-2 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]">
             🃏 {t('gameSaboteur.stock')}: {state.stockCount}
           </span>
-          <span
-            className={clsx(
-              'border-2 border-black rounded-lg px-2 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]',
-              isMyTurn ? 'bg-lime-300' : 'bg-white',
-            )}
-          >
-            {hint}
-          </span>
         </div>
 
+        {renderPublicLastAction()}
         {renderBlockedBanner()}
+        {renderSelectionHelp()}
         {renderActionModeBar()}
-        {renderBoard()}
+        {renderBoardWithControls()}
         {renderHand()}
       </div>
 
       {/* Right: players + log */}
-      <div className="w-full lg:w-56 space-y-2">
+      <div data-testid="saboteur-players-panel" className="w-full lg:w-56 space-y-2">
         <div className="text-xs font-black uppercase tracking-widest text-stone-700">
           {t('gameSaboteur.players')}
         </div>

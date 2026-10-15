@@ -31,9 +31,9 @@ test.describe('Saboteur Game Flow', () => {
     await startBtn.click();
 
     // Verify all 3 players see the Saboteur board and round indicators
-    await expect(p1.getByText(/Round 1|รอบ 1/i)).toBeVisible({ timeout: 10000 });
-    await expect(p2.getByText(/Round 1|รอบ 1/i)).toBeVisible({ timeout: 10000 });
-    await expect(p3.getByText(/Round 1|รอบ 1/i)).toBeVisible({ timeout: 10000 });
+    await expect(p1.getByText(/Round 1|รอบ 1/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(p2.getByText(/Round 1|รอบ 1/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(p3.getByText(/Round 1|รอบ 1/i).first()).toBeVisible({ timeout: 10000 });
 
     // Every player is dealt a private role card
     await expect(p1.getByTestId('saboteur-my-role')).toBeVisible({ timeout: 10000 });

@@ -306,11 +306,11 @@ export function getGamePrompt(
         return { key: 'gamePrompts.saboteur.waitingFor', params: { name: activeName } };
       }
       if (phase === 'GOLD_PICK') {
-        if (socketId === state?.activePlayerId) {
+        const pickerId = state?.roundResult?.currentPickerId ?? state?.activePlayerId;
+        if (socketId === pickerId) {
           return { key: 'gamePrompts.saboteur.pickGold' };
         }
-        const activeName =
-          room.players.find((p) => p.socketId === state?.activePlayerId)?.name || 'Player';
+        const activeName = room.players.find((p) => p.socketId === pickerId)?.name || 'Player';
         return { key: 'gamePrompts.saboteur.waitingGoldPick', params: { name: activeName } };
       }
       if (phase === 'ROUND_END') {

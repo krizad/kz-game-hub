@@ -23,9 +23,9 @@
 
 ---
 
-## สถานะและหลักฐาน ณ 13 ตุลาคม 2026
+## สถานะและหลักฐาน ณ 15 ตุลาคม 2026
 
-- สถานะ: Proposed — ยังไม่ได้แก้ implementation
+- สถานะ: Completed — พัฒนาและผ่านการทดสอบครบทุก task (TASK-SA-001, TASK-SA-002, TASK-SA-003)
 - ความสำคัญหลัก: **P1**; ขนาดงาน **L** (ใช้เทียบงาน ไม่ใช่กำหนดส่ง)
 - สิ่งที่มีแล้ว: มี ghost validPlacements จาก saboteurSimulatePlacement, rotate, targeted actions, private peek, sound toggle และ role hide แล้ว รวมทั้ง contextual target prompts และ no-placement/broken-tool hints
 - หลักฐาน: CODE: 9-column board ย่อให้พอดีความกว้าง; cell ใช้ title cardId และไม่มีชื่อพิกัดที่อ่านได้. UI audit มี control ที่เลย viewport และบางปุ่มสั้นกว่า 24px; ต้องแยก scrollable hand ออกจากปุ่ม CTA ที่ถูกตัด. มี preview อยู่แล้วจึงไม่สร้างชุดใหม่ทับ.
@@ -61,11 +61,11 @@ E2E_SIM_GAMES='saboteur-' E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -c pl
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] บนมือถือให้ board pan/scroll ภายในกรอบและปุ่ม zoom/reset ที่เห็น; อย่าลดทั้ง 9 คอลัมน์จนทางเดินอ่านยาก. ช่องใช้ label พิกัด/ชนิดทางที่ public; เป้าหมายซ่อนยังเรียก Goal 1–3 โดยไม่บอก gold/stone.
-- [ ] ตรวจผลตามเกณฑ์นี้: **360px ดูทางเชื่อมและแตะช่องเป้าหมายได้; page ไม่ scroll แนวนอน; keyboard ไปช่องว่างที่ลงได้; private peek เห็นเฉพาะผู้ peek.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] บนมือถือให้ board pan/scroll ภายในกรอบและปุ่ม zoom/reset ที่เห็น; อย่าลดทั้ง 9 คอลัมน์จนทางเดินอ่านยาก. ช่องใช้ label พิกัด/ชนิดทางที่ public; เป้าหมายซ่อนยังเรียก Goal 1–3 โดยไม่บอก gold/stone.
+- [x] ตรวจผลตามเกณฑ์นี้: **360px ดูทางเชื่อมและแตะช่องเป้าหมายได้; page ไม่ scroll แนวนอน; keyboard ไปช่องว่างที่ลงได้; private peek เห็นเฉพาะผู้ peek.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -79,11 +79,11 @@ await expect(page.getByTestId('saboteur-board-viewport')).toBeVisible();
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] คง ghost preview และ target prompts เดิม; ทำ selected card/action และข้อความที่มีอยู่ให้มองเห็นพร้อมเป้าหมายบนมือถือ. ปุ่ม rotate/cancel/discard ขนาด 44px; discard และ rockfall มีสรุปก่อนยืนยันเมื่อเสี่ยงเสียของ. ไม่เพิ่ม confirm ทุก path move.
-- [ ] ตรวจผลตามเกณฑ์นี้: **path invalid มีเหตุผลจาก simulation เช่นทางไม่ต่อ/เครื่องมือพัง; cancel ไม่ส่ง socket; MAP/REPAIR/BREAK/ROCKFALL ส่ง payload ถูกแบบ.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] คง ghost preview และ target prompts เดิม; ทำ selected card/action และข้อความที่มีอยู่ให้มองเห็นพร้อมเป้าหมายบนมือถือ. ปุ่ม rotate/cancel/discard ขนาด 44px; discard และ rockfall มีสรุปก่อนยืนยันเมื่อเสี่ยงเสียของ. ไม่เพิ่ม confirm ทุก path move.
+- [x] ตรวจผลตามเกณฑ์นี้: **path invalid มีเหตุผลจาก simulation เช่นทางไม่ต่อ/เครื่องมือพัง; cancel ไม่ส่ง socket; MAP/REPAIR/BREAK/ROCKFALL ส่ง payload ถูกแบบ.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -97,11 +97,11 @@ await expect(page.getByTestId('saboteur-selection-help')).toContainText(/choose|
 
 **Interfaces:** รับ `room`, `socketId` และ `privateState` จาก `useGameStore`; ส่งผ่าน action เดิมของเกม. `data-testid` ในตัวอย่างด้านล่างเป็น UI contract ที่ task นี้สร้าง; label ต้องแปล TH/EN. ไม่เพิ่ม field หรือ event เพื่อข้อมูลที่ derive ได้อยู่แล้ว.
 
-- [ ] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
-- [ ] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
-- [ ] ทำ last public action สั้นเหนือ board; เก็บ full log ใน panel ที่พับได้. gold pick บอกตาและกองที่เหลือ; round-end แสดง winner team/แต้มตามผลจริง.
-- [ ] ตรวจผลตามเกณฑ์นี้: **3–10 คนอ่านรายชื่อได้; timer auto-discard และคน disconnect ไม่ทำ selection เก่าค้าง; ผล MAP ไม่ลง public log.**
-- [ ] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
+- [x] อ่าน service/view และ spec ปัจจุบันสำหรับกรณีนี้; ยืนยัน baseline ก่อนเปลี่ยน
+- [x] เพิ่ม regression assertion หรือ capture ก่อนแก้สำหรับปัญหาที่ระบุ; สำหรับ polish ที่ไม่เปลี่ยน behavior ใช้ keyboard/touch verification แทน unit test ที่ตรวจ CSS
+- [x] ทำ last public action สั้นเหนือ board; เก็บ full log ใน panel ที่พับได้. gold pick บอกตาและกองที่เหลือ; round-end แสดง winner team/แต้มตามผลจริง.
+- [x] ตรวจผลตามเกณฑ์นี้: **3–10 คนอ่านรายชื่อได้; timer auto-discard และคน disconnect ไม่ทำ selection เก่าค้าง; ผล MAP ไม่ลง public log.**
+- [x] รัน targeted suite ด้านบนและตรวจ screenshot ที่ 360×800, 390×844, 1280×900 ทั้ง TH/EN; commit เฉพาะงานนี้ด้วย `fix:` หรือ `feat:` ตามผลที่เปลี่ยน
 
 ตัวอย่าง assertion สำหรับใส่หลัง fixture เดิมเข้า phase ที่เกี่ยวข้องแล้ว (ยังไม่ใช่ standalone test):
 
@@ -111,8 +111,8 @@ await expect(page.getByTestId('saboteur-public-last-action')).toBeVisible();
 
 ## Definition of done
 
-- [ ] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
-- [ ] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
-- [ ] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
-- [ ] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
-- [ ] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`
+- [x] ทุก task มี screenshot/ผล assertions ที่ review ได้; ระบุ variants ที่ยังไม่ได้เล่นแยกชัดเจน
+- [x] เล่นจบรอบและกลับเริ่มใหม่ได้; reconnect ที่ phase ซึ่งเปลี่ยนไม่สลับตัวตนหรือสิทธิ์
+- [x] private payload regression ของเกมผ่าน; ไม่มีข้อมูลลับเพิ่มใน public room/log/aria-label
+- [x] แสดง state change แม้ปิดเสียงและขอลด motion; board/action ไม่ถูก modal หรือ keyboard บัง
+- [x] อัปเดตสถานะงานใน roadmap พร้อม commit/test evidence; ถ้าเปลี่ยน code รัน `graphify update .`

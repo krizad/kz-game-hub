@@ -83,6 +83,16 @@ A room-creation choice that describes a game's play style, supported player coun
 **Turn prompt**:
 A concise in-game status that tells a player the current phase, whose turn it is, and what action is available when that information exists.
 
+## Dig Doggo (ดิกด็อกโก)
+
+| Term                      | Definition                                                                                                                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dig Doggo: Sausage Run    | The `DIG_DOGGO` game identity in KZ Game Hub: a hidden-role tunnel-building Match scored by Sausage Cards, separate from Saboteur. _Avoid_: aliasing the two games.                       |
+| Good Doggo (หมานักขุด)    | The cooperative Role faction that wins a Round by connecting Start Hole to Golden Sausage Fridge. _Avoid_: Miner, Good Doggo as a game title.                                             |
+| Sneaky Cat (แมวส้มไส้ศึก) | The opposing hidden Role faction that wins when the Deck is exhausted and no Seat has a playable card before reaching Golden Sausage Fridge. _Avoid_: using Saboteur as this Role's name. |
+| Golden Sausage Fridge     | The true Goal Card that ends a Round for Good Doggo when reached by a connected tunnel. _Avoid_: treasure, generic gold goal.                                                             |
+| Sausage Card              | A scored card awarded during Round resolution; its value contributes to a player's Match total. _Avoid_: gold nugget, chip.                                                               |
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |
