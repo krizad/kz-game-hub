@@ -151,20 +151,28 @@ export function UltimateTicTacToeView() {
                 </div>
               )}
 
-              {room.status === RoomStatus.PLAYING && previewCell && (
+              {room.status === RoomStatus.PLAYING && (
                 <div
                   data-testid="uttt-target-preview"
-                  className="text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black text-center bg-purple-100 text-purple-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-in fade-in"
+                  className={`text-[10px] sm:text-xs font-black px-2 py-0.5 border-2 border-black text-center bg-purple-100 text-purple-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-opacity ${
+                    previewCell
+                      ? 'visible opacity-100'
+                      : 'invisible opacity-0 pointer-events-none select-none'
+                  }`}
+                  aria-hidden={!previewCell}
                 >
-                  {(() => {
-                    const targetSubBoard = uttt.subBoards[previewCell.micro];
-                    const targetDecided =
-                      targetSubBoard &&
-                      (!!targetSubBoard.winner || targetSubBoard.cells.every((c) => c !== null));
-                    return targetDecided
-                      ? t('gameUltimateTTT.sendsToFreeMove')
-                      : t('gameUltimateTTT.sendsOpponentTo', { board: previewCell.micro + 1 });
-                  })()}
+                  {previewCell
+                    ? (() => {
+                        const targetSubBoard = uttt.subBoards[previewCell.micro];
+                        const targetDecided =
+                          targetSubBoard &&
+                          (!!targetSubBoard.winner ||
+                            targetSubBoard.cells.every((c) => c !== null));
+                        return targetDecided
+                          ? t('gameUltimateTTT.sendsToFreeMove')
+                          : t('gameUltimateTTT.sendsOpponentTo', { board: previewCell.micro + 1 });
+                      })()
+                    : '\u00A0'}
                 </div>
               )}
 

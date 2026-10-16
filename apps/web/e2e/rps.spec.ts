@@ -61,13 +61,27 @@ test.describe('RPS (Hand Duel) Game Flow', () => {
     await p1.locator('button', { hasText: '✊' }).click();
     await expect(p1.getByTestId('rps-choice-locked')).toBeVisible({ timeout: 5000 });
 
-    // P2 explicitly leaves the room mid-round
+    // P2 explicitly leaves the room mid-round: click Leave, then confirm in modal
     await p2.getByRole('button', { name: /Leave|ออกจากห้อง/i }).click();
+    const confirmLeaveBtn = p2
+      .locator('[data-testid="header-confirm-leave-btn"]')
+      .or(p2.getByRole('button', { name: /Confirm Leave|ยืนยันการออก/i }));
+    await expect(confirmLeaveBtn).toBeVisible({ timeout: 5000 });
+    await confirmLeaveBtn.click();
+
+    // Leaver is out of the room; return to home lobby
+    const returnHome = p2.getByRole('button', { name: /Return to Home|กลับหน้าหลัก/i });
+    if (await returnHome.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await returnHome.click();
+    }
+    await expect(p2.locator('#lobbyNameInput')).toBeVisible({ timeout: 10000 });
 
     // P1 recovers back to the waiting room instead of being stuck on "Waiting for Leaver"
     await expect(p1.getByText('Waiting Room').or(p1.getByText('ห้องรอ'))).toBeVisible({
       timeout: 10000,
     });
+    // Choice lock indicator is cleared
+    await expect(p1.getByTestId('rps-choice-locked')).toHaveCount(0);
 
     await p1Ctx.close();
     await p2Ctx.close();

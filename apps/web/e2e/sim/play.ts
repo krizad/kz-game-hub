@@ -128,6 +128,15 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         await selectNeobrutalism(page, /Apple Music|SoundCloud|YouTube/i, map[value]);
         break;
       }
+      case 'lang': {
+        if (value === 'th') {
+          await page.getByText('TH', { exact: true }).click();
+        } else if (value === 'en') {
+          await page.getByText('EN', { exact: true }).click();
+        }
+        await page.waitForTimeout(300);
+        break;
+      }
       case 'music-trivia-mode': {
         await selectNeobrutalism(
           page,
@@ -609,7 +618,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
   for (let i = 0; i < 40; i++) {
     if (
       await host
-        .getByText(/Round Over/i)
+        .getByText(/Round Over|จบรอบ/i)
         .first()
         .isVisible()
         .catch(() => false)
@@ -627,13 +636,13 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
         let text = 'This is the truth';
         if (
           await p
-            .getByText(/You MUST enter the true answer exactly/i)
+            .getByText(/You MUST enter the true answer exactly|คุณต้องพิมพ์คำตอบที่แท้จริงเป๊ะๆ/i)
             .isVisible()
             .catch(() => false)
         ) {
           text =
             (await p
-              .locator('span:has-text("The True Answer") + p')
+              .locator('span:has-text("The True Answer") + p, span:has-text("คำตอบที่แท้จริง") + p')
               .textContent()
               .catch(() => null)) ?? '';
           text = text.trim();
@@ -642,7 +651,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
           await input.fill(text).catch(() => {});
           await p
             .locator('button')
-            .filter({ hasText: /Submit Answer/i })
+            .filter({ hasText: /Submit Answer|ส่งคำตอบ/i })
             .first()
             .click({ timeout: 2000 })
             .catch(() => {});
@@ -651,7 +660,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
       // 2. Reveal an answer when the picker control is up
       const reveal = p
         .locator('button')
-        .filter({ hasText: /Reveal Answer/i })
+        .filter({ hasText: /Reveal Answer|เปิดคำตอบ/i })
         .first();
       if (await reveal.isVisible().catch(() => false)) {
         await reveal.click({ timeout: 2000 }).catch(() => {});
@@ -659,7 +668,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
       // 3. Eliminate during the hunt
       const elim = p
         .locator('button')
-        .filter({ hasText: /Reject this answer/i })
+        .filter({ hasText: /Reject this answer|คัดคำตอบนี้ออก/i })
         .first();
       if (await elim.isVisible().catch(() => false)) {
         await elim.click({ timeout: 2000 }).catch(() => {});
@@ -667,7 +676,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
       // 4. Bank points to end the round
       const bank = p
         .locator('button')
-        .filter({ hasText: /Bank Points & End Round/i })
+        .filter({ hasText: /Bank Points & End Round|รับคะแนน/i })
         .first();
       if (await bank.isVisible().catch(() => false)) {
         await bank.click({ timeout: 2000 }).catch(() => {});
@@ -675,7 +684,7 @@ async function playSoundsFishy(s: SimSession): Promise<void> {
     }
     await host.waitForTimeout(1200);
   }
-  await expect(host.getByText(/Round Over/i).first()).toBeVisible({ timeout: 20000 });
+  await expect(host.getByText(/Round Over|จบรอบ/i).first()).toBeVisible({ timeout: 20000 });
 }
 
 /**
@@ -1328,17 +1337,21 @@ async function playSaboteur(s: SimSession): Promise<void> {
 
 /** Set a React-controlled select by index, with a JS-dispatch fallback. */
 async function setSelectByIndex(page: Page, select: Locator, index: number): Promise<void> {
+  const isVis = await select.isVisible().catch(() => false);
+  if (!isVis) return;
   await select.selectOption({ index }).catch(() => {});
   const applied = await select
     .inputValue()
     .then((v) => v !== '')
     .catch(() => false);
   if (!applied) {
-    await select.evaluate((el, i) => {
-      const sel = el as HTMLSelectElement;
-      sel.value = sel.options[i]?.value ?? '';
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    }, index);
+    await select
+      .evaluate((el, i) => {
+        const sel = el as HTMLSelectElement;
+        sel.value = sel.options[i]?.value ?? '';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }, index)
+      .catch(() => {});
   }
 }
 
@@ -1350,98 +1363,128 @@ async function playCoup(s: SimSession, entry: MatrixEntry): Promise<void> {
   await expect(host.getByText(/Golden Sand House — Inheritance feud/i)).toBeVisible({
     timeout: 15000,
   });
-  const income = (p: Page) => p.getByRole('button', { name: /Polish stairs/i });
-  for (let i = 0; i < 250; i++) {
-    if (
-      await host
-        .getByText(/inherits the mansion!/i)
-        .isVisible()
-        .catch(() => false)
-    )
-      break;
-    let turnPage: Page | null = null;
+  const income = (p: Page) => p.getByRole('button', { name: /Polish stairs|ขัดบันได/i });
+
+  for (let i = 0; i < 300; i++) {
+    const isOver = await host
+      .locator('[data-testid="coup-winner-banner"]')
+      .isVisible()
+      .catch(() => false);
+    if (isOver) break;
+
+    // Check exchange prompt across all players first
     for (const p of players) {
-      if (
+      const exSubmit = p.locator('[data-testid="coup-exchange-submit"]');
+      if (await exSubmit.isVisible().catch(() => false)) {
         await p
-          .getByText(/Your Turn/i)
-          .first()
-          .isVisible({ timeout: 300 })
-          .catch(() => false)
-      ) {
-        turnPage = p;
+          .locator('[data-testid="coup-exchange-card-0"]')
+          .click()
+          .catch(() => {});
+        await p
+          .locator('[data-testid="coup-exchange-card-1"]')
+          .click()
+          .catch(() => {});
+        if (await exSubmit.isEnabled().catch(() => false)) {
+          await exSubmit.click().catch(() => {});
+        }
         break;
       }
     }
+
+    // Parallel check for which player has the active turn in coup-action-area
+    const turnResults = await Promise.all(
+      players.map((p) =>
+        p
+          .locator('[data-testid="coup-action-area"]')
+          .getByText(/Your turn|ตาของคุณ/i)
+          .first()
+          .isVisible()
+          .catch(() => false),
+      ),
+    );
+    const turnIdx = turnResults.findIndex(Boolean);
+    const turnPage = turnIdx !== -1 ? players[turnIdx] : null;
+
     if (!turnPage) {
       if (aggressive) {
         for (const p of players) {
-          const chBtn = p.locator('[data-testid="coup-challenge-button"]').first();
-          if (await chBtn.isVisible({ timeout: 150 }).catch(() => false)) {
+          const chBtn = p
+            .locator(
+              '[data-testid="coup-challenge-button"], [data-testid="coup-challenge-block-button"]',
+            )
+            .first();
+          if (await chBtn.isVisible().catch(() => false)) {
             await chBtn.click().catch(() => {});
+            break;
+          }
+          const blkBtn = p
+            .locator(
+              '[data-testid="coup-block-button"], [data-testid="coup-block-captain"], [data-testid="coup-block-ambassador"]',
+            )
+            .first();
+          if (await blkBtn.isVisible().catch(() => false)) {
+            await blkBtn.click().catch(() => {});
             break;
           }
         }
       }
-      await host.waitForTimeout(500);
+      await host.waitForTimeout(200);
       continue;
     }
+
+    const actionArea = turnPage.locator('[data-testid="coup-action-area"]');
+    const selects = actionArea.locator('select');
+
     // Coup as soon as 7 coins are affordable, or when mandatory at 10.
-    const coupBtn = turnPage.getByRole('button', { name: /Reveal the real will/i });
-    const coupVisible = await coupBtn.isVisible({ timeout: 300 }).catch(() => false);
-    const coupSelect = turnPage.locator('select').last();
-    if (coupVisible) {
-      await setSelectByIndex(turnPage, coupSelect, 1);
-    }
-    const canCoup = coupVisible && (await coupBtn.isEnabled().catch(() => false));
+    const coupBtn = actionArea.getByRole('button', {
+      name: /Reveal the real will|กางพินัยกรรมตัวจริง/i,
+    });
+    const coupSelect = selects.last();
+    await setSelectByIndex(turnPage, coupSelect, 1);
+    const canCoup = await coupBtn.isEnabled().catch(() => false);
+
     if (canCoup) {
       await coupBtn.click();
     } else if (aggressive) {
-      // Aggressive rush: Assassinate when affordable, else Tax (+3), else
-      // Steal, else Income.
-      const selects = turnPage.locator('select');
-      const assassinateBtn = turnPage.getByRole('button', { name: /Hire the gardener/i });
-      const assassinateReady =
-        (await assassinateBtn.isVisible({ timeout: 200 }).catch(() => false)) &&
-        (await assassinateBtn.isEnabled().catch(() => false));
+      // Aggressive rush: Assassinate when affordable, else Tax (+3), else Steal, else Income.
+      const assassinateBtn = actionArea.getByRole('button', {
+        name: /Hire the gardener|จ้างคนสวน/i,
+      });
+      await setSelectByIndex(turnPage, selects.nth(0), 1);
+      const assassinateReady = await assassinateBtn.isEnabled().catch(() => false);
+
       if (assassinateReady) {
-        await setSelectByIndex(turnPage, selects.nth(0), 1);
         await assassinateBtn.click().catch(() => {});
       } else {
-        const taxBtn = turnPage.getByRole('button', { name: /Maintenance fee/i });
+        const taxBtn = actionArea.getByRole('button', {
+          name: /Maintenance fee|ค่าบำรุงบ้าน/i,
+        });
         if (await taxBtn.isEnabled().catch(() => false)) {
           await taxBtn.click().catch(() => {});
         } else {
-          const stealBtn = turnPage.getByRole('button', { name: /Demand allowance/i });
-          if (
-            (await stealBtn.isVisible({ timeout: 200 }).catch(() => false)) &&
-            (await stealBtn.isEnabled().catch(() => false))
-          ) {
-            await setSelectByIndex(turnPage, selects.nth(1), 1);
+          const stealBtn = actionArea.getByRole('button', {
+            name: /Demand allowance|ไถเบี้ยเลี้ยง/i,
+          });
+          await setSelectByIndex(turnPage, selects.nth(1), 1);
+          if (await stealBtn.isEnabled().catch(() => false)) {
             await stealBtn.click().catch(() => {});
-          } else if (
-            await income(turnPage)
-              .isEnabled()
-              .catch(() => false)
-          ) {
-            await income(turnPage)
-              .click()
-              .catch(() => {});
+          } else {
+            const incBtn = income(turnPage);
+            if (await incBtn.isEnabled().catch(() => false)) {
+              await incBtn.click().catch(() => {});
+            }
           }
         }
       }
     } else {
-      const incEnabled = await income(turnPage)
-        .isEnabled()
-        .catch(() => false);
-      if (incEnabled) {
-        await income(turnPage)
-          .click()
-          .catch(() => {});
+      const incBtn = income(turnPage);
+      if (await incBtn.isEnabled().catch(() => false)) {
+        await incBtn.click().catch(() => {});
       }
     }
-    await host.waitForTimeout(STEP);
+    await host.waitForTimeout(150);
   }
-  await expect(host.getByText(/inherits the mansion!/i)).toBeVisible({ timeout: 20000 });
+  await expect(host.locator('[data-testid="coup-winner-banner"]')).toBeVisible({ timeout: 20000 });
 }
 
 /** Banana Thief: ready gate, night clock runs, host opens the vote → reveal. */

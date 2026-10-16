@@ -31,7 +31,10 @@ export function RoomHeader() {
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000]"
           />
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] sm:text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 truncate max-w-[120px] sm:max-w-none">
+            <span
+              data-testid="room-game-title"
+              className="text-[10px] sm:text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 truncate max-w-[120px] sm:max-w-none"
+            >
               {room.gameType === GameType.DOG_RELAY
                 ? t('lobby.gameNames.dogRelay')
                 : room.gameType === GameType.TIC_TAC_TOE
@@ -198,6 +201,7 @@ export function RoomHeader() {
                   {t('lobby.cancel')}
                 </button>
                 <button
+                  data-testid="header-confirm-leave-btn"
                   onClick={() => {
                     leaveRoom();
                     setShowLeaveModal(false);

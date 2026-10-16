@@ -22,13 +22,17 @@ test.describe('GuiseGuess Gameplay', () => {
     await joinRoom(p2, origin, roomCode, 'F1');
     await joinRoom(p3, origin, roomCode, 'F2');
 
+    // Sounds Fishy trivia questions in the database are currently Thai only.
+    // Switch the room language to TH in the lobby before starting so questions are available.
+    await p1.getByText('TH', { exact: true }).click();
+
     // Start — the Start button must exist for the host and clicking it must
     // leave the lobby
-    const startBtn = p1.getByText('Start Game');
+    const startBtn = p1.getByText(/Start Game|เริ่มเกม/i);
     await expect(startBtn).toBeVisible({ timeout: 10000 });
     await startBtn.click();
 
-    // Answer phase: every non-picker page shows the answer input
+    // Answer phase: every non-picker page shows either true button or answer input
     const answerInputs = pages.map((p) => p.locator('input#answerInput'));
     const firstInput = await waitForAnyVisible(answerInputs, 20000);
     expect(firstInput, 'at least one player should see the answer input').not.toBeNull();
@@ -38,7 +42,7 @@ test.describe('GuiseGuess Gameplay', () => {
     for (let i = 0; i < 40; i++) {
       if (
         await p1
-          .getByText(/Round Over/i)
+          .getByText(/Round Over|จบรอบ/i)
           .first()
           .isVisible()
           .catch(() => false)
@@ -57,13 +61,15 @@ test.describe('GuiseGuess Gameplay', () => {
           let text = 'This is the truth';
           if (
             await page
-              .getByText(/You MUST enter the true answer exactly/i)
+              .getByText(/You MUST enter the true answer exactly|คุณต้องพิมพ์คำตอบที่แท้จริงเป๊ะๆ/i)
               .isVisible()
               .catch(() => false)
           ) {
             text =
               (await page
-                .locator('span:has-text("The True Answer") + p')
+                .locator(
+                  'span:has-text("The True Answer") + p, span:has-text("คำตอบที่แท้จริง") + p',
+                )
                 .textContent()
                 .catch(() => null)) ?? '';
             text = text.trim();
@@ -72,7 +78,7 @@ test.describe('GuiseGuess Gameplay', () => {
             await input.fill(text).catch(() => {});
             await page
               .locator('button')
-              .filter({ hasText: /Submit Answer/i })
+              .filter({ hasText: /Submit Answer|ส่งคำตอบ/i })
               .first()
               .click({ timeout: 1500 })
               .catch(() => {});
@@ -82,15 +88,15 @@ test.describe('GuiseGuess Gameplay', () => {
         const controls: Locator[] = [
           page
             .locator('button')
-            .filter({ hasText: /Reveal Answer/i })
+            .filter({ hasText: /Reveal Answer|เปิดคำตอบ/i })
             .first(),
           page
             .locator('button')
-            .filter({ hasText: /Reject this answer/i })
+            .filter({ hasText: /Reject this answer|คัดคำตอบนี้ออก/i })
             .first(),
           page
             .locator('button')
-            .filter({ hasText: /Bank Points & End Round/i })
+            .filter({ hasText: /Bank Points & End Round|รับคะแนน/i })
             .first(),
         ];
         for (const control of controls) {
@@ -103,7 +109,7 @@ test.describe('GuiseGuess Gameplay', () => {
       await p1.waitForTimeout(800);
     }
 
-    await expect(p1.getByText(/Round Over/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(p1.getByText(/Round Over|จบรอบ/i).first()).toBeVisible({ timeout: 15000 });
 
     await Promise.all(contexts.map((c) => c.close()));
   });

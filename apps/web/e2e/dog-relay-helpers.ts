@@ -66,7 +66,7 @@ export async function startRelay(players: Page[]): Promise<RelayRound> {
   }
   if (!final) throw new Error('Missing final viewer');
   await expect(final.locator('button[data-testid^="dog-relay-card-"]')).toHaveCount(10);
-  await expect(final.locator('[data-testid^="dog-relay-card-"] img')).toHaveCount(0);
+  await expect(final.locator('button[data-testid^="dog-relay-card-"] img')).toHaveCount(10);
   return { leader, evil, pair, final };
 }
 

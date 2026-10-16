@@ -107,18 +107,80 @@ export async function createRoom(
 ): Promise<string> {
   await goToLobbyInEnglish(page);
   await page.locator('#lobbyNameInput').fill(playerName);
-  await page
-    .locator('button:has-text("' + gameButtonText + '")')
-    .first()
-    .click();
-  await page.waitForTimeout(3000);
+
+  // Match card by data-testid if gameButtonText matches a GameType,
+  // or match by exact title inside the card title element to prevent collisions
+  // with card descriptions (e.g. Who Barks card mentioning "saboteur").
+  const directCard = page.locator(`[data-testid="catalog-card-${gameButtonText}"]`);
+  let card: Locator;
+  if ((await directCard.count()) > 0) {
+    card = directCard.first();
+  } else {
+    const escaped = gameButtonText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Try exact title match in data-testid="catalog-card-title"
+    const exactTitle = page.locator('button[data-testid^="catalog-card-"]').filter({
+      has: page.locator('[data-testid="catalog-card-title"]', {
+        hasText: new RegExp(`^\\s*${escaped}\\s*$`, 'i'),
+      }),
+    });
+    if ((await exactTitle.count()) > 0) {
+      card = exactTitle.first();
+    } else {
+      // Loose punctuation match (e.g. Tic-Tac-Toe vs Tic Tac Toe)
+      const loosePattern = new RegExp(`^\\s*${escaped.replace(/\\-/g, '[\\s-]')}\\s*$`, 'i');
+      const looseTitle = page.locator('button[data-testid^="catalog-card-"]').filter({
+        has: page.locator('[data-testid="catalog-card-title"]', {
+          hasText: loosePattern,
+        }),
+      });
+      if ((await looseTitle.count()) > 0) {
+        card = looseTitle.first();
+      } else {
+        // Fallback to title substring match within catalog-card-title
+        const subTitle = page.locator('button[data-testid^="catalog-card-"]').filter({
+          has: page.locator('[data-testid="catalog-card-title"]', {
+            hasText: new RegExp(escaped, 'i'),
+          }),
+        });
+        if ((await subTitle.count()) > 0) {
+          card = subTitle.first();
+        } else {
+          // Last resort fallback
+          card = page.locator(`button:has-text("${gameButtonText}")`).first();
+        }
+      }
+    }
+  }
+
+  await expect(card).toBeVisible({ timeout: 10000 });
+  await card.click();
+
+  // Wait for the room header UI to appear instead of a static timeout
+  const roomHeader = page.locator('[data-testid="room-header"]');
+  await roomHeader.waitFor({ state: 'visible', timeout: 15000 });
+  const roomTitle = page.locator('[data-testid="room-game-title"]');
+  await roomTitle.waitFor({ state: 'visible', timeout: 10000 });
+
   const code = await extractRoomCode(page);
   if (!code) throw new Error('Could not extract room code');
+
   // Tic-Tac-Toe modes are picked in the room lobby by the host.
   if (tttMode && tttMode !== 'CLASSIC') {
-    await page.locator(`[data-testid="ttt-mode-${tttMode.toLowerCase()}"]`).click();
-    await page.waitForTimeout(1000);
+    const modeBtn = page.locator(`[data-testid="ttt-mode-${tttMode.toLowerCase()}"]`);
+    await modeBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await modeBtn.click();
+    const expectedTitle = tttMode === 'ULTIMATE' ? 'Ultimate' : 'Gobbler';
+    await expect(roomTitle).toContainText(expectedTitle, { timeout: 10000 });
+  } else {
+    // Assert that the room created corresponds to the requested game
+    // Explicitly verify Saboteur vs Who Barks
+    if (/saboteur/i.test(gameButtonText)) {
+      await expect(roomTitle).toHaveText(/Saboteur/i);
+    } else if (/who barks/i.test(gameButtonText)) {
+      await expect(roomTitle).toHaveText(/Who Barks/i);
+    }
   }
+
   return code;
 }
 

@@ -69,7 +69,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   server: Server;
 
   private readonly logger = new Logger(GamesGateway.name);
-  private readonly recordedResults = new Map<string, string>();
+  private readonly recordedResults = new Set<string>();
   private readonly recordedScoreBaselines = new Map<string, Map<string, number>>();
 
   constructor(
@@ -2712,32 +2712,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     return false;
   }
 
-  private buildResultCycleKey(room: RoomState): string {
-    const playerSnapshot = room.players
-      .filter((p) => !p.isViewer && p.name && p.name.trim().length > 0)
-      .map((p) => `${p.name.trim()}:${p.score ?? 0}`)
-      .sort()
-      .join('|');
-    const roundNumber =
-      room.whoAmIState?.currentRound ??
-      room.musicTriviaState?.currentRound ??
-      room.whoFirstState?.currentRound ??
-      room.theMindState?.level ??
-      room.saboteurState?.round ??
-      room.cipherGridState?.round ??
-      room.pokerState?.handNumber ??
-      0;
-    return `${room.gameType}:${roundNumber}:${playerSnapshot}`;
-  }
-
   private syncResultScoreBaselines(room: RoomState): void {
     const baselines = this.recordedScoreBaselines.get(room.code);
     if (!baselines) return;
 
-    if (
-      room.status === RoomStatus.LOBBY &&
-      room.players.every((p) => (p.score ?? 0) === 0)
-    ) {
+    if (room.status === RoomStatus.LOBBY && room.players.every((p) => (p.score ?? 0) === 0)) {
       this.recordedScoreBaselines.delete(room.code);
       return;
     }
@@ -2785,11 +2764,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       return;
     }
 
-    const cycleKey = this.buildResultCycleKey(room);
-    if (this.recordedResults.get(room.code) === cycleKey) {
+    if (this.recordedResults.has(room.code)) {
       return;
     }
-    this.recordedResults.set(room.code, cycleKey);
+    this.recordedResults.add(room.code);
 
     let baselines = this.recordedScoreBaselines.get(room.code);
     if (!baselines) {
@@ -2813,7 +2791,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       .map((p) => {
         const key = this.getResultPlayerKey(p);
         const currentScore = p.score ?? 0;
-        const previousBaseline = resetBaselines ? 0 : (baselines.get(key) ?? 0);
+        // Poker scores are final match stacks, not points accumulated across matches.
+        const previousBaseline =
+          room.gameType === GameType.POKER || resetBaselines ? 0 : (baselines.get(key) ?? 0);
         const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;
         const score = Math.max(0, currentScore - effectiveBaseline);
         baselines.set(key, currentScore);

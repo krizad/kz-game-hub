@@ -644,10 +644,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
       .getByRole('button', { name: /เลือกหมวดหมู่/ })
       .first()
       .click();
-    await page
-      .getByRole('button', { name: 'สัตว์ (5)' })
-      .last()
-      .click();
+    await page.getByRole('button', { name: 'สัตว์ (5)' }).last().click();
     await expect
       .poll(() =>
         page.evaluate(() => (window as any).__useGameStore.getState().room?.config?.wordCategory),
@@ -701,4 +698,3 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     await ctx.close();
   });
 });
-

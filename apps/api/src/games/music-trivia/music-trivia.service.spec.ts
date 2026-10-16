@@ -300,7 +300,13 @@ describe('MusicTriviaService', () => {
 
     it('ignores stale answerTimeout callbacks once the round has resolved or advanced to COUNTDOWN', () => {
       const room = createAnsweringRoom();
-      for (const phase of ['ANSWER_RESULT', 'REVEAL', 'GET_READY', 'COUNTDOWN', 'FINISHED'] as const) {
+      for (const phase of [
+        'ANSWER_RESULT',
+        'REVEAL',
+        'GET_READY',
+        'COUNTDOWN',
+        'FINISHED',
+      ] as const) {
         room.musicTriviaState!.phase = phase;
         expect(service.answerTimeout(room)).toBeNull();
       }

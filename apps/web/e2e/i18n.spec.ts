@@ -57,8 +57,8 @@ test('creating a room after selecting English sets initial room.config.language 
   page,
 }) => {
   await goToLobbyInEnglish(page);
-  await page.fill('input[placeholder*="Enter your nickname" i]', 'AliceEN');
-  await page.locator('button:has-text("Who Am I?")').first().click();
+  await page.locator('#lobbyNameInput').fill('AliceEN');
+  await page.getByRole('button').filter({ hasText: 'Who Am I' }).first().click();
 
   await expect(page.getByText('Room Host:')).toBeVisible({ timeout: 15000 });
   const enBtn = page.getByRole('button', { name: 'EN', exact: true });
@@ -69,5 +69,3 @@ test('creating a room after selecting English sets initial room.config.language 
     )
     .toBe('en');
 });
-
-

@@ -78,3 +78,6 @@ DELIVERY/
 
 # Playwright MCP debug artifacts (local-only)
 .playwright-mcp/
+
+# Generated images
+scripts/gen-image/output/

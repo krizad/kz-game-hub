@@ -29,24 +29,28 @@ test.describe('Ultimate Tic-Tac-Toe Game Flow', () => {
     await expect(p2.locator('[data-testid="uttt-cell-0-0"]')).toBeVisible({ timeout: 5000 });
 
     // Turn 1: P1 (X) plays (0, 1) -> sends P2 to macro board 1
+    await expect(p1.locator('[data-testid="uttt-cell-0-1"]')).toBeEnabled({ timeout: 5000 });
     await p1.locator('[data-testid="uttt-cell-0-1"]').click();
-    await p2.waitForTimeout(500);
+    await expect(p2.locator('[data-testid="uttt-cell-0-1"]')).toHaveText('X', { timeout: 5000 });
+    await expect(p2.locator('[data-testid="uttt-cell-1-0"]')).toBeEnabled({ timeout: 5000 });
 
     // Turn 2: P2 (O) must play in macro board 1 -> plays (1, 0), sends P1 to macro board 0
     await p2.locator('[data-testid="uttt-cell-1-0"]').click();
-    await p1.waitForTimeout(500);
+    await expect(p1.locator('[data-testid="uttt-cell-1-0"]')).toHaveText('O', { timeout: 5000 });
+    await expect(p1.locator('[data-testid="uttt-cell-0-2"]')).toBeEnabled({ timeout: 5000 });
 
     // Turn 3: P1 (X) plays (0, 2) -> sends P2 to macro board 2
     await p1.locator('[data-testid="uttt-cell-0-2"]').click();
-    await p2.waitForTimeout(500);
+    await expect(p2.locator('[data-testid="uttt-cell-0-2"]')).toHaveText('X', { timeout: 5000 });
+    await expect(p2.locator('[data-testid="uttt-cell-2-0"]')).toBeEnabled({ timeout: 5000 });
 
     // Turn 4: P2 (O) plays (2, 0) -> sends P1 to macro board 0
     await p2.locator('[data-testid="uttt-cell-2-0"]').click();
-    await p1.waitForTimeout(500);
+    await expect(p1.locator('[data-testid="uttt-cell-2-0"]')).toHaveText('O', { timeout: 5000 });
+    await expect(p1.locator('[data-testid="uttt-cell-0-0"]')).toBeEnabled({ timeout: 5000 });
 
     // Turn 5: P1 (X) plays (0, 0) -> Sub-board 0 completed (0, 1, 2 = X)!
     await p1.locator('[data-testid="uttt-cell-0-0"]').click();
-    await p1.waitForTimeout(800);
 
     // Sub-board 0 overlay displays winning X stamp on both screens
     await expect(p1.locator('div:has-text("X")').first()).toBeVisible({ timeout: 5000 });

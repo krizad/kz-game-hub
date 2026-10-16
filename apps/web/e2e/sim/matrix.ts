@@ -79,6 +79,7 @@ export const GAME_MATRIX: MatrixEntry[] = [
     lobbyButton: 'GuiseGuess',
     players: 3,
     description: 'Answer, eliminate, round over scores',
+    configure: ['lang:th'],
   },
 
   // --- Tic-Tac-Toe family (mode chosen in the room lobby by the host) ---
@@ -343,6 +344,7 @@ export const GAME_MATRIX: MatrixEntry[] = [
     lobbyButton: 'Golden Sand House',
     players: 3,
     description: 'Income rush, coups until one player remains',
+    timeout: 180000,
   },
   {
     id: 'coup-3p-aggressive',

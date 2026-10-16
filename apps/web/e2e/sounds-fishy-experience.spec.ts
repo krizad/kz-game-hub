@@ -121,6 +121,9 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
       await joinRoom(p2, origin, roomCode, 'Guise1');
       await joinRoom(p3, origin, roomCode, 'Guise2');
 
+      await p1.getByText('TH', { exact: true }).click();
+      await p1.waitForTimeout(300);
+
       const startBtn = p1.getByTestId('lobby-start-game');
       await expect(startBtn).toBeVisible({ timeout: 10000 });
       await startBtn.click();
@@ -240,6 +243,9 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
       await joinRoom(p2, origin, roomCode, 'Guise1');
       await joinRoom(p3, origin, roomCode, 'Guise2');
       await joinRoom(p4, origin, roomCode, 'Guise3');
+
+      await p1.getByText('TH', { exact: true }).click();
+      await p1.waitForTimeout(300);
 
       const startBtn = p1.getByTestId('lobby-start-game');
       await expect(startBtn).toBeVisible({ timeout: 10000 });

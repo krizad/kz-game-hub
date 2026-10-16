@@ -499,6 +499,10 @@ test.describe('Full Game Demos', () => {
     await joinRoom(p2, origin, roomCode, 'F1');
     await joinRoom(p3, origin, roomCode, 'F2');
 
+    // Sounds Fishy trivia questions in the database are currently Thai only.
+    // Switch the room language to TH in the lobby before starting so questions are available.
+    await p1.getByText('TH', { exact: true }).click();
+
     // Wait for players to sync
     await expect(p1.getByText('F1')).toBeVisible({ timeout: 10000 });
     await expect(p1.getByText('F2')).toBeVisible({ timeout: 10000 });
@@ -510,42 +514,47 @@ test.describe('Full Game Demos', () => {
     await startBtn.click();
     await p1.waitForTimeout(2000);
 
-    // Submit answers — the Blue Fish must type the exact true answer shown on screen
+    // Submit answers — Blue Fish clicks submit true answer; Red Herring enters fake answer
     for (const page of [p1, p2, p3]) {
+      const trueBtn = page.getByTestId('fishy-submit-true-answer');
+      if (await trueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await trueBtn.click();
+        await waitForAnyVisible(
+          [
+            page.getByTestId('fishy-answer-submitted'),
+            page.getByText(/Answer Submitted|ส่งคำตอบแล้ว/i),
+            page.getByText('???').first(),
+          ],
+          8000,
+        );
+        continue;
+      }
+
       const input = page.locator('#answerInput');
       if (
         !(await input
-          .waitFor({ state: 'visible', timeout: 5000 })
+          .waitFor({ state: 'visible', timeout: 3000 })
           .then(() => true)
           .catch(() => false))
       ) {
         continue; // Picker waits for the fish instead
       }
 
-      let answerText = 'This is obviously a lie';
-      if (
-        await page
-          .getByText(/MUST enter the true answer/i)
-          .isVisible()
-          .catch(() => false)
-      ) {
-        const block = page
-          .locator('span')
-          .filter({ hasText: 'The True Answer' })
-          .first()
-          .locator('..');
-        answerText = (await block.locator('p').innerText()).trim();
-      }
+      const answerText = 'This is obviously a lie';
       await input.fill(answerText);
       await page
         .locator('button')
-        .filter({ hasText: /Submit Answer/i })
+        .filter({ hasText: /Submit Answer|ส่งคำตอบ/i })
         .first()
         .click();
       // Confirmed either by the panel, or by the game moving on to the reveal phase
       // once every fish has submitted (the panel is then replaced by "???" cards)
       await waitForAnyVisible(
-        [page.getByText('Answer Submitted!'), page.getByText('???').first()],
+        [
+          page.getByTestId('fishy-answer-submitted'),
+          page.getByText(/Answer Submitted|ส่งคำตอบแล้ว/i),
+          page.getByText('???').first(),
+        ],
         8000,
       );
     }
@@ -556,7 +565,7 @@ test.describe('Full Game Demos', () => {
     for (const page of [p1, p2, p3]) {
       const revealBtn = page
         .locator('button')
-        .filter({ hasText: /Reveal Answer/i })
+        .filter({ hasText: /Reveal Answer|เปิดคำตอบ/i })
         .first();
       const eliminateBtn = page
         .locator('button')
@@ -576,7 +585,9 @@ test.describe('Full Game Demos', () => {
     if (pickerPage) {
       // Answers stay hidden ("???") until the picker flips them one by one
       for (let i = 0; i < 5; i++) {
-        const revealBtns = pickerPage.locator('button').filter({ hasText: /Reveal Answer/i });
+        const revealBtns = pickerPage
+          .locator('button')
+          .filter({ hasText: /Reveal Answer|เปิดคำตอบ/i });
         if ((await revealBtns.count()) === 0) break;
         await revealBtns.first().click();
         await pickerPage.waitForTimeout(1500);
@@ -606,7 +617,7 @@ test.describe('Full Game Demos', () => {
 
     // The single-round match always resolves after an elimination -> scoring
     for (const page of [p1, p2, p3]) {
-      await expect(page.getByText('Round Over!')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/Round Over|จบรอบ/i).first()).toBeVisible({ timeout: 10000 });
     }
     await p1.waitForTimeout(2500);
 
@@ -964,7 +975,9 @@ test.describe('Full Game Demos', () => {
     await joinRoom(p2, origin, roomCode, 'Digger');
     await joinRoom(p3, origin, roomCode, 'Sneaky');
     for (const name of ['Digger', 'Sneaky']) {
-      await expect(p1.getByText(name, { exact: true })).toBeVisible({ timeout: 10000 });
+      await expect(
+        p1.getByTestId('game-players-panel').getByText(name, { exact: true }),
+      ).toBeVisible({ timeout: 10000 });
     }
 
     // Start the match
@@ -1106,9 +1119,10 @@ test.describe('Full Game Demos', () => {
     /** Handles GOLD_PICK overlay; returns true when someone picked. */
     async function tryPickGold(): Promise<boolean> {
       for (const page of pages) {
-        const goldBtn = page.locator('[data-testid^="saboteur-gold-"]').first();
+        const goldBtn = page
+          .locator('button[data-testid^="saboteur-gold-"]:not([disabled])')
+          .first();
         if (!(await goldBtn.isVisible().catch(() => false))) continue;
-        if (!(await goldBtn.isEnabled().catch(() => false))) continue;
         await goldBtn.click();
         return true;
       }

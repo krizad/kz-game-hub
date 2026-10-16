@@ -41,13 +41,35 @@ async function startRoom(host: Page, guests: Page[], gameButton: string): Promis
 
 async function assertTogglePersisted(page: Page, testId: string) {
   const toggle = page.getByTestId(testId);
+  await toggle.waitFor({ state: 'attached', timeout: 15000 });
+
+  // If inside a collapsible panel (e.g. Detective Club role/score), ensure it is open
+  const details = page.locator(`details:has([data-testid="${testId}"])`);
+  if ((await details.count()) > 0) {
+    const isOpen = await details.evaluate((el: HTMLDetailsElement) => el.open).catch(() => false);
+    if (!isOpen) {
+      await details.locator('summary').click();
+    }
+  }
+
   await expect(toggle).toBeVisible({ timeout: 15000 });
   await expect(toggle).toHaveText(/🔊/);
   await toggle.click();
   await expect(toggle).toHaveText(/🔇/);
+
   // Reload: the muted state comes back from localStorage
   await page.reload();
+
   const reloaded = page.getByTestId(testId);
+  await reloaded.waitFor({ state: 'attached', timeout: 20000 });
+
+  if ((await details.count()) > 0) {
+    const isOpen = await details.evaluate((el: HTMLDetailsElement) => el.open).catch(() => false);
+    if (!isOpen) {
+      await details.locator('summary').click();
+    }
+  }
+
   await expect(reloaded).toBeVisible({ timeout: 20000 });
   await expect(reloaded).toHaveText(/🔇/);
   await reloaded.click();

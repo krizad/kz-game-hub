@@ -60,14 +60,39 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
       await expect(guest.locator('[data-testid="start-match-btn"]')).toHaveCount(0);
     }
 
-    // Host reconnects in TEAM_SETUP and retains host controls on new socketId
+    // Host reconnects in TEAM_SETUP; host rotates to an active player per server lifecycle
     await p1.reload();
     await expect(p1.locator('[data-testid="ciphergrid-team-setup"]')).toBeVisible({
       timeout: 15000,
     });
-    await expect(randomizeBtn).toBeVisible();
-    await expect(startMatchBtn).toBeVisible();
-    await expect(startMatchBtn).toBeDisabled();
+
+    const allPlayers = [p1, p2, p3, p4];
+    // Find who currently has the host controls in TEAM_SETUP
+    let currentHostPage = allPlayers[0];
+    for (const p of allPlayers) {
+      if (
+        await p
+          .locator('[data-testid="start-match-btn"]')
+          .isVisible({ timeout: 1000 })
+          .catch(() => false)
+      ) {
+        currentHostPage = p;
+        break;
+      }
+    }
+
+    const hostRandomizeBtn = currentHostPage.locator('[data-testid="randomize-teams-btn"]');
+    const hostStartMatchBtn = currentHostPage.locator('[data-testid="start-match-btn"]');
+    await expect(hostRandomizeBtn).toBeVisible();
+    await expect(hostStartMatchBtn).toBeVisible();
+    await expect(hostStartMatchBtn).toBeDisabled();
+
+    // Verify non-hosts do not have host controls
+    const nonHostPages = allPlayers.filter((p) => p !== currentHostPage);
+    for (const nonHost of nonHostPages) {
+      await expect(nonHost.locator('[data-testid="randomize-teams-btn"]')).toHaveCount(0);
+      await expect(nonHost.locator('[data-testid="start-match-btn"]')).toHaveCount(0);
+    }
 
     // Assign roles:
     // P1 -> Solar Lead
@@ -87,9 +112,11 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
     await p4.waitForTimeout(400);
 
     // Now start match button should be enabled for host only
-    await expect(startMatchBtn).toBeEnabled({ timeout: 5000 });
-    await expect(p2.locator('[data-testid="start-match-btn"]')).toHaveCount(0);
-    await startMatchBtn.click();
+    await expect(hostStartMatchBtn).toBeEnabled({ timeout: 5000 });
+    for (const nonHost of nonHostPages) {
+      await expect(nonHost.locator('[data-testid="start-match-btn"]')).toHaveCount(0);
+    }
+    await hostStartMatchBtn.click();
 
     // 5. Board Grid & Active Game Phase
     await expect(p1.locator('[data-testid="ciphergrid-container"]')).toBeVisible({
@@ -200,8 +227,9 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
         await leadPage.locator('[data-testid="give-clue-btn"]').click();
       }
       const virusIndex = await p1.evaluate(() => {
-        const keycard = (window as any).__useGameStore.getState().privateState
-          ?.cipherGridKeycard as string[] | undefined;
+        const store = (window as any).__useGameStore.getState();
+        const keycard = (store.privateState?.cipherKeycard ||
+          store.privateState?.cipherGridKeycard) as string[] | undefined;
         return keycard ? keycard.indexOf('VIRUS') : -1;
       });
       if (virusIndex >= 0) {
@@ -210,15 +238,32 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
       }
     }
 
-    await expect(p1.locator('[data-testid="next-round-btn"]')).toBeVisible({ timeout: 10000 });
-    await expect(p1.locator('[data-testid="reset-to-lobby-btn"]')).toBeVisible();
-    for (const guest of [p2, p3, p4]) {
+    // Find who is current host at round end (since reconnects migrate host)
+    let roundEndHostPage = allPlayers[0];
+    for (const p of allPlayers) {
+      if (
+        await p
+          .locator('[data-testid="next-round-btn"]')
+          .isVisible({ timeout: 1500 })
+          .catch(() => false)
+      ) {
+        roundEndHostPage = p;
+        break;
+      }
+    }
+
+    await expect(roundEndHostPage.locator('[data-testid="next-round-btn"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(roundEndHostPage.locator('[data-testid="reset-to-lobby-btn"]')).toBeVisible();
+    const roundEndNonHosts = allPlayers.filter((p) => p !== roundEndHostPage);
+    for (const guest of roundEndNonHosts) {
       await expect(guest.locator('[data-testid="next-round-btn"]')).toHaveCount(0);
       await expect(guest.locator('[data-testid="reset-to-lobby-btn"]')).toHaveCount(0);
     }
 
-    await p1.locator('[data-testid="next-round-btn"]').click();
-    await expect(p1.locator('[data-testid="ciphergrid-team-setup"]')).toBeVisible({
+    await roundEndHostPage.locator('[data-testid="next-round-btn"]').click();
+    await expect(roundEndHostPage.locator('[data-testid="ciphergrid-team-setup"]')).toBeVisible({
       timeout: 10000,
     });
 

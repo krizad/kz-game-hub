@@ -87,7 +87,9 @@ test.describe('Knowguise Gameplay', () => {
       .first();
     await expect(firstVoteButton).toBeVisible({ timeout: 10000 });
     await firstVoteButton.click();
-    await expect(firstVoter.getByText(/ล็อกคะแนนของคุณแล้ว|Your vote is locked/i)).toBeVisible({
+    await expect(
+      firstVoter.getByRole('heading', { name: /ล็อกคะแนนของคุณแล้ว|Your vote is locked/i }),
+    ).toBeVisible({
       timeout: 10000,
     });
     for (const page of players.filter((page) => page !== hostPage && page !== firstVoter)) {

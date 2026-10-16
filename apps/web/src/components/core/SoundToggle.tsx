@@ -23,6 +23,7 @@ export function SoundToggle({
     <button
       onClick={onToggle}
       title={enabled ? titleOn : titleOff}
+      aria-label={enabled ? titleOn : titleOff}
       className={`flex items-center justify-center border-4 border-black text-sm transition-all active:translate-y-0.5 ${
         enabled ? 'bg-lime-300' : 'bg-gray-300 grayscale'
       } ${className}`}

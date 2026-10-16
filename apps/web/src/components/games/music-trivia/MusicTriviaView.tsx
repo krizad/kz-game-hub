@@ -125,8 +125,7 @@ export function MusicTriviaView() {
     let timer: NodeJS.Timeout | undefined;
 
     if (state?.phase === 'ANSWERING' && amICurrentBuzzer) {
-      const timeoutMs =
-        state.answerTimeoutMs ?? room?.config.musicTriviaAnswerTimeoutMs ?? 15000;
+      const timeoutMs = state.answerTimeoutMs ?? room?.config.musicTriviaAnswerTimeoutMs ?? 15000;
       const pausedAt = state.pausedAtMs ?? Date.now() + serverOffset;
       const answerDeadline = pausedAt + timeoutMs;
 

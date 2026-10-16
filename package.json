@@ -22,7 +22,8 @@
     "start": "turbo run start",
     "test:e2e": "pnpm -F web test:e2e",
     "test:e2e:ui": "pnpm -F web test:e2e:ui",
-    "deploy:ftp": "node scripts/deploy-api-ftp.mjs"
+    "deploy:ftp": "node scripts/deploy-api-ftp.mjs",
+    "gen:image": "node scripts/gen-image/generate.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

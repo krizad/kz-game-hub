@@ -14,6 +14,8 @@ import { GamesGateway } from './games.gateway';
 import { PrivateStateService } from './private-state.service';
 import { RoomStartGuardService } from './room-start-guard.service';
 import { WhoAmIService } from './who-am-i/who-am-i.service';
+import { RPSService } from './rps/rps.service';
+import { PokerService } from './poker/poker.service';
 
 const gameSettingsStub = () => ({
   load: jest.fn(),
@@ -1069,9 +1071,30 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
         createdAt: new Date(),
         config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, wordMode: 'HOST_INPUT', maxRounds: 2 },
         players: [
-          { id: 'u-host', socketId: 'host1', name: 'Host', score: 0, roomId: 'r-wai-host', connected: true },
-          { id: 'u-p1', socketId: 'p1', name: 'Alice', score: 0, roomId: 'r-wai-host', connected: true },
-          { id: 'u-p2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-wai-host', connected: true },
+          {
+            id: 'u-host',
+            socketId: 'host1',
+            name: 'Host',
+            score: 0,
+            roomId: 'r-wai-host',
+            connected: true,
+          },
+          {
+            id: 'u-p1',
+            socketId: 'p1',
+            name: 'Alice',
+            score: 0,
+            roomId: 'r-wai-host',
+            connected: true,
+          },
+          {
+            id: 'u-p2',
+            socketId: 'p2',
+            name: 'Bob',
+            score: 0,
+            roomId: 'r-wai-host',
+            connected: true,
+          },
         ],
       };
 
@@ -1399,14 +1422,10 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       // Round 1 RESULT
       callRecord(room);
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
-      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
-        GameType.RPS,
-        'RPS123',
-        [
-          { playerName: 'Alice', score: 1, rank: 1 },
-          { playerName: 'Bob', score: 0, rank: 2 },
-        ],
-      );
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(GameType.RPS, 'RPS123', [
+        { playerName: 'Alice', score: 1, rank: 1 },
+        { playerName: 'Bob', score: 0, rank: 2 },
+      ]);
 
       // Transition to PLAYING for round 2
       room.status = RoomStatus.PLAYING;
@@ -1420,14 +1439,10 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       callRecord(room);
 
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
-      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
-        GameType.RPS,
-        'RPS123',
-        [
-          { playerName: 'Alice', score: 1, rank: 1 },
-          { playerName: 'Bob', score: 0, rank: 2 },
-        ],
-      );
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(GameType.RPS, 'RPS123', [
+        { playerName: 'Alice', score: 1, rank: 1 },
+        { playerName: 'Bob', score: 0, rank: 2 },
+      ]);
     });
 
     it('deduplicates duplicate RESULT broadcasts without recording twice', () => {
@@ -1457,6 +1472,101 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       callRecord(room);
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
     });
+
+    it('does not record another cycle when a queued player leaves during RESULT', () => {
+      const privateState = new PrivateStateService();
+      const rps = new RPSService(privateState);
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 1, roomId: 'r-rps' },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps' },
+          { id: 'u3', socketId: 'p3', name: 'Carol', score: 0, roomId: 'r-rps' },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: ['p3'],
+          choices: { p1: 'ROCK', p2: 'SCISSORS' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 1, p2: 0, p3: 0 },
+          roundWinner: 'p1',
+        },
+      };
+
+      callRecord(room);
+      room.players.splice(2, 1);
+      rps.handlePlayerRemoved(room, 'p3');
+      expect(room.status).toBe(RoomStatus.RESULT);
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+
+      expect(rps.nextRound(room, 'p1')).toBe(room);
+      callRecord(room);
+      rps.makeChoice(room, 'p1', 'ROCK');
+      rps.makeChoice(room, 'p2', 'SCISSORS');
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(GameType.RPS, room.code, [
+        { playerName: 'Alice', score: 1, rank: 1 },
+        { playerName: 'Bob', score: 0, rank: 2 },
+      ]);
+    });
+
+    it.each(['reset-to-lobby', 'restart-from-result'])(
+      'records final Poker stacks independently for a new match (%s)',
+      (restart) => {
+        const poker = new PokerService(new PrivateStateService());
+        const room: RoomState = {
+          id: 'r-poker',
+          code: 'PKR123',
+          gameType: GameType.POKER,
+          status: RoomStatus.LOBBY,
+          roomHostId: 'p1',
+          createdAt: new Date(),
+          config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+          players: [
+            { id: 'u1', socketId: 'p1', name: 'Alice', score: 0, roomId: 'r-poker' },
+            { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-poker' },
+          ],
+        };
+        const finishMatch = (aliceChips: number, bobChips: number) => {
+          room.pokerState!.seats.p1.chips = aliceChips;
+          room.pokerState!.seats.p2.chips = bobChips;
+          expect(poker.handleAction(room, 'p1', { type: 'END_MATCH' })).toBe(room);
+          callRecord(room);
+        };
+
+        expect(poker.startMatch(room, 'p1')).toBe(room);
+        callRecord(room);
+        finishMatch(1100, 900);
+
+        if (restart === 'reset-to-lobby') {
+          expect(poker.resetMatch(room, 'p1')).toBe(room);
+          callRecord(room);
+        }
+        expect(poker.startMatch(room, 'p1')).toBe(room);
+        callRecord(room);
+        finishMatch(1200, 800);
+
+        expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
+        expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
+          GameType.POKER,
+          room.code,
+          [
+            { playerName: 'Alice', score: 1200, rank: 1 },
+            { playerName: 'Bob', score: 800, rank: 2 },
+          ],
+        );
+        callRecord(room);
+        expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
+      },
+    );
 
     it('does not double record when a player reconnects with a new socketId during RESULT', () => {
       const room: RoomState = {
@@ -1530,14 +1640,10 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       callRecord(room);
 
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
-      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
-        GameType.RPS,
-        'RPS123',
-        [
-          { playerName: 'Alice', score: 1, rank: 1 },
-          { playerName: 'Bob', score: 0, rank: 2 },
-        ],
-      );
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(GameType.RPS, 'RPS123', [
+        { playerName: 'Alice', score: 1, rank: 1 },
+        { playerName: 'Bob', score: 0, rank: 2 },
+      ]);
     });
 
     it('assigns rank 2 and score 0 to all participants on a DRAW round (no rank 1)', () => {
@@ -1565,14 +1671,10 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
 
       callRecord(room);
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
-      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledWith(
-        GameType.RPS,
-        'RPS123',
-        [
-          { playerName: 'Alice', score: 0, rank: 2 },
-          { playerName: 'Bob', score: 0, rank: 2 },
-        ],
-      );
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledWith(GameType.RPS, 'RPS123', [
+        { playerName: 'Alice', score: 0, rank: 2 },
+        { playerName: 'Bob', score: 0, rank: 2 },
+      ]);
     });
 
     it('ignores aborted/cancelled RESULT transitions', () => {
@@ -1709,14 +1811,10 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       callRecord(room);
 
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
-      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
-        GameType.RPS,
-        'RPS123',
-        [
-          { playerName: 'Alice', score: 1, rank: 1 },
-          { playerName: 'Bob', score: 0, rank: 2 },
-        ],
-      );
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(GameType.RPS, 'RPS123', [
+        { playerName: 'Alice', score: 1, rank: 1 },
+        { playerName: 'Bob', score: 0, rank: 2 },
+      ]);
     });
 
     it('cleans up room tracking on forgetRecordedResult', () => {
@@ -1754,5 +1852,3 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
     });
   });
 });
-
-

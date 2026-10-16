@@ -356,7 +356,10 @@ export function HomeView() {
                         <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
                           {t(`lobby.gameCards.${g.catalogKey}.category`)}
                         </span>
-                        <span className="block text-sm font-black leading-tight text-black">
+                        <span
+                          data-testid="catalog-card-title"
+                          className="block text-sm font-black leading-tight text-black"
+                        >
                           {gameName}
                         </span>
                         <span className="mt-1 block text-xs font-medium leading-snug text-slate-700">
