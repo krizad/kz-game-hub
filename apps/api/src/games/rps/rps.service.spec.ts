@@ -143,30 +143,142 @@ describe('RPSService', () => {
     });
   });
 
-  describe('disconnects', () => {
-    it('resolves as a draw when all active players disconnect', () => {
-      const room = createRoom();
-      service.assignRoles(room, 'p1');
-
-      const p1 = room.players[0];
-      p1.connected = false;
-      const p2 = room.players[1];
-      p2.connected = false;
-
-      const result = service.makeChoice(room, 'p1', 'ROCK');
-      expect(result!.status).toBe(RoomStatus.RESULT);
-      expect(result!.rpsState!.roundWinner).toBe('DRAW');
-    });
-
-    it('does not wait for a disconnected opponent choice', () => {
+  describe('disconnects and player removal', () => {
+    it('holds the round during a temporary disconnect and resolves once the opponent reconnects and chooses', () => {
       const room = createRoom();
       service.assignRoles(room, 'p1');
 
       room.players[1].connected = false;
-      const result = service.makeChoice(room, 'p1', 'PAPER')!;
+      const afterP1 = service.makeChoice(room, 'p1', 'PAPER')!;
 
-      expect(result.status).toBe(RoomStatus.RESULT);
-      expect(result.rpsState!.roundWinner).toBe('p1');
+      // Must NOT award a free win while p2's seat is held during the 60s reconnect grace window
+      expect(afterP1.status).toBe(RoomStatus.PLAYING);
+      expect(afterP1.rpsState!.roundWinner).toBeUndefined();
+      expect(afterP1.rpsState!.scores['p1']).toBe(0);
+      expect(privateState.get(room.code, 'p1', 'rpsChoice')).toBe('PAPER');
+
+      // p2 reconnects with a new socket ID and submits choice
+      room.players[1].connected = true;
+      room.players[1].socketId = 'p2-reconnected';
+      privateState.remapSocketId(room.code, 'p2', 'p2-reconnected');
+      service.remapSocketId(room.rpsState!, 'p2', 'p2-reconnected');
+
+      const resolved = service.makeChoice(room, 'p2-reconnected', 'ROCK')!;
+      expect(resolved.status).toBe(RoomStatus.RESULT);
+      expect(resolved.rpsState!.roundWinner).toBe('p1');
+      expect(resolved.rpsState!.scores['p1']).toBe(1);
+    });
+
+    it('preserves a locked choice across temporary disconnect and prevents duplicate submission after reconnect', () => {
+      const room = createRoom();
+      service.assignRoles(room, 'p1');
+
+      service.makeChoice(room, 'p1', 'ROCK');
+      room.players[0].connected = false;
+
+      // p1 reconnects with a new socket ID
+      room.players[0].connected = true;
+      room.players[0].socketId = 'p1-new';
+      privateState.remapSocketId(room.code, 'p1', 'p1-new');
+      service.remapSocketId(room.rpsState!, 'p1', 'p1-new');
+
+      expect(privateState.get(room.code, 'p1-new', 'rpsChoice')).toBe('ROCK');
+      expect(room.rpsState!.choicesMade).toEqual(['p1-new']);
+      // Cannot overwrite the locked choice
+      expect(service.makeChoice(room, 'p1-new', 'SCISSORS')).toBeNull();
+
+      const resolved = service.makeChoice(room, 'p2', 'SCISSORS')!;
+      expect(resolved.status).toBe(RoomStatus.RESULT);
+      expect(resolved.rpsState!.roundWinner).toBe('p1-new');
+      expect(resolved.rpsState!.scores['p1-new']).toBe(1);
+    });
+
+    it('cancels the round and returns to LOBBY without awarding points when fewer than 2 players remain', () => {
+      const room = createRoom({}, [
+        { id: 'p1', socketId: 'p1', name: 'p1', score: 1, roomId: 'room-id', connected: true },
+        { id: 'p2', socketId: 'p2', name: 'p2', score: 0, roomId: 'room-id', connected: true },
+      ]);
+      service.assignRoles(room, 'p1');
+      room.rpsState!.scores['p1'] = 1;
+      room.players[0].score = 1;
+
+      service.makeChoice(room, 'p1', 'ROCK');
+      // p2 leaves / grace expires
+      room.players.splice(1, 1);
+      service.handlePlayerRemoved(room, 'p2');
+
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(room.rpsState!.activePlayers).toEqual([]);
+      expect(room.rpsState!.queue).toEqual([]);
+      expect(room.rpsState!.choices).toEqual({});
+      expect(room.rpsState!.choicesMade).toEqual([]);
+      expect(room.rpsState!.roundWinner).toBeUndefined();
+      expect(room.rpsState!.gameWinner).toBeUndefined();
+      expect(privateState.get(room.code, 'p1', 'rpsChoice')).toBeUndefined();
+      // Existing score before the cancelled round is preserved, no point added
+      expect(room.rpsState!.scores['p1']).toBe(1);
+      expect(room.players[0].score).toBe(1);
+    });
+
+    it('cancels the interrupted 1v1 round, promotes from queue, and lets remaining players play next round', () => {
+      const room = createRoom({ rpsMode: '1V1_ROUND_ROBIN' });
+      service.assignRoles(room, 'p1');
+      room.rpsState!.scores['p1'] = 1;
+      room.players[0].score = 1;
+
+      service.makeChoice(room, 'p1', 'ROCK');
+      // Active opponent p2 is removed while p3 is waiting in queue
+      room.players.splice(1, 1);
+      service.handlePlayerRemoved(room, 'p2');
+
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(room.rpsState!.activePlayers).toEqual(['p1', 'p3']);
+      expect(room.rpsState!.queue).toEqual([]);
+      expect(room.rpsState!.choicesMade).toEqual([]);
+      expect(privateState.get(room.code, 'p1', 'rpsChoice')).toBeUndefined();
+      expect(room.rpsState!.scores['p1']).toBe(1);
+      expect(room.rpsState!.scores['p2']).toBeUndefined();
+
+      // p1 and p3 can now complete the fresh round
+      service.makeChoice(room, 'p1', 'SCISSORS');
+      const resolved = service.makeChoice(room, 'p3', 'PAPER')!;
+      expect(resolved.status).toBe(RoomStatus.RESULT);
+      expect(resolved.rpsState!.roundWinner).toBe('p1');
+      expect(resolved.rpsState!.scores['p1']).toBe(2);
+    });
+
+    it('does not cancel the active round when a queued player or spectator is removed', () => {
+      const room = createRoom({ rpsMode: '1V1_ROUND_ROBIN' });
+      service.assignRoles(room, 'p1');
+
+      service.makeChoice(room, 'p1', 'ROCK');
+      // p3 is in queue, not in activePlayers
+      room.players.splice(2, 1);
+      service.handlePlayerRemoved(room, 'p3');
+
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(room.rpsState!.activePlayers).toEqual(['p1', 'p2']);
+      expect(room.rpsState!.queue).toEqual([]);
+      expect(room.rpsState!.choicesMade).toEqual(['p1']);
+      expect(privateState.get(room.code, 'p1', 'rpsChoice')).toBe('ROCK');
+    });
+
+    it('recovers ALL_AT_ONCE rounds when an active player is removed', () => {
+      const room = createRoom({ rpsMode: 'ALL_AT_ONCE' });
+      service.assignRoles(room, 'p1');
+
+      service.makeChoice(room, 'p1', 'ROCK');
+      service.makeChoice(room, 'p2', 'SCISSORS');
+      // p3 is removed before choosing
+      room.players.splice(2, 1);
+      service.handlePlayerRemoved(room, 'p3');
+
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(room.rpsState!.activePlayers).toEqual(['p1', 'p2']);
+      expect(room.rpsState!.choicesMade).toEqual([]);
+      expect(privateState.get(room.code, 'p1', 'rpsChoice')).toBeUndefined();
+      expect(privateState.get(room.code, 'p2', 'rpsChoice')).toBeUndefined();
+      expect(room.rpsState!.scores['p1']).toBe(0);
     });
   });
 

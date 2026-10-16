@@ -587,6 +587,9 @@ export class GamesService {
     if (room.pokerState) {
       this.pokerService.handlePlayerDisconnect(room, player.socketId);
     }
+    if (room.gameType === GameType.RPS && room.rpsState) {
+      this.rpsService.handlePlayerRemoved(room, player.socketId);
+    }
 
     this.runDisconnectHooks(code, room, player.socketId);
     if (room.gameType === GameType.DOG_RELAY && room.status === RoomStatus.LOBBY) {

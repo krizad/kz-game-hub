@@ -76,6 +76,7 @@ describe('GamesService', () => {
       makeChoice: jest.fn(),
       nextRound: jest.fn(),
       reset: jest.fn(),
+      handlePlayerRemoved: jest.fn(),
       remapSocketId: RPSService.prototype.remapSocketId,
     },
     gobbler: {
@@ -929,6 +930,48 @@ describe('GamesService', () => {
       expect(room.status).toBe(RoomStatus.RESULT);
       expect(room.ticTacToeState?.playerOId).toBeUndefined();
       expect(room.ticTacToeState?.playerXId).toBe('host1');
+    });
+
+    it('should preserve RPS round on temporary disconnect, remap on reconnect, and recover on explicit leave or grace expiry', () => {
+      jest.useFakeTimers();
+      const room = service.createRoom('host1', GameType.RPS);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const tokenP1 = service.getReconnectToken(room.code, 'p1')!;
+      room.status = RoomStatus.PLAYING;
+      room.rpsState = {
+        activePlayers: ['host1', 'p1'],
+        queue: [],
+        choices: {},
+        choicesMade: ['host1'],
+        scores: { host1: 0, p1: 0 },
+      };
+      privateStateService.set(room.code, 'host1', 'rpsChoice', 'ROCK');
+
+      // Temporary disconnect does NOT invoke handlePlayerRemoved
+      service.leaveRoom('p1', false);
+      expect(mockGameServices.rps.handlePlayerRemoved).not.toHaveBeenCalled();
+
+      // Reconnecting within 60s cancels grace timer and remaps rpsState
+      service.joinRoom(
+        room.code,
+        { id: 'p1-rejoined', name: 'Player1', socketId: 'p1-rejoined' },
+        tokenP1,
+      );
+      expect(room.rpsState.activePlayers).toEqual(['host1', 'p1-rejoined']);
+      jest.advanceTimersByTime(60_000);
+      expect(mockGameServices.rps.handlePlayerRemoved).not.toHaveBeenCalled();
+
+      // Disconnect again and let the 60s grace window expire
+      service.leaveRoom('p1-rejoined', false);
+      jest.advanceTimersByTime(60_000);
+      expect(mockGameServices.rps.handlePlayerRemoved).toHaveBeenCalledWith(room, 'p1-rejoined');
+
+      // Explicit guest leave also invokes handlePlayerRemoved immediately
+      mockGameServices.rps.handlePlayerRemoved.mockClear();
+      service.joinRoom(room.code, { id: 'p2', name: 'Player2', socketId: 'p2' });
+      service.leaveRoom('p2', true);
+      expect(mockGameServices.rps.handlePlayerRemoved).toHaveBeenCalledWith(room, 'p2');
     });
 
     it('should keep room and transfer host to a remaining player on host disconnect from LOBBY', () => {

@@ -43,4 +43,33 @@ test.describe('RPS (Hand Duel) Game Flow', () => {
     await p1Ctx.close();
     await p2Ctx.close();
   });
+
+  test('recovers to lobby when opponent leaves after host locks a choice', async ({ browser }) => {
+    const p1Ctx = await browser.newContext();
+    const p2Ctx = await browser.newContext();
+    const p1 = await p1Ctx.newPage();
+    const p2 = await p2Ctx.newPage();
+
+    const roomCode = await createRoom(p1, 'Rocky', 'Hand Duel');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'Leaver');
+
+    await p1.getByTestId('lobby-start-game').click();
+    await expect(p1.locator('button', { hasText: '✊' })).toBeVisible({ timeout: 10000 });
+
+    // P1 locks ROCK and waits for P2
+    await p1.locator('button', { hasText: '✊' }).click();
+    await expect(p1.getByTestId('rps-choice-locked')).toBeVisible({ timeout: 5000 });
+
+    // P2 explicitly leaves the room mid-round
+    await p2.getByRole('button', { name: /Leave|ออกจากห้อง/i }).click();
+
+    // P1 recovers back to the waiting room instead of being stuck on "Waiting for Leaver"
+    await expect(p1.getByText('Waiting Room').or(p1.getByText('ห้องรอ'))).toBeVisible({
+      timeout: 10000,
+    });
+
+    await p1Ctx.close();
+    await p2Ctx.close();
+  });
 });

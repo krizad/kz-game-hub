@@ -62,14 +62,14 @@ export class RPSService {
       rps.choicesMade.push(clientId);
     }
 
-    const activeAndConnectedIds = rps.activePlayers.filter((id) =>
-      room.players.find((p) => p.socketId === id && p.connected !== false),
+    const activeSeatIds = rps.activePlayers.filter((id) =>
+      room.players.some((p) => p.socketId === id && !p.isViewer),
     );
-    const allChosen = activeAndConnectedIds.every((id) =>
-      this.privateState.has(room.code, id, RPS_CHOICE_KEY),
-    );
+    const allChosen =
+      activeSeatIds.length >= 2 &&
+      activeSeatIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
 
-    if (allChosen && activeAndConnectedIds.length > 0) {
+    if (allChosen) {
       const revealed = this.revealChoices(room);
       if (room.config.rpsMode === 'ALL_AT_ONCE') {
         this.resolveAllAtOnceRound(room, revealed);
@@ -89,13 +89,73 @@ export class RPSService {
       }
 
       room.status = RoomStatus.RESULT;
-    } else if (activeAndConnectedIds.length === 0) {
-      // Everyone left — resolve as a draw so the room is not stuck forever
-      rps.roundWinner = 'DRAW';
-      room.status = RoomStatus.RESULT;
     }
 
     return room;
+  }
+
+  /**
+   * Reconcile RPS state when a player is permanently removed from the room
+   * (explicit leave or reconnect grace window expiry).
+   */
+  handlePlayerRemoved(room: RoomState, removedSocketId: string): void {
+    if (room.gameType !== GameType.RPS || !room.rpsState) return;
+
+    const rps = room.rpsState;
+    const wasActive = rps.activePlayers.includes(removedSocketId);
+    const presentIds = new Set(room.players.filter((p) => !p.isViewer).map((p) => p.socketId));
+
+    rps.activePlayers = rps.activePlayers.filter(
+      (id) => id !== removedSocketId && presentIds.has(id),
+    );
+    rps.queue = rps.queue.filter((id) => id !== removedSocketId && presentIds.has(id));
+    rps.choicesMade = rps.choicesMade.filter((id) => id !== removedSocketId && presentIds.has(id));
+    delete rps.choices[removedSocketId];
+    delete rps.scores[removedSocketId];
+    this.privateState.delete(room.code, removedSocketId, RPS_CHOICE_KEY);
+
+    if (room.status === RoomStatus.LOBBY) {
+      return;
+    }
+
+    // If a viewer or a queued player left while the active round can still proceed,
+    // keep the active round intact.
+    if (!wasActive && rps.activePlayers.length >= 2) {
+      return;
+    }
+
+    if (room.config.rpsMode !== 'ALL_AT_ONCE') {
+      while (rps.activePlayers.length < 2 && rps.queue.length > 0) {
+        const nextId = rps.queue.shift()!;
+        if (presentIds.has(nextId) && !rps.activePlayers.includes(nextId)) {
+          rps.activePlayers.push(nextId);
+        }
+      }
+    }
+
+    // If the room was already on the RESULT screen and enough players remain,
+    // keep RESULT so the host can advance or reset normally.
+    if (room.status === RoomStatus.RESULT && rps.activePlayers.length >= 2) {
+      return;
+    }
+
+    // Cancel the interrupted round without awarding points or winners.
+    rps.choices = {};
+    rps.choicesMade = [];
+    rps.roundWinner = undefined;
+    for (const p of room.players) {
+      this.privateState.delete(room.code, p.socketId, RPS_CHOICE_KEY);
+    }
+
+    if (rps.activePlayers.length < 2) {
+      rps.activePlayers = [];
+      rps.queue = [];
+      rps.gameWinner = undefined;
+      room.status = RoomStatus.LOBBY;
+      return;
+    }
+
+    room.status = RoomStatus.PLAYING;
   }
 
   private revealChoices(room: RoomState): Record<string, RPSChoice> {
