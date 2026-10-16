@@ -48,15 +48,15 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
 
     // Capture English error screenshots across viewports
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/1280-en.png',
+      path: './test-results/qa-captures/sounds-fishy/1280-en.png',
     });
     await p1.setViewportSize({ width: 390, height: 844 });
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/390-en.png',
+      path: './test-results/qa-captures/sounds-fishy/390-en.png',
     });
     await p1.setViewportSize({ width: 360, height: 800 });
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/360-en.png',
+      path: './test-results/qa-captures/sounds-fishy/360-en.png',
     });
 
     // 5. Test Thai localization: switch UI language to Thai while error is shown
@@ -65,15 +65,15 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
 
     // Capture Thai error screenshots across viewports
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/360-th.png',
+      path: './test-results/qa-captures/sounds-fishy/360-th.png',
     });
     await p1.setViewportSize({ width: 390, height: 844 });
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/390-th.png',
+      path: './test-results/qa-captures/sounds-fishy/390-th.png',
     });
     await p1.setViewportSize({ width: 1280, height: 900 });
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/1280-th.png',
+      path: './test-results/qa-captures/sounds-fishy/1280-th.png',
     });
 
     // 6. Recovery: In Thai mode, clicking start button begins a round because Thai trivia exists in DB
@@ -184,15 +184,15 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
       // Capture Blue Fish setup screenshots across viewports
       await blueFishPage.setViewportSize({ width: 1280, height: 900 });
       await blueFishPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf2-setup-blue-1280.png',
+        path: './test-results/qa-captures/sounds-fishy/sf2-setup-blue-1280.png',
       });
       await blueFishPage.setViewportSize({ width: 390, height: 844 });
       await blueFishPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf2-setup-blue-390.png',
+        path: './test-results/qa-captures/sounds-fishy/sf2-setup-blue-390.png',
       });
       await blueFishPage.setViewportSize({ width: 360, height: 800 });
       await blueFishPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf2-setup-blue-360.png',
+        path: './test-results/qa-captures/sounds-fishy/sf2-setup-blue-360.png',
       });
 
       // Blue Fish clicks submit true answer button
@@ -348,15 +348,15 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
       // Capture screenshots of Hunt phase with bank summary
       await pickerPage.setViewportSize({ width: 1280, height: 900 });
       await pickerPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf3-hunt-picker-1280.png',
+        path: './test-results/qa-captures/sounds-fishy/sf3-hunt-picker-1280.png',
       });
       await pickerPage.setViewportSize({ width: 390, height: 844 });
       await pickerPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf3-hunt-picker-390.png',
+        path: './test-results/qa-captures/sounds-fishy/sf3-hunt-picker-390.png',
       });
       await pickerPage.setViewportSize({ width: 360, height: 800 });
       await pickerPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf3-hunt-picker-360.png',
+        path: './test-results/qa-captures/sounds-fishy/sf3-hunt-picker-360.png',
       });
 
       // Step 2: Picker eliminates the first Red Herring row
@@ -387,15 +387,15 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
       // Capture Round Over result screenshots
       await pickerPage.setViewportSize({ width: 1280, height: 900 });
       await pickerPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf3-result-1280.png',
+        path: './test-results/qa-captures/sounds-fishy/sf3-result-1280.png',
       });
       await pickerPage.setViewportSize({ width: 390, height: 844 });
       await pickerPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf3-result-390.png',
+        path: './test-results/qa-captures/sounds-fishy/sf3-result-390.png',
       });
       await pickerPage.setViewportSize({ width: 360, height: 800 });
       await pickerPage.screenshot({
-        path: '../../docs/qa/private-friends-2026-10-14/sounds-fishy/sf3-result-360.png',
+        path: './test-results/qa-captures/sounds-fishy/sf3-result-360.png',
       });
 
       // Host clicks Play Next Round

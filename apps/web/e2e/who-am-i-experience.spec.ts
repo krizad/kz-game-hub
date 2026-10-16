@@ -57,7 +57,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
 
     const dialog = p1.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5000 });
-    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/1280-th.png' });
+    await p1.screenshot({ path: './test-results/qa-captures/who-am-i/1280-th.png' });
 
     // Assert Thai copy
     await expect(dialog.getByText('📝 กำหนดคำลับ')).toBeVisible();
@@ -94,12 +94,12 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Start Game' })).toBeVisible();
     await expect(dialog.getByPlaceholder('Enter a character, animal, object...')).toHaveCount(2);
-    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/1280-en.png' });
+    await p1.screenshot({ path: './test-results/qa-captures/who-am-i/1280-en.png' });
     for (const width of [390, 360]) {
       await p1.setViewportSize({ width, height: width === 390 ? 844 : 800 });
       await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInViewport();
       await p1.screenshot({
-        path: `../../docs/qa/private-friends-2026-10-14/who-am-i/${width}-en.png`,
+        path: `./test-results/qa-captures/who-am-i/${width}-en.png`,
       });
     }
 
@@ -143,7 +143,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
 
     const dialog = p1.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5000 });
-    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/390-th.png' });
+    await p1.screenshot({ path: './test-results/qa-captures/who-am-i/390-th.png' });
 
     // Fill in word for Bob and Cara
     const bobInput = dialog.locator('input').nth(0);
@@ -216,7 +216,7 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     await host.getByTestId('lobby-start-game').click();
     const dialog = host.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    await host.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/who-am-i/360-th.png' });
+    await host.screenshot({ path: './test-results/qa-captures/who-am-i/360-th.png' });
     await expect(dialog.locator('input')).toHaveCount(2);
     await dialog.getByLabel('Bob').fill('Old Bob word');
     await dialog.getByLabel('Cara').fill('Cara word');
@@ -365,13 +365,13 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
 
     // Screenshots across viewport sizes
     await activePage.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/who-am-i/guess-modal-1280.png',
+      path: './test-results/qa-captures/who-am-i/guess-modal-1280.png',
     });
     for (const width of [390, 360]) {
       await activePage.setViewportSize({ width, height: width === 390 ? 844 : 800 });
       await expect(guessDialog).toBeInViewport();
       await activePage.screenshot({
-        path: `../../docs/qa/private-friends-2026-10-14/who-am-i/guess-modal-${width}.png`,
+        path: `./test-results/qa-captures/who-am-i/guess-modal-${width}.png`,
       });
     }
 

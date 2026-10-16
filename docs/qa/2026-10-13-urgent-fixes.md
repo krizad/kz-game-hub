@@ -1,6 +1,7 @@
 # ผลแก้งานด่วน KZ Game Hub — 13 ตุลาคม 2026
 
-Baseline `c03c820c` · branch `fix/urgent-gameplay` · ใช้ managed worktree แยกจาก checkout เดิม
+> จัดระเบียบเอกสาร: นำไฟล์ภาพและหลักฐานประกอบเก่าออกแล้ว คงรายงานนี้ไว้เป็นประวัติผลตรวจ
+> Baseline `c03c820c` · branch `fix/urgent-gameplay` · ใช้ managed worktree แยกจาก checkout เดิม
 
 ## งานที่แก้
 
@@ -17,7 +18,7 @@ Baseline `c03c820c` · branch `fix/urgent-gameplay` · ใช้ managed worktre
 | Music reconnect | ส่ง playback รอบปัจจุบันพร้อม timestamp เดิมให้คนกลับเข้าห้อง/observer; คืนคำตอบเฉพาะ current host ใน GAME_MASTER ที่ไม่ได้เล่น; HTML5 audio seek ตามเวลาจาก server | `bbf92385` |
 | หยุด test runner | ยกเลิกแล้วหยุด child process group เพื่อไม่ทิ้ง dev servers ค้าง | `e8b9027a` |
 
-การแก้นี้เป็นชุดงานด่วนตาม [roadmap](../superpowers/plans/2026-10-13-game-hub-improvement-roadmap.md) และแผนรายเกม ไม่ถือว่าปิดทุก checkbox ใน SH-2/SH-3/SH-4 หรือทุกงานของ CA/CP/MT/PK แล้ว. Correlated action acknowledgements, snapshot request ใหม่, dialog อื่น, sort/hints ของ Slave, iOS audio recovery และงาน P2/P3 ยังอยู่ในแผน.
+การแก้นี้เป็นชุดงานด่วนตาม roadmap (แผนเก่าเลิกใช้แล้ว) และแผนรายเกม ไม่ถือว่าปิดทุก checkbox ใน SH-2/SH-3/SH-4 หรือทุกงานของ CA/CP/MT/PK แล้ว. Correlated action acknowledgements, snapshot request ใหม่, dialog อื่น, sort/hints ของ Slave, iOS audio recovery และงาน P2/P3 ยังอยู่ในแผน.
 
 ## หลักฐานการตรวจ
 
@@ -29,7 +30,7 @@ Baseline `c03c820c` · branch `fix/urgent-gameplay` · ใช้ managed worktre
 - รอบก่อนหน้านั้น Classic2, RPS2 และ Coup basic2 ผ่าน ก่อนหยุดชุดกว้างเพราะ dev watcher reload จากการแก้ไฟล์ขณะ tests ยังเล่นอยู่; ไม่นับชุดที่หยุดเป็นผลผ่านทั้งชุด
 - Web TypeScript และ lint ผ่าน; API TypeScript และ lint ผ่านหลังลบ dead locals ใน poker-engine ที่ทำให้ lint เดิมไม่ผ่าน
 - เปิด `pnpm dev` ด้วย local DB และ PORT3301 ได้; health ยืนยัน API3301 และฐานทดสอบเชื่อมต่อได้; frontend เรียก API3301 จริงผ่าน browser sessions
-- ตรวจภาพหลังแก้ด้วย Chromium ที่ 360×800: [Home](game-audit-2026-10-13/after-home-360.png), [Coup](game-audit-2026-10-13/after-coup-360.png), [Slave ใบสุดท้าย](game-audit-2026-10-13/after-slave-360.png), [Poker minimum40](game-audit-2026-10-13/after-poker-360.png)
+- ตรวจภาพหลังแก้ด้วย Chromium ที่ 360×800: Home, Coup, Slave ใบสุดท้าย, Poker minimum40
 - รัน `graphify update .` หลัง source และ tests เปลี่ยน; AST graph มี 3020 nodes / 5907 edges ใน worktree
 
 ทดสอบใน MySQL container บนเครื่อง `127.0.0.1:13306/kz_game_hub_test`. ไม่ใช้ production .env สำหรับ startup, schema หรือ seed. Music preset fixture ใช้เพลงจำลองบน local DB จึงพิสูจน์ start/reconnect flow ได้ แต่ไม่รับรองเสียงจริงหรือความพร้อมของ provider ภายนอก. ยังไม่ได้รัน production build, GitHub workflow, Safari/อุปกรณ์จริง, screen reader หรือ sim ทุกเกม/ทุกโหมด.

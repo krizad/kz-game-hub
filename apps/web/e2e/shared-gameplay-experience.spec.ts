@@ -30,7 +30,7 @@ test.describe('Shared Gameplay Layout & Hierarchy (TASK-SH-005)', () => {
 
     // Capture desktop screenshot
     await page.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/shared/header-1280.png',
+      path: './test-results/qa-captures/shared/header-1280.png',
     });
 
     // 2. Test Mobile Standard (390x844 - iPhone 12/13/14)
@@ -50,7 +50,7 @@ test.describe('Shared Gameplay Layout & Hierarchy (TASK-SH-005)', () => {
     await expect(rulesBtn).toBeVisible();
 
     await page.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/shared/header-390.png',
+      path: './test-results/qa-captures/shared/header-390.png',
     });
 
     // 3. Test Mobile Narrow (360x800 - Android compact)
@@ -72,7 +72,7 @@ test.describe('Shared Gameplay Layout & Hierarchy (TASK-SH-005)', () => {
     await expect(page.locator('.toaster, [role="status"]').first()).toBeVisible({ timeout: 5000 });
 
     await page.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/shared/header-360.png',
+      path: './test-results/qa-captures/shared/header-360.png',
     });
 
     await ctx.close();
@@ -120,7 +120,7 @@ test.describe('Shared Gameplay Layout & Hierarchy (TASK-SH-005)', () => {
 
     // Capture mobile playing with folded panel
     await guest.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/shared/mobile-playing-folded-390.png',
+      path: './test-results/qa-captures/shared/mobile-playing-folded-390.png',
     });
 
     // Tap toggle button to unfold secondary panel
@@ -129,7 +129,7 @@ test.describe('Shared Gameplay Layout & Hierarchy (TASK-SH-005)', () => {
 
     // Capture mobile playing with unfolded panel
     await guest.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/shared/mobile-playing-unfolded-390.png',
+      path: './test-results/qa-captures/shared/mobile-playing-unfolded-390.png',
     });
 
     // Tap toggle button again to fold it back

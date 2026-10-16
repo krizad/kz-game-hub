@@ -1,16 +1,17 @@
 # KZ Game Hub — วิเคราะห์หลังแก้งานด่วนและเทียบเว็บบอร์ดเกมออนไลน์
 
-วันที่ตรวจ 13 ตุลาคม 2026 (Asia/Bangkok) · source baseline `cb019bae` บน `main` · Game Studio + REA
+> จัดระเบียบเอกสาร: นำไฟล์ภาพและหลักฐานประกอบเก่าออกแล้ว คงรายงานนี้ไว้เป็นประวัติผลตรวจ
+> วันที่ตรวจ 13 ตุลาคม 2026 (Asia/Bangkok) · source baseline `cb019bae` บน `main` · Game Studio + REA
 
 ข้อเสนอหลักคือทำให้ **กลุ่มเพื่อนเลือกเกม เข้าห้อง เข้าใจหน้าที่ เล่นบนมือถือ และเริ่มรอบถัดไปได้ต่อเนื่อง**. ใช้ BGA เป็นแบบอย่างการเรียนรู้/สถานะเทิร์น, Colonist เป็นแบบอย่างการจัดคำสั่ง/มือถือ, Codenames เป็นแบบอย่างชวนเพื่อน/ภาษา และ Gartic เป็นแบบอย่างจังหวะของปาร์ตี้. เก็บ theme สีสด ขอบดำ ภาษาไทย และ server-authoritative ของ KZ ไว้.
 
-งานด่วนก่อนหน้านี้แก้ Poker minimum raise/short all-in, Join/Coup overflow, มือไพ่ Slave 26 ใบ, Rules focus/Escape, test DB isolation และ Music preset/reconnect แล้ว. รายงานนี้เริ่มจากผลหลังแก้ ไม่ยกบั๊กเหล่านั้นมาเป็นงานใหม่. [ผลชุดด่วน](../qa/2026-10-13-urgent-fixes.md) · [แผนลงมือจาก benchmark](../superpowers/plans/2026-10-13-benchmark-adoption-plan.md)
+งานด่วนก่อนหน้านี้แก้ Poker minimum raise/short all-in, Join/Coup overflow, มือไพ่ Slave 26 ใบ, Rules focus/Escape, test DB isolation และ Music preset/reconnect แล้ว. รายงานนี้เริ่มจากผลหลังแก้ ไม่ยกบั๊กเหล่านั้นมาเป็นงานใหม่. [ผลชุดด่วน](../qa/2026-10-13-urgent-fixes.md) · แผนลงมือจาก benchmark (แผนเก่าเลิกใช้แล้ว)
 
 ## วิธีตรวจและระดับหลักฐาน
 
 - **SOURCE:** graphify query, architecture/ADR, shared lobby/store/gateway/services, views และ tests ของ 14 GameTypes. แยก Gobbler/Ultimate เป็นโหมด Tic-Tac-Toe, ป๊อกเด้ง/Slave เป็น Card Game และ Online/Ledger เป็น Poker ตามเดิม.
 - **RUNTIME:** Chromium 149, local Web3000/API3301, MySQL tmpfs สำหรับ tests เท่านั้น. เปิด Home TH/EN, Coup active ที่ 360/390/1280px, Detective Club setup, Who Am I HOST_INPUT, Saboteur active และ Gobbler lobby. ตรวจภาพ/geometry และทดลอง Escape ใน host-input modal.
-- **REA:** passive CDP inventory/DOM/accessibility/scripts metadata ของหน้า local ที่ระบุ; export 8 Evidence records. REA ไม่ได้คลิกหรือเปิดหน้าให้ การควบคุมมาจาก Playwright. ไม่มี raw credentials/cookies/storage values/Socket payload ใน REA bundle. [ขอบเขตและ Evidence IDs](../qa/benchmark-2026-10-13/README.md)
+- **REA:** passive CDP inventory/DOM/accessibility/scripts metadata ของหน้า local ที่ระบุ; export 8 Evidence records. REA ไม่ได้คลิกหรือเปิดหน้าให้ การควบคุมมาจาก Playwright. ไม่มี raw credentials/cookies/storage values/Socket payload ใน REA bundle. ขอบเขตและ Evidence IDs
 - **BENCHMARK:** หน้าเว็บทางการ, developer help/UX guides และรายงานจากผู้ให้บริการ; เปิดหน้าสาธารณะ BGA/Colonist/Codenames เก็บภาพ. ไม่สมัครบัญชี ไม่ลงเล่นเกมสาธารณะ ไม่อ้างว่าได้ตรวจ paid/account-only flows หรือทุกเกมของบริการเหล่านี้.
 - **PROPOSAL:** เป็นทางเลือกออกแบบ/เป้าหมายการทดสอบ แยกจากบั๊กที่เห็นจริง. ผู้ใช้ยืนยันแล้วว่าเน้น Thai-first private groups; ยังไม่มีผลจากกลุ่มผู้เล่นจริงหรือข้อมูล retention ของ KZ.
 
@@ -57,10 +58,10 @@ P1 = คำสั่งสำคัญ/ความต่อเนื่อง/�
 
 - B-01: [useGameStore.ts](../../apps/web/src/store/useGameStore.ts) L174–187 / L354–382.
 - B-02: [sounds-fishy.service.ts](../../apps/api/src/games/sounds-fishy/sounds-fishy.service.ts) L69–110; [who-am-i.service.ts](../../apps/api/src/games/who-am-i/who-am-i.service.ts) L152–191 / L283–298; [games.service.ts](../../apps/api/src/games/games.service.ts) L902–914 / L1027–1037.
-- B-03: [GobblerView.tsx](../../apps/web/src/components/games/gobbler/GobblerView.tsx) L175–187; [PlayingPhase.tsx](../../apps/web/src/components/games/detective-club/phases/PlayingPhase.tsx) L140–159; [SaboteurView.tsx](../../apps/web/src/components/games/saboteur/SaboteurView.tsx) L243–296. [REA accessibility](../qa/benchmark-2026-10-13/README.md).
+- B-03: [GobblerView.tsx](../../apps/web/src/components/games/gobbler/GobblerView.tsx) L175–187; [PlayingPhase.tsx](../../apps/web/src/components/games/detective-club/phases/PlayingPhase.tsx) L140–159; [SaboteurView.tsx](../../apps/web/src/components/games/saboteur/SaboteurView.tsx) L243–296. REA accessibility.
 - B-04: [MusicTriviaView.tsx](../../apps/web/src/components/games/music-trivia/MusicTriviaView.tsx) L491–523.
-- B-05: [LobbyStartButton.tsx](../../apps/web/src/components/lobby/LobbyStartButton.tsx) L128–190; [WhoAmIView.tsx](../../apps/web/src/components/games/who-am-i/WhoAmIView.tsx) L73–84 / L123–176 / L697–718. [ภาพ TH จริง](../qa/benchmark-2026-10-13/who-am-i-actual-th-360.png).
-- B-06/B-07: [GameViewManager.tsx](../../apps/web/src/components/lobby/GameViewManager.tsx), [GameStatusHeader.tsx](../../apps/web/src/components/games/GameStatusHeader.tsx); [Coup screenshot](../qa/benchmark-2026-10-13/coup-playing-360.png), [DC screenshot](../qa/benchmark-2026-10-13/detective-initial-360.png).
+- B-05: [LobbyStartButton.tsx](../../apps/web/src/components/lobby/LobbyStartButton.tsx) L128–190; [WhoAmIView.tsx](../../apps/web/src/components/games/who-am-i/WhoAmIView.tsx) L73–84 / L123–176 / L697–718. ภาพ TH จริง.
+- B-06/B-07: [GameViewManager.tsx](../../apps/web/src/components/lobby/GameViewManager.tsx), [GameStatusHeader.tsx](../../apps/web/src/components/games/GameStatusHeader.tsx); Coup screenshot, DC screenshot.
 - B-08/B-09: [games.service.ts](../../apps/api/src/games/games.service.ts) L149–259 / L379–394 / L586–603; [games.gateway.ts](../../apps/api/src/games/games.gateway.ts) L1549–1559 / L1933–2127.
 - B-10: [who-first.service.ts](../../apps/api/src/games/who-first/who-first.service.ts) L117–137; [WhoFirstView.tsx](../../apps/web/src/components/games/who-first/WhoFirstView.tsx) L24–36.
 - B-11: [leaderboard.service.ts](../../apps/api/src/games/leaderboard/leaderboard.service.ts) L13–36; [games.gateway.ts](../../apps/api/src/games/games.gateway.ts) L2135–2147.
@@ -102,22 +103,22 @@ Phase strip สั้น, board/hand เข้าถึงง่าย, inspect 
 
 ## แผนรายเกม
 
-| เกมและแผนเดิม                                                                    | งานถัดไปหลัง urgent fixes                                                         | เกณฑ์ที่ใช้รับงาน                                                                 |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [Who Know](../superpowers/plans/2026-10-13-who-know-improvements.md)             | lifecycle ปิด role card เมื่อ blur/ข้ามรอบ, reveal เหตุผลคะแนน                    | เปิดใหม่ต้องกดเองหลัง blur; ไม่มี word ปรากฏให้คนผิดบทบาท                         |
-| [Tic-Tac-Toe](../superpowers/plans/2026-10-13-tic-tac-toe-improvements.md)       | Gobbler keyboard, named cells, Ultimate next-board/touch preview                  | เล่นครบด้วย keyboard; 360px รู้ targetboard โดยไม่ hover                          |
-| [RPS](../superpowers/plans/2026-10-13-rps-improvements.md)                       | ชื่อตัวเลือกและ sealed/reveal; Round Robin คิวคนพัก                               | ตัวเลือก 3 ชื่ออ่านได้; resting player แยกจาก viewer                              |
-| [Sounds Fishy](../superpowers/plans/2026-10-13-sounds-fishy-improvements.md)     | async start guard/libraryerror, true/fake/picker prompts, ลดความถี่ typing events | emptyTHpool กับ DBfailure มีข้อความต่างกัน; race ไม่ start ซ้ำ                    |
-| [Detective Club](../superpowers/plans/2026-10-13-detective-club-improvements.md) | tap inspect/play, dialog focus, role/setup panels กระชับ                          | touch ไม่ต้อง hover; Tab/Escape/restore และคะแนนอธิบายได้                         |
-| [Who Am I](../superpowers/plans/2026-10-13-who-am-i-improvements.md)             | TH modal, required player IDs, preserve draft, asyncgeneration guard              | TH ไม่มี ข้อความอังกฤษ ตกหล่น; reject ยังมี draft; roster/remap ไม่หลุด           |
-| [Who First](../superpowers/plans/2026-10-13-who-first-improvements.md)           | GO แบบภาพ/ข้อความ/เสียง, display clock offset, timingcopy                         | muted/reducedmotion เล่นได้; clock±5s ไม่หลอก deadline                            |
-| [Music Trivia](../superpowers/plans/2026-10-13-music-trivia-improvements.md)     | media states/error/retry, การกด Ready, providerfeedback                           | จำลอง play rejection/404 เห็นปุ่มแก้; retry ไม่ reset รอบหรือเผย answer           |
-| [The Mind](../superpowers/plans/2026-10-13-the-mind-improvements.md)             | ready คนที่รอ, Extreme pilelabels, optional reveal skip                           | ผลอ่านได้เมื่อ skip; ไม่ให้ hint ลำดับไพ่เพื่อนระหว่างเกม                         |
-| [Saboteur](../superpowers/plans/2026-10-13-saboteur-improvements.md)             | board zoom/pan/named cells, action target prompt, รักษา selection                 | MAP/ROCKFALL/BREAK/REPAIR เป้าหมายต่างกันชัด; peek ยัง private                    |
-| [Coup](../superpowers/plans/2026-10-13-coup-improvements.md)                     | cost/claim/responsepreview, countdown, exchangeselectedstate                      | target/thirdparty สิทธิ์ตรง server; timer ไม่ reset หลัง reconnect                |
-| [Card Game](../superpowers/plans/2026-10-13-card-game-improvements.md)           | Slave sort/trickcompatibility/draft หลัง reject; ป๊อกเด้ง settlement              | ไพ่ selection ตรง stableid; ชิปก่อน/หลัง/ตัวคูณตรวจสอบได้                         |
-| [Banana Thief](../superpowers/plans/2026-10-13-banana-thief-improvements.md)     | readiness/audiofailure, visual wake cue ตามสิทธิ์, force-start confirmation       | muted/blocked เล่นได้; force-start บอกผลและคนไม่ ready                            |
-| [Poker](../superpowers/plans/2026-10-13-poker-improvements.md)                   | รายละเอียด pot/contribution/ผู้มีสิทธิ์, ยืนยันการแจก pot ใน ledgeration/receipt  | all-ins ที่ยอดไม่เท่ากัน/split/odd chips ถูก; award ไม่ทำซ้ำ; minraise เดิมคงผ่าน |
+| เกมและแผนเดิม                       | งานถัดไปหลัง urgent fixes                                                         | เกณฑ์ที่ใช้รับงาน                                                                 |
+| ----------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Who Know (แผนเก่าเลิกใช้แล้ว)       | lifecycle ปิด role card เมื่อ blur/ข้ามรอบ, reveal เหตุผลคะแนน                    | เปิดใหม่ต้องกดเองหลัง blur; ไม่มี word ปรากฏให้คนผิดบทบาท                         |
+| Tic-Tac-Toe (แผนเก่าเลิกใช้แล้ว)    | Gobbler keyboard, named cells, Ultimate next-board/touch preview                  | เล่นครบด้วย keyboard; 360px รู้ targetboard โดยไม่ hover                          |
+| RPS (แผนเก่าเลิกใช้แล้ว)            | ชื่อตัวเลือกและ sealed/reveal; Round Robin คิวคนพัก                               | ตัวเลือก 3 ชื่ออ่านได้; resting player แยกจาก viewer                              |
+| Sounds Fishy (แผนเก่าเลิกใช้แล้ว)   | async start guard/libraryerror, true/fake/picker prompts, ลดความถี่ typing events | emptyTHpool กับ DBfailure มีข้อความต่างกัน; race ไม่ start ซ้ำ                    |
+| Detective Club (แผนเก่าเลิกใช้แล้ว) | tap inspect/play, dialog focus, role/setup panels กระชับ                          | touch ไม่ต้อง hover; Tab/Escape/restore และคะแนนอธิบายได้                         |
+| Who Am I (แผนเก่าเลิกใช้แล้ว)       | TH modal, required player IDs, preserve draft, asyncgeneration guard              | TH ไม่มี ข้อความอังกฤษ ตกหล่น; reject ยังมี draft; roster/remap ไม่หลุด           |
+| Who First (แผนเก่าเลิกใช้แล้ว)      | GO แบบภาพ/ข้อความ/เสียง, display clock offset, timingcopy                         | muted/reducedmotion เล่นได้; clock±5s ไม่หลอก deadline                            |
+| Music Trivia (แผนเก่าเลิกใช้แล้ว)   | media states/error/retry, การกด Ready, providerfeedback                           | จำลอง play rejection/404 เห็นปุ่มแก้; retry ไม่ reset รอบหรือเผย answer           |
+| The Mind (แผนเก่าเลิกใช้แล้ว)       | ready คนที่รอ, Extreme pilelabels, optional reveal skip                           | ผลอ่านได้เมื่อ skip; ไม่ให้ hint ลำดับไพ่เพื่อนระหว่างเกม                         |
+| Saboteur (แผนเก่าเลิกใช้แล้ว)       | board zoom/pan/named cells, action target prompt, รักษา selection                 | MAP/ROCKFALL/BREAK/REPAIR เป้าหมายต่างกันชัด; peek ยัง private                    |
+| Coup (แผนเก่าเลิกใช้แล้ว)           | cost/claim/responsepreview, countdown, exchangeselectedstate                      | target/thirdparty สิทธิ์ตรง server; timer ไม่ reset หลัง reconnect                |
+| Card Game (แผนเก่าเลิกใช้แล้ว)      | Slave sort/trickcompatibility/draft หลัง reject; ป๊อกเด้ง settlement              | ไพ่ selection ตรง stableid; ชิปก่อน/หลัง/ตัวคูณตรวจสอบได้                         |
+| Banana Thief (แผนเก่าเลิกใช้แล้ว)   | readiness/audiofailure, visual wake cue ตามสิทธิ์, force-start confirmation       | muted/blocked เล่นได้; force-start บอกผลและคนไม่ ready                            |
+| Poker (แผนเก่าเลิกใช้แล้ว)          | รายละเอียด pot/contribution/ผู้มีสิทธิ์, ยืนยันการแจก pot ใน ledgeration/receipt  | all-ins ที่ยอดไม่เท่ากัน/split/odd chips ถูก; award ไม่ทำซ้ำ; minraise เดิมคงผ่าน |
 
 ## ลำดับที่แนะนำ
 

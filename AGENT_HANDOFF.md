@@ -8,7 +8,7 @@ Updated 2026-10-14. **User explicitly stopped work to conserve quota and request
 - Branch: `feature/private-friends-complete`; HEAD `62f1075068fd2556ebb4533ac870bdc5b4607015`.
 - Original checkout: `/Users/kridsadaintahson/Public/KriZad/Code/kz-game-hub`, branch `feature/private-friends-controls` at `9acd4e9b`, with pre-existing dirty Tic-Tac-Toe/dictionary edits. Preserve it. Do not reset, stash, overwrite, or implement there.
 - Main remains `cb019bae`. No new delivery merge/push/deployment performed.
-- Read applicable AGENTS.md/rules/CONTEXT, then `docs/superpowers/plans/2026-10-14-private-friends-first-five.md`, `.superpowers/sdd/2026-10-14-private-friends-first-five/ledger.md`, and `docs/qa/2026-10-14-private-friends-first-five.md`.
+- Read applicable AGENTS.md/rules/CONTEXT, then `docs/qa/2026-10-14-private-friends-first-five.md`. The old plan path is retired; consult the historical SDD ledger only if it exists in the referenced worktree.
 - Per-task briefs/reports/review packages are in that SDD directory. Keep it until final review and delivery are complete.
 
 ## Completed and reviewed — do not redo

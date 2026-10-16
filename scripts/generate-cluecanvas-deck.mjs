@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 // Original code-authored vector scenes. No external images, fonts or reference cards.
 const destination = fileURLToPath(
-  new URL('../docs/archive/cluecanvas-vector-deck/', import.meta.url),
+  new URL('./gen-image/output/cluecanvas-vector-deck/', import.meta.url),
 );
 mkdirSync(destination, { recursive: true });
 

@@ -45,11 +45,11 @@ test.describe('RPS Experience (TASK-RP-001)', () => {
     );
 
     // Capture English choices view across viewports
-    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/rps/1280-en.png' });
+    await p1.screenshot({ path: './test-results/qa-captures/rps/1280-en.png' });
     await p1.setViewportSize({ width: 390, height: 844 });
-    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/rps/390-en.png' });
+    await p1.screenshot({ path: './test-results/qa-captures/rps/390-en.png' });
     await p1.setViewportSize({ width: 360, height: 800 });
-    await p1.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/rps/360-en.png' });
+    await p1.screenshot({ path: './test-results/qa-captures/rps/360-en.png' });
 
     // 2. Test Thai localization on P2
     await p2.getByText('TH', { exact: true }).click();
@@ -65,11 +65,11 @@ test.describe('RPS Experience (TASK-RP-001)', () => {
 
     // Capture Thai choices view across viewports
     await p2.setViewportSize({ width: 360, height: 800 });
-    await p2.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/rps/360-th.png' });
+    await p2.screenshot({ path: './test-results/qa-captures/rps/360-th.png' });
     await p2.setViewportSize({ width: 390, height: 844 });
-    await p2.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/rps/390-th.png' });
+    await p2.screenshot({ path: './test-results/qa-captures/rps/390-th.png' });
     await p2.setViewportSize({ width: 1280, height: 900 });
-    await p2.screenshot({ path: '../../docs/qa/private-friends-2026-10-14/rps/1280-th.png' });
+    await p2.screenshot({ path: './test-results/qa-captures/rps/1280-th.png' });
 
     // 3. P1 locks in choice "ROCK"
     await p1.setViewportSize({ width: 1280, height: 900 });
@@ -166,15 +166,15 @@ test.describe('RPS Experience (TASK-RP-001)', () => {
 
     // Capture screenshots of Draw outcome across viewports
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/rps/outcome-1280-en.png',
+      path: './test-results/qa-captures/rps/outcome-1280-en.png',
     });
     await p1.setViewportSize({ width: 390, height: 844 });
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/rps/outcome-390-en.png',
+      path: './test-results/qa-captures/rps/outcome-390-en.png',
     });
     await p1.setViewportSize({ width: 360, height: 800 });
     await p1.screenshot({
-      path: '../../docs/qa/private-friends-2026-10-14/rps/outcome-360-en.png',
+      path: './test-results/qa-captures/rps/outcome-360-en.png',
     });
 
     // 5. Host advances to next round
