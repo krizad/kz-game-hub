@@ -90,6 +90,10 @@ let CoupService = class CoupService {
         return room;
     }
     remapSocketId(state, oldSocketId, newSocketId) {
+        if (state.finalHands?.[oldSocketId]) {
+            state.finalHands[newSocketId] = state.finalHands[oldSocketId];
+            delete state.finalHands[oldSocketId];
+        }
         if (state.currentTurn === oldSocketId)
             state.currentTurn = newSocketId;
         if (state.winnerId === oldSocketId)
@@ -143,6 +147,15 @@ let CoupService = class CoupService {
         else if (alive.length === 0) {
             state.phase = types_1.CoupPhase.RESULT;
             room.status = types_1.RoomStatus.RESULT;
+        }
+        if (state.phase === types_1.CoupPhase.RESULT) {
+            state.finalHands = Object.fromEntries(Object.entries(state.influences).map(([id, influence]) => [
+                id,
+                [
+                    ...influence.revealed,
+                    ...(this.privateStateService.get(room.code, id, 'coupHand') ?? []),
+                ],
+            ]));
         }
     }
     loseInfluence(room, state, targetId) {

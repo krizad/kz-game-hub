@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GamesService = void 0;
 const common_1 = require("@nestjs/common");
 const types_1 = require("@repo/types");
+const result_reveal_1 = require("./result-reveal");
 const uuid_1 = require("uuid");
 const who_know_service_1 = require("./who-know/who-know.service");
 const tic_tac_toe_service_1 = require("./tic-tac-toe/tic-tac-toe.service");
@@ -42,6 +43,10 @@ const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
+    resultRevealAction(code, socketId, payload) {
+        const room = this.rooms.get(code);
+        return room && (0, result_reveal_1.applyResultRevealAction)(room, socketId, payload) ? room : null;
+    }
     constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, dogRelayService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;

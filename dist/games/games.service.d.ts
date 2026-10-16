@@ -1,4 +1,4 @@
-import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DogRelayActionRequest, DogRelayPhase } from '@repo/types';
+import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DogRelayActionRequest, DogRelayPhase, ResultRevealActionPayload } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -68,6 +68,7 @@ export declare class GamesService {
     private readonly gameSettings;
     private readonly roomStartGuardService;
     private readonly actionReceiptService;
+    resultRevealAction(code: string, socketId: string, payload: ResultRevealActionPayload): RoomState | null;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;

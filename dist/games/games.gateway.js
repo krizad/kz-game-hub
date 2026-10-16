@@ -27,6 +27,7 @@ const action_receipt_service_1 = require("./action-receipt.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
 const dog_relay_results_1 = require("./dog-relay/dog-relay-results");
+const result_reveal_1 = require("./result-reveal");
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 let GamesGateway = GamesGateway_1 = class GamesGateway {
     constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
@@ -1358,6 +1359,13 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
         }
     }
+    handleResultRevealAction(data, client) {
+        if (!data || typeof data.code !== 'string' || typeof data.revealId !== 'string')
+            return;
+        const room = this.gamesService.resultRevealAction(data.code, client.id, data);
+        if (room)
+            this.broadcastRoomState(room);
+    }
     async handleLeaderboardGet(data, client) {
         const leaderboard = await this.leaderboardService.getLeaderboard(data?.gameType);
         client.emit(types_1.SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
@@ -1436,6 +1444,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.MUSIC_TRIVIA_SYNC_PLAY, syncPlay);
     }
     publicRoomView(room) {
+        (0, result_reveal_1.syncResultReveal)(room);
         if (room.gameType === types_1.GameType.COUP && room.coupState) {
             return {
                 ...room,
@@ -1794,6 +1803,11 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code))
             return false;
+        if (event === types_1.SOCKET_EVENTS.RESULT_REVEAL_ACTION) {
+            return (typeof data.revealId === 'string' &&
+                data.revealId.length <= 64 &&
+                (data.action === 'REVEAL' || data.action === 'SKIP'));
+        }
         if (data.requestId !== undefined &&
             (typeof data.requestId !== 'string' ||
                 data.requestId.length < 1 ||
@@ -2751,6 +2765,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleCipherReset", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.RESULT_REVEAL_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleResultRevealAction", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.LEADERBOARD_GET),
     __param(0, (0, websockets_1.MessageBody)()),

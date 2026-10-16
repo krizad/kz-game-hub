@@ -7,7 +7,7 @@ import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, ResultRevealActionPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -333,6 +333,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleCipherReset(data: {
         code: string;
     }, client: Socket): void;
+    handleResultRevealAction(data: ResultRevealActionPayload, client: Socket): void;
     handleLeaderboardGet(data: {
         gameType?: string;
     }, client: Socket): Promise<void>;

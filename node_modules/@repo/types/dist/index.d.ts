@@ -19,3 +19,4 @@ export * from './cipher-grid';
 export * from './dog-relay';
 export * from './dog-relay-cards';
 export * from './utils';
+export * from './result-reveal';
