@@ -10,6 +10,8 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 
 | id                          | game              | players | mode/config                                 | completion assertion           |
 | --------------------------- | ----------------- | ------- | ------------------------------------------- | ------------------------------ |
+| dog-relay-5p                | Who Barks         | 5       | DOG_RELAY ordered pair, GOOD wins           | Dog relay result modal         |
+| dog-relay-9p                | Who Barks         | 9       | DOG_RELAY text cards, GOOD wins             | Dog relay result modal         |
 | who-know-4p                 | Knowguise         | 4       | defaults (ROUND_ROBIN host)                 | Voting Results / winner banner |
 | who-know-random             | Knowguise         | 4       | host selection RANDOM                       | Voting Results / winner banner |
 | who-know-fixed              | Knowguise         | 4       | host selection FIXED                        | Voting Results / winner banner |
@@ -57,6 +59,9 @@ Design decisions for the current matrix live in `plan/2026-09-29-e2e-full-covera
 | card-pok-deng               | Thai Card Game    | 2       | POK_DENG                                    | RESULT panel                   |
 | card-pok-deng-timer         | Thai Card Game    | 2       | POK_DENG + 20s turn timer                   | RESULT panel                   |
 | card-slave                  | Thai Card Game    | 2       | SLAVE preset                                | RESULT panel                   |
+| poker-online                | Poker             | 2       | Heads-up Hold’em showdown                   | RESULT panel                   |
+| poker-ledger                | Poker             | 2       | Chips ledger mode                           | RESULT panel                   |
+| cipher-grid-4p              | Ciphergrid        | 4       | 4-player team deduction (Solar vs Lunar)    | Victory banner                 |
 
 † SoundCloud/YouTube entries are external: their live track lookups are
 network-flaky in headless runs. The iTunes-backed typing/GM entries were
