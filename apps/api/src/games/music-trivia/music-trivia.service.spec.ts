@@ -280,6 +280,31 @@ describe('MusicTriviaService', () => {
       // The round is kept intact for the history entry on NEXT_ROUND
       expect(result!.room.musicTriviaState!.currentRound).not.toBeNull();
     });
+
+    it('cancels the answer timer when the last eligible player submits a wrong answer and triggers REVEAL', async () => {
+      const room = createAnsweringRoom();
+      privateState.set(room.code, '__ROOM__', 'mtTrackAnswers', [
+        { id: 't1', title: 'Correct Title', artist: 'Correct Artist' },
+      ]);
+      room.musicTriviaState!.currentRound!.struckOutIds.push('player-3');
+
+      const result = await service.handleGameAction(room, 'player-2', {
+        type: 'SUBMIT_ANSWER',
+        answer: 'Totally Wrong',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.room.musicTriviaState!.phase).toBe('REVEAL');
+      expect(result!.timerCommands).toEqual([{ kind: 'CANCEL', name: 'music-trivia-answer' }]);
+    });
+
+    it('ignores stale answerTimeout callbacks once the round has resolved or advanced to COUNTDOWN', () => {
+      const room = createAnsweringRoom();
+      for (const phase of ['ANSWER_RESULT', 'REVEAL', 'GET_READY', 'COUNTDOWN', 'FINISHED'] as const) {
+        room.musicTriviaState!.phase = phase;
+        expect(service.answerTimeout(room)).toBeNull();
+      }
+    });
   });
 
   describe('configureSource', () => {

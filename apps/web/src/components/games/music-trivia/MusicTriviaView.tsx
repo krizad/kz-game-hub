@@ -52,14 +52,15 @@ export function MusicTriviaView() {
   useEffect(() => {
     if (state?.phase === 'COUNTDOWN' && state.countdownEndsAt) {
       const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((state.countdownEndsAt! - Date.now()) / 1000));
+        const serverNow = Date.now() + serverOffset;
+        const remaining = Math.max(0, Math.ceil((state.countdownEndsAt! - serverNow) / 1000));
         setCountdown(remaining);
       }, 100);
       return () => clearInterval(interval);
     } else {
       setCountdown(null);
     }
-  }, [state?.phase, state?.countdownEndsAt]);
+  }, [state?.phase, state?.countdownEndsAt, serverOffset]);
 
   // Auto-fetch tracks if we just started the game
   useEffect(() => {
@@ -119,22 +120,22 @@ export function MusicTriviaView() {
 
   const amICurrentBuzzer = state?.currentRound?.currentBuzzerId === socketId;
 
-  // Countdown timer for answering phase
+  // Countdown timer for answering phase (display-only; server decides timeout via answerTimeout)
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: NodeJS.Timeout | undefined;
 
     if (state?.phase === 'ANSWERING' && amICurrentBuzzer) {
-      const timeoutMs = room?.config.musicTriviaAnswerTimeoutMs || 15000;
-      const pausedAt = state.pausedAtMs || Date.now();
+      const timeoutMs =
+        state.answerTimeoutMs ?? room?.config.musicTriviaAnswerTimeoutMs ?? 15000;
+      const pausedAt = state.pausedAtMs ?? Date.now() + serverOffset;
+      const answerDeadline = pausedAt + timeoutMs;
 
       const checkTimer = () => {
-        const remaining = Math.max(0, timeoutMs - (Date.now() - pausedAt));
+        const serverNow = Date.now() + serverOffset;
+        const remaining = Math.max(0, answerDeadline - serverNow);
         setAnswerTimeLeft(Math.ceil(remaining / 1000));
 
-        if (remaining <= 0) {
-          musicTriviaGameAction({ type: 'SUBMIT_ANSWER', answer: '' });
-          setAnswerTimeLeft(null);
-        } else {
+        if (remaining > 0) {
           timer = setTimeout(checkTimer, 100);
         }
       };
@@ -148,10 +149,13 @@ export function MusicTriviaView() {
     };
   }, [
     state?.phase,
+    state?.currentRound?.roundNumber,
+    state?.currentRound?.currentBuzzerId,
     amICurrentBuzzer,
+    state?.answerTimeoutMs,
     room?.config.musicTriviaAnswerTimeoutMs,
     state?.pausedAtMs,
-    musicTriviaGameAction,
+    serverOffset,
   ]);
 
   if (!state) return null;
@@ -805,6 +809,7 @@ export function MusicTriviaView() {
                       {answerTimeLeft !== null && (
                         <div className="flex justify-center mt-4">
                           <p
+                            data-testid="music-answer-timer"
                             className={`text-3xl font-black border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${answerTimeLeft <= 5 ? 'bg-rose-400 text-black animate-pulse' : 'bg-white text-black'}`}
                           >
                             ⏳ {answerTimeLeft}s

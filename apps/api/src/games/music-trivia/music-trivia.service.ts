@@ -650,7 +650,7 @@ export class MusicTriviaService {
     if (this.allPlayersStruckOut(room)) {
       state.phase = 'REVEAL';
       this.setRevealedAnswer(room);
-      return { room };
+      return { room, timerCommands: [cancelAnswerTimerCommand()] };
     }
 
     state.phase = 'PLAYING';

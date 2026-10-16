@@ -556,4 +556,89 @@ test.describe('Music Trivia Experience & Playback Controls', () => {
       await guestContext.close();
     }
   });
+
+  test('answer countdown uses serverOffset under +20s/-20s clock skew and never auto-submits empty answer', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+    try {
+      await host.addInitScript(attachYTMock(), 'play');
+      await guest.addInitScript(attachYTMock(), 'play');
+      await startPreset(host, guest);
+
+      // Spy on guest outbound game_action events to ensure no empty SUBMIT_ANSWER is emitted automatically
+      await guest.evaluate(() => {
+        const store = (window as any).__useGameStore.getState();
+        const socket = store.socket;
+        const origEmit = socket.emit.bind(socket);
+        (window as any).__submittedAnswers = [];
+        socket.emit = (event: string, payload?: any, ...rest: any[]) => {
+          if (event === 'game_action' && payload?.action?.type === 'SUBMIT_ANSWER') {
+            (window as any).__submittedAnswers.push(payload.action.answer);
+          }
+          return origEmit(event, payload, ...rest);
+        };
+      });
+
+      // Simulate +20s fast client clock with matching serverOffset (-20000ms)
+      await guest.evaluate(() => {
+        const realNow = Date.now.bind(Date);
+        (window as any).__realDateNow = realNow;
+        (window as any).__clockSkewMs = 20000;
+        Date.now = () => realNow() + ((window as any).__clockSkewMs || 0);
+        (window as any).__useGameStore.setState({ serverOffset: -20000 });
+      });
+
+      // Guest buzzes in
+      await expect(guest.getByRole('button', { name: /BUZZ!$/ })).toBeVisible();
+      await guest.getByRole('button', { name: /BUZZ!$/ }).click();
+
+      // Guest stays in ANSWERING (not immediately struck out by +20s clock skew)
+      const timerEl = guest.getByTestId('music-answer-timer');
+      await expect(timerEl).toBeVisible();
+      const plus20Text = await timerEl.textContent();
+      const plus20Sec = Number(plus20Text?.replace(/[^\d-]/g, ''));
+      expect(plus20Sec).toBeGreaterThan(0);
+
+      // Simulate -20s slow client clock with matching serverOffset (+20000ms)
+      await guest.evaluate(() => {
+        (window as any).__clockSkewMs = -20000;
+        (window as any).__useGameStore.setState({ serverOffset: 20000 });
+      });
+      await guest.waitForTimeout(200);
+      const minus20Text = await timerEl.textContent();
+      const minus20Sec = Number(minus20Text?.replace(/[^\d-]/g, ''));
+      expect(minus20Sec).toBeGreaterThan(0);
+      expect(minus20Sec).toBeLessThanOrEqual(15);
+
+      // Even if local display reaches 0s (e.g., uncompensated skew before sync completes), client must NOT auto-submit empty answer
+      await guest.evaluate(() => {
+        (window as any).__clockSkewMs = 20000;
+        (window as any).__useGameStore.setState({ serverOffset: 0 });
+      });
+      await expect(timerEl).toContainText('0s');
+      const autoSubmitted = await guest.evaluate(() => (window as any).__submittedAnswers);
+      expect(autoSubmitted).toEqual([]);
+
+      // Restore serverOffset and verify guest can still submit an answer before server deadline
+      await guest.evaluate(() => {
+        (window as any).__clockSkewMs = 0;
+        (window as any).__useGameStore.setState({ serverOffset: 0 });
+      });
+      const input = guest.locator('input[type="text"]');
+      await expect(input).toBeVisible();
+      await input.fill('Test Guess');
+      await guest.getByRole('button', { name: /Submit Answer/i }).click();
+
+      const submittedAfterManual = await guest.evaluate(() => (window as any).__submittedAnswers);
+      expect(submittedAfterManual).toEqual(['Test Guess']);
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
 });
+
