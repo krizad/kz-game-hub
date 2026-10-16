@@ -1277,16 +1277,19 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
         gameSettingsStub() as never,
         artistPresetsStub() as never,
       );
-      const client = { emit: jest.fn() } as any;
+      const client = { emit: jest.fn() } as never;
 
       await gw.handleWhoAmIGetCategories({ lang: 'en', requestId: 'cat_req_1' }, client);
 
       expect(whoAmICategoriesList).toHaveBeenCalledWith('en');
-      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
-        categories: [{ name: 'Animals', count: 5 }],
-        lang: 'en',
-        requestId: 'cat_req_1',
-      });
+      expect((client as { emit: jest.Mock }).emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST,
+        {
+          categories: [{ name: 'Animals', count: 5 }],
+          lang: 'en',
+          requestId: 'cat_req_1',
+        },
+      );
     });
 
     it('emits correlated CATEGORIES_UNAVAILABLE error payload instead of empty success on failure', async () => {
@@ -1301,16 +1304,19 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
         gameSettingsStub() as never,
         artistPresetsStub() as never,
       );
-      const client = { emit: jest.fn() } as any;
+      const client = { emit: jest.fn() } as never;
 
       await gw.handleWhoAmIGetCategories({ lang: 'th', requestId: 'cat_req_err' }, client);
 
-      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
-        categories: [],
-        lang: 'th',
-        requestId: 'cat_req_err',
-        error: 'CATEGORIES_UNAVAILABLE',
-      });
+      expect((client as { emit: jest.Mock }).emit).toHaveBeenCalledWith(
+        SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST,
+        {
+          categories: [],
+          lang: 'th',
+          requestId: 'cat_req_err',
+          error: 'CATEGORIES_UNAVAILABLE',
+        },
+      );
     });
 
     it('validates requestId on WHO_AM_I_GET_CATEGORIES payload', () => {
@@ -1322,13 +1328,429 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
         gameSettingsStub() as never,
         artistPresetsStub() as never,
       );
-      const isValid = (gw as any).isValidPayload.bind(gw);
+      const isValid = (
+        gw as unknown as { isValidPayload: (event: string, payload: unknown) => boolean }
+      ).isValidPayload.bind(gw);
       expect(
         isValid(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang: 'en', requestId: 'cat_1' }),
       ).toBe(true);
       expect(isValid(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang: 'en', requestId: 123 })).toBe(
         false,
       );
+    });
+  });
+
+  describe('maybeRecordGameResult (result cycle scoring & dedupe)', () => {
+    let resultGateway: GamesGateway;
+    let mockLeaderboard: { recordGameResult: jest.Mock };
+
+    beforeEach(() => {
+      mockLeaderboard = {
+        recordGameResult: jest.fn(async () => undefined),
+      };
+      resultGateway = new GamesGateway(
+        {
+          getRoom: jest.fn(),
+          leaveRoom: jest.fn(),
+          getAvailableRooms: jest.fn(() => []),
+          musicTriviaCurrentHostAnswer: jest.fn(),
+        } as never,
+        mockLeaderboard as never,
+        { cancel: jest.fn(), schedule: jest.fn() } as never,
+        new PrivateStateService(),
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+      resultGateway.server = {
+        to: jest.fn(() => ({ emit: jest.fn() })),
+        emit: jest.fn(),
+      } as never;
+    });
+
+    function callRecord(room: RoomState) {
+      (
+        resultGateway as unknown as { maybeRecordGameResult: (r: RoomState) => void }
+      ).maybeRecordGameResult(room);
+    }
+
+    it('records incremental scores across consecutive RPS rounds instead of cumulative scores', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 1, roomId: 'r-rps', connected: true },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: [],
+          choices: { p1: 'ROCK', p2: 'SCISSORS' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 1, p2: 0 },
+          roundWinner: 'p1',
+        },
+      };
+
+      // Round 1 RESULT
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
+        GameType.RPS,
+        'RPS123',
+        [
+          { playerName: 'Alice', score: 1, rank: 1 },
+          { playerName: 'Bob', score: 0, rank: 2 },
+        ],
+      );
+
+      // Transition to PLAYING for round 2
+      room.status = RoomStatus.PLAYING;
+      callRecord(room);
+
+      // Round 2 RESULT: Alice wins again, cumulative score on player is now 2
+      room.status = RoomStatus.RESULT;
+      room.players[0].score = 2;
+      room.rpsState!.scores = { p1: 2, p2: 0 };
+      room.rpsState!.roundWinner = 'p1';
+      callRecord(room);
+
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
+        GameType.RPS,
+        'RPS123',
+        [
+          { playerName: 'Alice', score: 1, rank: 1 },
+          { playerName: 'Bob', score: 0, rank: 2 },
+        ],
+      );
+    });
+
+    it('deduplicates duplicate RESULT broadcasts without recording twice', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 1, roomId: 'r-rps', connected: true },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: [],
+          choices: { p1: 'ROCK', p2: 'SCISSORS' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 1, p2: 0 },
+          roundWinner: 'p1',
+        },
+      };
+
+      callRecord(room);
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not double record when a player reconnects with a new socketId during RESULT', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 1, roomId: 'r-rps', connected: true },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: [],
+          choices: { p1: 'ROCK', p2: 'SCISSORS' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 1, p2: 0 },
+          roundWinner: 'p1',
+        },
+      };
+
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+
+      // Reconnect Alice with new socketId p1-new
+      room.players[0].socketId = 'p1-new';
+      room.rpsState!.roundWinner = 'p1-new';
+      callRecord(room);
+
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+    });
+
+    it('preserves player baseline across socketId remap between rounds', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 1, roomId: 'r-rps', connected: true },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: [],
+          choices: { p1: 'ROCK', p2: 'SCISSORS' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 1, p2: 0 },
+          roundWinner: 'p1',
+        },
+      };
+
+      callRecord(room);
+
+      // Advance to PLAYING and reconnect Alice to p1-reconnected
+      room.status = RoomStatus.PLAYING;
+      room.players[0].socketId = 'p1-reconnected';
+      callRecord(room);
+
+      // Round 2 ends: Alice scores again (cumulative score 2)
+      room.status = RoomStatus.RESULT;
+      room.players[0].score = 2;
+      room.rpsState!.scores = { 'p1-reconnected': 2, p2: 0 };
+      room.rpsState!.roundWinner = 'p1-reconnected';
+      callRecord(room);
+
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
+        GameType.RPS,
+        'RPS123',
+        [
+          { playerName: 'Alice', score: 1, rank: 1 },
+          { playerName: 'Bob', score: 0, rank: 2 },
+        ],
+      );
+    });
+
+    it('assigns rank 2 and score 0 to all participants on a DRAW round (no rank 1)', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 0, roomId: 'r-rps', connected: true },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: [],
+          choices: { p1: 'ROCK', p2: 'ROCK' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 0, p2: 0 },
+          roundWinner: 'DRAW',
+        },
+      };
+
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledWith(
+        GameType.RPS,
+        'RPS123',
+        [
+          { playerName: 'Alice', score: 0, rank: 2 },
+          { playerName: 'Bob', score: 0, rank: 2 },
+        ],
+      );
+    });
+
+    it('ignores aborted/cancelled RESULT transitions', () => {
+      // RPS without roundWinner
+      const rpsAborted: RoomState = {
+        id: 'r-rps-aborted',
+        code: 'RPSAB1',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          {
+            id: 'u1',
+            socketId: 'p1',
+            name: 'Alice',
+            score: 0,
+            roomId: 'r-rps-aborted',
+            connected: true,
+          },
+        ],
+        rpsState: {
+          activePlayers: ['p1'],
+          queue: [],
+          choices: {},
+          choicesMade: [],
+          scores: {},
+          roundWinner: undefined,
+        },
+      };
+      callRecord(rpsAborted);
+      expect(mockLeaderboard.recordGameResult).not.toHaveBeenCalled();
+
+      // TicTacToe without winner
+      const tttAborted: RoomState = {
+        id: 'r-ttt-aborted',
+        code: 'TTTAB1',
+        gameType: GameType.TIC_TAC_TOE,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          {
+            id: 'u1',
+            socketId: 'p1',
+            name: 'Alice',
+            score: 0,
+            roomId: 'r-ttt-aborted',
+            connected: true,
+          },
+        ],
+        ticTacToeState: {
+          board: Array(9).fill(null),
+          currentTurn: 'X',
+          winner: undefined,
+        },
+      };
+      callRecord(tttAborted);
+      expect(mockLeaderboard.recordGameResult).not.toHaveBeenCalled();
+
+      // CardGame without result
+      const cardAborted: RoomState = {
+        id: 'r-card-aborted',
+        code: 'CRDAB1',
+        gameType: GameType.CARD_GAME,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          {
+            id: 'u1',
+            socketId: 'p1',
+            name: 'Alice',
+            score: 0,
+            roomId: 'r-card-aborted',
+            connected: true,
+          },
+        ],
+        cardGameState: {
+          preset: 'POK_DENG',
+          phase: 'RESULT',
+          dealerId: 'p1',
+          activePlayerId: null,
+          playerOrder: ['p1'],
+          handCounts: {},
+          chips: {},
+          decisions: {},
+        },
+      };
+      callRecord(cardAborted);
+      expect(mockLeaderboard.recordGameResult).not.toHaveBeenCalled();
+    });
+
+    it('resets score baselines when returning to LOBBY with reset scores', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 2, roomId: 'r-rps', connected: true },
+          { id: 'u2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1', 'p2'],
+          queue: [],
+          choices: { p1: 'ROCK', p2: 'SCISSORS' },
+          choicesMade: ['p1', 'p2'],
+          scores: { p1: 2, p2: 0 },
+          roundWinner: 'p1',
+        },
+      };
+
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+
+      // Reset to LOBBY with 0 scores
+      room.status = RoomStatus.LOBBY;
+      room.players[0].score = 0;
+      room.players[1].score = 0;
+      callRecord(room);
+
+      // Start new match, round 1: Alice scores 1
+      room.status = RoomStatus.RESULT;
+      room.players[0].score = 1;
+      room.rpsState!.scores = { p1: 1, p2: 0 };
+      room.rpsState!.roundWinner = 'p1';
+      callRecord(room);
+
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenLastCalledWith(
+        GameType.RPS,
+        'RPS123',
+        [
+          { playerName: 'Alice', score: 1, rank: 1 },
+          { playerName: 'Bob', score: 0, rank: 2 },
+        ],
+      );
+    });
+
+    it('cleans up room tracking on forgetRecordedResult', () => {
+      const room: RoomState = {
+        id: 'r-rps',
+        code: 'RPS123',
+        gameType: GameType.RPS,
+        status: RoomStatus.RESULT,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u1', socketId: 'p1', name: 'Alice', score: 1, roomId: 'r-rps', connected: true },
+        ],
+        rpsState: {
+          activePlayers: ['p1'],
+          queue: [],
+          choices: { p1: 'ROCK' },
+          choicesMade: ['p1'],
+          scores: { p1: 1 },
+          roundWinner: 'p1',
+        },
+      };
+
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(1);
+
+      (
+        resultGateway as unknown as { forgetRecordedResult: (code: string) => void }
+      ).forgetRecordedResult('RPS123');
+
+      // Now recording the same state will record again because tracked data was cleaned up
+      callRecord(room);
+      expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
     });
   });
 });

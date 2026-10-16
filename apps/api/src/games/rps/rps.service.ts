@@ -38,6 +38,7 @@ export class RPSService {
     room.rpsState.choicesMade = [];
     room.rpsState.scores = {};
     connectedIds.forEach((id) => (room.rpsState!.scores[id] = 0));
+    room.players.forEach((p) => (p.score = 0));
     room.rpsState.gameWinner = undefined;
     room.rpsState.roundWinner = undefined;
 
@@ -269,6 +270,7 @@ export class RPSService {
 
     room.rpsState.choices = {};
     room.rpsState.choicesMade = [];
+    room.rpsState.roundWinner = undefined;
     for (const id of room.rpsState.activePlayers) {
       this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
     }

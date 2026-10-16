@@ -306,5 +306,35 @@ describe('RPSService', () => {
       expect(result!.rpsState!.choices).toEqual({});
       expect(result!.players[0].score).toBe(0);
     });
+
+    it('maintains cumulative scores across rounds and resets all player scores on match reset', () => {
+      const room = createRoom();
+      service.assignRoles(room, 'p1');
+
+      // Round 1: p1 wins against p2
+      service.makeChoice(room, 'p1', 'ROCK');
+      service.makeChoice(room, 'p2', 'SCISSORS');
+      expect(room.status).toBe(RoomStatus.RESULT);
+      expect(room.players[0].score).toBe(1);
+      expect(room.players[1].score).toBe(0);
+
+      // Round 2: next round, p1 wins against p3
+      service.nextRound(room, 'p1');
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(room.rpsState!.roundWinner).toBeUndefined();
+      service.makeChoice(room, 'p1', 'ROCK');
+      service.makeChoice(room, 'p3', 'SCISSORS');
+      expect(room.status).toBe(RoomStatus.RESULT);
+      expect(room.players[0].score).toBe(2);
+      expect(room.players[1].score).toBe(0);
+      expect(room.players[2].score).toBe(0);
+
+      // Reset match: scores back to 0 in LOBBY
+      service.reset(room, 'p1');
+      expect(room.status).toBe(RoomStatus.LOBBY);
+      expect(room.players[0].score).toBe(0);
+      expect(room.players[1].score).toBe(0);
+      expect(room.players[2].score).toBe(0);
+    });
   });
 });

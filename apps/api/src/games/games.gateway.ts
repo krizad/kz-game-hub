@@ -69,7 +69,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   server: Server;
 
   private readonly logger = new Logger(GamesGateway.name);
-  private readonly recordedResults = new Set<string>();
+  private readonly recordedResults = new Map<string, string>();
+  private readonly recordedScoreBaselines = new Map<string, Map<string, number>>();
 
   constructor(
     private readonly gamesService: GamesService,
@@ -156,6 +157,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   private forgetRecordedResult(code: string): void {
     this.recordedResults.delete(code);
+    this.recordedScoreBaselines.delete(code);
     this.recordedDogRelayRounds.delete(code);
   }
 
@@ -2686,6 +2688,79 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     return false;
   }
 
+  private getResultPlayerKey(player: { name?: string }): string {
+    return (player.name ?? '').trim();
+  }
+
+  private isAbortedResultState(room: RoomState): boolean {
+    if (room.gameType === GameType.RPS && room.rpsState) {
+      return !room.rpsState.roundWinner;
+    }
+    if (
+      room.gameType === GameType.TIC_TAC_TOE &&
+      (room.ticTacToeState || room.gobblerState || room.ultimateTicTacToeState)
+    ) {
+      return (
+        !room.ticTacToeState?.winner &&
+        !room.gobblerState?.winner &&
+        !room.ultimateTicTacToeState?.winner
+      );
+    }
+    if (room.gameType === GameType.CARD_GAME && room.cardGameState) {
+      return !room.cardGameState.result;
+    }
+    return false;
+  }
+
+  private buildResultCycleKey(room: RoomState): string {
+    const playerSnapshot = room.players
+      .filter((p) => !p.isViewer && p.name && p.name.trim().length > 0)
+      .map((p) => `${p.name.trim()}:${p.score ?? 0}`)
+      .sort()
+      .join('|');
+    const roundNumber =
+      room.whoAmIState?.currentRound ??
+      room.musicTriviaState?.currentRound ??
+      room.whoFirstState?.currentRound ??
+      room.theMindState?.level ??
+      room.saboteurState?.round ??
+      room.cipherGridState?.round ??
+      room.pokerState?.handNumber ??
+      0;
+    return `${room.gameType}:${roundNumber}:${playerSnapshot}`;
+  }
+
+  private syncResultScoreBaselines(room: RoomState): void {
+    const baselines = this.recordedScoreBaselines.get(room.code);
+    if (!baselines) return;
+
+    if (
+      room.status === RoomStatus.LOBBY &&
+      room.players.every((p) => (p.score ?? 0) === 0)
+    ) {
+      this.recordedScoreBaselines.delete(room.code);
+      return;
+    }
+
+    const currentNames = new Set(
+      room.players
+        .filter((p) => p.name && p.name.trim().length > 0)
+        .map((p) => this.getResultPlayerKey(p)),
+    );
+
+    for (const [key, previousBaseline] of baselines.entries()) {
+      if (!currentNames.has(key)) {
+        baselines.delete(key);
+        continue;
+      }
+      const player = room.players.find((p) => this.getResultPlayerKey(p) === key);
+      const currentScore = player?.score ?? 0;
+      if (currentScore < previousBaseline) {
+        baselines.set(key, currentScore);
+      }
+    }
+  }
+
   private maybeRecordGameResult(room: RoomState) {
     if (room.gameType === GameType.DOG_RELAY) {
       const state = room.dogRelayState;
@@ -2699,22 +2774,78 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       );
       return;
     }
+
     if (room.status !== RoomStatus.RESULT) {
       this.recordedResults.delete(room.code);
+      this.syncResultScoreBaselines(room);
       return;
     }
-    if (this.recordedResults.has(room.code)) return;
-    this.recordedResults.add(room.code);
 
-    const results = [...room.players]
-      .filter((p) => p.name)
-      .sort((a, b) => b.score - a.score)
-      .map((p, idx) => ({
-        playerName: p.name,
-        score: p.score,
-        rank: idx + 1,
-      }));
+    if (this.isAbortedResultState(room)) {
+      return;
+    }
 
-    this.leaderboardService.recordGameResult(room.gameType, room.code, results);
+    const cycleKey = this.buildResultCycleKey(room);
+    if (this.recordedResults.get(room.code) === cycleKey) {
+      return;
+    }
+    this.recordedResults.set(room.code, cycleKey);
+
+    let baselines = this.recordedScoreBaselines.get(room.code);
+    if (!baselines) {
+      baselines = new Map<string, number>();
+      this.recordedScoreBaselines.set(room.code, baselines);
+    }
+
+    const activePlayers = room.players.filter(
+      (p) => !p.isViewer && p.name && p.name.trim().length > 0,
+    );
+
+    const totalCurrentScore = activePlayers.reduce((sum, p) => sum + (p.score ?? 0), 0);
+    let totalBaselineScore = 0;
+    for (const player of activePlayers) {
+      const key = this.getResultPlayerKey(player);
+      totalBaselineScore += baselines.get(key) ?? 0;
+    }
+    const resetBaselines = totalCurrentScore < totalBaselineScore;
+
+    const scoredPlayers = activePlayers
+      .map((p) => {
+        const key = this.getResultPlayerKey(p);
+        const currentScore = p.score ?? 0;
+        const previousBaseline = resetBaselines ? 0 : (baselines.get(key) ?? 0);
+        const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;
+        const score = Math.max(0, currentScore - effectiveBaseline);
+        baselines.set(key, currentScore);
+        return {
+          playerName: p.name,
+          score,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (scoredPlayers.length === 0) return;
+
+    const topScore = scoredPlayers[0].score;
+    let currentRank = 1;
+    const results = scoredPlayers.map((entry, idx) => {
+      if (topScore <= 0) {
+        return {
+          playerName: entry.playerName,
+          score: entry.score,
+          rank: 2,
+        };
+      }
+      if (idx > 0 && entry.score < scoredPlayers[idx - 1].score) {
+        currentRank = idx + 1;
+      }
+      return {
+        playerName: entry.playerName,
+        score: entry.score,
+        rank: currentRank,
+      };
+    });
+
+    void this.leaderboardService.recordGameResult(room.gameType, room.code, results);
   }
 }
