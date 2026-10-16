@@ -1,4 +1,4 @@
-import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction } from '@repo/types';
+import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DogRelayActionRequest, DogRelayPhase } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -22,6 +22,7 @@ import { GameSettingsService } from './game-settings.service';
 import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
+import { DogRelayService } from './dog-relay/dog-relay.service';
 import { CipherTeam, CipherRole, CipherClueCount } from '@repo/types';
 export type LeaveRoomResult = {
     outcome: 'ROOM_CLOSED';
@@ -63,6 +64,7 @@ export declare class GamesService {
     private readonly cardGameService;
     private readonly pokerService;
     private readonly cipherGridService;
+    private readonly dogRelayService;
     private readonly gameSettings;
     private readonly roomStartGuardService;
     private readonly actionReceiptService;
@@ -71,7 +73,7 @@ export declare class GamesService {
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, cipherGridService: CipherGridService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, cipherGridService: CipherGridService, dogRelayService: DogRelayService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
@@ -87,6 +89,7 @@ export declare class GamesService {
     private removeExpiredPlayer;
     private scheduleReconnectGrace;
     private removePlayerFromRoom;
+    private promoteDogRelayViewers;
     private runDisconnectHooks;
     private transferHost;
     deleteRoom(code: string): void;
@@ -120,6 +123,8 @@ export declare class GamesService {
     submitVote(code: string, voterId: string, targetId: string): RoomState | null;
     resetGame(code: string, requesterId: string): RoomState | null;
     getSecretWord(code: string): string | undefined;
+    dogRelayAction(code: string, socketId: string, request: DogRelayActionRequest): RoomState;
+    dogRelayPhaseDeadline(code: string, roundId: string, phase: DogRelayPhase, deadline: number): RoomState | null;
     cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null;
     resolveCardGameAutoAction(code: string): {
         playerId: string;

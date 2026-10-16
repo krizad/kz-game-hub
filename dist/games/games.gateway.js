@@ -26,6 +26,7 @@ const artist_preset_service_1 = require("./artist-preset.service");
 const action_receipt_service_1 = require("./action-receipt.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
 const types_1 = require("@repo/types");
+const dog_relay_results_1 = require("./dog-relay/dog-relay-results");
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 let GamesGateway = GamesGateway_1 = class GamesGateway {
     constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
@@ -38,6 +39,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.actionReceiptService = actionReceiptService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
+        this.recordedDogRelayRounds = new Map();
     }
     afterInit() {
         this.gamesService.setRoomLifecycleListener((event) => {
@@ -97,6 +99,60 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     forgetRecordedResult(code) {
         this.recordedResults.delete(code);
+        this.recordedDogRelayRounds.delete(code);
+    }
+    handleDogRelayAction(input, client) {
+        if (!input || typeof input !== 'object')
+            return;
+        const data = input;
+        if (typeof data.code !== 'string' ||
+            !this.actionReceiptService.isValidRequestId(data.requestId)) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_INVALID_ACTION' });
+            return;
+        }
+        const code = data.code.toUpperCase();
+        const room = this.gamesService.getRoom(code);
+        const player = room?.players.find((candidate) => candidate.socketId === client.id);
+        if (!room || room.gameType !== types_1.GameType.DOG_RELAY || !player || player.isViewer) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_NOT_PLAYER' });
+            return;
+        }
+        const cache = this.actionReceiptService.check(code, player.id, types_1.SOCKET_EVENTS.DOG_RELAY_ACTION, data.requestId, data);
+        if (cache.kind !== 'MISS') {
+            client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, cache.receipt);
+            return;
+        }
+        const receipt = {
+            code,
+            requestId: data.requestId,
+            event: types_1.SOCKET_EVENTS.DOG_RELAY_ACTION,
+            status: 'accepted',
+            serverNow: Date.now(),
+        };
+        try {
+            if (!data.action || typeof data.action !== 'object' || typeof data.action.type !== 'string') {
+                throw new Error('DOG_RELAY_INVALID_ACTION');
+            }
+            this.gamesService.dogRelayAction(code, client.id, data);
+        }
+        catch (error) {
+            receipt.status = 'rejected';
+            receipt.reason =
+                error instanceof Error && /^DOG_RELAY_[A-Z_]+$/.test(error.message)
+                    ? error.message
+                    : 'DOG_RELAY_INVALID_ACTION';
+        }
+        this.actionReceiptService.record(code, player.id, types_1.SOCKET_EVENTS.DOG_RELAY_ACTION, data.requestId, data, receipt);
+        client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+        if (receipt.status === 'accepted') {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
+            client.emit(types_1.SOCKET_EVENTS.PRIVATE_STATE_UPDATED, {
+                data: this.privateStateService.getSocketData(code, client.id),
+            });
+        }
     }
     handleGetAvailableRooms(client) {
         client.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
@@ -244,6 +300,13 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const name = data.name.trim();
         const isSeatedMember = !!data.reconnectToken &&
             this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken, name);
+        if (!isSeatedMember &&
+            targetRoom.gameType === types_1.GameType.DOG_RELAY &&
+            targetRoom.status === types_1.RoomStatus.LOBBY &&
+            targetRoom.players.filter((player) => !player.isViewer).length >= types_1.DOG_RELAY_MAX_PLAYERS) {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_ROOM_FULL' });
+            return;
+        }
         if (!isSeatedMember &&
             targetRoom.status !== types_1.RoomStatus.LOBBY &&
             targetRoom.config?.allowSpectators === false) {
@@ -405,6 +468,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room) {
             for (const timerName of [
                 'who-know',
+                'dog-relay-phase',
                 'the-mind',
                 'who-first',
                 'saboteur',
@@ -1298,6 +1362,8 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
         }
         this.maybeRecordGameResult(room);
+        if (room.gameType === types_1.GameType.DOG_RELAY)
+            this.syncDogRelayTimer(room);
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             this.revealSecretWordIfResult(room);
         }
@@ -1320,6 +1386,23 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.CIPHER_GRID) {
             this.syncCipherGridTimer(room);
         }
+    }
+    syncDogRelayTimer(room) {
+        const state = room.dogRelayState;
+        if (!state ||
+            state.pause ||
+            !state.roundId ||
+            state.phaseEndsAt === null ||
+            (state.phase !== 'DISCUSS' && state.phase !== 'VOTE_COUNTDOWN')) {
+            this.roomTimerService.cancel(room.code, 'dog-relay-phase');
+            return;
+        }
+        const { roundId, phase, phaseEndsAt } = state;
+        this.roomTimerService.schedule(room.code, 'dog-relay-phase', phaseEndsAt, () => {
+            const updated = this.gamesService.dogRelayPhaseDeadline(room.code, roundId, phase, phaseEndsAt);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
     }
     emitMusicTriviaSyncPlay(code, client) {
         const syncPlay = this.gamesService.musicTriviaCurrentSyncPlay(code);
@@ -1807,6 +1890,16 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         return false;
     }
     maybeRecordGameResult(room) {
+        if (room.gameType === types_1.GameType.DOG_RELAY) {
+            const state = room.dogRelayState;
+            if (room.status !== types_1.RoomStatus.RESULT || !state?.result || !state.roundId)
+                return;
+            if (this.recordedDogRelayRounds.get(room.code) === state.roundId)
+                return;
+            this.recordedDogRelayRounds.set(room.code, state.roundId);
+            void this.leaderboardService.recordGameResult(room.gameType, room.code, (0, dog_relay_results_1.buildDogRelayResultRows)(room));
+            return;
+        }
         if (room.status !== types_1.RoomStatus.RESULT) {
             this.recordedResults.delete(room.code);
             return;
@@ -1837,6 +1930,14 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleLeaveRoom", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.DOG_RELAY_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleDogRelayAction", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS),
     __param(0, (0, websockets_1.ConnectedSocket)()),

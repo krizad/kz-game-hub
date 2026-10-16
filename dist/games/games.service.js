@@ -39,9 +39,10 @@ const action_receipt_service_1 = require("./action-receipt.service");
 const card_engine_service_1 = require("./card-game/card-engine.service");
 const presets_1 = require("./card-game/presets");
 const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
+const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, dogRelayService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -62,6 +63,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.cardGameService = cardGameService;
         this.pokerService = pokerService;
         this.cipherGridService = cipherGridService;
+        this.dogRelayService = dogRelayService;
         this.gameSettings = gameSettings;
         this.roomStartGuardService = roomStartGuardService;
         this.actionReceiptService = actionReceiptService;
@@ -227,6 +229,10 @@ let GamesService = GamesService_1 = class GamesService {
             room.config.cipherGridTurnSeconds = 0;
             room.cipherGridState = this.cipherGridService.createInitialState();
         }
+        else if (gameType === types_1.GameType.DOG_RELAY) {
+            room.config.dogRelayLeaderSelection ??= 'RANDOM';
+            this.dogRelayService.initLobby(room);
+        }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
@@ -317,9 +323,17 @@ let GamesService = GamesService_1 = class GamesService {
                 this.cipherGridService.remapSocketId(room.cipherGridState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
+            if (room.gameType === types_1.GameType.DOG_RELAY) {
+                this.dogRelayService.onReconnect(room, existingPlayer.id, Date.now());
+                this.dogRelayService.refreshPrivateStates(room);
+            }
             this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
         }
         else {
+            if (room.gameType === types_1.GameType.DOG_RELAY &&
+                room.status === types_1.RoomStatus.LOBBY &&
+                room.players.filter((player) => !player.isViewer).length >= types_1.DOG_RELAY_MAX_PLAYERS)
+                return null;
             const usedColors = new Set(room.players.map((p) => p.color));
             const availableColors = types_1.PLAYER_COLORS.filter((c) => !usedColors.has(c));
             const color = availableColors.length > 0
@@ -345,6 +359,9 @@ let GamesService = GamesService_1 = class GamesService {
             }
             this.playerSessionService.issue(code, newPlayer.id, user.socketId);
         }
+        if (room.gameType === types_1.GameType.DOG_RELAY && room.status === types_1.RoomStatus.LOBBY) {
+            this.dogRelayService.initLobby(room);
+        }
         this.rooms.set(code, room);
         return room;
     }
@@ -368,9 +385,11 @@ let GamesService = GamesService_1 = class GamesService {
             }
             else {
                 const dropped = room.players[playerIndex];
-                dropped.connected = false;
-                this.scheduleReconnectGrace(code, dropped.id);
-                this.runDisconnectHooks(code, room, clientId);
+                if (dropped.connected !== false) {
+                    dropped.connected = false;
+                    this.scheduleReconnectGrace(code, dropped.id);
+                    this.runDisconnectHooks(code, room, clientId);
+                }
             }
             if (isHost && !explicitLeave) {
                 this.transferHost(room, clientId);
@@ -402,9 +421,16 @@ let GamesService = GamesService_1 = class GamesService {
         this.roomLifecycleListener?.({ type: 'ROOM_STATE_UPDATED', room });
     }
     scheduleReconnectGrace(code, playerId) {
-        this.roomTimerService.schedule(code, `${RECONNECT_GRACE_TIMER}:${playerId}`, Date.now() + GamesService_1.RECONNECT_GRACE_MS, () => this.removeExpiredPlayer(code, playerId));
+        this.roomTimerService.schedule(code, `${RECONNECT_GRACE_TIMER}:${playerId}`, Date.now() +
+            (this.rooms.get(code)?.gameType === types_1.GameType.DOG_RELAY
+                ? types_1.DOG_RELAY_RECONNECT_MS
+                : GamesService_1.RECONNECT_GRACE_MS), () => this.removeExpiredPlayer(code, playerId));
     }
     removePlayerFromRoom(code, room, playerIndex) {
+        const removedPlayer = room.players[playerIndex];
+        if (room.gameType === types_1.GameType.DOG_RELAY) {
+            this.dogRelayService.onRemoved(room, removedPlayer.id, removedPlayer.connected === false ? 'RECONNECT_EXPIRED' : 'PLAYER_LEFT');
+        }
         const [player] = room.players.splice(playerIndex, 1);
         this.playerSessionService.revokePlayer(code, player.id);
         this.privateStateService.clearSocket(code, player.socketId);
@@ -451,8 +477,26 @@ let GamesService = GamesService_1 = class GamesService {
             this.pokerService.handlePlayerDisconnect(room, player.socketId);
         }
         this.runDisconnectHooks(code, room, player.socketId);
+        if (room.gameType === types_1.GameType.DOG_RELAY && room.status === types_1.RoomStatus.LOBBY) {
+            this.promoteDogRelayViewers(room);
+        }
+    }
+    promoteDogRelayViewers(room) {
+        let activeCount = room.players.filter((player) => !player.isViewer).length;
+        for (const player of room.players) {
+            if (player.isViewer && player.connected !== false && activeCount < types_1.DOG_RELAY_MAX_PLAYERS) {
+                delete player.isViewer;
+                activeCount++;
+            }
+        }
+        this.dogRelayService.initLobby(room);
     }
     runDisconnectHooks(code, room, socketId) {
+        if (room.gameType === types_1.GameType.DOG_RELAY) {
+            const player = room.players.find((candidate) => candidate.socketId === socketId);
+            if (player)
+                this.dogRelayService.onDisconnect(room, player.id, Date.now());
+        }
         if (room.gameType === types_1.GameType.WHO_KNOW && room.status === types_1.RoomStatus.VOTING) {
             this.whoKnowService.checkVoteResolution(room);
         }
@@ -480,7 +524,8 @@ let GamesService = GamesService_1 = class GamesService {
     }
     transferHost(room, formerHostSocketId) {
         const candidates = room.players.filter((p) => p.connected !== false && p.socketId !== formerHostSocketId && p.socketId !== types_1.BOT_SOCKET_ID);
-        const nextHost = candidates.find((p) => !p.isViewer) ?? candidates[0];
+        const nextHost = candidates.find((p) => !p.isViewer) ??
+            (room.gameType === types_1.GameType.DOG_RELAY ? undefined : candidates[0]);
         if (!nextHost)
             return;
         room.roomHostId = nextHost.socketId;
@@ -662,6 +707,7 @@ let GamesService = GamesService_1 = class GamesService {
             }
         };
         copyEnum('hostSelection', ['ROUND_ROBIN', 'RANDOM', 'FIXED']);
+        copyEnum('dogRelayLeaderSelection', ['RANDOM', 'ROUND_ROBIN']);
         copyInteger('timerMin', 1, 60);
         copyInteger('rpsBestOf', 1, 9);
         copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
@@ -841,6 +887,24 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.cipherGridService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.DOG_RELAY) {
+            if (room.status !== types_1.RoomStatus.LOBBY)
+                return null;
+            const player = room.players.find((candidate) => candidate.socketId === requesterId);
+            if (!player)
+                return null;
+            try {
+                this.dogRelayService.startRound(room, player.id);
+                return { room, roles: {} };
+            }
+            catch (error) {
+                return {
+                    room,
+                    roles: {},
+                    error: error instanceof Error ? error.message : 'DOG_RELAY_INVALID_ACTION',
+                };
+            }
+        }
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
         }
@@ -889,6 +953,13 @@ let GamesService = GamesService_1 = class GamesService {
         const room = this.rooms.get(code);
         if (!room)
             return null;
+        if (room.gameType === types_1.GameType.DOG_RELAY) {
+            if (room.roomHostId !== requesterId)
+                return null;
+            this.dogRelayService.cancelRound(room, 'HOST_RESET');
+            this.promoteDogRelayViewers(room);
+            return room;
+        }
         if (room.gameType === types_1.GameType.CARD_GAME) {
             if (room.roomHostId !== requesterId)
                 return null;
@@ -945,6 +1016,38 @@ let GamesService = GamesService_1 = class GamesService {
     }
     getSecretWord(code) {
         return this.secretWords.get(code);
+    }
+    dogRelayAction(code, socketId, request) {
+        const room = this.rooms.get(code);
+        const player = room?.players.find((candidate) => candidate.socketId === socketId);
+        if (!room ||
+            room.gameType !== types_1.GameType.DOG_RELAY ||
+            !player ||
+            player.isViewer ||
+            player.connected === false) {
+            throw new Error('DOG_RELAY_NOT_PLAYER');
+        }
+        const state = room.dogRelayState;
+        if (!state || request.roundId !== state.roundId)
+            throw new Error('DOG_RELAY_STALE_ROUND');
+        const concurrent = request.action.type === 'ACK_ROLE' || request.action.type === 'SUBMIT_VOTE';
+        if (!Number.isInteger(request.expectedRevision) ||
+            request.expectedRevision < 0 ||
+            (!concurrent && request.expectedRevision !== state.revision)) {
+            throw new Error('DOG_RELAY_STALE_REVISION');
+        }
+        this.dogRelayService.act(room, player.id, request.action, Date.now());
+        if (room.status === types_1.RoomStatus.LOBBY)
+            this.promoteDogRelayViewers(room);
+        return room;
+    }
+    dogRelayPhaseDeadline(code, roundId, phase, deadline) {
+        const room = this.rooms.get(code);
+        if (!room || room.gameType !== types_1.GameType.DOG_RELAY)
+            return null;
+        return this.dogRelayService.onPhaseDeadline(room, roundId, phase, deadline, Date.now())
+            ? room
+            : null;
     }
     cardGameAction(code, clientId, action) {
         if (this.rejectViewer(code, clientId))
@@ -1473,6 +1576,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         card_game_service_1.CardGameService,
         poker_service_1.PokerService,
         cipher_grid_service_1.CipherGridService,
+        dog_relay_service_1.DogRelayService,
         game_settings_service_1.GameSettingsService,
         room_start_guard_service_1.RoomStartGuardService,
         action_receipt_service_1.ActionReceiptService])

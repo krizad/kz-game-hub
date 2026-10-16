@@ -26,6 +26,8 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleLeaveRoom(client: Socket): void;
     private handleLeaveResult;
     private forgetRecordedResult;
+    private readonly recordedDogRelayRounds;
+    handleDogRelayAction(input: unknown, client: Socket): void;
     handleGetAvailableRooms(client: Socket): void;
     handleGetGameSettings(client: Socket): void;
     handleServerTimeRequest(client: Socket, data: ServerTimeRequestPayload): void;
@@ -337,6 +339,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         name: string;
     }, client: Socket): void;
     private broadcastRoomState;
+    private syncDogRelayTimer;
     private emitMusicTriviaSyncPlay;
     private publicRoomView;
     private revealSecretWordIfResult;
