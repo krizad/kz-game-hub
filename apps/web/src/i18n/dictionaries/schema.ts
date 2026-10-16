@@ -753,6 +753,9 @@ export interface Dictionary {
       modePlayer: string;
       modeAi: string;
       category: string;
+      loadingCategories: string;
+      categoriesError: string;
+      retryCategories: string;
       noCategories: string;
       selectCategory: string;
       notSelected: string;

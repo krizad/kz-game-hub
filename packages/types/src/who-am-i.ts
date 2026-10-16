@@ -9,6 +9,18 @@ export interface WordCategory {
   count: number;
 }
 
+export interface WhoAmIGetCategoriesPayload {
+  lang?: string;
+  requestId?: string;
+}
+
+export interface WhoAmICategoriesResponsePayload {
+  categories: WordCategory[];
+  lang?: string;
+  requestId?: string;
+  error?: string;
+}
+
 export interface WhoAmIGameState {
   currentTurn: string; // socketId of the active player
   currentGuess: string | null; // The question/guess the active player is asking

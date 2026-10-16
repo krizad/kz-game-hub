@@ -2158,5 +2158,19 @@ describe('GamesService', () => {
         expect(roomStartGuardService.isCurrent(ticket, room)).toBe(false);
       }
     });
+
+    it('clears WHO_AM_I wordCategory when room language changes in RANDOM mode', () => {
+      const room = service.createRoom('host1', GameType.WHO_AM_I, {
+        language: 'th',
+        wordMode: 'RANDOM',
+        wordCategory: 'สัตว์',
+      });
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+
+      const updated = service.updateConfig(room.code, 'host1', { language: 'en' });
+      expect(updated?.config.language).toBe('en');
+      expect(updated?.config.wordCategory).toBe('');
+    });
   });
 });
+

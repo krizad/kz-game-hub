@@ -1,14 +1,65 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 export function WhoAmISettings() {
-  const { room, categories, getCategoriesWhoAmI } = useGameStore();
+  const {
+    room,
+    socketId,
+    connected,
+    categories,
+    categoriesLoading,
+    categoriesError,
+    categoriesLang,
+    getCategoriesWhoAmI,
+    updateConfig,
+  } = useGameStore();
   const { t, language } = useTranslate();
 
-  if (room?.gameType !== 'WHO_AM_I') return null;
+  const isWhoAmI = room?.gameType === 'WHO_AM_I';
+  const isHost = Boolean(room && socketId === room.roomHostId);
+  const wordMode = room?.config.wordMode;
+  const roomLanguage = room?.config.language || language;
+  const wordCategory = room?.config.wordCategory || '';
+
+  useEffect(() => {
+    if (!isWhoAmI || !room?.code || wordMode !== 'RANDOM' || !connected) return;
+    getCategoriesWhoAmI(roomLanguage);
+  }, [isWhoAmI, room?.code, wordMode, roomLanguage, connected, socketId, getCategoriesWhoAmI]);
+
+  useEffect(() => {
+    if (
+      !isWhoAmI ||
+      !isHost ||
+      wordMode !== 'RANDOM' ||
+      categoriesLoading ||
+      categoriesError ||
+      categoriesLang !== roomLanguage ||
+      !wordCategory
+    ) {
+      return;
+    }
+    const isValidCategory = categories.some((cat) => cat.name === wordCategory);
+    if (!isValidCategory) {
+      updateConfig({ wordCategory: '' });
+    }
+  }, [
+    isWhoAmI,
+    isHost,
+    wordMode,
+    categoriesLoading,
+    categoriesError,
+    categoriesLang,
+    roomLanguage,
+    wordCategory,
+    categories,
+    updateConfig,
+  ]);
+
+  if (!isWhoAmI || !room) return null;
 
   const getWordModeLabel = (mode: string | undefined) => {
     switch (mode) {
@@ -24,7 +75,8 @@ export function WhoAmISettings() {
     }
   };
 
-  const isHost = useGameStore.getState().socketId === room.roomHostId;
+  const isCategoriesPending =
+    categoriesLoading || (categoriesLang !== roomLanguage && !categoriesError);
 
   return (
     <>
@@ -36,7 +88,7 @@ export function WhoAmISettings() {
           <div className="flex items-center gap-4">
             <button
               onClick={() =>
-                useGameStore.getState().updateConfig({
+                updateConfig({
                   maxRounds: Math.max(1, (room.config.maxRounds || 3) - 1),
                 })
               }
@@ -49,7 +101,7 @@ export function WhoAmISettings() {
             </span>
             <button
               onClick={() =>
-                useGameStore.getState().updateConfig({
+                updateConfig({
                   maxRounds: Math.min(20, (room.config.maxRounds || 3) + 1),
                 })
               }
@@ -80,9 +132,9 @@ export function WhoAmISettings() {
             ]}
             onChange={(val) => {
               const mode = val as 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT' | 'AI_GENERATED';
-              useGameStore.getState().updateConfig({ wordMode: mode });
-              if (mode === 'RANDOM') {
-                getCategoriesWhoAmI(language);
+              updateConfig({ wordMode: mode });
+              if (mode === 'RANDOM' && wordMode === 'RANDOM') {
+                getCategoriesWhoAmI(roomLanguage);
               }
             }}
             className="bg-cyan-300 hover:bg-cyan-400"
@@ -103,10 +155,30 @@ export function WhoAmISettings() {
                 {room.config.wordCategory || t('gameWhoAmI.lobby.notSelected')}
               </div>
             )}
-            {isHost && categories.length === 0 && (
-              <p className="text-black font-bold italic">{t('gameWhoAmI.lobby.noCategories')}</p>
+            {isHost && isCategoriesPending && (
+              <p className="text-black font-bold italic" data-testid="whoami-categories-loading">
+                {t('gameWhoAmI.lobby.loadingCategories')}
+              </p>
             )}
-            {isHost && categories.length > 0 && (
+            {isHost && !isCategoriesPending && categoriesError && (
+              <div className="flex flex-col gap-2" data-testid="whoami-categories-error">
+                <p className="text-red-600 font-bold">{t('gameWhoAmI.lobby.categoriesError')}</p>
+                <button
+                  type="button"
+                  onClick={() => getCategoriesWhoAmI(roomLanguage)}
+                  className="self-start px-4 py-2 bg-yellow-300 border-4 border-black font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
+                  data-testid="whoami-categories-retry"
+                >
+                  {t('gameWhoAmI.lobby.retryCategories')}
+                </button>
+              </div>
+            )}
+            {isHost && !isCategoriesPending && !categoriesError && categories.length === 0 && (
+              <p className="text-black font-bold italic" data-testid="whoami-categories-empty">
+                {t('gameWhoAmI.lobby.noCategories')}
+              </p>
+            )}
+            {isHost && !isCategoriesPending && !categoriesError && categories.length > 0 && (
               <NeobrutalismSelect
                 value={room.config.wordCategory || ''}
                 options={[
@@ -116,7 +188,7 @@ export function WhoAmISettings() {
                     label: `${cat.name} (${cat.count})`,
                   })),
                 ]}
-                onChange={(val) => useGameStore.getState().updateConfig({ wordCategory: val })}
+                onChange={(val) => updateConfig({ wordCategory: val })}
                 className="bg-pink-300 hover:bg-pink-400"
               />
             )}

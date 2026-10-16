@@ -738,6 +738,15 @@ export class GamesService {
     ) {
       this.switchTicTacToeMode(room, safeConfig.ticTacToeMode);
     }
+    if (
+      room.gameType === GameType.WHO_AM_I &&
+      (safeConfig.wordMode ?? room.config.wordMode) === 'RANDOM' &&
+      safeConfig.language &&
+      safeConfig.language !== room.config.language &&
+      safeConfig.wordCategory === undefined
+    ) {
+      room.config.wordCategory = '';
+    }
     room.config = { ...room.config, ...safeConfig };
     if (clearArtistPreset) {
       delete room.config.musicTriviaArtistPresetId;

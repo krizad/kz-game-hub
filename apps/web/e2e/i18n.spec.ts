@@ -61,8 +61,13 @@ test('creating a room after selecting English sets initial room.config.language 
   await page.locator('button:has-text("Who Am I?")').first().click();
 
   await expect(page.getByText('Room Host:')).toBeVisible({ timeout: 15000 });
-  // The English language toggle button inside WhoAmISettings is active from the very first room state
-  const enBtn = page.getByRole('button', { name: /English/i });
-  await expect(enBtn).toHaveClass(/bg-emerald-300/);
+  const enBtn = page.getByRole('button', { name: 'EN', exact: true });
+  await expect(enBtn).toHaveClass(/bg-indigo-600/);
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as any).__useGameStore.getState().room?.config?.language),
+    )
+    .toBe('en');
 });
+
 

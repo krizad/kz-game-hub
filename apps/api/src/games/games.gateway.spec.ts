@@ -1265,4 +1265,72 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       expect(getLastPrivateData('p1')).toEqual({ theMindHand: [12, 44] });
     });
   });
+
+  describe('handleWhoAmIGetCategories', () => {
+    it('returns correlated categories payload when requestId is supplied', async () => {
+      const whoAmICategoriesList = jest.fn().mockResolvedValueOnce([{ name: 'Animals', count: 5 }]);
+      const gw = new GamesGateway(
+        { whoAmICategoriesList } as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+      const client = { emit: jest.fn() } as any;
+
+      await gw.handleWhoAmIGetCategories({ lang: 'en', requestId: 'cat_req_1' }, client);
+
+      expect(whoAmICategoriesList).toHaveBeenCalledWith('en');
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
+        categories: [{ name: 'Animals', count: 5 }],
+        lang: 'en',
+        requestId: 'cat_req_1',
+      });
+    });
+
+    it('emits correlated CATEGORIES_UNAVAILABLE error payload instead of empty success on failure', async () => {
+      const whoAmICategoriesList = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('DB connection failed'));
+      const gw = new GamesGateway(
+        { whoAmICategoriesList } as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+      const client = { emit: jest.fn() } as any;
+
+      await gw.handleWhoAmIGetCategories({ lang: 'th', requestId: 'cat_req_err' }, client);
+
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
+        categories: [],
+        lang: 'th',
+        requestId: 'cat_req_err',
+        error: 'CATEGORIES_UNAVAILABLE',
+      });
+    });
+
+    it('validates requestId on WHO_AM_I_GET_CATEGORIES payload', () => {
+      const gw = new GamesGateway(
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+      const isValid = (gw as any).isValidPayload.bind(gw);
+      expect(
+        isValid(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang: 'en', requestId: 'cat_1' }),
+      ).toBe(true);
+      expect(isValid(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang: 'en', requestId: 123 })).toBe(
+        false,
+      );
+    });
+  });
 });
+
+

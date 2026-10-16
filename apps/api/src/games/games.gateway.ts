@@ -1481,11 +1481,32 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   @SubscribeMessage(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES)
   async handleWhoAmIGetCategories(
-    @MessageBody() data: { lang?: string },
+    @MessageBody() data: { lang?: string; requestId?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const categories = await this.gamesService.whoAmICategoriesList(data?.lang);
-    client.emit(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
+    try {
+      const categories = await this.gamesService.whoAmICategoriesList(data?.lang);
+      if (data?.requestId !== undefined) {
+        client.emit(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
+          categories,
+          lang: data?.lang,
+          requestId: data.requestId,
+        });
+      } else {
+        client.emit(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
+      }
+    } catch {
+      if (data?.requestId !== undefined) {
+        client.emit(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
+          categories: [],
+          lang: data?.lang,
+          requestId: data.requestId,
+          error: 'CATEGORIES_UNAVAILABLE',
+        });
+      } else {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'CATEGORIES_UNAVAILABLE' });
+      }
+    }
   }
 
   @SubscribeMessage(SOCKET_EVENTS.GAME_ACTION)
@@ -2476,7 +2497,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       return data.gameType === undefined || typeof data.gameType === 'string';
     }
     if (event === SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
-      return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
+      return (
+        (data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10)) &&
+        (data.requestId === undefined ||
+          (typeof data.requestId === 'string' &&
+            data.requestId.length >= 1 &&
+            data.requestId.length <= 64))
+      );
     }
     if (event === SOCKET_EVENTS.SERVER_TIME_REQUEST) {
       return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);

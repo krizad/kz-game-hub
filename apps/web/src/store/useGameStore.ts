@@ -34,6 +34,7 @@ import {
   ServerTimeResponsePayload,
   CipherAssignTeamPayload,
   CipherClueCount,
+  WhoAmICategoriesResponsePayload,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -84,6 +85,9 @@ interface GameState {
   gameSettings: GameSettingsMap;
   artistPresets: ArtistPresetSummary[];
   categories: WordCategory[];
+  categoriesLoading: boolean;
+  categoriesError: string | null;
+  categoriesLang: string | null;
   isLoading: boolean;
   gameStartError: string | null;
   clearGameStartError: () => void;
@@ -204,6 +208,11 @@ export const useGameStore = create<GameState>((set, get) => {
   let bestRtt = Infinity;
   let stagedDogRelay: DogRelayPrivateState | null = null;
   const seenDogRelayRounds = new Set<string>();
+  let latestCategoriesRequest: {
+    requestId: string;
+    lang: string;
+    roomCode: string | null;
+  } | null = null;
 
   const clearAllActionTimeouts = () => {
     actionTimeouts.forEach((timeout) => {
@@ -284,6 +293,7 @@ export const useGameStore = create<GameState>((set, get) => {
   const clearRoomSession = () => {
     stagedDogRelay = null;
     seenDogRelayRounds.clear();
+    latestCategoriesRequest = null;
     clearAllActionTimeouts();
     set({
       room: null,
@@ -294,6 +304,10 @@ export const useGameStore = create<GameState>((set, get) => {
       playerId: '',
       pendingActions: {},
       actionLoading: false,
+      categories: [],
+      categoriesLoading: false,
+      categoriesError: null,
+      categoriesLang: null,
     });
   };
 
@@ -322,6 +336,9 @@ export const useGameStore = create<GameState>((set, get) => {
     gameSettings: {},
     artistPresets: [],
     categories: [],
+    categoriesLoading: false,
+    categoriesError: null,
+    categoriesLang: null,
 
     isLoading: false,
     gameStartError: null,
@@ -514,6 +531,25 @@ export const useGameStore = create<GameState>((set, get) => {
         // If we're not in the room's player list, ignore this update
         // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
         if (!isMe && !get().isSpectator) return;
+        const prevRoom = get().room;
+        const nextRoomLang = room.config?.language;
+        if (
+          (prevRoom && prevRoom.code !== room.code) ||
+          (get().categoriesLang && nextRoomLang && get().categoriesLang !== nextRoomLang)
+        ) {
+          const isRequestInFlightForNext =
+            latestCategoriesRequest?.roomCode === room.code &&
+            latestCategoriesRequest?.lang === nextRoomLang;
+          if (!isRequestInFlightForNext) {
+            latestCategoriesRequest = null;
+          }
+          set({
+            categories: [],
+            categoriesLoading: isRequestInFlightForNext,
+            categoriesError: null,
+            categoriesLang: null,
+          });
+        }
         set({ connectionStatus: 'connected' });
         if (room.gameType === GameType.DOG_RELAY) {
           const roundId = room.dogRelayState?.roundId;
@@ -671,9 +707,68 @@ export const useGameStore = create<GameState>((set, get) => {
         set({ secretWord: word });
       });
 
-      socket.on(SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, (categories: WordCategory[]) => {
-        set({ categories });
-      });
+      socket.on(
+        SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST,
+        (payload: WordCategory[] | WhoAmICategoriesResponsePayload) => {
+          const currentRoom = get().room;
+          const currentRoomLang = currentRoom?.config?.language;
+          if (Array.isArray(payload)) {
+            if (latestCategoriesRequest) {
+              if (
+                latestCategoriesRequest.roomCode &&
+                currentRoom?.code !== latestCategoriesRequest.roomCode
+              ) {
+                return;
+              }
+              if (currentRoomLang && latestCategoriesRequest.lang !== currentRoomLang) {
+                return;
+              }
+            }
+            set({
+              categories: payload,
+              categoriesLoading: false,
+              categoriesError: null,
+              categoriesLang: latestCategoriesRequest?.lang ?? currentRoomLang ?? null,
+            });
+            return;
+          }
+
+          if (!payload || typeof payload !== 'object') return;
+          if (payload.requestId) {
+            if (
+              !latestCategoriesRequest ||
+              payload.requestId !== latestCategoriesRequest.requestId
+            ) {
+              return;
+            }
+          }
+          if (
+            latestCategoriesRequest?.roomCode &&
+            currentRoom?.code !== latestCategoriesRequest.roomCode
+          ) {
+            return;
+          }
+          const responseLang = payload.lang ?? latestCategoriesRequest?.lang ?? null;
+          if (responseLang && currentRoomLang && responseLang !== currentRoomLang) {
+            return;
+          }
+          if (payload.error) {
+            set({
+              categories: [],
+              categoriesLoading: false,
+              categoriesError: payload.error,
+              categoriesLang: responseLang,
+            });
+            return;
+          }
+          set({
+            categories: Array.isArray(payload.categories) ? payload.categories : [],
+            categoriesLoading: false,
+            categoriesError: null,
+            categoriesLang: responseLang,
+          });
+        },
+      );
 
       socket.on(SOCKET_EVENTS.MUSIC_TRIVIA_HOST_ANSWER, (answer: MusicTriviaHostAnswerPayload) => {
         set({ musicTriviaHostAnswer: answer });
@@ -681,6 +776,13 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on(SOCKET_EVENTS.ERROR, ({ message }: { message: string }) => {
         let redirectedFromMissingInviteRoom = false;
+        if (message === 'CATEGORIES_UNAVAILABLE') {
+          set({
+            categories: [],
+            categoriesLoading: false,
+            categoriesError: message,
+          });
+        }
         if (message === 'SPECTATORS_DISABLED' && pendingSpectatorJoin) {
           set({ isSpectator: pendingSpectatorJoin.previousIsSpectator });
           pendingSpectatorJoin = null;
@@ -800,6 +902,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
     updateConfig: (config: UpdateConfigPayload, cardGameConfig?: Partial<CardGameConfig>) => {
       emitGameAction(SOCKET_EVENTS.UPDATE_CONFIG, {
+        loading: false,
         payload: () => ({ config, ...(cardGameConfig ? { cardGameConfig } : {}) }),
       });
     },
@@ -933,10 +1036,24 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     getCategoriesWhoAmI: (lang?: string) => {
-      const { socket } = get();
-      if (socket) {
-        socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, { lang });
-      }
+      const { socket, room, categoriesLang } = get();
+      if (!socket) return;
+      const resolvedLang = lang || room?.config?.language || useI18nStore.getState().language;
+      const requestId = `cat_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      latestCategoriesRequest = {
+        requestId,
+        lang: resolvedLang,
+        roomCode: room?.code ?? null,
+      };
+      set({
+        categoriesLoading: true,
+        categoriesError: null,
+        ...(categoriesLang !== resolvedLang ? { categories: [], categoriesLang: null } : {}),
+      });
+      socket.emit(SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES, {
+        lang: resolvedLang,
+        requestId,
+      });
     },
 
     gameActionWhoAmI: (action: { type: GameActionType } & Record<string, unknown>) => {

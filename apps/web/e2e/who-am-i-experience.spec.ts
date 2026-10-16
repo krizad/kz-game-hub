@@ -546,4 +546,159 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
     await p2Ctx.close();
     await p3Ctx.close();
   });
+
+  test('Auto-loads RANDOM categories on room entry, handles error/retry, ignores stale language responses, and reloads on reconnect', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+
+    await goToLobby(page);
+    await page.locator('#lobbyNameInput').fill('HostCat');
+
+    // Intercept WHO_AM_I_GET_CATEGORIES on the client socket to test loading, error/retry, and out-of-order responses deterministically
+    await page.evaluate(() => {
+      const store = (window as any).__useGameStore.getState();
+      const socket = store.socket;
+      const origEmit = socket.emit.bind(socket);
+      (window as any).__catRequests = [];
+      (window as any).__catMode = 'delay';
+      socket.emit = (event: string, payload?: any, ...rest: any[]) => {
+        if (event === 'who_am_i_get_categories') {
+          (window as any).__catRequests.push(payload);
+          const mode = (window as any).__catMode;
+          if (mode === 'delay') {
+            return socket;
+          }
+          if (mode === 'error') {
+            setTimeout(() => {
+              socket.listeners('who_am_i_categories_list').forEach((fn: any) =>
+                fn({
+                  categories: [],
+                  lang: payload?.lang,
+                  requestId: payload?.requestId,
+                  error: 'CATEGORIES_UNAVAILABLE',
+                }),
+              );
+            }, 20);
+            return socket;
+          }
+          if (mode === 'mock-success') {
+            const cats =
+              payload?.lang === 'en'
+                ? [{ name: 'Animals', count: 5 }]
+                : [{ name: 'สัตว์', count: 5 }];
+            setTimeout(() => {
+              socket.listeners('who_am_i_categories_list').forEach((fn: any) =>
+                fn({
+                  categories: cats,
+                  lang: payload?.lang,
+                  requestId: payload?.requestId,
+                }),
+              );
+            }, 20);
+            return socket;
+          }
+        }
+        return origEmit(event, payload, ...rest);
+      };
+    });
+
+    await page.locator('button:has-text("ฉันคือใคร")').first().click();
+
+    // 1. Entering RANDOM room automatically requests categories for 'th' and shows loading (not empty)
+    await expect(page.getByTestId('whoami-categories-loading')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('whoami-categories-empty')).toBeHidden();
+    const initialReqs = await page.evaluate(() => (window as any).__catRequests);
+    expect(initialReqs.length).toBeGreaterThanOrEqual(1);
+    expect(initialReqs[0].lang).toBe('th');
+    expect(initialReqs[0].requestId).toBeTruthy();
+
+    // 2. Simulate error response -> shows error + retry button (not empty state)
+    await page.evaluate(() => {
+      const socket = (window as any).__useGameStore.getState().socket;
+      const lastReq = (window as any).__catRequests.at(-1);
+      socket.listeners('who_am_i_categories_list').forEach((fn: any) =>
+        fn({
+          categories: [],
+          lang: lastReq.lang,
+          requestId: lastReq.requestId,
+          error: 'CATEGORIES_UNAVAILABLE',
+        }),
+      );
+    });
+    await expect(page.getByTestId('whoami-categories-error')).toBeVisible();
+    await expect(page.getByTestId('whoami-categories-empty')).toBeHidden();
+
+    // 3. Retry loads Thai categories and allows selecting a category
+    await page.evaluate(() => {
+      (window as any).__catMode = 'mock-success';
+    });
+    await page.getByTestId('whoami-categories-retry').click();
+    await expect(page.getByRole('button', { name: /สัตว์ \(5\)|เลือกหมวดหมู่/ })).toBeVisible({
+      timeout: 5000,
+    });
+
+    // Select 'สัตว์' category
+    await page
+      .getByRole('button', { name: /เลือกหมวดหมู่/ })
+      .first()
+      .click();
+    await page
+      .getByRole('button', { name: 'สัตว์ (5)' })
+      .last()
+      .click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as any).__useGameStore.getState().room?.config?.wordCategory),
+      )
+      .toBe('สัตว์');
+
+    // 4. Switch language to English while holding response, then deliver stale 'th' response after 'en' response
+    await page.evaluate(() => {
+      (window as any).__catMode = 'delay';
+    });
+    const staleThReq = await page.evaluate(() => (window as any).__catRequests.at(-1));
+    await switchToEnglish(page);
+
+    // Server clears incompatible wordCategory when language changes
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as any).__useGameStore.getState().room?.config?.wordCategory),
+      )
+      .toBe('');
+
+    const enReq = await page.evaluate(() => (window as any).__catRequests.at(-1));
+    expect(enReq.lang).toBe('en');
+
+    // Deliver 'en' response first, then stale 'th' response out of order
+    await page.evaluate(
+      ({ enReq, staleThReq }) => {
+        const socket = (window as any).__useGameStore.getState().socket;
+        socket.listeners('who_am_i_categories_list').forEach((fn: any) =>
+          fn({
+            categories: [{ name: 'Animals', count: 5 }],
+            lang: 'en',
+            requestId: enReq.requestId,
+          }),
+        );
+        socket.listeners('who_am_i_categories_list').forEach((fn: any) =>
+          fn({
+            categories: [{ name: 'สัตว์เก่า', count: 99 }],
+            lang: 'th',
+            requestId: staleThReq.requestId,
+          }),
+        );
+      },
+      { enReq, staleThReq },
+    );
+
+    const currentCategories = await page.evaluate(
+      () => (window as any).__useGameStore.getState().categories,
+    );
+    expect(currentCategories).toEqual([{ name: 'Animals', count: 5 }]);
+
+    await ctx.close();
+  });
 });
+
