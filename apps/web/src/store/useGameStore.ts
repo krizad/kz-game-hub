@@ -738,10 +738,14 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
       if (socket) {
+        const language = config?.language ?? useI18nStore.getState().language;
         socket.emit(SOCKET_EVENTS.CREATE_ROOM, {
           name: myName,
           gameType,
-          ...(config ? { config } : {}),
+          config: {
+            ...config,
+            language,
+          },
         });
       }
     },

@@ -446,6 +446,19 @@ describe('GamesService', () => {
       const room = service.createRoom('host1');
       expect(service.getRoom(room.code)).toBe(room);
     });
+
+    it('should use initialConfig.language when provided and default to th otherwise', () => {
+      const defaultRoom = service.createRoom('host1', GameType.WHO_AM_I);
+      expect(defaultRoom.config.language).toBe('th');
+
+      const englishRoom = service.createRoom('host2', GameType.WHO_AM_I, {
+        language: 'en',
+        timerMin: 10,
+      });
+      expect(englishRoom.config.language).toBe('en');
+      expect(englishRoom.config.timerMin).toBe(10);
+      expect(englishRoom.config.wordMode).toBe('RANDOM');
+    });
   });
 
   describe('findRoomCodeBySocketId', () => {

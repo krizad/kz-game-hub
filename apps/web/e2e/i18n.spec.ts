@@ -52,3 +52,17 @@ test('goToLobbyInEnglish helper leaves the lobby in English', async ({ page }) =
   await expect(page.locator('button:has-text("Banana Thief")').first()).toBeVisible();
   await expect(page.locator('button:has-text("ลิงขโมยกล้วย")')).toHaveCount(0);
 });
+
+test('creating a room after selecting English sets initial room.config.language to en', async ({
+  page,
+}) => {
+  await goToLobbyInEnglish(page);
+  await page.fill('input[placeholder*="Enter your nickname" i]', 'AliceEN');
+  await page.locator('button:has-text("Who Am I?")').first().click();
+
+  await expect(page.getByText('Room Host:')).toBeVisible({ timeout: 15000 });
+  // The English language toggle button inside WhoAmISettings is active from the very first room state
+  const enBtn = page.getByRole('button', { name: /English/i });
+  await expect(enBtn).toHaveClass(/bg-emerald-300/);
+});
+
