@@ -123,8 +123,9 @@ describe('CipherGridService', () => {
       expect(state().teams['l-lead']).toBe('LUNAR');
     });
 
-    it('randomizes into two teams with one lead each', () => {
+    it('randomizes into two teams with one lead each and rejects non-host', () => {
       service.startGame(room, 's-lead');
+      expect(service.randomizeTeams(room, 's-track').error).toBe('HOST_ONLY');
       service.randomizeTeams(room, 's-lead');
       const teams = Object.values(state().teams);
       expect(teams.filter((t) => t === 'SOLAR')).toHaveLength(2);
@@ -133,12 +134,19 @@ describe('CipherGridService', () => {
       expect(state().cipherLeads.LUNAR).toBeDefined();
     });
 
-    it('refuses to start without a lead and tracker on each team', () => {
+    it('refuses to start without a lead and tracker on each team or when called by non-host', () => {
       service.startGame(room, 's-lead');
       service.assignTeam(room, 's-lead', 'SOLAR', 'CIPHER_LEAD');
       service.assignTeam(room, 's-track', 'SOLAR');
       service.assignTeam(room, 'l-lead', 'LUNAR', 'CIPHER_LEAD');
+      expect(service.startMatch(room, 's-track').error).toBe('HOST_ONLY');
       expect(service.startMatch(room, 's-lead').error).toBe('TEAM_NEEDS_TRACKER');
+
+      // After host rotation, the new roomHostId can start the match
+      service.assignTeam(room, 'l-track', 'LUNAR');
+      room.roomHostId = 's-track';
+      expect(service.startMatch(room, 's-lead').error).toBe('HOST_ONLY');
+      expect(service.startMatch(room, 's-track').error).toBeUndefined();
     });
 
     it('deals 25 words and a 9-8-7-1 key to the starting team', () => {

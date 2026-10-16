@@ -26,7 +26,7 @@ export function CipherGridView() {
   }, []);
 
   const state = room?.cipherGridState;
-  const isHost = room?.hostPlayerId === socketId;
+  const isHost = Boolean(socketId && room?.roomHostId === socketId);
 
   // Resolve teams and roles
   const myTeam = (state?.teams && socketId ? state.teams[socketId] : null) as CipherTeam | null;

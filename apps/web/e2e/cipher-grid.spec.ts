@@ -48,8 +48,25 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
       timeout: 10000,
     });
 
-    // Host cannot start match before both teams have 1 Lead and >= 1 Tracker
+    // Host sees randomize and start buttons; non-hosts do not
+    const randomizeBtn = p1.locator('[data-testid="randomize-teams-btn"]');
     const startMatchBtn = p1.locator('[data-testid="start-match-btn"]');
+    await expect(randomizeBtn).toBeVisible();
+    await expect(startMatchBtn).toBeVisible();
+    await expect(startMatchBtn).toBeDisabled();
+
+    for (const guest of [p2, p3, p4]) {
+      await expect(guest.locator('[data-testid="randomize-teams-btn"]')).toHaveCount(0);
+      await expect(guest.locator('[data-testid="start-match-btn"]')).toHaveCount(0);
+    }
+
+    // Host reconnects in TEAM_SETUP and retains host controls on new socketId
+    await p1.reload();
+    await expect(p1.locator('[data-testid="ciphergrid-team-setup"]')).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(randomizeBtn).toBeVisible();
+    await expect(startMatchBtn).toBeVisible();
     await expect(startMatchBtn).toBeDisabled();
 
     // Assign roles:
@@ -69,8 +86,9 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
     await p4.locator('[data-testid="join-lunar-tracker-btn"]').click();
     await p4.waitForTimeout(400);
 
-    // Now start match button should be enabled
+    // Now start match button should be enabled for host only
     await expect(startMatchBtn).toBeEnabled({ timeout: 5000 });
+    await expect(p2.locator('[data-testid="start-match-btn"]')).toHaveCount(0);
     await startMatchBtn.click();
 
     // 5. Board Grid & Active Game Phase
@@ -166,6 +184,43 @@ test.describe('Ciphergrid (สายลับคำใบ้) E2E Playtest', () 
     });
     // Still 25 cards
     await expect(p2.locator('[data-testid^="card-tile-"]')).toHaveCount(25);
+
+    // 13. Finish round (reveal VIRUS if not already ended) and verify host-only next-round-btn
+    const phaseNow = await p1.evaluate(
+      () => (window as any).__useGameStore.getState().room?.cipherGridState?.phase,
+    );
+    if (phaseNow !== 'ROUND_END') {
+      const currentTeam = await p1.evaluate(
+        () => (window as any).__useGameStore.getState().room?.cipherGridState?.currentTeam,
+      );
+      const leadPage = currentTeam === 'SOLAR' ? p1 : p3;
+      const trackerPage = currentTeam === 'SOLAR' ? p2 : p4;
+      if (phaseNow === 'CLUE_GIVING') {
+        await leadPage.locator('[data-testid="clue-word-input"]').fill('FINALCLUE');
+        await leadPage.locator('[data-testid="give-clue-btn"]').click();
+      }
+      const virusIndex = await p1.evaluate(() => {
+        const keycard = (window as any).__useGameStore.getState().privateState
+          ?.cipherGridKeycard as string[] | undefined;
+        return keycard ? keycard.indexOf('VIRUS') : -1;
+      });
+      if (virusIndex >= 0) {
+        await trackerPage.locator(`[data-testid="card-tile-${virusIndex}"]`).click();
+        await trackerPage.locator('[data-testid="reveal-card-btn"]').click();
+      }
+    }
+
+    await expect(p1.locator('[data-testid="next-round-btn"]')).toBeVisible({ timeout: 10000 });
+    await expect(p1.locator('[data-testid="reset-to-lobby-btn"]')).toBeVisible();
+    for (const guest of [p2, p3, p4]) {
+      await expect(guest.locator('[data-testid="next-round-btn"]')).toHaveCount(0);
+      await expect(guest.locator('[data-testid="reset-to-lobby-btn"]')).toHaveCount(0);
+    }
+
+    await p1.locator('[data-testid="next-round-btn"]').click();
+    await expect(p1.locator('[data-testid="ciphergrid-team-setup"]')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Clean up browser contexts
     await ctx1.close();
