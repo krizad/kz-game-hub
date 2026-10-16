@@ -38,6 +38,8 @@ export function LobbyStartButton() {
 
   const getMinPlayers = () => {
     switch (room.gameType) {
+      case GameType.DOG_RELAY:
+        return 5;
       case GameType.WHO_KNOW:
       case GameType.CIPHER_GRID:
         return 4;
@@ -89,7 +91,8 @@ export function LobbyStartButton() {
     );
   }
 
-  const notEnoughPlayers = connectedCount < minPlayers;
+  const notEnoughPlayers =
+    connectedCount < minPlayers || (room.gameType === GameType.DOG_RELAY && connectedCount > 9);
   const presetId = room.config.musicTriviaArtistPresetId;
   const preset = artistPresets.find((p) => p.id === presetId);
   const level = (room.config.musicTriviaLevel ?? 'EASY').toLowerCase() as

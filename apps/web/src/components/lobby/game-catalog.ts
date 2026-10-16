@@ -18,6 +18,18 @@ export interface GameCatalogItem {
 
 export const GAME_CATALOG: GameCatalogItem[] = [
   {
+    type: GameType.DOG_RELAY,
+    icon: '🐕',
+    catalogKey: 'dogRelay',
+    color: 'bg-amber-300',
+    minPlayers: 5,
+    maxPlayers: 9,
+    cooperative: false,
+    audioRequired: false,
+    textRequired: true,
+    styles: ['party', 'bluffing'],
+  },
+  {
     type: GameType.WHO_KNOW,
     icon: '🎭',
     catalogKey: 'whoKnow',

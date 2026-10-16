@@ -16,4 +16,6 @@ export * from './ultimate-tic-tac-toe';
 export * from './card-game';
 export * from './poker';
 export * from './cipher-grid';
+export * from './dog-relay';
+export * from './dog-relay-cards';
 export * from './utils';

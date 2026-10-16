@@ -26,6 +26,7 @@ import {
 } from './card-game';
 import { PokerMode, PokerPublicState } from './poker';
 import { CipherGridState } from './cipher-grid';
+import { DogRelayPublicState, DogRelayLeaderSelection } from './dog-relay';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -56,6 +57,7 @@ export enum GameType {
   BANANA_THIEF = 'BANANA_THIEF',
   POKER = 'POKER',
   CIPHER_GRID = 'CIPHER_GRID',
+  DOG_RELAY = 'DOG_RELAY',
 }
 
 /**
@@ -68,6 +70,7 @@ export type TttModeFlag = (typeof TTT_MODE_FLAGS)[number];
 
 // Socket Constants
 export const SOCKET_EVENTS = {
+  DOG_RELAY_ACTION: 'dog_relay_action',
   CREATE_ROOM: 'create_room',
   LEAVE_ROOM: 'leave_room',
   JOIN_ROOM: 'join_room',
@@ -318,6 +321,8 @@ export interface RoomConfig {
   // Ciphergrid config
   /** Seconds per team turn (clue + decoding). 0 or missing = no turn timer. */
   cipherGridTurnSeconds?: number;
+  /** Who Barks: random Leader or clockwise seat rotation. */
+  dogRelayLeaderSelection?: DogRelayLeaderSelection;
 }
 
 export interface RoomState {
@@ -360,6 +365,7 @@ export interface RoomState {
   pokerState?: PokerPublicState;
   /** Ciphergrid board — unrevealed card colours live in private state only. */
   cipherGridState?: CipherGridState;
+  dogRelayState?: DogRelayPublicState;
 }
 
 export interface AvailableRoom {

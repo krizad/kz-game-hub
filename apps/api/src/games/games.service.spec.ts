@@ -19,6 +19,7 @@ import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-ta
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
+import { DogRelayService } from './dog-relay/dog-relay.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
 import { RoomState, RoomStatus, GameType, Role, SOCKET_EVENTS } from '@repo/types';
@@ -272,6 +273,7 @@ describe('GamesService', () => {
         { provide: CardGameService, useValue: mockGameServices.cardGame },
         { provide: PokerService, useValue: mockGameServices.poker },
         { provide: CipherGridService, useValue: mockGameServices.cipherGrid },
+        DogRelayService,
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

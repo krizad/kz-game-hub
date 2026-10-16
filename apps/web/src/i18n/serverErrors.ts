@@ -6,6 +6,9 @@ import type { Language } from './dictionaries';
  */
 const SERVER_ERRORS: Record<Language, Record<string, string>> = {
   en: {
+    DOG_RELAY_ROOM_FULL: 'This room already has nine players.',
+    DOG_RELAY_PLAYER_COUNT: 'Who Barks needs 5–9 players.',
+    DOG_RELAY_DISCONNECTED_PLAYER: 'Wait until every seated player is connected.',
     SPECTATORS_DISABLED: 'This room does not allow spectators.',
     REQUEST_ID_REUSED: 'Request ID already used with different payload.',
     'Cannot propose shuriken.': 'Cannot propose a Breath Break.',
@@ -15,6 +18,9 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
       'Questions are unavailable. Retry or choose another game.',
   },
   th: {
+    DOG_RELAY_ROOM_FULL: 'ห้องนี้มีผู้เล่นครบ 9 คนแล้ว',
+    DOG_RELAY_PLAYER_COUNT: 'หมาตัวไหนต้องมีผู้เล่น 5–9 คน',
+    DOG_RELAY_DISCONNECTED_PLAYER: 'รอให้ผู้เล่นทุกที่นั่งเชื่อมต่อก่อน',
     SPECTATORS_DISABLED: 'ห้องนี้ไม่อนุญาตให้เข้าชม',
     REQUEST_ID_REUSED: 'คำขอนี้ถูกส่งซ้ำด้วยข้อมูลที่ต่างกัน',
     'The Room Host has left. Room has been closed.': 'โฮสต์ออก ห้องถูกปิดลงแล้ว',
@@ -72,5 +78,12 @@ export function translateServerError(message: string, language: Language): strin
       ? 'คลังคำถามยังใช้งานไม่ได้ ลองใหม่หรือเลือกเกมอื่น'
       : 'Questions are unavailable. Retry or choose another game.';
   }
-  return SERVER_ERRORS[language][message] ?? message;
+  return (
+    SERVER_ERRORS[language][message] ??
+    (message.startsWith('DOG_RELAY_')
+      ? language === 'th'
+        ? 'ทำรายการไม่สำเร็จ กรุณาลองใหม่'
+        : 'This action could not be accepted. Please try again.'
+      : message)
+  );
 }

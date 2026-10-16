@@ -83,6 +83,18 @@ A room-creation choice that describes a game's play style, supported player coun
 **Turn prompt**:
 A concise in-game status that tells a player the current phase, whose turn it is, and what action is available when that information exists.
 
+## หมาตัวไหน / Who Barks vocabulary
+
+| Term                  | Definition                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| หมาตัวไหน / Who Barks | The Thai/English display names of the dog-themed acting relay and hidden-saboteur game played face to face, with each player using their own phone.   |
+| Dog character card    | An original dog character identity with Thai/English recognition cues that can be assigned the suspect or victim role in a case; artwork is optional. |
+| Acting relay          | Players pass a scene from one person to the next using body language without speaking.                                                                |
+| Seat order            | The host-arranged order representing the players' physical circle for the acting relay.                                                               |
+| Base card             | The original dog character image used as the common visual reference when creating additional character cards.                                        |
+
+**Lead Dog selection**: The host's choice of a random first actor each round or rotation through seat order, independent of room ownership.
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |

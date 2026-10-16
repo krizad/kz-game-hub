@@ -19,6 +19,10 @@ import {
   CardGameConfig,
   BananaThiefSpecial,
   PokerAction,
+  DogRelayActionRequest,
+  DogRelayPhase,
+  DOG_RELAY_RECONNECT_MS,
+  DOG_RELAY_MAX_PLAYERS,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
@@ -46,6 +50,7 @@ import { ActionReceiptService } from './action-receipt.service';
 import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
+import { DogRelayService } from './dog-relay/dog-relay.service';
 import { CipherTeam, CipherRole, CipherClueCount } from '@repo/types';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
@@ -97,6 +102,7 @@ export class GamesService {
     private readonly cardGameService: CardGameService,
     private readonly pokerService: PokerService,
     private readonly cipherGridService: CipherGridService,
+    private readonly dogRelayService: DogRelayService,
     private readonly gameSettings: GameSettingsService,
     private readonly roomStartGuardService: RoomStartGuardService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
@@ -267,6 +273,9 @@ export class GamesService {
     } else if (gameType === GameType.CIPHER_GRID) {
       room.config.cipherGridTurnSeconds = 0;
       room.cipherGridState = this.cipherGridService.createInitialState();
+    } else if (gameType === GameType.DOG_RELAY) {
+      room.config.dogRelayLeaderSelection ??= 'RANDOM';
+      this.dogRelayService.initLobby(room);
     }
 
     this.syncBotPlayer(room);
@@ -378,8 +387,18 @@ export class GamesService {
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
+      if (room.gameType === GameType.DOG_RELAY) {
+        this.dogRelayService.onReconnect(room, existingPlayer.id, Date.now());
+        this.dogRelayService.refreshPrivateStates(room);
+      }
       this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
     } else {
+      if (
+        room.gameType === GameType.DOG_RELAY &&
+        room.status === RoomStatus.LOBBY &&
+        room.players.filter((player) => !player.isViewer).length >= DOG_RELAY_MAX_PLAYERS
+      )
+        return null;
       const usedColors = new Set(room.players.map((p) => p.color));
       const availableColors = PLAYER_COLORS.filter((c) => !usedColors.has(c));
       const color =
@@ -412,6 +431,9 @@ export class GamesService {
       this.playerSessionService.issue(code, newPlayer.id, user.socketId);
     }
 
+    if (room.gameType === GameType.DOG_RELAY && room.status === RoomStatus.LOBBY) {
+      this.dogRelayService.initLobby(room);
+    }
     this.rooms.set(code, room);
     return room;
   }
@@ -445,9 +467,11 @@ export class GamesService {
         // seat — and its session token — alive for a short grace window so
         // the player can silently rejoin instead of being kicked.
         const dropped = room.players[playerIndex];
-        dropped.connected = false;
-        this.scheduleReconnectGrace(code, dropped.id);
-        this.runDisconnectHooks(code, room, clientId);
+        if (dropped.connected !== false) {
+          dropped.connected = false;
+          this.scheduleReconnectGrace(code, dropped.id);
+          this.runDisconnectHooks(code, room, clientId);
+        }
       }
 
       if (isHost && !explicitLeave) {
@@ -490,13 +514,24 @@ export class GamesService {
     this.roomTimerService.schedule(
       code,
       `${RECONNECT_GRACE_TIMER}:${playerId}`,
-      Date.now() + GamesService.RECONNECT_GRACE_MS,
+      Date.now() +
+        (this.rooms.get(code)?.gameType === GameType.DOG_RELAY
+          ? DOG_RELAY_RECONNECT_MS
+          : GamesService.RECONNECT_GRACE_MS),
       () => this.removeExpiredPlayer(code, playerId),
     );
   }
 
   /** Shared post-removal cleanup: tokens, slots and game-specific handlers. */
   private removePlayerFromRoom(code: string, room: RoomState, playerIndex: number): void {
+    const removedPlayer = room.players[playerIndex];
+    if (room.gameType === GameType.DOG_RELAY) {
+      this.dogRelayService.onRemoved(
+        room,
+        removedPlayer.id,
+        removedPlayer.connected === false ? 'RECONNECT_EXPIRED' : 'PLAYER_LEFT',
+      );
+    }
     const [player] = room.players.splice(playerIndex, 1);
     this.playerSessionService.revokePlayer(code, player.id);
     this.privateStateService.clearSocket(code, player.socketId);
@@ -548,10 +583,28 @@ export class GamesService {
     }
 
     this.runDisconnectHooks(code, room, player.socketId);
+    if (room.gameType === GameType.DOG_RELAY && room.status === RoomStatus.LOBBY) {
+      this.promoteDogRelayViewers(room);
+    }
+  }
+
+  private promoteDogRelayViewers(room: RoomState): void {
+    let activeCount = room.players.filter((player) => !player.isViewer).length;
+    for (const player of room.players) {
+      if (player.isViewer && player.connected !== false && activeCount < DOG_RELAY_MAX_PLAYERS) {
+        delete player.isViewer;
+        activeCount++;
+      }
+    }
+    this.dogRelayService.initLobby(room);
   }
 
   /** Let each game reconcile its state after one of its players dropped. */
   private runDisconnectHooks(code: string, room: RoomState, socketId: string): void {
+    if (room.gameType === GameType.DOG_RELAY) {
+      const player = room.players.find((candidate) => candidate.socketId === socketId);
+      if (player) this.dogRelayService.onDisconnect(room, player.id, Date.now());
+    }
     if (room.gameType === GameType.WHO_KNOW && room.status === RoomStatus.VOTING) {
       this.whoKnowService.checkVoteResolution(room);
     }
@@ -584,7 +637,9 @@ export class GamesService {
       (p) =>
         p.connected !== false && p.socketId !== formerHostSocketId && p.socketId !== BOT_SOCKET_ID,
     );
-    const nextHost = candidates.find((p) => !p.isViewer) ?? candidates[0];
+    const nextHost =
+      candidates.find((p) => !p.isViewer) ??
+      (room.gameType === GameType.DOG_RELAY ? undefined : candidates[0]);
     if (!nextHost) return;
     room.roomHostId = nextHost.socketId;
   }
@@ -799,6 +854,7 @@ export class GamesService {
     };
 
     copyEnum('hostSelection', ['ROUND_ROBIN', 'RANDOM', 'FIXED']);
+    copyEnum('dogRelayLeaderSelection', ['RANDOM', 'ROUND_ROBIN']);
     copyInteger('timerMin', 1, 60);
     copyInteger('rpsBestOf', 1, 9);
     copyEnum('rpsMode', ['1V1_ROUND_ROBIN', 'ALL_AT_ONCE']);
@@ -1037,6 +1093,22 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.DOG_RELAY) {
+      if (room.status !== RoomStatus.LOBBY) return null;
+      const player = room.players.find((candidate) => candidate.socketId === requesterId);
+      if (!player) return null;
+      try {
+        this.dogRelayService.startRound(room, player.id);
+        return { room, roles: {} };
+      } catch (error) {
+        return {
+          room,
+          roles: {},
+          error: error instanceof Error ? error.message : 'DOG_RELAY_INVALID_ACTION',
+        };
+      }
+    }
+
     if (room.gameType === GameType.WHO_KNOW) {
       return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
@@ -1099,6 +1171,13 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
 
+    if (room.gameType === GameType.DOG_RELAY) {
+      if (room.roomHostId !== requesterId) return null;
+      this.dogRelayService.cancelRound(room, 'HOST_RESET');
+      this.promoteDogRelayViewers(room);
+      return room;
+    }
+
     if (room.gameType === GameType.CARD_GAME) {
       if (room.roomHostId !== requesterId) return null;
       room.status = RoomStatus.LOBBY;
@@ -1160,6 +1239,46 @@ export class GamesService {
 
   getSecretWord(code: string): string | undefined {
     return this.secretWords.get(code);
+  }
+
+  dogRelayAction(code: string, socketId: string, request: DogRelayActionRequest): RoomState {
+    const room = this.rooms.get(code);
+    const player = room?.players.find((candidate) => candidate.socketId === socketId);
+    if (
+      !room ||
+      room.gameType !== GameType.DOG_RELAY ||
+      !player ||
+      player.isViewer ||
+      player.connected === false
+    ) {
+      throw new Error('DOG_RELAY_NOT_PLAYER');
+    }
+    const state = room.dogRelayState;
+    if (!state || request.roundId !== state.roundId) throw new Error('DOG_RELAY_STALE_ROUND');
+    const concurrent = request.action.type === 'ACK_ROLE' || request.action.type === 'SUBMIT_VOTE';
+    if (
+      !Number.isInteger(request.expectedRevision) ||
+      request.expectedRevision < 0 ||
+      (!concurrent && request.expectedRevision !== state.revision)
+    ) {
+      throw new Error('DOG_RELAY_STALE_REVISION');
+    }
+    this.dogRelayService.act(room, player.id, request.action, Date.now());
+    if (room.status === RoomStatus.LOBBY) this.promoteDogRelayViewers(room);
+    return room;
+  }
+
+  dogRelayPhaseDeadline(
+    code: string,
+    roundId: string,
+    phase: DogRelayPhase,
+    deadline: number,
+  ): RoomState | null {
+    const room = this.rooms.get(code);
+    if (!room || room.gameType !== GameType.DOG_RELAY) return null;
+    return this.dogRelayService.onPhaseDeadline(room, roundId, phase, deadline, Date.now())
+      ? room
+      : null;
   }
 
   cardGameAction(code: string, clientId: string, action: CardGameAction): RoomState | null {

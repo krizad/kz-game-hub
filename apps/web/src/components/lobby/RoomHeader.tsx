@@ -32,41 +32,43 @@ export function RoomHeader() {
           />
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] sm:text-xs font-black tracking-widest text-slate-500 uppercase leading-none mb-0.5 truncate max-w-[120px] sm:max-w-none">
-              {room.gameType === GameType.TIC_TAC_TOE
-                ? room.config?.ticTacToeMode === 'GOBBLER'
-                  ? t('lobby.gameNames.gobbler')
-                  : room.config?.ticTacToeMode === 'ULTIMATE'
-                    ? t('lobby.gameNames.ultimateTTT')
-                    : t('lobby.gameNames.ticTacToe')
-                : room.gameType === GameType.RPS
-                  ? t('lobby.gameNames.handDuel')
-                  : room.gameType === GameType.SOUNDS_FISHY
-                    ? t('lobby.gameNames.soundsFishy')
-                    : room.gameType === GameType.DETECTIVE_CLUB
-                      ? t('lobby.gameNames.detectiveClub')
-                      : room.gameType === GameType.MUSIC_TRIVIA
-                        ? t('lobby.gameNames.musicTrivia')
-                        : room.gameType === GameType.WHO_AM_I
-                          ? t('lobby.gameNames.whoAmI')
-                          : room.gameType === GameType.WHO_FIRST
-                            ? t('lobby.gameNames.whoFirst')
-                            : room.gameType === GameType.THE_MIND
-                              ? t('lobby.gameNames.theMind')
-                              : room.gameType === GameType.SABOTEUR
-                                ? t('lobby.gameNames.saboteur')
-                                : room.gameType === GameType.COUP
-                                  ? t('lobby.gameNames.coup')
-                                  : room.gameType === GameType.CARD_GAME
-                                    ? t(
-                                        `cardGameSettings.presets.${room.cardGameConfig?.preset ?? 'POK_DENG'}`,
-                                      )
-                                    : room.gameType === GameType.BANANA_THIEF
-                                      ? t('lobby.gameNames.bananaThief')
-                                      : room.gameType === GameType.POKER
-                                        ? t('lobby.gameNames.poker')
-                                        : room.gameType === GameType.CIPHER_GRID
-                                          ? t('lobby.gameNames.cipherGrid')
-                                          : t('lobby.gameNames.whoKnow')}
+              {room.gameType === GameType.DOG_RELAY
+                ? t('lobby.gameNames.dogRelay')
+                : room.gameType === GameType.TIC_TAC_TOE
+                  ? room.config?.ticTacToeMode === 'GOBBLER'
+                    ? t('lobby.gameNames.gobbler')
+                    : room.config?.ticTacToeMode === 'ULTIMATE'
+                      ? t('lobby.gameNames.ultimateTTT')
+                      : t('lobby.gameNames.ticTacToe')
+                  : room.gameType === GameType.RPS
+                    ? t('lobby.gameNames.handDuel')
+                    : room.gameType === GameType.SOUNDS_FISHY
+                      ? t('lobby.gameNames.soundsFishy')
+                      : room.gameType === GameType.DETECTIVE_CLUB
+                        ? t('lobby.gameNames.detectiveClub')
+                        : room.gameType === GameType.MUSIC_TRIVIA
+                          ? t('lobby.gameNames.musicTrivia')
+                          : room.gameType === GameType.WHO_AM_I
+                            ? t('lobby.gameNames.whoAmI')
+                            : room.gameType === GameType.WHO_FIRST
+                              ? t('lobby.gameNames.whoFirst')
+                              : room.gameType === GameType.THE_MIND
+                                ? t('lobby.gameNames.theMind')
+                                : room.gameType === GameType.SABOTEUR
+                                  ? t('lobby.gameNames.saboteur')
+                                  : room.gameType === GameType.COUP
+                                    ? t('lobby.gameNames.coup')
+                                    : room.gameType === GameType.CARD_GAME
+                                      ? t(
+                                          `cardGameSettings.presets.${room.cardGameConfig?.preset ?? 'POK_DENG'}`,
+                                        )
+                                      : room.gameType === GameType.BANANA_THIEF
+                                        ? t('lobby.gameNames.bananaThief')
+                                        : room.gameType === GameType.POKER
+                                          ? t('lobby.gameNames.poker')
+                                          : room.gameType === GameType.CIPHER_GRID
+                                            ? t('lobby.gameNames.cipherGrid')
+                                            : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-lg sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

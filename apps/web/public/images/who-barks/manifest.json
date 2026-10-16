@@ -1,0 +1,432 @@
+{
+  "game": "DOG_RELAY",
+  "generation": "google-gemini-api",
+  "base": {
+    "src": "/images/who-barks/base/dog-base.png",
+    "sha256": "442d0656a046150559778182c42821fd517d3f00fd83c8747db5bc9eab99419b",
+    "width": 848,
+    "height": 1264
+  },
+  "cards": [
+    {
+      "id": "dog-001",
+      "number": "#001",
+      "name": {
+        "th": "หมาชาวสวน",
+        "en": "Gardener Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-001.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-001.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-001.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "84418ec94f58463cc96313320486a59f65aa704019099fa505aef880e32b28f7"
+    },
+    {
+      "id": "dog-002",
+      "number": "#002",
+      "name": {
+        "th": "หมาพ่อครัว",
+        "en": "Chef Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-002.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-002.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-002.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "6c00585b0039728e508b92cded5429c7036e05a00196991b802b00fdd12e6ed7"
+    },
+    {
+      "id": "dog-003",
+      "number": "#003",
+      "name": {
+        "th": "หมาหมอ",
+        "en": "Doctor Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-003.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-003.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-003.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "5b60effd2b28d6d90e3192eec6370056b01499c13d10d20f1cde88dae42bca40"
+    },
+    {
+      "id": "dog-004",
+      "number": "#004",
+      "name": {
+        "th": "หมานักดับเพลิง",
+        "en": "Firefighter Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-004.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-004.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-004.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "bcca99063ece6e41b04847a65e67907767d5afdc0873fe63ea0dbcaf3c273238"
+    },
+    {
+      "id": "dog-005",
+      "number": "#005",
+      "name": {
+        "th": "หมานักบิน",
+        "en": "Pilot Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-005.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-005.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-005.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "b0ffdf90c0854d5467e916d0b78a6fe3d4a955c017298156287f0779ade0a3fe"
+    },
+    {
+      "id": "dog-006",
+      "number": "#006",
+      "name": {
+        "th": "หมาช่างซ่อม",
+        "en": "Mechanic Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-006.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-006.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-006.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "bc711e1ba18e9fc0b116bf251a15059bacdb5aac32f858967a62af533217dacb"
+    },
+    {
+      "id": "dog-007",
+      "number": "#007",
+      "name": {
+        "th": "หมานักตกปลา",
+        "en": "Angler Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-007.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-007.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-007.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "3dd9f4facf2af12001acb2d7a4ce22c907e1f89b83b2e040b35b402b714ee127"
+    },
+    {
+      "id": "dog-008",
+      "number": "#008",
+      "name": {
+        "th": "หมามือกีตาร์",
+        "en": "Guitarist Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-008.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-008.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-008.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "6c8400c39dd1674dcb40de45936932b411c9c6f5533a0a931ab05f16ef4b07e0"
+    },
+    {
+      "id": "dog-009",
+      "number": "#009",
+      "name": {
+        "th": "หมามือกลอง",
+        "en": "Drummer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-009.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-009.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-009.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "6db5c11d14c9d7a5c386bad3aaf469d518ab77bd83665d9f9495627a7273450d"
+    },
+    {
+      "id": "dog-010",
+      "number": "#010",
+      "name": {
+        "th": "หมานักร้อง",
+        "en": "Singer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-010.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-010.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-010.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "5ef90870622d4c1e3151a98adb8327e28753496a0178f0af656df8659180e28b"
+    },
+    {
+      "id": "dog-011",
+      "number": "#011",
+      "name": {
+        "th": "หมานักฟุตบอล",
+        "en": "Footballer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-011.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-011.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-011.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "41a48135ae1e6e950ab181cd19d90fc452e217a469eb36431d4ab0e579a9f0bf"
+    },
+    {
+      "id": "dog-012",
+      "number": "#012",
+      "name": {
+        "th": "หมานักบาส",
+        "en": "Basketball Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-012.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-012.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-012.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "cf282191d8ea2b47a385c0c833954d00134eedf586649fe64e2328e774d116f0"
+    },
+    {
+      "id": "dog-013",
+      "number": "#013",
+      "name": {
+        "th": "หมานักมวย",
+        "en": "Boxer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-013.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-013.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-013.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "e6984cd483e417b3d47736a96be8dd3f58064fe73418d15eff73c74040896bd4"
+    },
+    {
+      "id": "dog-014",
+      "number": "#014",
+      "name": {
+        "th": "หมานักว่ายน้ำ",
+        "en": "Swimmer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-014.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-014.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-014.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "aa01d0734b71f2ce543363664e77d3bec45df751e16c09c574d2875263ae8b7d"
+    },
+    {
+      "id": "dog-015",
+      "number": "#015",
+      "name": {
+        "th": "หมานักปั่น",
+        "en": "Cyclist Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-015.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-015.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-015.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "d4716e47e52a5aca307e090f8fdee56101830a708cba868f8c04c92b648c1dcf"
+    },
+    {
+      "id": "dog-016",
+      "number": "#016",
+      "name": {
+        "th": "หมานักมายากล",
+        "en": "Magician Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-016.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-016.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-016.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "0500abfda1ff2e9c138e0e373acd259b24485ff82eb830c0cc3fffad6b9f7235"
+    },
+    {
+      "id": "dog-017",
+      "number": "#017",
+      "name": {
+        "th": "หมาจิตรกร",
+        "en": "Painter Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-017.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-017.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-017.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "fae4f9b12704a36cda9d551d618a802fa8d36dd2e8f527f48607182614f572a5"
+    },
+    {
+      "id": "dog-018",
+      "number": "#018",
+      "name": {
+        "th": "หมาช่างภาพ",
+        "en": "Photographer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-018.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-018.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-018.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "c483641439c5cce35c4ec060664bcdf8d162949216fa9049da32c7c334bef655"
+    },
+    {
+      "id": "dog-019",
+      "number": "#019",
+      "name": {
+        "th": "หมานักสืบ",
+        "en": "Detective Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-019.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-019.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-019.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "16fd488c9444875354517f369765417307169af87245a1af951dc67e653df6d5"
+    },
+    {
+      "id": "dog-020",
+      "number": "#020",
+      "name": {
+        "th": "หมานักบินอวกาศ",
+        "en": "Astronaut Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-020.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-020.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-020.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "5da394f24511e92c96000ab741aca3574d8997a6601fb5e997161060cee91dc1"
+    },
+    {
+      "id": "dog-021",
+      "number": "#021",
+      "name": {
+        "th": "หมาพ่อมด",
+        "en": "Wizard Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-021.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-021.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-021.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "d695160a4e24ce98dca59bc269ebca5d40a7728f7076e7a17812d46602444c29"
+    },
+    {
+      "id": "dog-022",
+      "number": "#022",
+      "name": {
+        "th": "หมาโจรสลัด",
+        "en": "Pirate Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-022.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-022.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-022.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "64ddea40c94b21ec4c809a49a39d99e3994c70a24b2629daab54636436d26f72"
+    },
+    {
+      "id": "dog-023",
+      "number": "#023",
+      "name": {
+        "th": "หมานินจา",
+        "en": "Ninja Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-023.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-023.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-023.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "226a0eeb1fbb7f1a97328f9168d138a4204bd6342245a6ae81bc008d4fa84094"
+    },
+    {
+      "id": "dog-024",
+      "number": "#024",
+      "name": {
+        "th": "หมาคาวบอย",
+        "en": "Cowboy Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-024.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-024.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-024.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "83421b685e180002683a766ea17338ba859c935eb3212e57727333789b396f46"
+    },
+    {
+      "id": "dog-025",
+      "number": "#025",
+      "name": {
+        "th": "หมาพนักงานส่งของ",
+        "en": "Courier Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-025.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-025.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-025.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "bb19e0e6a935964b05e69d0a42cbc264ea73229b7df412747252aad92ae55ed9"
+    },
+    {
+      "id": "dog-026",
+      "number": "#026",
+      "name": {
+        "th": "หมาช่างตัดผม",
+        "en": "Barber Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-026.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-026.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-026.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "9dd82610cdfab97de2f66ccc24ad2c6de002c5640ed0c9c7f2dd4f4b1476ab18"
+    },
+    {
+      "id": "dog-027",
+      "number": "#027",
+      "name": {
+        "th": "หมาพ่อบ้าน",
+        "en": "Housekeeper Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-027.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-027.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-027.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "b009d6126f7fa11534942cbb521103cbb048402f5a1b87267db3615bd9f766e3"
+    },
+    {
+      "id": "dog-028",
+      "number": "#028",
+      "name": {
+        "th": "หมานักอ่าน",
+        "en": "Reader Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-028.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-028.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-028.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "310aee4a6ca70286640043be6a40929c3b4900cef5cab7d7984639d3043bc55f"
+    },
+    {
+      "id": "dog-029",
+      "number": "#029",
+      "name": {
+        "th": "หมานักเล่นเกม",
+        "en": "Gamer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-029.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-029.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-029.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "27e698bb93fb11dc8a53dff145e8c2c1c244ed4880f50a6af2b1163b0bb580a8"
+    },
+    {
+      "id": "dog-030",
+      "number": "#030",
+      "name": {
+        "th": "หมานักเต้น",
+        "en": "Dancer Dog"
+      },
+      "prompt": "docs/games/who-barks-prompts/dog-030.txt",
+      "expectedImageSrc": "/images/who-barks/cards/dog-030.png",
+      "status": "generated",
+      "imageSrc": "/images/who-barks/cards/dog-030.png",
+      "model": "gemini-3.1-flash-image",
+      "sha256": "6701792b9d4b6a5b8aed7af81c6d82de08f32667c52f8e8ee95f2eddd33075b9"
+    }
+  ]
+}

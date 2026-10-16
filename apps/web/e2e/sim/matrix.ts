@@ -31,6 +31,22 @@ export interface MatrixEntry {
 }
 
 export const GAME_MATRIX: MatrixEntry[] = [
+  {
+    id: 'dog-relay-5p',
+    game: 'DOG_RELAY',
+    lobbyButton: 'Who Barks',
+    players: 5,
+    description: 'DOG_RELAY five-player relay, correct ordered pair, GOOD wins',
+    timeout: 180000,
+  },
+  {
+    id: 'dog-relay-9p',
+    game: 'DOG_RELAY',
+    lobbyButton: 'Who Barks',
+    players: 9,
+    description: 'DOG_RELAY nine-player relay, text cards, GOOD wins',
+    timeout: 240000,
+  },
   // --- Knowguise ---
   {
     id: 'who-know-4p',

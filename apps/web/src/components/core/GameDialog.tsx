@@ -33,10 +33,12 @@ export function GameDialog({
       aria-label={title}
       onCancel={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         onClose();
       }}
       onKeyDown={(event) => {
         if (event.key !== 'Tab') return;
+        event.stopPropagation();
         const focusable = Array.from(
           event.currentTarget.querySelectorAll<HTMLElement>(
             'button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])',

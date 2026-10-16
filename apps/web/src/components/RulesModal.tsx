@@ -16,6 +16,7 @@ import { CoupRules } from './games/coup/CoupRules';
 import { CardGameRules } from './games/card-game/CardGameRules';
 import { PokerRules } from './games/poker/PokerRules';
 import { BananaThiefRules } from './games/banana-thief/BananaThiefRules';
+import { DogRelayRules } from './games/dog-relay/DogRelayRules';
 import { CipherGridRules } from './games/cipher-grid/CipherGridRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
@@ -80,6 +81,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <BananaThiefRules />;
       case GameType.POKER:
         return <PokerRules />;
+      case GameType.DOG_RELAY:
+        return <DogRelayRules />;
       case GameType.CIPHER_GRID:
         return <CipherGridRules />;
       default:
@@ -277,6 +280,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.POKER ? 'bg-emerald-300 text-black border-2 border-black border border-emerald-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.poker')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.DOG_RELAY) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.DOG_RELAY)}
+                      className="px-4 py-2 border-2 border-black font-bold bg-amber-200"
+                    >
+                      {t('lobby.gameNames.dogRelay')}
                     </button>
                   )}
                   {isGameEnabled(GameType.CIPHER_GRID) && (

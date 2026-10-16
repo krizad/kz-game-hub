@@ -7,6 +7,7 @@ import {
 } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from '../helpers';
 import type { MatrixEntry } from './matrix';
+import { startRelay, guessPair, expectRelayResult } from '../dog-relay-helpers';
 
 const STEP = 700; // settle wait after a successful UI action
 
@@ -35,7 +36,7 @@ export async function setupSession(
   const host = pages[0];
   const roomCode = await createRoom(host, 'Alice', entry.lobbyButton, entry.tttMode);
   const origin = await getOrigin(host);
-  const guestNames = ['Bob', 'Carol', 'Dave', 'Eve', 'Frank', 'Grace', 'Heidi'];
+  const guestNames = ['Bob', 'Carol', 'Dave', 'Eve', 'Frank', 'Grace', 'Heidi', 'Ivan'];
   for (let i = 1; i < entry.players; i++) {
     await joinRoom(pages[i], origin, roomCode, guestNames[i - 1]);
   }
@@ -1742,6 +1743,11 @@ async function playCipherGrid(s: SimSession): Promise<void> {
 
 export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promise<void> {
   switch (entry.game) {
+    case 'DOG_RELAY': {
+      const round = await startRelay(s.players);
+      await guessPair(round);
+      return expectRelayResult(s.players, 'GOOD', 'CORRECT_PAIR');
+    }
     case 'TIC_TAC_TOE':
       if (entry.players === 1) return playTicTacToeBot(s);
       return playTicTacToeFamily(s, entry);

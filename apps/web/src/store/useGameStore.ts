@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import {
+  DogRelayAction,
+  DogRelayPrivateState,
   GameActionType,
   MusicTriviaAction,
   MusicTriviaHostAnswerPayload,
@@ -35,6 +37,7 @@ import {
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
+import { dictionaries } from '@/i18n/dictionaries';
 import { translateServerError } from '@/i18n/serverErrors';
 import { estimateServerOffset } from '../hooks/useServerClock';
 
@@ -85,6 +88,7 @@ interface GameState {
   gameStartError: string | null;
   clearGameStartError: () => void;
   privateState: Record<string, unknown>;
+  sendDogRelayAction: (action: DogRelayAction) => void;
   musicTriviaHostAnswer: MusicTriviaHostAnswerPayload | null;
   actionLoading: boolean;
   serverOffset: number;
@@ -198,6 +202,8 @@ export const useGameStore = create<GameState>((set, get) => {
   const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const clockSyncTimeouts: ReturnType<typeof setTimeout>[] = [];
   let bestRtt = Infinity;
+  let stagedDogRelay: DogRelayPrivateState | null = null;
+  const seenDogRelayRounds = new Set<string>();
 
   const clearAllActionTimeouts = () => {
     actionTimeouts.forEach((timeout) => {
@@ -276,6 +282,8 @@ export const useGameStore = create<GameState>((set, get) => {
   };
 
   const clearRoomSession = () => {
+    stagedDogRelay = null;
+    seenDogRelayRounds.clear();
     clearAllActionTimeouts();
     set({
       room: null,
@@ -318,6 +326,16 @@ export const useGameStore = create<GameState>((set, get) => {
     isLoading: false,
     gameStartError: null,
     clearGameStartError: () => set({ gameStartError: null }),
+    sendDogRelayAction: (action) => {
+      emitGameAction(SOCKET_EVENTS.DOG_RELAY_ACTION, {
+        trackReceipt: true,
+        payload: (room) => ({
+          action,
+          roundId: room.dogRelayState?.roundId ?? null,
+          expectedRevision: room.dogRelayState?.revision ?? 0,
+        }),
+      });
+    },
     privateState: {},
     musicTriviaHostAnswer: null,
     actionLoading: false,
@@ -458,6 +476,7 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on('disconnect', () => {
+        stagedDogRelay = null;
         clearAllActionTimeouts();
         clearClockSyncTimeouts();
         set({
@@ -496,6 +515,22 @@ export const useGameStore = create<GameState>((set, get) => {
         // (prevents race condition where leaveRoom sets room=null but server broadcast re-sets it)
         if (!isMe && !get().isSpectator) return;
         set({ connectionStatus: 'connected' });
+        if (room.gameType === GameType.DOG_RELAY) {
+          const roundId = room.dogRelayState?.roundId;
+          if (roundId) seenDogRelayRounds.add(roundId);
+          const current = get().privateState;
+          const own = current.dogRelay as DogRelayPrivateState | undefined;
+          const { dogRelay: ignored, ...rest } = current;
+          void ignored;
+          const matching =
+            stagedDogRelay?.roundId === roundId
+              ? stagedDogRelay
+              : own?.roundId === roundId
+                ? own
+                : null;
+          set({ privateState: matching && roundId ? { ...rest, dogRelay: matching } : rest });
+          if (matching === stagedDogRelay || !roundId) stagedDogRelay = null;
+        }
 
         const hasPendingAction = Object.values(get().pendingActions).some(
           (a) => a.status === 'pending',
@@ -551,7 +586,11 @@ export const useGameStore = create<GameState>((set, get) => {
         });
 
         if (receipt.status === 'rejected' && receipt.reason) {
-          toast.error(translateError(receipt.reason));
+          toast.error(
+            pending.event === SOCKET_EVENTS.DOG_RELAY_ACTION
+              ? dictionaries[useI18nStore.getState().language].dogRelay.actionRejected
+              : translateError(receipt.reason),
+          );
         }
       });
 
@@ -581,7 +620,18 @@ export const useGameStore = create<GameState>((set, get) => {
       socket.on(
         SOCKET_EVENTS.PRIVATE_STATE_UPDATED,
         ({ data }: { data: Record<string, unknown> }) => {
-          set({ privateState: data ?? {} });
+          const next = { ...(data ?? {}) };
+          const candidate = next.dogRelay as DogRelayPrivateState | undefined;
+          if (candidate && typeof candidate.roundId === 'string') {
+            const roundId = get().room?.dogRelayState?.roundId;
+            if (candidate.roundId !== roundId) {
+              if (!seenDogRelayRounds.has(candidate.roundId)) stagedDogRelay = candidate;
+              delete next.dogRelay;
+              const current = get().privateState.dogRelay as DogRelayPrivateState | undefined;
+              if (current?.roundId === roundId) next.dogRelay = current;
+            }
+          }
+          set({ privateState: next });
         },
       );
 
@@ -598,6 +648,10 @@ export const useGameStore = create<GameState>((set, get) => {
         }) => {
           localStorage.setItem(STORAGE_KEYS.roomCode, code);
           localStorage.setItem(STORAGE_KEYS.reconnectToken, reconnectToken);
+          if (get().playerId && get().playerId !== playerId) {
+            stagedDogRelay = null;
+            set({ privateState: {} });
+          }
           set({ isSpectator: false, playerId });
         },
       );

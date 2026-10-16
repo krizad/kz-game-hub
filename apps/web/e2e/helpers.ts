@@ -60,6 +60,8 @@ export async function extractRoomCode(page: Page): Promise<string> {
   const bodyText = await page.$eval('body', (el) => el.innerText);
   // Look for room code pattern preceded by a known game name pattern
   const knownNames = [
+    'Who Barks',
+    'หมาตัวไหน',
     'Music Trivia',
     'Knowguise',
     'Gobbler Tic Tac Toe',

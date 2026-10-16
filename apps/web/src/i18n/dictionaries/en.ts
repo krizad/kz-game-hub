@@ -2,6 +2,114 @@ import { REBRANDED_TITLES } from '../game-titles';
 import { Dictionary } from './schema';
 
 export const en: Dictionary = {
+  dogRelay: {
+    rolesAndGoals: 'Roles and goals',
+    goal: 'Goal',
+    roleGoalLEADER:
+      'Help the final player identify both the suspect and victim correctly, or help the good team give the Mischief Dog the unique highest vote total.',
+    roleGoalEVIL:
+      'Make the final pair guess fail and avoid receiving the unique highest vote total. A tie for the highest total also wins for Mischief Dog.',
+    roleGoalGOOD:
+      'Pass the scene faithfully so the final player finds the correct pair. If the guess fails, catch Mischief Dog with the unique highest vote total.',
+    leaderSelection: 'Choose the Lead Dog (first actor)',
+    leaderRandom: 'Random each round',
+    leaderRoundRobin: 'Take turns in seat order',
+    leaderSelectionHint:
+      'Seat rotation starts at the first seat and advances each time a round starts. The room host can change this in the lobby.',
+    rulesLeaderSelection:
+      'The host chooses a random Lead Dog each round or rotation in seat order. The Lead Dog belongs to the good team and may be different from the room host.',
+    viewCards: 'View cards ({count})',
+    cardCatalog: 'All character cards',
+    catalogHint: 'All {count} characters in number order, with names and descriptions.',
+    seats: 'Clockwise seats',
+    circleHint: 'Sit together in a circle in this order. The host can move seats before starting.',
+    moveUp: 'Move {name} up',
+    moveDown: 'Move {name} down',
+    round: 'Round {number}',
+    spectator: 'You are watching this round. Join a seat in the next lobby.',
+    secretHint: 'Keep your screen private. Hide your role before passing the scene.',
+    reveal: 'Reveal my role',
+    hide: 'Hide my role',
+    ack: 'I have seen my role',
+    roleLEADER: 'Lead Dog',
+    roleEVIL: 'Mischief Dog',
+    roleGOOD: 'Loyal Dog',
+    roleHintLEADER: 'Remember the suspect and victim. Create a silent scene linking them.',
+    roleHintEVIL:
+      'Secretly change the scene to make the final guess fail. Blend in during discussion.',
+    roleHintGOOD: 'Pass on the scene faithfully and find the Mischief Dog if the guess fails.',
+    readyCount: 'Roles seen: {current}/{total}',
+    prep: 'Remember both dogs and their order. Act a scene connecting the suspect to the victim. You will not see this pair after starting.',
+    suspect: 'Suspect',
+    victim: 'Victim',
+    begin: 'Ready to act',
+    waitLeader: '{name} is preparing the scene. Close your eyes and wait.',
+    handoffCount: 'Handoff {current}/{total}',
+    act: 'Act the scene silently for the viewer. Only the viewer should watch.',
+    watch: 'Watch the actor. Confirm only after the whole scene is finished.',
+    closeEyes: 'Close your eyes and wait.',
+    wait: 'Wait for the relay to finish. Players who have already acted may watch.',
+    handoff: 'I have finished watching',
+    tellStory: 'Tell the scene aloud first. Then choose the suspect and victim in that order.',
+    waitGuess: '{name} is telling the story and choosing two dogs.',
+    selectAs: 'Choose a character for',
+    selectSuspect: 'First choose the suspect.',
+    selectVictim: 'Now choose a different dog as the victim.',
+    confirmPair: 'Confirm suspect and victim',
+    chooseAgain: 'Choose again',
+    discuss: 'Find the Mischief Dog',
+    countdown: 'Voting opens soon',
+    discussHint:
+      'Discuss aloud. The pair stays secret until the result. Everyone votes secretly after discussion.',
+    endDiscussion: 'End discussion',
+    vote: 'Secret ballot',
+    voteHint:
+      'Choose one person. You cannot vote for yourself or the Lead Dog. Your confirmed vote cannot change.',
+    voteCount: 'Votes submitted: {current}/{total}',
+    votedFor: 'Voted for {name}',
+    voteSaved: 'Your vote has been saved.',
+    confirmVoteHint: 'Confirm your secret vote for {name}?',
+    confirmVote: 'Confirm secret vote',
+    paused: 'Round paused',
+    pauseHint:
+      'Waiting for these players to reconnect. The round returns to the lobby if anyone leaves or their grace period expires.',
+    winGOOD: 'Loyal dogs win!',
+    winEVIL: 'Mischief Dog wins!',
+    CORRECT_PAIR: 'The final player found both dogs in the correct order.',
+    EVIL_CAUGHT: 'Mischief Dog received the unique highest vote total.',
+    EVIL_ESCAPED: 'Mischief Dog escaped. A tie also lets Mischief Dog win.',
+    truePair: 'Original pair',
+    attempt: 'Final guess: suspect → victim',
+    rolesVotes: 'Revealed roles and ballots',
+    awards: 'Optional acting awards',
+    best: 'Best actor',
+    worst: 'Most chaotic actor',
+    choose: 'Choose a player',
+    saveAwards: 'Save awards',
+    awardsOptional:
+      'Choose two different players, including yourself if you wish. Awards do not change scores. You may skip them by starting another round or returning to the lobby.',
+    next: 'Next round',
+    lobby: 'Return to lobby',
+    skipAwards: 'The Lead Dog is away. You may continue without awards.',
+    fixedSettings:
+      '5–9 players together · 120-second discussion · 3-second voting countdown. No audio playback needed.',
+    PLAYER_LEFT: 'A player left. The round was cancelled; no result was recorded.',
+    RECONNECT_EXPIRED: 'A player did not return in time. The round was cancelled.',
+    HOST_RESET: 'The host cancelled the round.',
+    rulesIntro:
+      'For {min}–{max} people together, each with a phone. Act silently, then discuss aloud for up to {seconds} seconds.',
+    rulesRoles:
+      'One Lead Dog knows the secret suspect and victim. One Mischief Dog tries to distort the scene. Loyal Dogs pass it on faithfully. Keep roles private.',
+    rulesRelay:
+      'Sit in the app’s clockwise order. Everyone acknowledges their role. The Lead Dog prepares a silent scene, then each viewer confirms after watching and becomes the next actor. Future viewers close their eyes. The app does not record or replay performances.',
+    rulesGuess:
+      'The final player tells the story aloud, then picks a suspect and a different victim from ten dogs. Both identities and their order must match for Loyal Dogs to win immediately. No partial correctness is shown.',
+    rulesVote:
+      'After a wrong guess, discuss for two minutes (the host can end early). A three-second countdown opens secret ballots. Everyone votes once, excluding themselves and the Lead Dog. Loyal Dogs win only if Mischief Dog is uniquely most voted; any tie favors Mischief Dog.',
+    rulesPause:
+      'An active player disconnect pauses the round for up to two minutes. Everyone must reconnect to resume. Leaving or an expired grace period cancels the round without revealing secrets. Spectators cannot act or vote. Winners receive one point; acting awards are optional and have no score.',
+    actionRejected: 'This action could not be accepted. Refresh your view and try again.',
+  },
   connection: {
     connecting: 'Connecting...',
     connected: 'Connected',
@@ -48,6 +156,7 @@ export const en: Dictionary = {
       cardGame: 'Thai Card Game',
       bananaThief: 'Banana Thief',
       poker: 'Poker',
+      dogRelay: 'Who Barks',
       cipherGrid: REBRANDED_TITLES.en.cipherGrid,
     },
     gameCards: {
@@ -121,6 +230,12 @@ export const en: Dictionary = {
         category: 'Party · Social deduction',
         description: 'Wake mice at the right time, discuss, and vote for the thief.',
         players: '4+ players · Some roles need more',
+      },
+      dogRelay: {
+        category: 'Party · Bluffing',
+        description:
+          'Act out a dog story together, pass it around the circle, then discuss and find the saboteur.',
+        players: '5–9 players',
       },
       cipherGrid: {
         category: 'Party · Deduction',

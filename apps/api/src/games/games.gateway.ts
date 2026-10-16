@@ -45,7 +45,10 @@ import {
   CipherAssignTeamPayload,
   CipherGiveCluePayload,
   CipherCardIndexPayload,
+  DogRelayActionRequest,
+  DOG_RELAY_MAX_PLAYERS,
 } from '@repo/types';
+import { buildDogRelayResultRows } from './dog-relay/dog-relay-results';
 
 /** Server string the client localizes via i18n/serverErrors. */
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
@@ -153,6 +156,76 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   private forgetRecordedResult(code: string): void {
     this.recordedResults.delete(code);
+    this.recordedDogRelayRounds.delete(code);
+  }
+
+  private readonly recordedDogRelayRounds = new Map<string, string>();
+
+  @SubscribeMessage(SOCKET_EVENTS.DOG_RELAY_ACTION)
+  handleDogRelayAction(@MessageBody() input: unknown, @ConnectedSocket() client: Socket) {
+    if (!input || typeof input !== 'object') return;
+    const data = input as DogRelayActionRequest;
+    if (
+      typeof data.code !== 'string' ||
+      !this.actionReceiptService.isValidRequestId(data.requestId)
+    ) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_INVALID_ACTION' });
+      return;
+    }
+    const code = data.code.toUpperCase();
+    const room = this.gamesService.getRoom(code);
+    const player = room?.players.find((candidate) => candidate.socketId === client.id);
+    if (!room || room.gameType !== GameType.DOG_RELAY || !player || player.isViewer) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_NOT_PLAYER' });
+      return;
+    }
+    const cache = this.actionReceiptService.check(
+      code,
+      player.id,
+      SOCKET_EVENTS.DOG_RELAY_ACTION,
+      data.requestId,
+      data,
+    );
+    if (cache.kind !== 'MISS') {
+      client.emit(SOCKET_EVENTS.ACTION_RECEIPT, cache.receipt);
+      return;
+    }
+    const receipt: ActionReceipt = {
+      code,
+      requestId: data.requestId,
+      event: SOCKET_EVENTS.DOG_RELAY_ACTION,
+      status: 'accepted',
+      serverNow: Date.now(),
+    };
+    try {
+      if (!data.action || typeof data.action !== 'object' || typeof data.action.type !== 'string') {
+        throw new Error('DOG_RELAY_INVALID_ACTION');
+      }
+      this.gamesService.dogRelayAction(code, client.id, data);
+    } catch (error) {
+      receipt.status = 'rejected';
+      receipt.reason =
+        error instanceof Error && /^DOG_RELAY_[A-Z_]+$/.test(error.message)
+          ? error.message
+          : 'DOG_RELAY_INVALID_ACTION';
+    }
+    this.actionReceiptService.record(
+      code,
+      player.id,
+      SOCKET_EVENTS.DOG_RELAY_ACTION,
+      data.requestId,
+      data,
+      receipt,
+    );
+    client.emit(SOCKET_EVENTS.ACTION_RECEIPT, receipt);
+    if (receipt.status === 'accepted') {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
+      client.emit(SOCKET_EVENTS.PRIVATE_STATE_UPDATED, {
+        data: this.privateStateService.getSocketData(code, client.id),
+      });
+    }
   }
 
   @SubscribeMessage(SOCKET_EVENTS.GET_AVAILABLE_ROOMS)
@@ -356,6 +429,15 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const isSeatedMember =
       !!data.reconnectToken &&
       this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken, name);
+    if (
+      !isSeatedMember &&
+      targetRoom.gameType === GameType.DOG_RELAY &&
+      targetRoom.status === RoomStatus.LOBBY &&
+      targetRoom.players.filter((player) => !player.isViewer).length >= DOG_RELAY_MAX_PLAYERS
+    ) {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_ROOM_FULL' });
+      return;
+    }
     // A fresh join after play starts becomes a viewer. Keep that path subject
     // to the same policy as SPECTATE_JOIN, without locking out seated reconnects.
     if (
@@ -564,6 +646,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       // for a reset game is noise at best and a stale action at worst.
       for (const timerName of [
         'who-know',
+        'dog-relay-phase',
         'the-mind',
         'who-first',
         'saboteur',
@@ -1900,6 +1983,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       }
     }
     this.maybeRecordGameResult(room);
+    if (room.gameType === GameType.DOG_RELAY) this.syncDogRelayTimer(room);
     if (room.gameType === GameType.WHO_KNOW) {
       this.revealSecretWordIfResult(room);
     }
@@ -1922,6 +2006,30 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.CIPHER_GRID) {
       this.syncCipherGridTimer(room);
     }
+  }
+
+  private syncDogRelayTimer(room: RoomState): void {
+    const state = room.dogRelayState;
+    if (
+      !state ||
+      state.pause ||
+      !state.roundId ||
+      state.phaseEndsAt === null ||
+      (state.phase !== 'DISCUSS' && state.phase !== 'VOTE_COUNTDOWN')
+    ) {
+      this.roomTimerService.cancel(room.code, 'dog-relay-phase');
+      return;
+    }
+    const { roundId, phase, phaseEndsAt } = state;
+    this.roomTimerService.schedule(room.code, 'dog-relay-phase', phaseEndsAt, () => {
+      const updated = this.gamesService.dogRelayPhaseDeadline(
+        room.code,
+        roundId,
+        phase,
+        phaseEndsAt,
+      );
+      if (updated) this.broadcastRoomState(updated);
+    });
   }
 
   private emitMusicTriviaSyncPlay(code: string, client: Socket): void {
@@ -2529,6 +2637,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   private maybeRecordGameResult(room: RoomState) {
+    if (room.gameType === GameType.DOG_RELAY) {
+      const state = room.dogRelayState;
+      if (room.status !== RoomStatus.RESULT || !state?.result || !state.roundId) return;
+      if (this.recordedDogRelayRounds.get(room.code) === state.roundId) return;
+      this.recordedDogRelayRounds.set(room.code, state.roundId);
+      void this.leaderboardService.recordGameResult(
+        room.gameType,
+        room.code,
+        buildDogRelayResultRows(room),
+      );
+      return;
+    }
     if (room.status !== RoomStatus.RESULT) {
       this.recordedResults.delete(room.code);
       return;

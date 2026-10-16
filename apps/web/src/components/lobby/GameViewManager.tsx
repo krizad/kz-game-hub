@@ -21,6 +21,8 @@ import { CardGameSettings } from '@/components/games/card-game/CardGameSettings'
 import { PokerView } from '@/components/games/poker/PokerView';
 import { PokerSettings } from '@/components/games/poker/PokerSettings';
 import { CipherGridView } from '@/components/games/cipher-grid/CipherGridView';
+import { DogRelayView } from '@/components/games/dog-relay/DogRelayView';
+import { DogRelaySeats } from '@/components/games/dog-relay/DogRelaySeats';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -180,6 +182,7 @@ function getGameStatus(
     [GameType.POKER]: 'bg-emerald-300',
     [GameType.BANANA_THIEF]: 'bg-lime-400',
     [GameType.CIPHER_GRID]: 'bg-amber-400',
+    [GameType.DOG_RELAY]: 'bg-amber-300',
   };
 
   return {
@@ -201,6 +204,8 @@ export function GameViewManager() {
   if (!room) return null;
 
   const renderGameView = () => {
+    if (room.gameType === GameType.DOG_RELAY && room.status !== RoomStatus.LOBBY)
+      return <DogRelayView />;
     if (room.gameType === GameType.TIC_TAC_TOE) return <TicTacToeUnifiedView />;
     if (room.gameType === GameType.RPS && room.status !== RoomStatus.LOBBY) return <RPSView />;
     if (room.gameType === GameType.SOUNDS_FISHY && room.status !== RoomStatus.LOBBY)
@@ -239,6 +244,15 @@ export function GameViewManager() {
             </h4>
             {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
             {room.gameType === GameType.POKER && <PokerSettings />}
+            {room.gameType === GameType.DOG_RELAY && (
+              <>
+                <DogRelaySeats />
+                {room.dogRelayState?.cancellationReason && (
+                  <p role="alert">{t(`dogRelay.${room.dogRelayState.cancellationReason}`)}</p>
+                )}
+                <p>{t('dogRelay.fixedSettings')}</p>
+              </>
+            )}
             <LobbyStartButton />
           </div>
         )}
@@ -293,7 +307,7 @@ export function GameViewManager() {
             <GameSettingsManager />
           </div>
         )}
-        {room.status !== RoomStatus.LOBBY && (
+        {room.status !== RoomStatus.LOBBY && room.gameType !== GameType.DOG_RELAY && (
           <GameStatusHeader {...getGameStatus(room, socketId, privateState)} />
         )}
         {renderGameView()}
