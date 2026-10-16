@@ -394,7 +394,7 @@ export class GamesService {
         this.dogRelayService.onReconnect(room, existingPlayer.id, Date.now());
         this.dogRelayService.refreshPrivateStates(room);
       }
-      this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
+      this.playerSessionService.retain(code, existingPlayer.id, reconnectToken!, user.socketId);
     } else {
       if (
         room.gameType === GameType.DOG_RELAY &&

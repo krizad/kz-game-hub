@@ -43,6 +43,14 @@ test('tictactoe guest reloads mid-game and keeps their seat', async ({ page }) =
   await expect(page.locator('div.grid.grid-cols-3 button').nth(4)).toHaveText(/O/, {
     timeout: 10000,
   });
+
+  // Reload a second time with the same initial token preserved in localStorage:
+  // even across multiple reconnects, the token remains valid and restores his seat.
+  await bob.reload();
+  await waitForRoom(bob);
+  await expect(bob.locator('div.grid.grid-cols-3 button').nth(4)).toHaveText(/O/, {
+    timeout: 20000,
+  });
   await guest.close();
 });
 

@@ -6,12 +6,18 @@ interface SessionRecord {
   expiresAt: number;
 }
 
+interface PendingTokenRecord {
+  roomCode: string;
+  playerId: string;
+  token: string;
+}
+
 @Injectable()
 export class PlayerSessionService {
   private static readonly SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
   private readonly sessions = new Map<string, Map<string, SessionRecord>>();
-  private readonly pendingTokens = new Map<string, string>();
+  private readonly pendingTokens = new Map<string, PendingTokenRecord>();
 
   issue(roomCode: string, playerId: string, socketId: string): void {
     this.revokePlayer(roomCode, playerId);
@@ -23,7 +29,21 @@ export class PlayerSessionService {
       expiresAt: Date.now() + PlayerSessionService.SESSION_TTL_MS,
     });
     this.sessions.set(roomCode, roomSessions);
-    this.pendingTokens.set(socketId, token);
+    this.pendingTokens.set(socketId, { roomCode, playerId, token });
+  }
+
+  /**
+   * Preserve an existing verified session token and its original expiry across
+   * reconnects, while queuing the same token for delivery to the new socket.
+   */
+  retain(roomCode: string, playerId: string, token: string, socketId: string): boolean {
+    if (this.verify(roomCode, token) !== playerId) {
+      return false;
+    }
+
+    this.deletePendingForPlayer(roomCode, playerId);
+    this.pendingTokens.set(socketId, { roomCode, playerId, token });
+    return true;
   }
 
   consume(roomCode: string, token: string): string | null {
@@ -43,18 +63,25 @@ export class PlayerSessionService {
     if (session.expiresAt <= Date.now()) {
       roomSessions.delete(tokenHash);
       if (roomSessions.size === 0) this.sessions.delete(roomCode);
+      this.deletePendingForPlayer(roomCode, session.playerId);
       return null;
     }
     return session.playerId;
   }
 
   takePendingToken(socketId: string): string | null {
-    const token = this.pendingTokens.get(socketId) ?? null;
+    const record = this.pendingTokens.get(socketId);
     this.pendingTokens.delete(socketId);
-    return token;
+    if (!record) return null;
+    if (this.verify(record.roomCode, record.token) !== record.playerId) {
+      return null;
+    }
+    return record.token;
   }
 
   revokePlayer(roomCode: string, playerId: string): void {
+    this.deletePendingForPlayer(roomCode, playerId);
+
     const roomSessions = this.sessions.get(roomCode);
     if (!roomSessions) return;
 
@@ -66,11 +93,24 @@ export class PlayerSessionService {
 
   clearRoom(roomCode: string): void {
     this.sessions.delete(roomCode);
+    for (const [socketId, record] of this.pendingTokens.entries()) {
+      if (record.roomCode === roomCode) {
+        this.pendingTokens.delete(socketId);
+      }
+    }
   }
 
   clearAll(): void {
     this.sessions.clear();
     this.pendingTokens.clear();
+  }
+
+  private deletePendingForPlayer(roomCode: string, playerId: string): void {
+    for (const [socketId, record] of this.pendingTokens.entries()) {
+      if (record.roomCode === roomCode && record.playerId === playerId) {
+        this.pendingTokens.delete(socketId);
+      }
+    }
   }
 
   private hash(token: string): string {

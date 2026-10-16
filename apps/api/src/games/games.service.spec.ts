@@ -631,6 +631,80 @@ describe('GamesService', () => {
       expect(retried!.players.find((player) => player.name === 'Player1')!.socketId).toBe('p1b');
     });
 
+    it('should allow reconnecting twice with the same token even if SESSION_ASSIGNED is not consumed on the first reconnect', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const originalToken = service.getReconnectToken(room.code, 'p1')!;
+      expect(originalToken).toBeTruthy();
+
+      // First disconnect and reconnect WITHOUT calling getReconnectToken('p1b')
+      service.leaveRoom('p1', false);
+      const firstReconnect = service.joinRoom(
+        room.code,
+        { id: 'p1b', name: 'Player1', socketId: 'p1b' },
+        originalToken,
+      );
+      expect(firstReconnect).not.toBeNull();
+      expect(firstReconnect!.players.find((p) => p.name === 'Player1')!.socketId).toBe('p1b');
+
+      // Second disconnect and reconnect using the SAME originalToken
+      service.leaveRoom('p1b', false);
+      const secondReconnect = service.joinRoom(
+        room.code,
+        { id: 'p1c', name: 'Player1', socketId: 'p1c' },
+        originalToken,
+      );
+      expect(secondReconnect).not.toBeNull();
+      expect(secondReconnect!.players.find((p) => p.name === 'Player1')!.socketId).toBe('p1c');
+      // Re-emitted pending token is still the same original token
+      expect(service.getReconnectToken(room.code, 'p1c')).toBe(originalToken);
+    });
+
+    it('should reject invalid or cross-room tokens and revoke tokens on explicit leave, grace expiry, or room close', () => {
+      jest.useFakeTimers();
+      try {
+        const roomA = service.createRoom('host1');
+        service.joinRoom(roomA.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+        service.joinRoom(roomA.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+        service.joinRoom(roomA.code, { id: 'p2', name: 'Player2', socketId: 'p2' });
+        const p2Id = roomA.players.find((p) => p.name === 'Player2')!.id;
+        const tokenP1 = service.getReconnectToken(roomA.code, 'p1')!;
+        const tokenP2 = service.getReconnectToken(roomA.code, 'p2')!;
+
+        const roomB = service.createRoom('host2');
+        service.joinRoom(roomB.code, { id: 'host2', name: 'Host2', socketId: 'host2' });
+        service.joinRoom(roomB.code, { id: 'p1-other', name: 'Player1', socketId: 'p1-other' });
+        service.leaveRoom('p1-other', false);
+
+        // Cross-room token cannot claim Player1 in roomB
+        expect(
+          service.joinRoom(
+            roomB.code,
+            { id: 'attacker', name: 'Player1', socketId: 'attacker' },
+            tokenP1,
+          ),
+        ).toBeNull();
+
+        // Explicit leave revokes tokenP1
+        service.leaveRoom('p1', true);
+        expect(playerSessionService.verify(roomA.code, tokenP1)).toBeNull();
+
+        // Grace expiry revokes tokenP2
+        service.leaveRoom('p2', false);
+        expect(playerSessionService.verify(roomA.code, tokenP2)).toBe(p2Id);
+        jest.advanceTimersByTime(60_000);
+        expect(playerSessionService.verify(roomA.code, tokenP2)).toBeNull();
+
+        // Room deletion revokes host token
+        const hostToken = service.getReconnectToken(roomA.code, 'host1')!;
+        service.leaveRoom('host1', true);
+        expect(playerSessionService.verify(roomA.code, hostToken)).toBeNull();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('remaps the card-game action log on reconnection', () => {
       const room = service.createRoom('host1', GameType.CARD_GAME);
       service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
