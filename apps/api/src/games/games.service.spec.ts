@@ -137,7 +137,9 @@ describe('GamesService', () => {
       startGameAiGenerated: jest.fn(),
       submitPlayerWord: jest.fn(),
       handleGameAction: jest.fn(),
+      handlePlayerDisconnect: jest.fn(),
       resetGame: jest.fn(),
+      syncVisibleWords: jest.fn(),
       remapSocketId: WhoAmIService.prototype.remapSocketId,
     },
     whoFirst: {
@@ -640,6 +642,43 @@ describe('GamesService', () => {
       service.joinRoom(room.code, { id: 'p1b', name: 'Player1', socketId: 'p1b' }, reconnectToken);
 
       expect(room.cardGameLog).toEqual([{ actorId: 'p1b', kind: 'DREW' }]);
+    });
+
+    it('re-syncs Who Am I visible words after remapping private state on reconnect and viewer join', () => {
+      const room = service.createRoom('host1', GameType.WHO_AM_I);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p1', name: 'Player1', socketId: 'p1' });
+      const reconnectToken = service.getReconnectToken(room.code, 'p1')!;
+      room.status = RoomStatus.PLAYING;
+      room.whoAmIState = {
+        currentTurn: 'p1',
+        currentGuess: null,
+        votes: {},
+        turnStatus: 'VOTING',
+        winner: null,
+        currentRound: 1,
+        maxRounds: 3,
+        eliminatedPlayers: [],
+        phase: 'ASKING',
+        finalGuessUsed: [],
+        wordSubmittedIds: [],
+      };
+      privateStateService.set(room.code, 'p1', 'waiMyWord', 'Apple');
+      service.leaveRoom('p1', false);
+      mockGameServices.whoAmI.syncVisibleWords.mockClear();
+
+      service.joinRoom(
+        room.code,
+        { id: 'p1-new', name: 'Player1', socketId: 'p1-new' },
+        reconnectToken,
+      );
+
+      expect(privateStateService.get(room.code, 'p1-new', 'waiMyWord')).toBe('Apple');
+      expect(mockGameServices.whoAmI.syncVisibleWords).toHaveBeenCalledWith(room);
+
+      mockGameServices.whoAmI.syncVisibleWords.mockClear();
+      service.joinRoom(room.code, { id: 'viewer1', name: 'Viewer', socketId: 'viewer1' });
+      expect(mockGameServices.whoAmI.syncVisibleWords).toHaveBeenCalledWith(room);
     });
 
     it('should reject reconnect attempts that only reuse an existing player name', () => {

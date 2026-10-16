@@ -387,6 +387,9 @@ export class GamesService {
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
+      if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
+        this.whoAmIService.syncVisibleWords(room);
+      }
       if (room.gameType === GameType.DOG_RELAY) {
         this.dogRelayService.onReconnect(room, existingPlayer.id, Date.now());
         this.dogRelayService.refreshPrivateStates(room);
@@ -427,6 +430,9 @@ export class GamesService {
       // Joining after the game started → spectator for the rest of this game
       if (room.status !== RoomStatus.LOBBY) {
         newPlayer.isViewer = true;
+        if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
+          this.whoAmIService.syncVisibleWords(room);
+        }
       }
       this.playerSessionService.issue(code, newPlayer.id, user.socketId);
     }

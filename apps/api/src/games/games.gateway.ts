@@ -223,7 +223,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     } else {
       client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
       client.emit(SOCKET_EVENTS.PRIVATE_STATE_UPDATED, {
-        data: this.privateStateService.getSocketData(code, client.id),
+        data: this.getOutboundPrivateState(room, client.id),
       });
     }
   }
@@ -2281,9 +2281,32 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     });
   }
 
+  private getOutboundPrivateState(room: RoomState, socketId: string): Record<string, unknown> {
+    const raw = this.privateStateService.getSocketData(room.code, socketId);
+    if (room.gameType !== GameType.WHO_AM_I) {
+      return raw;
+    }
+
+    const visibleWords = raw.waiVisibleWords;
+    if (!visibleWords || typeof visibleWords !== 'object' || Array.isArray(visibleWords)) {
+      return {};
+    }
+
+    const filteredVisibleWords: Record<string, string> = {};
+    for (const [targetSocketId, word] of Object.entries(visibleWords as Record<string, unknown>)) {
+      if (targetSocketId !== socketId && typeof word === 'string') {
+        filteredVisibleWords[targetSocketId] = word;
+      }
+    }
+
+    return Object.keys(filteredVisibleWords).length > 0
+      ? { waiVisibleWords: filteredVisibleWords }
+      : {};
+  }
+
   private emitPrivateStates(room: RoomState): void {
     for (const player of room.players) {
-      const data = this.privateStateService.getSocketData(room.code, player.socketId);
+      const data = this.getOutboundPrivateState(room, player.socketId);
       this.server.to(player.socketId).emit(SOCKET_EVENTS.PRIVATE_STATE_UPDATED, { data });
     }
   }

@@ -39,7 +39,7 @@ export class WhoAmIService {
     }
   }
 
-  private syncVisibleWords(room: RoomState): void {
+  syncVisibleWords(room: RoomState): void {
     const allWords: Record<string, string> = {};
     for (const p of room.players) {
       const word = this.privateState.get<string>(room.code, p.socketId, WAI_MY_WORD);
@@ -52,6 +52,8 @@ export class WhoAmIService {
       }
       if (Object.keys(visible).length > 0) {
         this.privateState.set(room.code, p.socketId, WAI_VISIBLE_WORDS, visible);
+      } else {
+        this.privateState.delete(room.code, p.socketId, WAI_VISIBLE_WORDS);
       }
     }
   }

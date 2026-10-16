@@ -1,5 +1,19 @@
+jest.mock('@repo/database', () => ({
+  prisma: {
+    word: {
+      groupBy: jest.fn(),
+      findMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+  },
+}));
+
+import { prisma } from '@repo/database';
 import { GameType, RoomState, RoomStatus, SOCKET_EVENTS } from '@repo/types';
 import { GamesGateway } from './games.gateway';
+import { PrivateStateService } from './private-state.service';
+import { RoomStartGuardService } from './room-start-guard.service';
+import { WhoAmIService } from './who-am-i/who-am-i.service';
 
 const gameSettingsStub = () => ({
   load: jest.fn(),
@@ -986,6 +1000,269 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
         clientSentAt: 1700000000000,
         serverNow: 1700000005000,
       });
+    });
+  });
+
+  describe('WHO_AM_I private state projection', () => {
+    let privateStateService: PrivateStateService;
+    let whoAmIService: WhoAmIService;
+    let waiGateway: GamesGateway;
+    let emittedByTarget: Map<string, Array<{ event: string; payload: unknown }>>;
+
+    const broadcastRoom = (room: RoomState) => {
+      (waiGateway as unknown as { broadcastRoomState: (r: RoomState) => void }).broadcastRoomState(
+        room,
+      );
+    };
+
+    const getLastPrivateData = (socketId: string): Record<string, unknown> | undefined => {
+      const events = emittedByTarget.get(socketId) ?? [];
+      const last = [...events]
+        .reverse()
+        .find((entry) => entry.event === SOCKET_EVENTS.PRIVATE_STATE_UPDATED);
+      return (last?.payload as { data?: Record<string, unknown> } | undefined)?.data;
+    };
+
+    const getLastRoomUpdate = (roomCode: string): RoomState | undefined => {
+      const events = emittedByTarget.get(roomCode) ?? [];
+      const last = [...events]
+        .reverse()
+        .find((entry) => entry.event === SOCKET_EVENTS.ROOM_STATE_UPDATED);
+      return last?.payload as RoomState | undefined;
+    };
+
+    beforeEach(() => {
+      privateStateService = new PrivateStateService();
+      whoAmIService = new WhoAmIService(privateStateService, new RoomStartGuardService());
+      emittedByTarget = new Map();
+
+      waiGateway = new GamesGateway(
+        {
+          getRoom: jest.fn(),
+        } as never,
+        { recordGameResult: jest.fn(async () => undefined) } as never,
+        { cancel: jest.fn(), schedule: jest.fn() } as never,
+        privateStateService,
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+
+      waiGateway.server = {
+        to: jest.fn((target: string) => ({
+          emit: jest.fn((event: string, payload: unknown) => {
+            const list = emittedByTarget.get(target) ?? [];
+            list.push({ event, payload });
+            emittedByTarget.set(target, list);
+          }),
+        })),
+        emit: jest.fn(),
+      } as never;
+    });
+
+    it('withholds waiMyWord from the word owner in HOST_INPUT mode across start, action, reconnect, reveal, and reset', () => {
+      const room: RoomState = {
+        id: 'r-wai-host',
+        code: 'WAIHST',
+        gameType: GameType.WHO_AM_I,
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, wordMode: 'HOST_INPUT', maxRounds: 2 },
+        players: [
+          { id: 'u-host', socketId: 'host1', name: 'Host', score: 0, roomId: 'r-wai-host', connected: true },
+          { id: 'u-p1', socketId: 'p1', name: 'Alice', score: 0, roomId: 'r-wai-host', connected: true },
+          { id: 'u-p2', socketId: 'p2', name: 'Bob', score: 0, roomId: 'r-wai-host', connected: true },
+        ],
+      };
+
+      expect(
+        whoAmIService.startGameHostInput(room, 'host1', { p1: 'Apple', p2: 'Banana' }),
+      ).not.toBeNull();
+      broadcastRoom(room);
+
+      const p1Private = getLastPrivateData('p1');
+      const p2Private = getLastPrivateData('p2');
+      const hostPrivate = getLastPrivateData('host1');
+
+      expect(p1Private).toEqual({ waiVisibleWords: { p2: 'Banana' } });
+      expect(p1Private).not.toHaveProperty('waiMyWord');
+      expect(JSON.stringify(p1Private)).not.toContain('Apple');
+
+      expect(p2Private).toEqual({ waiVisibleWords: { p1: 'Apple' } });
+      expect(p2Private).not.toHaveProperty('waiMyWord');
+      expect(JSON.stringify(p2Private)).not.toContain('Banana');
+
+      expect(hostPrivate).toEqual({ waiVisibleWords: { p1: 'Apple', p2: 'Banana' } });
+
+      // Reconnect p1 -> p1-new and add a late spectator
+      room.players[1].socketId = 'p1-new';
+      whoAmIService.remapSocketId(room.whoAmIState!, 'p1', 'p1-new');
+      privateStateService.remapSocketId(room.code, 'p1', 'p1-new');
+      room.players.push({
+        id: 'u-spec',
+        socketId: 'spec1',
+        name: 'Spectator',
+        score: 0,
+        roomId: 'r-wai-host',
+        connected: true,
+        isViewer: true,
+      });
+      whoAmIService.syncVisibleWords(room);
+      broadcastRoom(room);
+
+      const p1ReconnectedPrivate = getLastPrivateData('p1-new');
+      expect(p1ReconnectedPrivate).toEqual({ waiVisibleWords: { p2: 'Banana' } });
+      expect(JSON.stringify(p1ReconnectedPrivate)).not.toContain('Apple');
+      expect(getLastPrivateData('p2')).toEqual({ waiVisibleWords: { 'p1-new': 'Apple' } });
+      expect(getLastPrivateData('spec1')).toEqual({
+        waiVisibleWords: { 'p1-new': 'Apple', p2: 'Banana' },
+      });
+
+      // Finish game via correct guess -> revealedWords exposed in ROOM_STATE_UPDATED
+      const activeId = room.whoAmIState!.currentTurn;
+      const voterId = activeId === 'p1-new' ? 'p2' : 'p1-new';
+      const correctWord = activeId === 'p1-new' ? 'Apple' : 'Banana';
+      whoAmIService.handleGameAction(room, activeId, { type: 'GUESS_WORD', guess: correctWord });
+      whoAmIService.handleGameAction(room, voterId, { type: 'VOTE_GUESS', vote: 'YES' });
+      whoAmIService.handleGameAction(room, activeId, { type: 'NEXT_TURN' });
+      broadcastRoom(room);
+
+      expect(room.status).toBe(RoomStatus.RESULT);
+      expect(getLastRoomUpdate(room.code)?.whoAmIState?.revealedWords).toEqual({
+        'p1-new': 'Apple',
+        p2: 'Banana',
+      });
+
+      // Reset clears private words
+      whoAmIService.resetGame(room, 'host1');
+      broadcastRoom(room);
+      expect(getLastPrivateData('p1-new')).toEqual({});
+      expect(getLastPrivateData('p2')).toEqual({});
+    });
+
+    it('never leaks own word or waiSubmittedWord in RANDOM, PLAYER_INPUT, and AI_GENERATED modes', async () => {
+      const makePlayers = () => [
+        { id: 'u-1', socketId: 'p1', name: 'P1', score: 0, roomId: 'r1', connected: true },
+        { id: 'u-2', socketId: 'p2', name: 'P2', score: 0, roomId: 'r1', connected: true },
+      ];
+
+      // 1. RANDOM mode
+      (prisma.word.findMany as jest.Mock).mockResolvedValueOnce([
+        { word: 'Lion', emoji: null },
+        { word: 'Tiger', emoji: null },
+      ]);
+      const randomRoom: RoomState = {
+        id: 'r-rand',
+        code: 'WAIRND',
+        gameType: GameType.WHO_AM_I,
+        status: RoomStatus.LOBBY,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: {
+          hostSelection: 'ROUND_ROBIN',
+          timerMin: 5,
+          wordMode: 'RANDOM',
+          wordCategory: 'Animals',
+          language: 'en',
+        },
+        players: makePlayers(),
+      };
+      expect(await whoAmIService.startGameRandom(randomRoom, 'p1')).not.toBeNull();
+      broadcastRoom(randomRoom);
+
+      for (const pid of ['p1', 'p2']) {
+        const ownWord = privateStateService.get<string>(randomRoom.code, pid, 'waiMyWord')!;
+        const packet = getLastPrivateData(pid)!;
+        expect(packet).not.toHaveProperty('waiMyWord');
+        expect(JSON.stringify(packet)).not.toContain(ownWord);
+      }
+
+      // 2. PLAYER_INPUT mode
+      const playerInputRoom: RoomState = {
+        id: 'r-pin',
+        code: 'WAIPIN',
+        gameType: GameType.WHO_AM_I,
+        status: RoomStatus.LOBBY,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5, wordMode: 'PLAYER_INPUT' },
+        players: makePlayers(),
+      };
+      whoAmIService.startGamePlayerInput(playerInputRoom, 'p1');
+      whoAmIService.submitPlayerWord(playerInputRoom, 'p1', 'Mango');
+      broadcastRoom(playerInputRoom);
+      // During COLLECTING_WORDS, waiSubmittedWord must not be sent out
+      expect(getLastPrivateData('p1')).toEqual({});
+
+      whoAmIService.submitPlayerWord(playerInputRoom, 'p2', 'Peach');
+      broadcastRoom(playerInputRoom);
+
+      for (const pid of ['p1', 'p2']) {
+        const ownWord = privateStateService.get<string>(playerInputRoom.code, pid, 'waiMyWord')!;
+        const packet = getLastPrivateData(pid)!;
+        expect(packet).not.toHaveProperty('waiMyWord');
+        expect(packet).not.toHaveProperty('waiSubmittedWord');
+        expect(JSON.stringify(packet)).not.toContain(ownWord);
+      }
+
+      // 3. AI_GENERATED mode (DB fallback when GEMINI_API_KEY not set)
+      const prevKey = process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      try {
+        (prisma.word.groupBy as jest.Mock).mockResolvedValueOnce([
+          { category: 'Objects', _count: { id: 4 } },
+        ]);
+        (prisma.word.findMany as jest.Mock).mockResolvedValueOnce([
+          { word: 'Guitar', emoji: null },
+          { word: 'Piano', emoji: null },
+        ]);
+        const aiRoom: RoomState = {
+          id: 'r-ai',
+          code: 'WAIAIG',
+          gameType: GameType.WHO_AM_I,
+          status: RoomStatus.LOBBY,
+          roomHostId: 'p1',
+          createdAt: new Date(),
+          config: {
+            hostSelection: 'ROUND_ROBIN',
+            timerMin: 5,
+            wordMode: 'AI_GENERATED',
+            language: 'en',
+          },
+          players: makePlayers(),
+        };
+        expect(await whoAmIService.startGameAiGenerated(aiRoom, 'p1')).not.toBeNull();
+        broadcastRoom(aiRoom);
+
+        for (const pid of ['p1', 'p2']) {
+          const ownWord = privateStateService.get<string>(aiRoom.code, pid, 'waiMyWord')!;
+          const packet = getLastPrivateData(pid)!;
+          expect(packet).not.toHaveProperty('waiMyWord');
+          expect(JSON.stringify(packet)).not.toContain(ownWord);
+        }
+      } finally {
+        if (prevKey !== undefined) process.env.GEMINI_API_KEY = prevKey;
+      }
+    });
+
+    it('preserves full private state payload for other game types', () => {
+      const otherRoom: RoomState = {
+        id: 'r-mind',
+        code: 'MND001',
+        gameType: GameType.THE_MIND,
+        status: RoomStatus.PLAYING,
+        roomHostId: 'p1',
+        createdAt: new Date(),
+        config: { hostSelection: 'ROUND_ROBIN', timerMin: 5 },
+        players: [
+          { id: 'u-1', socketId: 'p1', name: 'P1', score: 0, roomId: 'r-mind', connected: true },
+        ],
+      };
+      privateStateService.set(otherRoom.code, 'p1', 'theMindHand', [12, 44]);
+
+      broadcastRoom(otherRoom);
+
+      expect(getLastPrivateData('p1')).toEqual({ theMindHand: [12, 44] });
     });
   });
 });

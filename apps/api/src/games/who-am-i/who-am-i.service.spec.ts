@@ -1511,5 +1511,32 @@ describe('WhoAmIService', () => {
       expect(state.revealedWords).toEqual({ 'p1-new': 'Wizard', p2: 'Pirate' });
       expect(state.hostSocketId).toBe('p1-new');
     });
+
+    it('refreshes waiVisibleWords keys after socketId remapping without including own word', () => {
+      const room = {
+        code: 'test-room',
+        status: RoomStatus.LOBBY,
+        roomHostId: 'host1',
+        players: [
+          { socketId: 'host1', connected: true },
+          { socketId: 'p1', connected: true },
+          { socketId: 'p2', connected: true },
+        ],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 3 },
+      } as unknown as RoomState;
+
+      service.startGameHostInput(room, 'host1', { p1: 'Apple', p2: 'Banana' });
+      room.players[1].socketId = 'p1-new';
+      service.remapSocketId(room.whoAmIState!, 'p1', 'p1-new');
+      privateState.remapSocketId(room.code, 'p1', 'p1-new');
+      service.syncVisibleWords(room);
+
+      expect(privateState.get(room.code, 'p1-new', 'waiVisibleWords')).toEqual({ p2: 'Banana' });
+      expect(privateState.get(room.code, 'p2', 'waiVisibleWords')).toEqual({ 'p1-new': 'Apple' });
+      expect(privateState.get(room.code, 'host1', 'waiVisibleWords')).toEqual({
+        'p1-new': 'Apple',
+        p2: 'Banana',
+      });
+    });
   });
 });

@@ -305,22 +305,28 @@ test.describe('Who Am I Experience (TASK-WA-001)', () => {
       )
       .toBe('ASKING');
 
-    // 6. Secret word privacy check: neither player sees their own word
-    const hostVisible = await host.evaluate(
-      () => (window as any).__useGameStore.getState().privateState?.waiVisibleWords,
+    // 6. Secret word privacy check: neither player sees their own word or raw waiMyWord/waiSubmittedWord
+    const hostPrivate = await host.evaluate(
+      () => (window as any).__useGameStore.getState().privateState,
     );
     const hostSocketId = await host.evaluate(
       () => (window as any).__useGameStore.getState().socketId,
     );
-    expect(hostVisible?.[hostSocketId]).toBeUndefined();
+    expect(hostPrivate?.waiMyWord).toBeUndefined();
+    expect(hostPrivate?.waiSubmittedWord).toBeUndefined();
+    expect(hostPrivate?.waiVisibleWords?.[hostSocketId]).toBeUndefined();
+    expect(JSON.stringify(hostPrivate)).not.toContain('สุนัข');
 
-    const bobVisible = await bob.evaluate(
-      () => (window as any).__useGameStore.getState().privateState?.waiVisibleWords,
+    const bobPrivate = await bob.evaluate(
+      () => (window as any).__useGameStore.getState().privateState,
     );
     const bobSocketId = await bob.evaluate(
       () => (window as any).__useGameStore.getState().socketId,
     );
-    expect(bobVisible?.[bobSocketId]).toBeUndefined();
+    expect(bobPrivate?.waiMyWord).toBeUndefined();
+    expect(bobPrivate?.waiSubmittedWord).toBeUndefined();
+    expect(bobPrivate?.waiVisibleWords?.[bobSocketId]).toBeUndefined();
+    expect(JSON.stringify(bobPrivate)).not.toContain('แมว');
 
     // 7. Guess modal interaction: find active player
     const guessBtnHost = host.getByRole('button', { name: /ขอทายคำ!/i });
