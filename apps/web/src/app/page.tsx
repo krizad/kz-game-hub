@@ -65,7 +65,7 @@ function GameLobby() {
         <RoomHeader />
 
         {/* Role Section at Top */}
-        {myRole && room.gameType === GameType.WHO_KNOW && (
+        {myRole && room.gameType === GameType.WHO_KNOW && room.status !== RoomStatus.RESULT && (
           <div className="flex-none w-full relative z-0">
             <RoleCard role={myRole} word={secretWord} roomCode={room.code} />
           </div>

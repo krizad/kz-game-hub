@@ -35,6 +35,8 @@ export interface CoupPlayerPublic {
 }
 
 export interface CoupState {
+  /** All role cards, public only after the match is over. */
+  finalHands?: Record<string, CoupRole[]>;
   phase: CoupPhase;
   deck: CoupRole[];
   deadPile: CoupRole[];

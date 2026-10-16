@@ -92,6 +92,10 @@ export class CoupService {
   }
 
   remapSocketId(state: CoupState, oldSocketId: string, newSocketId: string): void {
+    if (state.finalHands?.[oldSocketId]) {
+      state.finalHands[newSocketId] = state.finalHands[oldSocketId];
+      delete state.finalHands[oldSocketId];
+    }
     if (state.currentTurn === oldSocketId) state.currentTurn = newSocketId;
     if (state.winnerId === oldSocketId) state.winnerId = newSocketId;
     if (state.coins[oldSocketId] !== undefined) {
@@ -143,6 +147,17 @@ export class CoupService {
     } else if (alive.length === 0) {
       state.phase = CoupPhase.RESULT;
       room.status = RoomStatus.RESULT;
+    }
+    if (state.phase === CoupPhase.RESULT) {
+      state.finalHands = Object.fromEntries(
+        Object.entries(state.influences).map(([id, influence]) => [
+          id,
+          [
+            ...influence.revealed,
+            ...(this.privateStateService.get<CoupRole[]>(room.code, id, 'coupHand') ?? []),
+          ],
+        ]),
+      );
     }
   }
 

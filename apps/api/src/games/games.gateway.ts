@@ -47,8 +47,10 @@ import {
   CipherCardIndexPayload,
   DogRelayActionRequest,
   DOG_RELAY_MAX_PLAYERS,
+  ResultRevealActionPayload,
 } from '@repo/types';
 import { buildDogRelayResultRows } from './dog-relay/dog-relay-results';
+import { syncResultReveal } from './result-reveal';
 
 /** Server string the client localizes via i18n/serverErrors. */
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
@@ -1961,6 +1963,16 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   // --- Leaderboard ---
 
+  @SubscribeMessage(SOCKET_EVENTS.RESULT_REVEAL_ACTION)
+  handleResultRevealAction(
+    @MessageBody() data: ResultRevealActionPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data || typeof data.code !== 'string' || typeof data.revealId !== 'string') return;
+    const room = this.gamesService.resultRevealAction(data.code, client.id, data);
+    if (room) this.broadcastRoomState(room);
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)
   async handleLeaderboardGet(
     @MessageBody() data: { gameType?: string },
@@ -2066,6 +2078,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
    * draw after a challenge reshuffle — so only its size is public.
    */
   private publicRoomView(room: RoomState): RoomState {
+    syncResultReveal(room);
     if (room.gameType === GameType.COUP && room.coupState) {
       return {
         ...room,
@@ -2511,6 +2524,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);
     }
     if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code)) return false;
+    if (event === SOCKET_EVENTS.RESULT_REVEAL_ACTION) {
+      return (
+        typeof data.revealId === 'string' &&
+        data.revealId.length <= 64 &&
+        (data.action === 'REVEAL' || data.action === 'SKIP')
+      );
+    }
     if (
       data.requestId !== undefined &&
       (typeof data.requestId !== 'string' ||

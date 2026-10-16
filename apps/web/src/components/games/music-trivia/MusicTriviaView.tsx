@@ -88,36 +88,6 @@ export function MusicTriviaView() {
     state?.errorMessage,
   ]);
 
-  // Auto-proceed to next round for fast-paced gameplay
-  useEffect(() => {
-    if (
-      state?.phase === 'ANSWER_RESULT' ||
-      state?.phase === 'REVEAL' ||
-      state?.phase === 'ROUND_RESULT'
-    ) {
-      setCountdown(10);
-
-      const interval = setInterval(() => {
-        setCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
-      }, 1000);
-
-      let timer: NodeJS.Timeout;
-      if (isHost) {
-        timer = setTimeout(() => {
-          handleAction('NEXT_ROUND');
-        }, 10000); // 10 seconds delay before auto-proceeding
-      }
-
-      return () => {
-        if (timer) clearTimeout(timer);
-        clearInterval(interval);
-        setCountdown(null);
-      };
-    } else {
-      setCountdown(null);
-    }
-  }, [isHost, state?.phase, state?.currentRound?.roundNumber]);
-
   const amICurrentBuzzer = state?.currentRound?.currentBuzzerId === socketId;
 
   // Countdown timer for answering phase (display-only; server decides timeout via answerTimeout)

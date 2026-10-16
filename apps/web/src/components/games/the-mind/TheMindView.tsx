@@ -6,7 +6,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { toast } from 'react-hot-toast';
-import { GameType, TheMindPhase } from '@repo/types';
+import { GameType, getResultRevealProgress, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -163,6 +163,16 @@ export function TheMindView() {
     ) {
       setRevealedCount(0);
       const maxCount = room.theMindState.playedCards.length;
+      if (
+        room.resultReveal &&
+        getResultRevealProgress(
+          room.resultReveal,
+          Date.now() + useGameStore.getState().serverOffset,
+        ).complete
+      ) {
+        setRevealedCount(maxCount);
+        return;
+      }
       if (maxCount === 0) {
         showResultToast(result.success);
         return;
@@ -1149,11 +1159,13 @@ export function TheMindView() {
       <div className="w-full bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden p-6">
         <div
           className={`border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6 text-center py-4 - ${
-            state.level >= state.maxLevel ? 'bg-emerald-400' : 'bg-[#E6B3A4]'
+            state.result?.success && state.level >= state.maxLevel
+              ? 'bg-emerald-400'
+              : 'bg-[#E6B3A4]'
           }`}
         >
           <h2 className={`text-4xl font-black text-black uppercase tracking-widest`}>
-            {state.level >= state.maxLevel
+            {state.result?.success && state.level >= state.maxLevel
               ? t('gameTheMind.game.youWin')
               : t('gameTheMind.game.gameOver')}
           </h2>

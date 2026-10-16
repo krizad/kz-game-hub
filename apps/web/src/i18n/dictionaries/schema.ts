@@ -1,4 +1,7 @@
+import type { resultRevealEn } from './result-reveal';
+
 export interface Dictionary {
+  resultReveal: typeof resultRevealEn;
   dogRelay: {
     rolesAndGoals: string;
     goal: string;

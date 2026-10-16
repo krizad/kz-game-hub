@@ -62,6 +62,7 @@ describe('CoupService (01 scaffold)', () => {
     // 15 - 6 dealt = 9 remaining
     expect(result!.coupState!.deck).toHaveLength(9);
     expect(result!.coupState!.deadPile).toEqual([]);
+    expect(result!.coupState!.finalHands).toBeUndefined();
   });
 
   it('startGame fails if not host or not enough players or wrong status', () => {
@@ -252,6 +253,11 @@ describe('CoupService (02 core economy)', () => {
     expect(r4!.coupState!.winnerId).toBe('s1');
     expect(r4!.coupState!.phase).toBe('RESULT');
     expect(r4!.status).toBe(RoomStatus.RESULT);
+    expect(r4!.coupState!.finalHands?.s1).toEqual(privateState.get(room.code, 's1', 'coupHand'));
+    expect(r4!.coupState!.finalHands?.s2).toContain(CoupRole.DUKE);
+    service.remapSocketId(r4!.coupState!, 's1', 'new-s1');
+    expect(r4!.coupState!.finalHands?.['new-s1']).toBeDefined();
+    expect(r4!.coupState!.finalHands?.s1).toBeUndefined();
   });
 });
 

@@ -27,6 +27,7 @@ import {
 import { PokerMode, PokerPublicState } from './poker';
 import { CipherGridState } from './cipher-grid';
 import { DogRelayPublicState, DogRelayLeaderSelection } from './dog-relay';
+import type { ResultRevealState } from './result-reveal';
 
 export const APP_VERSION = 'v1.0.0';
 export const BOT_SOCKET_ID = 'bot-player';
@@ -70,6 +71,7 @@ export type TttModeFlag = (typeof TTT_MODE_FLAGS)[number];
 
 // Socket Constants
 export const SOCKET_EVENTS = {
+  RESULT_REVEAL_ACTION: 'result_reveal_action',
   DOG_RELAY_ACTION: 'dog_relay_action',
   CREATE_ROOM: 'create_room',
   LEAVE_ROOM: 'leave_room',
@@ -326,6 +328,7 @@ export interface RoomConfig {
 }
 
 export interface RoomState {
+  resultReveal?: ResultRevealState;
   id: string;
   gameType: GameType;
   code: string;

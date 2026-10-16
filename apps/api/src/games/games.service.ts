@@ -23,7 +23,9 @@ import {
   DogRelayPhase,
   DOG_RELAY_RECONNECT_MS,
   DOG_RELAY_MAX_PLAYERS,
+  ResultRevealActionPayload,
 } from '@repo/types';
+import { applyResultRevealAction } from './result-reveal';
 import { v4 as uuidv4 } from 'uuid';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
@@ -69,6 +71,15 @@ export type RoomLifecycleEvent =
 
 @Injectable()
 export class GamesService {
+  resultRevealAction(
+    code: string,
+    socketId: string,
+    payload: ResultRevealActionPayload,
+  ): RoomState | null {
+    const room = this.rooms.get(code);
+    return room && applyResultRevealAction(room, socketId, payload) ? room : null;
+  }
+
   /** How long a dropped connection may reclaim its seat before being removed. */
   private static readonly RECONNECT_GRACE_MS = 60_000;
 

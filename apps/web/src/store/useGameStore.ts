@@ -35,6 +35,7 @@ import {
   CipherAssignTeamPayload,
   CipherClueCount,
   WhoAmICategoriesResponsePayload,
+  ResultRevealActionPayload,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -70,6 +71,7 @@ const translateError = (message: string) => {
 };
 
 interface GameState {
+  resultRevealAction: (action: ResultRevealActionPayload['action']) => void;
   socket: Socket | null;
   connected: boolean;
   connectionStatus: 'connecting' | 'connected' | 'reconnecting' | 'failed';
@@ -343,6 +345,15 @@ export const useGameStore = create<GameState>((set, get) => {
     isLoading: false,
     gameStartError: null,
     clearGameStartError: () => set({ gameStartError: null }),
+    resultRevealAction: (action) => {
+      const { room, socket } = get();
+      if (!room?.resultReveal || !socket?.connected) return;
+      socket.emit(SOCKET_EVENTS.RESULT_REVEAL_ACTION, {
+        code: room.code,
+        revealId: room.resultReveal.id,
+        action,
+      } satisfies ResultRevealActionPayload);
+    },
     sendDogRelayAction: (action) => {
       emitGameAction(SOCKET_EVENTS.DOG_RELAY_ACTION, {
         trackReceipt: true,

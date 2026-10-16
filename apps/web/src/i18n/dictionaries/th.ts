@@ -1,7 +1,9 @@
 import { REBRANDED_TITLES } from '../game-titles';
 import { Dictionary } from './schema';
+import { resultRevealTh } from './result-reveal';
 
 export const th: Dictionary = {
+  resultReveal: resultRevealTh,
   dogRelay: {
     rolesAndGoals: 'บทบาทและเป้าหมาย',
     goal: 'เป้าหมาย',
