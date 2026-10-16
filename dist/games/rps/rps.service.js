@@ -46,6 +46,7 @@ let RPSService = class RPSService {
         room.rpsState.choicesMade = [];
         room.rpsState.scores = {};
         connectedIds.forEach((id) => (room.rpsState.scores[id] = 0));
+        room.players.forEach((p) => (p.score = 0));
         room.rpsState.gameWinner = undefined;
         room.rpsState.roundWinner = undefined;
         for (const id of connectedIds) {
@@ -69,9 +70,10 @@ let RPSService = class RPSService {
         if (!rps.choicesMade.includes(clientId)) {
             rps.choicesMade.push(clientId);
         }
-        const activeAndConnectedIds = rps.activePlayers.filter((id) => room.players.find((p) => p.socketId === id && p.connected !== false));
-        const allChosen = activeAndConnectedIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
-        if (allChosen && activeAndConnectedIds.length > 0) {
+        const activeSeatIds = rps.activePlayers.filter((id) => room.players.some((p) => p.socketId === id && !p.isViewer));
+        const allChosen = activeSeatIds.length >= 2 &&
+            activeSeatIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
+        if (allChosen) {
             const revealed = this.revealChoices(room);
             if (room.config.rpsMode === 'ALL_AT_ONCE') {
                 this.resolveAllAtOnceRound(room, revealed);
@@ -89,11 +91,51 @@ let RPSService = class RPSService {
             }
             room.status = types_1.RoomStatus.RESULT;
         }
-        else if (activeAndConnectedIds.length === 0) {
-            rps.roundWinner = 'DRAW';
-            room.status = types_1.RoomStatus.RESULT;
-        }
         return room;
+    }
+    handlePlayerRemoved(room, removedSocketId) {
+        if (room.gameType !== types_1.GameType.RPS || !room.rpsState)
+            return;
+        const rps = room.rpsState;
+        const wasActive = rps.activePlayers.includes(removedSocketId);
+        const presentIds = new Set(room.players.filter((p) => !p.isViewer).map((p) => p.socketId));
+        rps.activePlayers = rps.activePlayers.filter((id) => id !== removedSocketId && presentIds.has(id));
+        rps.queue = rps.queue.filter((id) => id !== removedSocketId && presentIds.has(id));
+        rps.choicesMade = rps.choicesMade.filter((id) => id !== removedSocketId && presentIds.has(id));
+        delete rps.choices[removedSocketId];
+        delete rps.scores[removedSocketId];
+        this.privateState.delete(room.code, removedSocketId, RPS_CHOICE_KEY);
+        if (room.status === types_1.RoomStatus.LOBBY) {
+            return;
+        }
+        if (!wasActive && rps.activePlayers.length >= 2) {
+            return;
+        }
+        if (room.config.rpsMode !== 'ALL_AT_ONCE') {
+            while (rps.activePlayers.length < 2 && rps.queue.length > 0) {
+                const nextId = rps.queue.shift();
+                if (presentIds.has(nextId) && !rps.activePlayers.includes(nextId)) {
+                    rps.activePlayers.push(nextId);
+                }
+            }
+        }
+        if (room.status === types_1.RoomStatus.RESULT && rps.activePlayers.length >= 2) {
+            return;
+        }
+        rps.choices = {};
+        rps.choicesMade = [];
+        rps.roundWinner = undefined;
+        for (const p of room.players) {
+            this.privateState.delete(room.code, p.socketId, RPS_CHOICE_KEY);
+        }
+        if (rps.activePlayers.length < 2) {
+            rps.activePlayers = [];
+            rps.queue = [];
+            rps.gameWinner = undefined;
+            room.status = types_1.RoomStatus.LOBBY;
+            return;
+        }
+        room.status = types_1.RoomStatus.PLAYING;
     }
     revealChoices(room) {
         const taken = this.privateState.takeRoomData(room.code, RPS_CHOICE_KEY);
@@ -197,6 +239,7 @@ let RPSService = class RPSService {
         }
         room.rpsState.choices = {};
         room.rpsState.choicesMade = [];
+        room.rpsState.roundWinner = undefined;
         for (const id of room.rpsState.activePlayers) {
             this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
         }

@@ -39,6 +39,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.actionReceiptService = actionReceiptService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
+        this.recordedScoreBaselines = new Map();
         this.recordedDogRelayRounds = new Map();
     }
     afterInit() {
@@ -99,6 +100,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     forgetRecordedResult(code) {
         this.recordedResults.delete(code);
+        this.recordedScoreBaselines.delete(code);
         this.recordedDogRelayRounds.delete(code);
     }
     handleDogRelayAction(input, client) {
@@ -150,7 +152,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         else {
             client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
             client.emit(types_1.SOCKET_EVENTS.PRIVATE_STATE_UPDATED, {
-                data: this.privateStateService.getSocketData(code, client.id),
+                data: this.getOutboundPrivateState(room, client.id),
             });
         }
     }
@@ -1002,8 +1004,32 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     async handleWhoAmIGetCategories(data, client) {
-        const categories = await this.gamesService.whoAmICategoriesList(data?.lang);
-        client.emit(types_1.SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
+        try {
+            const categories = await this.gamesService.whoAmICategoriesList(data?.lang);
+            if (data?.requestId !== undefined) {
+                client.emit(types_1.SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
+                    categories,
+                    lang: data?.lang,
+                    requestId: data.requestId,
+                });
+            }
+            else {
+                client.emit(types_1.SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, categories);
+            }
+        }
+        catch {
+            if (data?.requestId !== undefined) {
+                client.emit(types_1.SOCKET_EVENTS.WHO_AM_I_CATEGORIES_LIST, {
+                    categories: [],
+                    lang: data?.lang,
+                    requestId: data.requestId,
+                    error: 'CATEGORIES_UNAVAILABLE',
+                });
+            }
+            else {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'CATEGORIES_UNAVAILABLE' });
+            }
+        }
     }
     async handleGameAction(data, client) {
         if (!data?.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
@@ -1601,9 +1627,28 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
         });
     }
+    getOutboundPrivateState(room, socketId) {
+        const raw = this.privateStateService.getSocketData(room.code, socketId);
+        if (room.gameType !== types_1.GameType.WHO_AM_I) {
+            return raw;
+        }
+        const visibleWords = raw.waiVisibleWords;
+        if (!visibleWords || typeof visibleWords !== 'object' || Array.isArray(visibleWords)) {
+            return {};
+        }
+        const filteredVisibleWords = {};
+        for (const [targetSocketId, word] of Object.entries(visibleWords)) {
+            if (targetSocketId !== socketId && typeof word === 'string') {
+                filteredVisibleWords[targetSocketId] = word;
+            }
+        }
+        return Object.keys(filteredVisibleWords).length > 0
+            ? { waiVisibleWords: filteredVisibleWords }
+            : {};
+    }
     emitPrivateStates(room) {
         for (const player of room.players) {
-            const data = this.privateStateService.getSocketData(room.code, player.socketId);
+            const data = this.getOutboundPrivateState(room, player.socketId);
             this.server.to(player.socketId).emit(types_1.SOCKET_EVENTS.PRIVATE_STATE_UPDATED, { data });
         }
     }
@@ -1738,7 +1783,11 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             return data.gameType === undefined || typeof data.gameType === 'string';
         }
         if (event === types_1.SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
-            return data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10);
+            return ((data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10)) &&
+                (data.requestId === undefined ||
+                    (typeof data.requestId === 'string' &&
+                        data.requestId.length >= 1 &&
+                        data.requestId.length <= 64)));
         }
         if (event === types_1.SOCKET_EVENTS.SERVER_TIME_REQUEST) {
             return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);
@@ -1889,6 +1938,47 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         return false;
     }
+    getResultPlayerKey(player) {
+        return (player.name ?? '').trim();
+    }
+    isAbortedResultState(room) {
+        if (room.gameType === types_1.GameType.RPS && room.rpsState) {
+            return !room.rpsState.roundWinner;
+        }
+        if (room.gameType === types_1.GameType.TIC_TAC_TOE &&
+            (room.ticTacToeState || room.gobblerState || room.ultimateTicTacToeState)) {
+            return (!room.ticTacToeState?.winner &&
+                !room.gobblerState?.winner &&
+                !room.ultimateTicTacToeState?.winner);
+        }
+        if (room.gameType === types_1.GameType.CARD_GAME && room.cardGameState) {
+            return !room.cardGameState.result;
+        }
+        return false;
+    }
+    syncResultScoreBaselines(room) {
+        const baselines = this.recordedScoreBaselines.get(room.code);
+        if (!baselines)
+            return;
+        if (room.status === types_1.RoomStatus.LOBBY && room.players.every((p) => (p.score ?? 0) === 0)) {
+            this.recordedScoreBaselines.delete(room.code);
+            return;
+        }
+        const currentNames = new Set(room.players
+            .filter((p) => p.name && p.name.trim().length > 0)
+            .map((p) => this.getResultPlayerKey(p)));
+        for (const [key, previousBaseline] of baselines.entries()) {
+            if (!currentNames.has(key)) {
+                baselines.delete(key);
+                continue;
+            }
+            const player = room.players.find((p) => this.getResultPlayerKey(p) === key);
+            const currentScore = player?.score ?? 0;
+            if (currentScore < previousBaseline) {
+                baselines.set(key, currentScore);
+            }
+        }
+    }
     maybeRecordGameResult(room) {
         if (room.gameType === types_1.GameType.DOG_RELAY) {
             const state = room.dogRelayState;
@@ -1902,20 +1992,65 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (room.status !== types_1.RoomStatus.RESULT) {
             this.recordedResults.delete(room.code);
+            this.syncResultScoreBaselines(room);
             return;
         }
-        if (this.recordedResults.has(room.code))
+        if (this.isAbortedResultState(room)) {
             return;
+        }
+        if (this.recordedResults.has(room.code)) {
+            return;
+        }
         this.recordedResults.add(room.code);
-        const results = [...room.players]
-            .filter((p) => p.name)
-            .sort((a, b) => b.score - a.score)
-            .map((p, idx) => ({
-            playerName: p.name,
-            score: p.score,
-            rank: idx + 1,
-        }));
-        this.leaderboardService.recordGameResult(room.gameType, room.code, results);
+        let baselines = this.recordedScoreBaselines.get(room.code);
+        if (!baselines) {
+            baselines = new Map();
+            this.recordedScoreBaselines.set(room.code, baselines);
+        }
+        const activePlayers = room.players.filter((p) => !p.isViewer && p.name && p.name.trim().length > 0);
+        const totalCurrentScore = activePlayers.reduce((sum, p) => sum + (p.score ?? 0), 0);
+        let totalBaselineScore = 0;
+        for (const player of activePlayers) {
+            const key = this.getResultPlayerKey(player);
+            totalBaselineScore += baselines.get(key) ?? 0;
+        }
+        const resetBaselines = totalCurrentScore < totalBaselineScore;
+        const scoredPlayers = activePlayers
+            .map((p) => {
+            const key = this.getResultPlayerKey(p);
+            const currentScore = p.score ?? 0;
+            const previousBaseline = room.gameType === types_1.GameType.POKER || resetBaselines ? 0 : (baselines.get(key) ?? 0);
+            const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;
+            const score = Math.max(0, currentScore - effectiveBaseline);
+            baselines.set(key, currentScore);
+            return {
+                playerName: p.name,
+                score,
+            };
+        })
+            .sort((a, b) => b.score - a.score);
+        if (scoredPlayers.length === 0)
+            return;
+        const topScore = scoredPlayers[0].score;
+        let currentRank = 1;
+        const results = scoredPlayers.map((entry, idx) => {
+            if (topScore <= 0) {
+                return {
+                    playerName: entry.playerName,
+                    score: entry.score,
+                    rank: 2,
+                };
+            }
+            if (idx > 0 && entry.score < scoredPlayers[idx - 1].score) {
+                currentRank = idx + 1;
+            }
+            return {
+                playerName: entry.playerName,
+                score: entry.score,
+                rank: currentRank,
+            };
+        });
+        void this.leaderboardService.recordGameResult(room.gameType, room.code, results);
     }
 };
 exports.GamesGateway = GamesGateway;

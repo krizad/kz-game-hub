@@ -8,6 +8,7 @@ export declare class RPSService {
         roles: Record<string, Role>;
     } | null;
     makeChoice(room: RoomState, clientId: string, choice: RPSChoice): RoomState | null;
+    handlePlayerRemoved(room: RoomState, removedSocketId: string): void;
     private revealChoices;
     private addScore;
     private resolve1v1Round;

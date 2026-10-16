@@ -8,7 +8,7 @@ export declare class WhoAmIService {
     private shuffleArray;
     private setMyWord;
     private clearRoomPrivateData;
-    private syncVisibleWords;
+    syncVisibleWords(room: RoomState): void;
     private finishGame;
     private createGameState;
     getCategories(lang?: string): Promise<WordCategory[]>;

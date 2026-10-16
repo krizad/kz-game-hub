@@ -60,6 +60,9 @@ let WhoAmIService = class WhoAmIService {
             if (Object.keys(visible).length > 0) {
                 this.privateState.set(room.code, p.socketId, WAI_VISIBLE_WORDS, visible);
             }
+            else {
+                this.privateState.delete(room.code, p.socketId, WAI_VISIBLE_WORDS);
+            }
         }
     }
     finishGame(room, gameState, winner) {

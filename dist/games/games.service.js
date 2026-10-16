@@ -323,11 +323,14 @@ let GamesService = GamesService_1 = class GamesService {
                 this.cipherGridService.remapSocketId(room.cipherGridState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
+            if (room.gameType === types_1.GameType.WHO_AM_I && room.whoAmIState) {
+                this.whoAmIService.syncVisibleWords(room);
+            }
             if (room.gameType === types_1.GameType.DOG_RELAY) {
                 this.dogRelayService.onReconnect(room, existingPlayer.id, Date.now());
                 this.dogRelayService.refreshPrivateStates(room);
             }
-            this.playerSessionService.issue(code, existingPlayer.id, user.socketId);
+            this.playerSessionService.retain(code, existingPlayer.id, reconnectToken, user.socketId);
         }
         else {
             if (room.gameType === types_1.GameType.DOG_RELAY &&
@@ -356,6 +359,9 @@ let GamesService = GamesService_1 = class GamesService {
             const newPlayer = room.players[room.players.length - 1];
             if (room.status !== types_1.RoomStatus.LOBBY) {
                 newPlayer.isViewer = true;
+                if (room.gameType === types_1.GameType.WHO_AM_I && room.whoAmIState) {
+                    this.whoAmIService.syncVisibleWords(room);
+                }
             }
             this.playerSessionService.issue(code, newPlayer.id, user.socketId);
         }
@@ -476,6 +482,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (room.pokerState) {
             this.pokerService.handlePlayerDisconnect(room, player.socketId);
         }
+        if (room.gameType === types_1.GameType.RPS && room.rpsState) {
+            this.rpsService.handlePlayerRemoved(room, player.socketId);
+        }
         this.runDisconnectHooks(code, room, player.socketId);
         if (room.gameType === types_1.GameType.DOG_RELAY && room.status === types_1.RoomStatus.LOBBY) {
             this.promoteDogRelayViewers(room);
@@ -589,6 +598,13 @@ let GamesService = GamesService_1 = class GamesService {
             safeConfig.ticTacToeMode &&
             safeConfig.ticTacToeMode !== room.config.ticTacToeMode) {
             this.switchTicTacToeMode(room, safeConfig.ticTacToeMode);
+        }
+        if (room.gameType === types_1.GameType.WHO_AM_I &&
+            (safeConfig.wordMode ?? room.config.wordMode) === 'RANDOM' &&
+            safeConfig.language &&
+            safeConfig.language !== room.config.language &&
+            safeConfig.wordCategory === undefined) {
+            room.config.wordCategory = '';
         }
         room.config = { ...room.config, ...safeConfig };
         if (clearArtistPreset) {

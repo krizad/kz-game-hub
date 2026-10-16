@@ -24,7 +24,15 @@ let PlayerSessionService = PlayerSessionService_1 = class PlayerSessionService {
             expiresAt: Date.now() + PlayerSessionService_1.SESSION_TTL_MS,
         });
         this.sessions.set(roomCode, roomSessions);
-        this.pendingTokens.set(socketId, token);
+        this.pendingTokens.set(socketId, { roomCode, playerId, token });
+    }
+    retain(roomCode, playerId, token, socketId) {
+        if (this.verify(roomCode, token) !== playerId) {
+            return false;
+        }
+        this.deletePendingForPlayer(roomCode, playerId);
+        this.pendingTokens.set(socketId, { roomCode, playerId, token });
+        return true;
     }
     consume(roomCode, token) {
         return this.verify(roomCode, token);
@@ -41,16 +49,23 @@ let PlayerSessionService = PlayerSessionService_1 = class PlayerSessionService {
             roomSessions.delete(tokenHash);
             if (roomSessions.size === 0)
                 this.sessions.delete(roomCode);
+            this.deletePendingForPlayer(roomCode, session.playerId);
             return null;
         }
         return session.playerId;
     }
     takePendingToken(socketId) {
-        const token = this.pendingTokens.get(socketId) ?? null;
+        const record = this.pendingTokens.get(socketId);
         this.pendingTokens.delete(socketId);
-        return token;
+        if (!record)
+            return null;
+        if (this.verify(record.roomCode, record.token) !== record.playerId) {
+            return null;
+        }
+        return record.token;
     }
     revokePlayer(roomCode, playerId) {
+        this.deletePendingForPlayer(roomCode, playerId);
         const roomSessions = this.sessions.get(roomCode);
         if (!roomSessions)
             return;
@@ -63,10 +78,22 @@ let PlayerSessionService = PlayerSessionService_1 = class PlayerSessionService {
     }
     clearRoom(roomCode) {
         this.sessions.delete(roomCode);
+        for (const [socketId, record] of this.pendingTokens.entries()) {
+            if (record.roomCode === roomCode) {
+                this.pendingTokens.delete(socketId);
+            }
+        }
     }
     clearAll() {
         this.sessions.clear();
         this.pendingTokens.clear();
+    }
+    deletePendingForPlayer(roomCode, playerId) {
+        for (const [socketId, record] of this.pendingTokens.entries()) {
+            if (record.roomCode === roomCode && record.playerId === playerId) {
+                this.pendingTokens.delete(socketId);
+            }
+        }
     }
     hash(token) {
         return (0, crypto_1.createHash)('sha256').update(token).digest('base64url');

@@ -3,11 +3,13 @@ export declare class PlayerSessionService {
     private readonly sessions;
     private readonly pendingTokens;
     issue(roomCode: string, playerId: string, socketId: string): void;
+    retain(roomCode: string, playerId: string, token: string, socketId: string): boolean;
     consume(roomCode: string, token: string): string | null;
     verify(roomCode: string, token: string): string | null;
     takePendingToken(socketId: string): string | null;
     revokePlayer(roomCode: string, playerId: string): void;
     clearRoom(roomCode: string): void;
     clearAll(): void;
+    private deletePendingForPlayer;
     private hash;
 }

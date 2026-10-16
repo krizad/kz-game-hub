@@ -19,6 +19,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     server: Server;
     private readonly logger;
     private readonly recordedResults;
+    private readonly recordedScoreBaselines;
     constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService, artistPresetService: ArtistPresetService, actionReceiptService?: ActionReceiptService);
     afterInit(): void;
     handleConnection(client: Socket): void;
@@ -243,6 +244,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     }, client: Socket): void;
     handleWhoAmIGetCategories(data: {
         lang?: string;
+        requestId?: string;
     }, client: Socket): Promise<void>;
     handleGameAction(data: {
         code: string;
@@ -350,6 +352,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncBananaThiefTimer;
     private syncPokerTimer;
     private syncCipherGridTimer;
+    private getOutboundPrivateState;
     private emitPrivateStates;
     private emitSessionToken;
     private applyMusicTriviaTimers;
@@ -360,5 +363,8 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private isValidName;
     private isSettingsKey;
     private hasSafeValues;
+    private getResultPlayerKey;
+    private isAbortedResultState;
+    private syncResultScoreBaselines;
     private maybeRecordGameResult;
 }
