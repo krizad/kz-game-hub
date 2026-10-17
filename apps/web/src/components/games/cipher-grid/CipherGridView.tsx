@@ -2,7 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { CipherTeam, CipherCardType, CipherClueCount } from '@repo/types';
-import { CIPHER_GRID_PRIVATE_KEY } from '@repo/types';
+import { CipherPictureCard, CipherPictureImage } from './CipherPictureCard';
+import {
+  CIPHER_GRID_MAX_CLUE_LENGTH,
+  CIPHER_GRID_PICTURE_PACK_IS_FIXTURE,
+  CIPHER_GRID_PRIVATE_KEY,
+} from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
@@ -17,6 +22,9 @@ export function CipherGridView() {
   const [isPeekActive, setIsPeekActive] = useState(false);
   const [showChallengeDialog, setShowChallengeDialog] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+  const [confirmReveal, setConfirmReveal] = useState(false);
+  const [showCancelRound, setShowCancelRound] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   // Tick for turn timer
@@ -27,9 +35,11 @@ export function CipherGridView() {
 
   const state = room?.cipherGridState;
   const isHost = Boolean(socketId && room?.roomHostId === socketId);
+  const picturePack = state?.picturePack ?? room?.config?.cipherGridPicturePack ?? 'MINIMAL';
 
   // Resolve teams and roles
-  const myTeam = (state?.teams && socketId ? state.teams[socketId] : null) as CipherTeam | null;
+  const isPlayer = !!room?.players.some((p) => p.socketId === socketId && !p.isViewer);
+  const myTeam: CipherTeam | null = isPlayer && socketId ? (state?.teams[socketId] ?? null) : null;
   const isLead = useMemo(() => {
     if (!state || !myTeam || !socketId) return false;
     return state.cipherLeads[myTeam] === socketId;
@@ -40,7 +50,11 @@ export function CipherGridView() {
   const isMyTeamTurn = state?.currentTeam === myTeam;
   const isMyTurnToGiveClue = state?.phase === 'CLUE_GIVING' && isMyTeamTurn && isLead;
   const isMyTeamDecoding = state?.phase === 'DECODING' && isMyTeamTurn && isTracker;
-  const canChallenge = state?.phase === 'DECODING' && !isMyTeamTurn && myTeam !== null;
+  const canChallenge =
+    state?.phase === 'DECODING' &&
+    !isMyTeamTurn &&
+    myTeam !== null &&
+    !state.currentClue?.challenge;
 
   // Selected card details
   const selectedCard =
@@ -54,7 +68,8 @@ export function CipherGridView() {
   // Guesses remaining calculation
   const guessesRemaining = useMemo(() => {
     if (!state?.currentClue) return null;
-    if (state.currentClue.count === 'UNLIMITED') return 'UNLIMITED';
+    if (state.currentClue.count === 'UNLIMITED' || state.currentClue.count === 0)
+      return 'UNLIMITED';
     const maxGuesses = state.currentClue.count + 1;
     return Math.max(0, maxGuesses - state.guessesThisTurn);
   }, [state?.currentClue, state?.guessesThisTurn]);
@@ -63,7 +78,6 @@ export function CipherGridView() {
   const canEndTurn = useMemo(() => {
     if (!state || state.phase !== 'DECODING' || !isMyTeamTurn || !isTracker) return false;
     if (!state.currentClue) return false;
-    if (state.currentClue.count === 0 || state.currentClue.count === 'UNLIMITED') return true;
     return state.guessesThisTurn >= 1;
   }, [state, isMyTeamTurn, isTracker]);
 
@@ -72,6 +86,18 @@ export function CipherGridView() {
     if (!state?.turnEndsAt) return null;
     return Math.max(0, Math.ceil((state.turnEndsAt - now) / 1000));
   }, [state?.turnEndsAt, now]);
+
+  useEffect(() => {
+    setSelectedCardIndex(null);
+    setZoomIndex(null);
+    setConfirmReveal(false);
+    setShowCancelRound(false);
+    setShowChallengeDialog(false);
+    setIsPeekActive(false);
+  }, [room?.code, state?.round, state?.currentTeam, state?.phase, state?.currentClue?.id]);
+  useEffect(() => {
+    if (state?.currentClue?.giverId === socketId) setClueWord('');
+  }, [state?.currentClue?.id, socketId]);
 
   if (!state || !room) {
     return null;
@@ -95,11 +121,18 @@ export function CipherGridView() {
     const lunarTrackers = room.players.filter(
       (p) => state.teams[p.socketId] === 'LUNAR' && p.socketId !== lunarLeadSocket,
     );
-    const unassignedPlayers = room.players.filter((p) => !state.teams[p.socketId]);
+    const unassignedPlayers = room.players.filter((p) => !p.isViewer && !state.teams[p.socketId]);
 
-    const hasEnoughPlayers = room.players.length >= 4;
-    const isSolarValid = !!solarLead && solarTrackers.length >= 1;
-    const isLunarValid = !!lunarLead && lunarTrackers.length >= 1;
+    const hasEnoughPlayers =
+      room.players.filter((p) => !p.isViewer && p.connected !== false).length >= 4;
+    const isSolarValid =
+      !!solarLead &&
+      solarLead.connected !== false &&
+      solarTrackers.some((p) => p.connected !== false);
+    const isLunarValid =
+      !!lunarLead &&
+      lunarLead.connected !== false &&
+      lunarTrackers.some((p) => p.connected !== false);
     const canStart = hasEnoughPlayers && isSolarValid && isLunarValid;
 
     return (
@@ -147,13 +180,15 @@ export function CipherGridView() {
                 <span className="text-xs font-black uppercase tracking-wider text-amber-800">
                   👑 {t('cipherGrid.leadRole')} (1)
                 </span>
-                {(!solarLead || solarLead.socketId === socketId) && (
+                {isPlayer && (!solarLead || solarLead.socketId === socketId) && (
                   <button
                     data-testid="join-solar-lead-btn"
                     onClick={() => actions.cipherAssignTeam({ team: 'SOLAR', role: 'CIPHER_LEAD' })}
                     className="text-xs font-black px-2 py-1 bg-amber-400 border border-black shadow-[1px_1px_0_0_#000] hover:bg-amber-300"
                   >
-                    {solarLead?.socketId === socketId ? 'Joined' : '+ Join'}
+                    {solarLead?.socketId === socketId
+                      ? t('cipherGrid.joined')
+                      : t('cipherGrid.join')}
                   </button>
                 )}
               </div>
@@ -161,16 +196,16 @@ export function CipherGridView() {
                 {solarLead ? (
                   <span className="flex items-center justify-between">
                     <span>
-                      {solarLead.name} {solarLead.socketId === socketId && '(You)'}
+                      {solarLead.name} {solarLead.socketId === socketId && t('cipherGrid.you')}
                     </span>
                     {solarLead.socketId === socketId && (
                       <span className="text-xs font-mono bg-amber-200 px-1 border border-black">
-                        Active
+                        {t('cipherGrid.active')}
                       </span>
                     )}
                   </span>
                 ) : (
-                  <span className="text-stone-400 italic">No Lead assigned</span>
+                  <span className="text-stone-400 italic">{t('cipherGrid.noLead')}</span>
                 )}
               </div>
             </div>
@@ -182,16 +217,19 @@ export function CipherGridView() {
                   🔍 {t('cipherGrid.trackerRole')} ({solarTrackers.length})
                 </span>
                 <button
+                  disabled={!isPlayer}
                   data-testid="join-solar-tracker-btn"
                   onClick={() => actions.cipherAssignTeam({ team: 'SOLAR', role: 'TRACKER' })}
                   className="text-xs font-black px-2 py-1 bg-amber-400 border border-black shadow-[1px_1px_0_0_#000] hover:bg-amber-300"
                 >
-                  + Join
+                  {t('cipherGrid.join')}
                 </button>
               </div>
               <div className="space-y-1.5 flex-1">
                 {solarTrackers.length === 0 ? (
-                  <div className="text-xs text-stone-400 italic py-2">No Trackers yet</div>
+                  <div className="text-xs text-stone-400 italic py-2">
+                    {t('cipherGrid.noTrackers')}
+                  </div>
                 ) : (
                   solarTrackers.map((tr) => (
                     <div
@@ -199,7 +237,7 @@ export function CipherGridView() {
                       className="text-sm font-bold bg-amber-50 px-2 py-1 border border-black/30 flex justify-between"
                     >
                       <span>
-                        {tr.name} {tr.socketId === socketId && '(You)'}
+                        {tr.name} {tr.socketId === socketId && t('cipherGrid.you')}
                       </span>
                     </div>
                   ))
@@ -225,13 +263,15 @@ export function CipherGridView() {
                 <span className="text-xs font-black uppercase tracking-wider text-blue-800">
                   👑 {t('cipherGrid.leadRole')} (1)
                 </span>
-                {(!lunarLead || lunarLead.socketId === socketId) && (
+                {isPlayer && (!lunarLead || lunarLead.socketId === socketId) && (
                   <button
                     data-testid="join-lunar-lead-btn"
                     onClick={() => actions.cipherAssignTeam({ team: 'LUNAR', role: 'CIPHER_LEAD' })}
                     className="text-xs font-black px-2 py-1 bg-blue-400 text-white border border-black shadow-[1px_1px_0_0_#000] hover:bg-blue-300"
                   >
-                    {lunarLead?.socketId === socketId ? 'Joined' : '+ Join'}
+                    {lunarLead?.socketId === socketId
+                      ? t('cipherGrid.joined')
+                      : t('cipherGrid.join')}
                   </button>
                 )}
               </div>
@@ -239,16 +279,16 @@ export function CipherGridView() {
                 {lunarLead ? (
                   <span className="flex items-center justify-between">
                     <span>
-                      {lunarLead.name} {lunarLead.socketId === socketId && '(You)'}
+                      {lunarLead.name} {lunarLead.socketId === socketId && t('cipherGrid.you')}
                     </span>
                     {lunarLead.socketId === socketId && (
                       <span className="text-xs font-mono bg-blue-200 px-1 border border-black">
-                        Active
+                        {t('cipherGrid.active')}
                       </span>
                     )}
                   </span>
                 ) : (
-                  <span className="text-stone-400 italic">No Lead assigned</span>
+                  <span className="text-stone-400 italic">{t('cipherGrid.noLead')}</span>
                 )}
               </div>
             </div>
@@ -260,16 +300,19 @@ export function CipherGridView() {
                   🔍 {t('cipherGrid.trackerRole')} ({lunarTrackers.length})
                 </span>
                 <button
+                  disabled={!isPlayer}
                   data-testid="join-lunar-tracker-btn"
                   onClick={() => actions.cipherAssignTeam({ team: 'LUNAR', role: 'TRACKER' })}
                   className="text-xs font-black px-2 py-1 bg-blue-400 text-white border border-black shadow-[1px_1px_0_0_#000] hover:bg-blue-300"
                 >
-                  + Join
+                  {t('cipherGrid.join')}
                 </button>
               </div>
               <div className="space-y-1.5 flex-1">
                 {lunarTrackers.length === 0 ? (
-                  <div className="text-xs text-stone-400 italic py-2">No Trackers yet</div>
+                  <div className="text-xs text-stone-400 italic py-2">
+                    {t('cipherGrid.noTrackers')}
+                  </div>
                 ) : (
                   lunarTrackers.map((tr) => (
                     <div
@@ -277,7 +320,7 @@ export function CipherGridView() {
                       className="text-sm font-bold bg-blue-50 px-2 py-1 border border-black/30 flex justify-between"
                     >
                       <span>
-                        {tr.name} {tr.socketId === socketId && '(You)'}
+                        {tr.name} {tr.socketId === socketId && t('cipherGrid.you')}
                       </span>
                     </div>
                   ))
@@ -309,7 +352,7 @@ export function CipherGridView() {
               <span className="text-amber-700">⚠️ {t('cipherGrid.needLeadAndTracker')}</span>
             )}
             {canStart && (
-              <span className="text-emerald-700 font-black">✓ Ready to deploy operatives</span>
+              <span className="text-emerald-700 font-black">✓ {t('cipherGrid.ready')}</span>
             )}
           </div>
 
@@ -346,6 +389,17 @@ export function CipherGridView() {
       data-testid="ciphergrid-container"
       className="flex-1 flex flex-col bg-amber-50/30 border-4 border-black shadow-[6px_6px_0_0_#000] p-3 sm:p-4 gap-4 overflow-y-auto"
     >
+      {isHost && !isRoundEnd && (
+        <div className="flex justify-end">
+          <button
+            data-testid="cancel-round-btn"
+            onClick={() => setShowCancelRound(true)}
+            className="min-h-11 border-2 border-black bg-white px-3 py-2 text-sm font-bold"
+          >
+            {t('cipherGrid.cancelRound')}
+          </button>
+        </div>
+      )}
       {/* Top Bar: Team Scores & Turn Info */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white border-4 border-black p-3 shadow-[3px_3px_0_0_#000]">
         {/* Solar Status */}
@@ -358,7 +412,7 @@ export function CipherGridView() {
         >
           <span className="text-lg">☀️</span>
           <div className="flex flex-col">
-            <span className="text-xs uppercase tracking-tight">Solar</span>
+            <span className="text-xs uppercase tracking-tight">{t('cipherGrid.solarTeam')}</span>
             <span className="text-sm font-black">
               {state.remaining.SOLAR} {t('cipherGrid.cardRemaining')}
             </span>
@@ -388,7 +442,9 @@ export function CipherGridView() {
                   isSolarTurn ? 'bg-amber-400 text-black' : 'bg-blue-600 text-white'
                 }`}
               >
-                {isSolarTurn ? '☀️ Solar Team' : '🌙 Lunar Team'}
+                {isSolarTurn
+                  ? `☀️ ${t('cipherGrid.solarTeam')}`
+                  : `🌙 ${t('cipherGrid.lunarTeam')}`}
               </span>
               {typeof secondsLeft === 'number' && (
                 <span className="text-xs font-mono font-black bg-stone-900 text-white px-2 py-0.5 border border-black">
@@ -409,7 +465,7 @@ export function CipherGridView() {
         >
           <span className="text-lg">🌙</span>
           <div className="flex flex-col">
-            <span className="text-xs uppercase tracking-tight">Lunar</span>
+            <span className="text-xs uppercase tracking-tight">{t('cipherGrid.lunarTeam')}</span>
             <span className="text-sm font-black">
               {state.remaining.LUNAR} {t('cipherGrid.cardRemaining')}
             </span>
@@ -422,10 +478,10 @@ export function CipherGridView() {
         <div className="flex items-center justify-between bg-stone-900 text-white border-3 border-black p-2.5 px-3 shadow-[3px_3px_0_0_#000]">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-wider text-amber-400">
-              👑 Cipher Lead Console
+              👑 {t('cipherGrid.leadRole')}
             </span>
             <span className="text-[11px] text-stone-300">
-              ({myTeam === 'SOLAR' ? 'Solar Team' : 'Lunar Team'})
+              ({myTeam === 'SOLAR' ? t('cipherGrid.solarTeam') : t('cipherGrid.lunarTeam')})
             </span>
           </div>
           <button
@@ -454,7 +510,7 @@ export function CipherGridView() {
               value={clueWord}
               onChange={(e) => setClueWord(e.target.value.trim())}
               placeholder={t('cipherGrid.clueWordPlaceholder')}
-              maxLength={20}
+              maxLength={CIPHER_GRID_MAX_CLUE_LENGTH}
               className="flex-1 font-bold text-sm bg-stone-50 border-2 border-black p-2 outline-none focus:bg-amber-50"
             />
             <select
@@ -480,7 +536,6 @@ export function CipherGridView() {
             onClick={() => {
               if (clueWord.trim()) {
                 actions.cipherGiveClue(clueWord.trim(), clueCount);
-                setClueWord('');
               }
             }}
             className={`w-full sm:w-auto px-6 py-2 text-sm font-black uppercase border-2 border-black transition-all ${
@@ -505,7 +560,7 @@ export function CipherGridView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-wider text-amber-400 font-black">
-                  Clue:
+                  {t('cipherGrid.clueLabel')}:
                 </span>
                 <span className="text-lg font-black tracking-wide text-white">
                   &ldquo;{state.currentClue.word}&rdquo;
@@ -554,7 +609,12 @@ export function CipherGridView() {
         </div>
       )}
 
-      {/* 5x5 Card Grid */}
+      {state.mode === 'PICTURES' && CIPHER_GRID_PICTURE_PACK_IS_FIXTURE && (
+        <p role="note" className="text-xs font-bold text-amber-900">
+          {t('cipherGrid.fixtureNotice')}
+        </p>
+      )}
+      {/* Fixed five-column board */}
       <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
         {state.board.map((card, idx) => {
           const isRevealed = card.revealed;
@@ -562,7 +622,7 @@ export function CipherGridView() {
 
           // Determine card role/color styling:
           let cardType: CipherCardType | null = null;
-          if (isRevealed) {
+          if (isRevealed || isRoundEnd) {
             cardType = card.type ?? null;
           } else if (isLead && isPeekActive && privateKeycard) {
             cardType = privateKeycard[idx] ?? null;
@@ -572,7 +632,7 @@ export function CipherGridView() {
           let tileStyle =
             'bg-white text-black border-2 sm:border-4 border-black hover:bg-amber-50 shadow-[2px_2px_0_0_#000]';
 
-          if (isRevealed) {
+          if (isRevealed || isRoundEnd) {
             if (cardType === 'SOLAR') {
               tileStyle =
                 'bg-amber-400 text-black border-2 sm:border-4 border-black shadow-[1px_1px_0_0_#000]';
@@ -605,12 +665,31 @@ export function CipherGridView() {
             .filter(([, cardIndex]) => cardIndex === idx)
             .map(([sId]) => sId);
 
+          if (card.kind === 'PICTURE')
+            return (
+              <CipherPictureCard
+                key={`${state.round}-${idx}`}
+                pictureId={card.pictureId}
+                index={idx}
+                revealed={isRevealed}
+                cardType={cardType}
+                selected={isSelected}
+                pingCount={pingingSockets.length}
+                pack={picturePack}
+                onSelect={
+                  isMyTeamDecoding && !isRevealed ? () => setSelectedCardIndex(idx) : undefined
+                }
+                onZoom={() => setZoomIndex(idx)}
+              />
+            );
           return (
             <button
               key={idx}
               data-testid={`card-tile-${idx}`}
-              data-word={card.word}
+              data-word={card.kind === 'WORD' ? card.word : undefined}
               data-revealed={isRevealed}
+              data-selected={isSelected}
+              data-card-type={cardType ?? undefined}
               disabled={isRevealed || isRoundEnd}
               onClick={() => {
                 if (!isRevealed && !isRoundEnd) {
@@ -623,16 +702,16 @@ export function CipherGridView() {
             >
               {/* Card Word */}
               <span className="font-black text-xs sm:text-base leading-tight uppercase tracking-tight break-words max-w-full">
-                {card.word}
+                {card.kind === 'WORD' ? card.word : ''}
               </span>
 
               {/* Reveal Badge Indicator */}
-              {isRevealed && (
+              {(isRevealed || isRoundEnd) && (
                 <span className="text-[10px] font-mono uppercase tracking-widest mt-1 opacity-90">
-                  {cardType === 'SOLAR' && '☀️ Solar'}
-                  {cardType === 'LUNAR' && '🌙 Lunar'}
-                  {cardType === 'DECOY' && 'Neutral'}
-                  {cardType === 'VIRUS' && '💀 Virus'}
+                  {cardType === 'SOLAR' && `☀️ ${t('cipherGrid.solarTeam')}`}
+                  {cardType === 'LUNAR' && `🌙 ${t('cipherGrid.lunarTeam')}`}
+                  {cardType === 'DECOY' && t('cipherGrid.neutral')}
+                  {cardType === 'VIRUS' && `💀 ${t('cipherGrid.virus')}`}
                 </span>
               )}
 
@@ -674,16 +753,18 @@ export function CipherGridView() {
         <div className="bg-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase bg-stone-100 border border-black px-2 py-1">
-              Selected Card:
+              {t('cipherGrid.selectedCard')}:
             </span>
             <span className="text-base font-black uppercase tracking-wide">
-              {selectedCard.word}
+              {selectedCard.kind === 'WORD'
+                ? selectedCard.word
+                : String((selectedCardIndex ?? 0) + 1).padStart(2, '0')}
             </span>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Ping button (Available to any teammate tracker) */}
-            {isTracker && selectedCardIndex !== null && (
+            {isMyTeamDecoding && selectedCardIndex !== null && (
               <button
                 data-testid="ping-card-btn"
                 onClick={() => actions.cipherPingCard(selectedCardIndex)}
@@ -698,8 +779,7 @@ export function CipherGridView() {
               <button
                 data-testid="reveal-card-btn"
                 onClick={() => {
-                  actions.cipherRevealCard(selectedCardIndex);
-                  setSelectedCardIndex(null);
+                  setConfirmReveal(true);
                 }}
                 className="flex-1 sm:flex-none text-xs font-black uppercase px-5 py-2 bg-amber-400 text-black hover:bg-amber-300 border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
               >
@@ -708,6 +788,7 @@ export function CipherGridView() {
             )}
 
             <button
+              aria-label={t('cipherGrid.cancel')}
               onClick={() => setSelectedCardIndex(null)}
               className="text-xs font-bold text-stone-500 hover:text-black px-2 py-1"
             >
@@ -770,16 +851,33 @@ export function CipherGridView() {
                         h.team === 'SOLAR' ? 'bg-amber-400 text-black' : 'bg-blue-600 text-white'
                       }`}
                     >
-                      {h.team}
+                      {t(h.team === 'SOLAR' ? 'cipherGrid.solarTeam' : 'cipherGrid.lunarTeam')}
                     </span>
-                    <span className="font-mono text-[11px] uppercase">[{h.kind}]</span>
+                    <span className="font-mono text-[11px] uppercase">
+                      [{t(`cipherGrid.historyKinds.${h.kind}`)}]
+                    </span>
+                    {h.cardIndex !== undefined && state.board[h.cardIndex]?.kind === 'PICTURE' && (
+                      <span className="flex items-center gap-1">
+                        <span>{String(h.cardIndex + 1).padStart(2, '0')}</span>
+                        <span className="w-8">
+                          <CipherPictureImage
+                            pictureId={
+                              (state.board[h.cardIndex] as { pictureId: string }).pictureId
+                            }
+                            pack={picturePack}
+                          />
+                        </span>
+                      </span>
+                    )}
                     {h.word && (
                       <span>
                         &ldquo;{h.word}&rdquo; {h.count !== undefined && `× ${h.count}`}
                       </span>
                     )}
                     {h.cardType && (
-                      <span className="text-[11px] font-mono">Card: {h.cardType}</span>
+                      <span className="text-[11px] font-mono">
+                        {t(`cipherGrid.cardTypes.${h.cardType}`)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -789,6 +887,106 @@ export function CipherGridView() {
         </div>
       )}
 
+      {state.currentClue?.challenge?.status === 'PENDING' && (
+        <div role="status" className="border-2 border-black bg-amber-100 p-3 text-sm font-bold">
+          {t('cipherGrid.challengePending')}
+          {state.currentClue.giverId === socketId && (
+            <div className="flex gap-2 mt-2">
+              <button
+                data-testid="accept-challenge-btn"
+                className="border-2 border-black bg-white p-2"
+                onClick={() => actions.cipherRespondChallenge(state.currentClue!.id, true)}
+              >
+                {t('cipherGrid.acceptChallenge')}
+              </button>
+              <button
+                data-testid="reject-challenge-btn"
+                className="border-2 border-black bg-white p-2"
+                onClick={() => actions.cipherRespondChallenge(state.currentClue!.id, false)}
+              >
+                {t('cipherGrid.rejectChallenge')}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      <GameDialog
+        open={zoomIndex !== null}
+        onClose={() => setZoomIndex(null)}
+        title={t('cipherGrid.zoomPicture', { number: (zoomIndex ?? 0) + 1 })}
+      >
+        <div className="bg-white border-4 border-black p-3 space-y-3">
+          {zoomIndex !== null && state.board[zoomIndex]?.kind === 'PICTURE' && (
+            <CipherPictureImage
+              key={`${state.board[zoomIndex].pictureId}-${picturePack}`}
+              pictureId={state.board[zoomIndex].pictureId}
+              pack={picturePack}
+              full
+            />
+          )}
+          <button
+            data-testid="close-picture-zoom"
+            onClick={() => setZoomIndex(null)}
+            className="w-full border-2 border-black bg-amber-200 p-2 font-bold"
+          >
+            {t('cipherGrid.close')}
+          </button>
+        </div>
+      </GameDialog>
+      <GameDialog
+        open={showCancelRound}
+        onClose={() => setShowCancelRound(false)}
+        title={t('cipherGrid.cancelRound')}
+      >
+        <div className="border-4 border-black bg-white p-4 space-y-4">
+          <p className="font-bold">{t('cipherGrid.cancelRoundDescription')}</p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              data-testid="keep-round-btn"
+              onClick={() => setShowCancelRound(false)}
+              className="min-h-11 border-2 border-black px-3 py-2"
+            >
+              {t('cipherGrid.keepPlaying')}
+            </button>
+            <button
+              data-testid="confirm-cancel-round-btn"
+              onClick={() => {
+                actions.cipherCancelRound(state.round);
+                setShowCancelRound(false);
+              }}
+              className="min-h-11 border-2 border-black bg-amber-300 px-3 py-2 font-bold"
+            >
+              {t('cipherGrid.cancelRound')}
+            </button>
+          </div>
+        </div>
+      </GameDialog>
+      <GameDialog
+        open={confirmReveal}
+        onClose={() => setConfirmReveal(false)}
+        title={t('cipherGrid.revealConfirm')}
+      >
+        <div className="bg-white border-4 border-black p-4 space-y-3">
+          <p className="font-black">{t('cipherGrid.revealConfirm')}</p>
+          <div className="flex gap-3">
+            <button onClick={() => setConfirmReveal(false)} className="border-2 border-black p-2">
+              {t('cipherGrid.cancel')}
+            </button>
+            <button
+              data-testid="confirm-reveal-btn"
+              onClick={() => {
+                if (selectedCardIndex !== null && isMyTeamDecoding)
+                  actions.cipherRevealCard(selectedCardIndex);
+                setConfirmReveal(false);
+                setSelectedCardIndex(null);
+              }}
+              className="border-2 border-black p-2 bg-amber-300"
+            >
+              {t('cipherGrid.revealCardBtn')}
+            </button>
+          </div>
+        </div>
+      </GameDialog>
       {/* Challenge Clue Confirmation Dialog */}
       <GameDialog
         open={showChallengeDialog}
@@ -802,7 +1000,8 @@ export function CipherGridView() {
           <p className="text-sm font-bold text-stone-700">{t('cipherGrid.challengeConfirmDesc')}</p>
           {state.currentClue && (
             <div className="bg-stone-100 border-2 border-black p-3 font-mono font-black text-sm">
-              Clue: &ldquo;{state.currentClue.word}&rdquo; × {state.currentClue.count}
+              {t('cipherGrid.clueLabel')}: &ldquo;{state.currentClue.word}&rdquo; ×{' '}
+              {state.currentClue.count}
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">

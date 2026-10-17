@@ -45,6 +45,7 @@ import {
   CipherAssignTeamPayload,
   CipherGiveCluePayload,
   CipherCardIndexPayload,
+  CipherRespondChallengePayload,
   DogRelayActionRequest,
   DOG_RELAY_MAX_PLAYERS,
   ResultRevealActionPayload,
@@ -1936,6 +1937,21 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_RESPOND_CHALLENGE)
+  handleCipherRespondChallenge(
+    @MessageBody() data: { code: string } & CipherRespondChallengePayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherRespondChallenge(
+      data.code,
+      client.id,
+      data.clueId,
+      data.accept,
+    );
+    if (room) this.broadcastRoomState(room);
+    else client.emit(SOCKET_EVENTS.ERROR, { message: 'CHALLENGE_EXPIRED' });
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.CIPHER_NEXT_ROUND)
   handleCipherNextRound(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
     const room = this.gamesService.cipherNextRound(data.code, client.id);
@@ -1958,6 +1974,20 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       );
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.CIPHER_CANCEL_ROUND)
+  handleCipherCancelRound(
+    @MessageBody() data: { code: string; round: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.cipherCancelRound(data.code, client.id, data.round);
+    if (room) {
+      this.roomTimerService.cancel(room.code, 'cipher-grid');
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot cancel round.' });
     }
   }
 

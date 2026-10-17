@@ -1,16 +1,26 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import {
   RoomState,
   RoomStatus,
   CipherCardType,
   CipherClueCount,
   CipherGridState,
+  CipherGridMode,
   CipherRole,
   CipherTeam,
   CIPHER_GRID_BOARD_SIZE,
   CIPHER_GRID_MAX_CLUE_COUNT,
   CIPHER_GRID_MIN_PLAYERS,
   CIPHER_GRID_PRIVATE_KEY,
+  CIPHER_GRID_MODE_PRESETS,
+  CIPHER_GRID_MAX_CLUE_LENGTH,
+  CIPHER_GRID_PICTURES,
+  CIPHER_GRID_PICTURES_CLASSIC,
+  CIPHER_GRID_PICTURES_MINIMAL,
+  CIPHER_GRID_PICTURE_PACKS,
+  CipherGridPicture,
+  CipherGridPicturePack,
 } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 import { cipherGridWordPool } from './cipher-grid-words';
@@ -18,11 +28,6 @@ import { cipherGridWordPool } from './cipher-grid-words';
 /** Room-level private record holding the full Cipher Key. */
 const ROOM_KEY = '__room__';
 const ROOM_KEYCARD = 'cgRoomKeycard';
-
-const STARTING_TEAM_CARDS = 9;
-const SECOND_TEAM_CARDS = 8;
-const DECOY_CARDS = 7;
-const MAX_CLUE_LENGTH = 30;
 
 /** Either the mutated room or a reason the action was rejected (state untouched). */
 export type CipherOutcome =
@@ -38,8 +43,13 @@ export class CipherGridService {
 
   // --- Lifecycle ---
 
-  createInitialState(): CipherGridState {
+  createInitialState(
+    mode: CipherGridMode = 'WORDS',
+    picturePack: CipherGridPicturePack = 'MINIMAL',
+  ): CipherGridState {
     return {
+      mode,
+      picturePack,
       phase: 'TEAM_SETUP',
       round: 0,
       teams: {},
@@ -64,7 +74,10 @@ export class CipherGridService {
     if (room.roomHostId !== requesterId || room.status !== RoomStatus.LOBBY) return null;
     if (this.participants(room).length < CIPHER_GRID_MIN_PLAYERS) return null;
     const previous = room.cipherGridState;
-    room.cipherGridState = this.createInitialState();
+    room.cipherGridState = this.createInitialState(
+      room.config.cipherGridMode ?? 'WORDS',
+      room.config.cipherGridPicturePack ?? 'MINIMAL',
+    );
     if (previous) {
       // Keep team picks across rematches so the table doesn't re-sort every game.
       room.cipherGridState.teams = { ...previous.teams };
@@ -81,13 +94,34 @@ export class CipherGridService {
     room.status = RoomStatus.LOBBY;
     if (room.cipherGridState) {
       const { teams, cipherLeads } = room.cipherGridState;
-      room.cipherGridState = { ...this.createInitialState(), teams, cipherLeads };
+      room.cipherGridState = {
+        ...this.createInitialState(
+          room.config.cipherGridMode ?? 'WORDS',
+          room.config.cipherGridPicturePack ?? 'MINIMAL',
+        ),
+        teams,
+        cipherLeads,
+      };
     }
     this.clearKeycards(room);
     return room;
   }
 
   // --- Team setup ---
+
+  cancelRound(room: RoomState, requesterId: string, round: number): CipherOutcome {
+    const state = room.cipherGridState;
+    if (room.roomHostId !== requesterId) return { error: 'HOST_ONLY' };
+    if (
+      !state ||
+      state.round !== round ||
+      (state.phase !== 'CLUE_GIVING' && state.phase !== 'DECODING')
+    ) {
+      return { error: 'NOT_LIVE_ROUND' };
+    }
+    this.clearRound(room);
+    return { room };
+  }
 
   assignTeam(
     room: RoomState,
@@ -102,6 +136,8 @@ export class CipherGridService {
     if (subjectId !== requesterId && room.roomHostId !== requesterId) {
       return { error: 'HOST_ONLY' };
     }
+    if (team !== null && team !== 'SOLAR' && team !== 'LUNAR') return { error: 'TEAM_INVALID' };
+    if (role !== 'TRACKER' && role !== 'CIPHER_LEAD') return { error: 'ROLE_INVALID' };
     if (!this.participants(room).includes(subjectId)) return { error: 'NOT_A_PLAYER' };
 
     this.removeFromTeams(state, subjectId);
@@ -136,21 +172,44 @@ export class CipherGridService {
     for (const team of ['SOLAR', 'LUNAR'] as const) {
       if (!state.cipherLeads[team]) return { error: 'TEAM_NEEDS_LEAD' };
       if (this.trackers(state, team).length < 1) return { error: 'TEAM_NEEDS_TRACKER' };
+      const connected = new Set(this.participants(room));
+      if (
+        !connected.has(state.cipherLeads[team]!) ||
+        !this.trackers(state, team).some((id) => connected.has(id))
+      ) {
+        return { error: 'TEAM_DISCONNECTED' };
+      }
     }
 
     const startingTeam: CipherTeam = Math.random() < 0.5 ? 'SOLAR' : 'LUNAR';
-    const words = this.pickWords(room.config.language);
-    const keycard = this.buildKeycard(startingTeam);
+    const preset = CIPHER_GRID_MODE_PRESETS[state.mode];
+    const keycard = this.buildKeycard(startingTeam, state.mode);
 
-    state.board = words.map((word) => ({ word, revealed: false }));
+    if (state.mode === 'PICTURES') {
+      state.picturePack = room.config.cipherGridPicturePack ?? state.picturePack ?? 'MINIMAL';
+    }
+
+    const pictureCatalog: readonly CipherGridPicture[] =
+      CIPHER_GRID_PICTURE_PACKS[state.picturePack ?? 'MINIMAL'] ?? CIPHER_GRID_PICTURES_MINIMAL;
+
+    state.board =
+      state.mode === 'PICTURES'
+        ? this.shuffle(pictureCatalog)
+            .slice(0, preset.boardSize)
+            .map((picture) => ({ kind: 'PICTURE', pictureId: picture.id, revealed: false }))
+        : this.pickWords(room.config.language).map((word) => ({
+            kind: 'WORD',
+            word,
+            revealed: false,
+          }));
     state.startingTeam = startingTeam;
     state.currentTeam = startingTeam;
     state.currentClue = null;
     state.guessesThisTurn = 0;
     state.pings = {};
     state.remaining = {
-      SOLAR: startingTeam === 'SOLAR' ? STARTING_TEAM_CARDS : SECOND_TEAM_CARDS,
-      LUNAR: startingTeam === 'LUNAR' ? STARTING_TEAM_CARDS : SECOND_TEAM_CARDS,
+      SOLAR: startingTeam === 'SOLAR' ? preset.first : preset.second,
+      LUNAR: startingTeam === 'LUNAR' ? preset.first : preset.second,
     };
     state.winner = null;
     state.winReason = null;
@@ -200,15 +259,25 @@ export class CipherGridService {
     if (state.cipherLeads[state.currentTeam] !== requesterId) return { error: 'NOT_YOUR_TURN' };
 
     const word = typeof rawWord === 'string' ? rawWord.trim() : '';
-    if (!word || word.length > MAX_CLUE_LENGTH) return { error: 'CLUE_INVALID' };
+    if (!word || word.length > CIPHER_GRID_MAX_CLUE_LENGTH) return { error: 'CLUE_INVALID' };
     if (/\s/.test(word)) return { error: 'CLUE_MULTIPLE_WORDS' };
     if (!this.isValidCount(count)) return { error: 'CLUE_COUNT_INVALID' };
     const key = normalize(word);
-    if (state.board.some((card) => !card.revealed && normalize(card.word) === key)) {
+    if (
+      state.board.some(
+        (card) => card.kind === 'WORD' && !card.revealed && normalize(card.word) === key,
+      )
+    ) {
       return { error: 'CLUE_ON_BOARD' };
     }
 
-    state.currentClue = { team: state.currentTeam, word, count, giverId: requesterId };
+    state.currentClue = {
+      id: randomUUID(),
+      team: state.currentTeam,
+      word,
+      count,
+      giverId: requesterId,
+    };
     state.guessesThisTurn = 0;
     state.pings = {};
     state.phase = 'DECODING';
@@ -282,11 +351,7 @@ export class CipherGridService {
     return { room };
   }
 
-  /**
-   * Opposing team flags the live clue as illegal. The offending turn ends and
-   * the challengers get one of their own cards revealed for free — never their
-   * last one, so a challenge can't hand out a win.
-   */
+  /** A challenge has no penalty until the clue giver accepts it. */
   challengeClue(room: RoomState, requesterId: string): CipherOutcome {
     const state = room.cipherGridState;
     if (!state || state.phase !== 'DECODING' || !state.currentTeam || !state.currentClue) {
@@ -297,12 +362,45 @@ export class CipherGridService {
     if (state.currentClue.challenged) return { error: 'ALREADY_CHALLENGED' };
 
     state.currentClue.challenged = true;
+    state.currentClue.challenge = { team: challengerTeam, status: 'PENDING' };
     state.history.push({
       kind: 'CHALLENGE',
       team: challengerTeam,
       playerId: requesterId,
       word: state.currentClue.word,
     });
+
+    return { room };
+  }
+
+  respondChallenge(
+    room: RoomState,
+    requesterId: string,
+    clueId: string,
+    accept: boolean,
+  ): CipherOutcome {
+    const state = room.cipherGridState;
+    const clue = state?.currentClue;
+    if (
+      !state ||
+      state.phase !== 'DECODING' ||
+      !clue ||
+      clue.id !== clueId ||
+      clue.challenge?.status !== 'PENDING'
+    ) {
+      return { error: 'CHALLENGE_EXPIRED' };
+    }
+    if (clue.giverId !== requesterId) return { error: 'NOT_CLUE_GIVER' };
+    if (typeof accept !== 'boolean') return { error: 'INVALID_RESPONSE' };
+    const challengerTeam = clue.challenge.team;
+    clue.challenge.status = accept ? 'ACCEPTED' : 'REJECTED';
+    state.history.push({
+      kind: accept ? 'CHALLENGE_ACCEPTED' : 'CHALLENGE_REJECTED',
+      team: clue.team,
+      playerId: requesterId,
+      word: clue.word,
+    });
+    if (!accept) return { room };
 
     const keycard = this.keycard(room);
     if (keycard && state.remaining[challengerTeam] > 1) {
@@ -361,10 +459,33 @@ export class CipherGridService {
     const state = room.cipherGridState;
     if (!state) return;
     delete state.pings[socketId];
-    if (state.phase === 'TEAM_SETUP') this.removeFromTeams(state, socketId);
+    // The shared hook also runs on a temporary disconnect: retain that seat.
+    if (room.players.some((player) => player.socketId === socketId)) return;
+    const wasSeated = !!state.teams[socketId];
+    this.removeFromTeams(state, socketId);
+    if (!wasSeated || (state.phase !== 'CLUE_GIVING' && state.phase !== 'DECODING')) return;
+    const missingRole = (['SOLAR', 'LUNAR'] as const).some(
+      (team) => !state.cipherLeads[team] || this.trackers(state, team).length === 0,
+    );
+    if (missingRole) {
+      this.clearRound(room);
+    }
   }
 
   // --- Helpers ---
+
+  private clearRound(room: RoomState): void {
+    const { mode, picturePack, teams, cipherLeads, round, scores } = room.cipherGridState!;
+    room.cipherGridState = {
+      ...this.createInitialState(mode, picturePack),
+      teams,
+      cipherLeads,
+      round,
+      scores,
+    };
+    room.status = RoomStatus.PLAYING;
+    this.clearKeycards(room);
+  }
 
   private participants(room: RoomState): string[] {
     return room.players.filter((p) => p.connected !== false && !p.isViewer).map((p) => p.socketId);
@@ -509,11 +630,12 @@ export class CipherGridService {
     return this.shuffle(unique).slice(0, CIPHER_GRID_BOARD_SIZE);
   }
 
-  private buildKeycard(startingTeam: CipherTeam): CipherCardType[] {
+  private buildKeycard(startingTeam: CipherTeam, mode: CipherGridMode): CipherCardType[] {
+    const preset = CIPHER_GRID_MODE_PRESETS[mode];
     const cards: CipherCardType[] = [
-      ...Array<CipherCardType>(STARTING_TEAM_CARDS).fill(startingTeam),
-      ...Array<CipherCardType>(SECOND_TEAM_CARDS).fill(other(startingTeam)),
-      ...Array<CipherCardType>(DECOY_CARDS).fill('DECOY'),
+      ...Array<CipherCardType>(preset.first).fill(startingTeam),
+      ...Array<CipherCardType>(preset.second).fill(other(startingTeam)),
+      ...Array<CipherCardType>(preset.decoys).fill('DECOY'),
       'VIRUS',
     ];
     return this.shuffle(cards);

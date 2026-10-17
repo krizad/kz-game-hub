@@ -180,6 +180,15 @@ export function RoomHeader() {
             <span className="hidden sm:inline">{t('lobby.leave')}</span>
           </button>
         </div>
+        {room.gameType === GameType.CIPHER_GRID && (
+          <span className="text-xs font-bold">
+            {t(
+              room.config.cipherGridMode === 'PICTURES'
+                ? 'cipherGrid.picturesMode'
+                : 'cipherGrid.wordsMode',
+            )}
+          </span>
+        )}
       </header>
 
       {/* Leave Room Modal */}

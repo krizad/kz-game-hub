@@ -25,7 +25,8 @@ import {
   CardGamePublicState,
 } from './card-game';
 import { PokerMode, PokerPublicState } from './poker';
-import { CipherGridState } from './cipher-grid';
+import { CipherGridState, CipherGridMode } from './cipher-grid';
+import { CipherGridPicturePack } from './cipher-grid-pictures';
 import { DogRelayPublicState, DogRelayLeaderSelection } from './dog-relay';
 import type { ResultRevealState } from './result-reveal';
 
@@ -189,11 +190,13 @@ export const SOCKET_EVENTS = {
   CIPHER_START_MATCH: 'cipher_start_match',
   CIPHER_GIVE_CLUE: 'cipher_give_clue',
   CIPHER_CHALLENGE_CLUE: 'cipher_challenge_clue',
+  CIPHER_RESPOND_CHALLENGE: 'cipher_respond_challenge',
   CIPHER_PING_CARD: 'cipher_ping_card',
   CIPHER_REVEAL_CARD: 'cipher_reveal_card',
   CIPHER_END_TURN: 'cipher_end_turn',
   CIPHER_NEXT_ROUND: 'cipher_next_round',
   CIPHER_RESET: 'cipher_reset',
+  CIPHER_CANCEL_ROUND: 'cipher_cancel_round',
   // Shared gameplay receipt (TASK-SH-002)
   ACTION_RECEIPT: 'action_receipt',
   // Server clock sync (TASK-SH-001)
@@ -323,6 +326,8 @@ export interface RoomConfig {
   // Ciphergrid config
   /** Seconds per team turn (clue + decoding). 0 or missing = no turn timer. */
   cipherGridTurnSeconds?: number;
+  cipherGridMode?: CipherGridMode;
+  cipherGridPicturePack?: CipherGridPicturePack;
   /** Who Barks: random Leader or clockwise seat rotation. */
   dogRelayLeaderSelection?: DogRelayLeaderSelection;
 }

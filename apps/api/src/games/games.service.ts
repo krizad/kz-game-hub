@@ -282,6 +282,8 @@ export class GamesService {
       room.config.bananaThiefSelectedSpecials = [];
       // BananaThiefState is initialized when the game starts via assignRoles
     } else if (gameType === GameType.CIPHER_GRID) {
+      room.config.cipherGridMode ??= 'WORDS';
+      room.config.cipherGridPicturePack ??= 'MINIMAL';
       room.config.cipherGridTurnSeconds = 0;
       room.cipherGridState = this.cipherGridService.createInitialState();
     } else if (gameType === GameType.DOG_RELAY) {
@@ -969,6 +971,8 @@ export class GamesService {
     copyBoolean('pokerTurnTimerEnabled');
     copyInteger('pokerTurnTimerSeconds', 5, 300);
     copyInteger('cipherGridTurnSeconds', 0, 300);
+    copyEnum('cipherGridMode', ['WORDS', 'PICTURES']);
+    copyEnum('cipherGridPicturePack', ['CLASSIC', 'MINIMAL']);
 
     return result;
   }
@@ -1960,6 +1964,28 @@ export class GamesService {
       const res = this.cipherGridService.nextRound(room, clientId);
       return res.room ?? null;
     });
+  }
+
+  cipherCancelRound(code: string, clientId: string, round: number): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => {
+      if (room.gameType !== GameType.CIPHER_GRID) return null;
+      return this.cipherGridService.cancelRound(room, clientId, round).room ?? null;
+    });
+  }
+
+  cipherRespondChallenge(
+    code: string,
+    clientId: string,
+    clueId: string,
+    accept: boolean,
+  ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(
+      code,
+      (room) =>
+        this.cipherGridService.respondChallenge(room, clientId, clueId, accept).room ?? null,
+    );
   }
 
   cipherTurnTimeout(code: string, deadline: number): RoomState | null {

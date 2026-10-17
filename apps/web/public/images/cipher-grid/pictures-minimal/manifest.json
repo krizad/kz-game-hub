@@ -1,0 +1,911 @@
+{
+  "pack": "pictures-minimal",
+  "fixture": false,
+  "provenance": {
+    "source": "Gemini 2.5 Flash Image",
+    "license": "Generated original artwork for KZ Game Hub",
+    "description": "60 minimalist black and white line art illustrations on pure solid white backgrounds with no frames or borders"
+  },
+  "pictures": [
+    {
+      "id": "cg-p001",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p001.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p001-thumb.webp",
+      "alt": {
+        "th": "ต้นแอปเปิ้ลที่งอกออกมาจากหลอดไฟ",
+        "en": "An apple tree growing out of a lightbulb"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "edbf8dc9022c65851db7c85a88e88e4c5f9c00602a706dd5fd5da2ebded52061",
+      "thumbnailSha256": "13d688e927c59a062917e6c964ba0402e9f311057707114d2668cbb5aa7a0c02"
+    },
+    {
+      "id": "cg-p002",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p002.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p002-thumb.webp",
+      "alt": {
+        "th": "เรือดำน้ำติดปีกบินอยู่ท่ามกลางก้อนเมฆ",
+        "en": "A winged submarine flying through clouds"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "8e23f023562e1f3fd2eff21e96acf473b43f5df46b7c3cde04ba8725fe683edf",
+      "thumbnailSha256": "28d81b62d190a9a348824c604f8c6709cf14c6a134000648a13f7f76f7eac1db"
+    },
+    {
+      "id": "cg-p003",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p003.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p003-thumb.webp",
+      "alt": {
+        "th": "นาฬิกาลูกตุ้มโบราณที่มีกรงนกและนกน้อยอยู่ด้านใน",
+        "en": "An antique grandfather clock with a birdcage and singing bird inside"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "be576a568618fee59e52ece72c0d32238b5525e2a74f091822fdbfbc49404a20",
+      "thumbnailSha256": "e68f434b784204267101aaf631c45f4d5e9eb43a4fa9f9da7ddc05f89ae361b1"
+    },
+    {
+      "id": "cg-p004",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p004.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p004-thumb.webp",
+      "alt": {
+        "th": "ปราสาทหินโบราณบนกระดองเต่ายักษ์กลางทะเล",
+        "en": "A stone castle tower on a giant turtle shell"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "7c6b20afda255876701000569a546f62ef38aca0b040531b9f975dd3f00d739e",
+      "thumbnailSha256": "28ba0253f9dc4c071b169da52df490f1c036322ac6e856349b93cfe09687742b"
+    },
+    {
+      "id": "cg-p005",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p005.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p005-thumb.webp",
+      "alt": {
+        "th": "ถ้วยกาแฟที่มีเรือใบแล่นอยู่บนผิวกาแฟ",
+        "en": "A coffee cup with a tiny sailboat sailing on coffee"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "8f16107c86203f9bab3e1b8229d47097d4a5981d6009c91ad04c6665811e25c2",
+      "thumbnailSha256": "a26f379f8aea2583b1cb5d923f4ea458b5780ec45ebdc0b54106a42986890c0a"
+    },
+    {
+      "id": "cg-p006",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p006.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p006-thumb.webp",
+      "alt": {
+        "th": "หนังสือที่หน้ากระดาษกลายเป็นบันไดทอดยาวสู่ยอดเขา",
+        "en": "An open book whose pages turn into stairs leading up a mountain"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "27c8b7e192fd8039791df76b1b172cb7205846753dcb716aca07d3ee0d0eea05",
+      "thumbnailSha256": "ff518767e49820e9f1a49d2bda4720904ef4018ef44ebf71b5dc241e1364a7a9"
+    },
+    {
+      "id": "cg-p007",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p007.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p007-thumb.webp",
+      "alt": {
+        "th": "กรรไกรโบราณที่มีด้ามจับเป็นมังกรคู่",
+        "en": "Vintage scissors with dragon heads for handles"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "66f25eadf98e590400938a4a007a03df4c4c0e8bbc992a197fa1b0736454e4f4",
+      "thumbnailSha256": "ee674a91b4e3fd0e7d3bfcc270e7e2d80ee8fb5efeff5085adda9b7c7f9c5d4b"
+    },
+    {
+      "id": "cg-p008",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p008.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p008-thumb.webp",
+      "alt": {
+        "th": "บอลลูนลมร้อนรูปปลาหมึกยักษ์หิ้วกระเช้าผู้โดยสาร",
+        "en": "A hot air balloon shaped like an octopus holding a basket"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "693b4e99644f10abf6f8ad894981b07877b9279c4dda665ce3de2d8c1a914eaa",
+      "thumbnailSha256": "fc60fa7c83faefdc7fb0e659f32971ee8e914131909e365da151c2cb8b96911c"
+    },
+    {
+      "id": "cg-p009",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p009.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p009-thumb.webp",
+      "alt": {
+        "th": "กล้องโทรทรรศน์ที่มีรากไม้และเถาวัลย์ยึดกับพื้นดิน",
+        "en": "A telescope anchored to the ground with tree roots and vines"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "ff79c16eb404a4e3a1ed20c32338f926f51c6c3f370f500d2bae5fe4eb669092",
+      "thumbnailSha256": "df7598820ab43f86b8f5d494c37a03ab332d604504ff56547dba0e875023251c"
+    },
+    {
+      "id": "cg-p010",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p010.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p010-thumb.webp",
+      "alt": {
+        "th": "สมอเรือที่พันด้วยเถาวัลย์ดอกกุหลาบผลิบาน",
+        "en": "A ship anchor entwined with blooming roses and thorny vines"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "8e589968011b7964a0b35c6ed70e82b3ab6d5975d003b054bf39a687857b540f",
+      "thumbnailSha256": "f0fb52873d81e6b119d011a50d70b09519f12b7806efe14ed36822eca8e0bf2e"
+    },
+    {
+      "id": "cg-p011",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p011.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p011-thumb.webp",
+      "alt": {
+        "th": "อัศวินหุ่นยนต์ไขลานกางร่มเดินลุยแอ่งน้ำ",
+        "en": "A clockwork robot knight holding an umbrella in rain puddles"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "803092e8c238c485899023fffdf63297a0ed3aca74f2355c3f5b1cacf55d39bc",
+      "thumbnailSha256": "e6dabf3c9d332942697e4f93676d3c2e241ab4287f64b984dacd38da74989b27"
+    },
+    {
+      "id": "cg-p012",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p012.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p012-thumb.webp",
+      "alt": {
+        "th": "เปียโนที่คีย์เปียโนทอดข้ามลำธารเป็นสะพานโค้ง",
+        "en": "A grand piano whose keys form a bridge over a stream"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "2c1165fd889c84385d8a095c9532234dc600fe7a70825ab7e5bc86befe44964e",
+      "thumbnailSha256": "9be01f10a749c82cd1f6875573adc824cdbe43b94a63cdc3068549586f940a81"
+    },
+    {
+      "id": "cg-p013",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p013.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p013-thumb.webp",
+      "alt": {
+        "th": "เข็มทิศที่มีเข็มชี้ทิศเป็นขนนกจุ่มหมึก",
+        "en": "A compass rose with feather quill pens as directional needles"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "ce095ae44ab329dbe2b8ba4fbacedc06870296b7e59bd6fb34e48017d37de07a",
+      "thumbnailSha256": "49a37a5146303dd36af5c0f4d05924c080af134e0db39381e176acb402365888"
+    },
+    {
+      "id": "cg-p014",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p014.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p014-thumb.webp",
+      "alt": {
+        "th": "นกเรเวนสวมมงกุฎเกาะอยู่บนลูกกุญแจโบราณ",
+        "en": "A crowned raven perched on an antique skeleton key"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "bc75ede2fe6f91cc0aa56b23d4af211294cb2f232ab86bd51008a3a74cdf0273",
+      "thumbnailSha256": "e483a05fffaf134cf37a55d4ec817b77017734dfed08c2943844711909034358"
+    },
+    {
+      "id": "cg-p015",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p015.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p015-thumb.webp",
+      "alt": {
+        "th": "รถจักรไอน้ำโบราณที่วิ่งอยู่บนรองเท้าโรลเลอร์สเก็ต",
+        "en": "A steam locomotive riding on retro roller skates"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "e3c884a36f7a0b5b3491c360eaccf6ef4e55507afe31cf43b6ffab6c5e74ab63",
+      "thumbnailSha256": "50868c671a978662b4ddc64cb54258d53665416d62ad24b22759a26489994bac"
+    },
+    {
+      "id": "cg-p016",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p016.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p016-thumb.webp",
+      "alt": {
+        "th": "ขวดยาแก้วใสที่มีภูเขาน้ำแข็งและเรือใบจำลองอยู่ด้านใน",
+        "en": "A glass potion bottle with an iceberg and miniature ship inside"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "180c1ff4fb8a10ed0afb249deeeca7eff5571952724f55126a80ff36a0361856",
+      "thumbnailSha256": "eb516de7465551dc1927216b32ee1b312427fbc1a6fa538ca30c7bfed5dba6dc"
+    },
+    {
+      "id": "cg-p017",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p017.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p017-thumb.webp",
+      "alt": {
+        "th": "กล้องถ่ายรูปโบราณที่มีเลนส์กล้องเป็นดอกทานตะวัน",
+        "en": "A vintage camera with a blooming sunflower for a lens"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "96622786e5eab5f61801bb13f1159318994ec55af934977260b63d3b0a0d89f7",
+      "thumbnailSha256": "0928b075060e4509154bb2f3160f7c56a5a7461626f06b55c086320591cec45c"
+    },
+    {
+      "id": "cg-p018",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p018.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p018-thumb.webp",
+      "alt": {
+        "th": "พระจันทร์เสี้ยวสวมหมวกนอนและแว่นตากำลังอ่านม้วนคัมภีร์",
+        "en": "A crescent moon with nightcap and glasses reading a scroll"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "92c4b7ce189a07b7136af961ba4df3195fafdd61887ab56281fea64dd7f267b4",
+      "thumbnailSha256": "963854531ebf1d9e27503dec528b0dfa99b7dde8961ef2f24ebdcaa27155e58f"
+    },
+    {
+      "id": "cg-p019",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p019.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p019-thumb.webp",
+      "alt": {
+        "th": "กระท่อมแสนอบอุ่นที่สร้างอยู่ในรองเท้าบูทหนังเก่าและมีควันลอยจากปล่องไฟ",
+        "en": "A cozy cottage built into a leather boot with chimney smoke"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "f679c668252fb8e65b49d098452aba8ebaad8e2ff24fd075e67bc114d03c76c2",
+      "thumbnailSha256": "955aba480ba7b257afa0c643e62f802397a701e74863e8cd6f1e7060ad4cc757"
+    },
+    {
+      "id": "cg-p020",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p020.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p020-thumb.webp",
+      "alt": {
+        "th": "หมากรุกคิงมีปีกผีเสื้อยืนอยู่บนใบบัวกลางน้ำ",
+        "en": "A chess king piece with butterfly wings standing on a lily pad"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "c7b64ba1cb0223ca13c6ee90637c366703de8848af2956e8508cfb4d09a5f72a",
+      "thumbnailSha256": "557982ce872a3e6249f0b55942bcba29ac70eaf6ca69f9b8c97146abb784a85a"
+    },
+    {
+      "id": "cg-p021",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p021.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p021-thumb.webp",
+      "alt": {
+        "th": "นาฬิกาพกโบราณที่เข็มนาฬิกาเป็นกรรไกรกำลังตัดด้ายแห่งดวงดาว",
+        "en": "A vintage pocket watch with scissor blades as clock hands cutting starry threads"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "59a28f1c7a9832cbca5a8b178c2d53d239728abd991e879658096b592306d948",
+      "thumbnailSha256": "08aea83dcc4a58cc6322df5642251f9e9a395edfec7148fb7b39ad9961f093ce"
+    },
+    {
+      "id": "cg-p022",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p022.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p022-thumb.webp",
+      "alt": {
+        "th": "ถ้วยชาบินได้ที่มีไอน้ำกลายเป็นปีกเมฆ",
+        "en": "A flying teacup hot air balloon with steam forming cloud wings"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "d51a310f032b6e14db09f7b79ec9be13146d30ba45a6bca17f0e3b661c852fef",
+      "thumbnailSha256": "8a4a48fe712637bccd362e3cf9d421a9b23ed70a89e348618d6293e686c59d31"
+    },
+    {
+      "id": "cg-p023",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p023.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p023-thumb.webp",
+      "alt": {
+        "th": "หมวกเกราะอัศวินโบราณที่มีเห็ดและพืชป่าผลิบาน",
+        "en": "A knight helmet sprouting wild mushrooms and forest flora"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "52735512c84ed697328122cc142c77ed64c8854048ad30d76f025367e72fba5b",
+      "thumbnailSha256": "3c264d12401144c4acc649f89845c37e2e05fb56c612df13f26ff90c92e63db6"
+    },
+    {
+      "id": "cg-p024",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p024.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p024-thumb.webp",
+      "alt": {
+        "th": "ไวโอลินที่ตัวเครื่องเป็นเรือพายมีไม้พายลอยอยู่เหนือน้ำ",
+        "en": "A violin body shaped as a wooden rowboat with oars resting on water"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "86b2cea686231a0cee749a666c806550cb21756ccd339b31a3f9de86ebcad7e0",
+      "thumbnailSha256": "806e7754b44f85360caa037fe64ab04bc72be53c33410a0d433939c26c20c5f5"
+    },
+    {
+      "id": "cg-p025",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p025.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p025-thumb.webp",
+      "alt": {
+        "th": "ประภาคารโบราณตั้งอยู่บนโคมไฟกระจกที่มีหิ่งห้อยส่องแสง",
+        "en": "A lighthouse standing atop a glass lantern swirling with fireflies"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "ef290636a3d0434f02377937f20f4030a7481bd4459e726729d70c80f070a57d",
+      "thumbnailSha256": "81479ceeae4e3772b841e3acba8d3d7f281edb1df23238d721222aa472a12b8a"
+    },
+    {
+      "id": "cg-p026",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p026.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p026-thumb.webp",
+      "alt": {
+        "th": "เครื่องพิมพ์ดีดโบราณที่ปุ่มกดผลิบานเป็นกลีบดอกไม้",
+        "en": "A vintage typewriter whose keys sprout into blooming flower petals"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "92a317d51b1a9f1ce9f99693b843414839a71be0af59e39ccadf2790bf792e1d",
+      "thumbnailSha256": "21b111c00d31902acfade564b1893b67c3d7e736954c059269a127a24be99b8b"
+    },
+    {
+      "id": "cg-p027",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p027.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p027-thumb.webp",
+      "alt": {
+        "th": "หอยทากยักษ์ที่แบกกังหันลมโบราณไว้บนกระดอง",
+        "en": "A giant snail carrying a cozy windmill cottage on its shell"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "daa871c2b463c679759ee30fd863c4f932b11bec35b05b0745848acecfeac1bd",
+      "thumbnailSha256": "6f221a34665f5e4a605aea46150b33335cedf8b05e622cf72f5f7d81f5ea7660"
+    },
+    {
+      "id": "cg-p028",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p028.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p028-thumb.webp",
+      "alt": {
+        "th": "ร่มกันฝนกลับหัวลอยเป็นเรือใบอยู่บนผิวน้ำ",
+        "en": "An upside-down umbrella floating as a sailboat on gentle waves"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "81f05352eff961ce572c024c5b8b6324cfbe8189ffb0f26f469f8ae44b6d00f6",
+      "thumbnailSha256": "ee786b97908097d8fd350f673e4530ea7165fdd11c7eb099e4f861652047b65f"
+    },
+    {
+      "id": "cg-p029",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p029.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p029-thumb.webp",
+      "alt": {
+        "th": "แม่กุญแจรูปนกฮูกแกะสลักลวดลายขนนกพร้อมรูกุญแจที่หน้าอก",
+        "en": "An owl-shaped antique padlock with ornate carved feathers and a chest keyhole"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "8848fd1b9a22deb6a4bde074d1d7455a3001a68b017257efb58c7c2474d4d1da",
+      "thumbnailSha256": "d99393e2779fea44299b91bccafc06bbac8894de4c1488e19cb3bf0aaac78822"
+    },
+    {
+      "id": "cg-p030",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p030.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p030-thumb.webp",
+      "alt": {
+        "th": "นาฬิกาทรายไม้โบราณที่ด้านในมีเรือกระดาษพับลอยแทนเม็ดทราย",
+        "en": "A wooden hourglass containing floating origami paper boats instead of sand"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "ea5e21271f788d178df9621d2393c6d8ba96376afb8b1d4cc793fc9b24dc58e0",
+      "thumbnailSha256": "ab7f46a768c612c2d46afaeacbbc14be74d82175332ddd68b0697a068406da46"
+    },
+    {
+      "id": "cg-p031",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p031.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p031-thumb.webp",
+      "alt": {
+        "th": "ไมโครโฟนโบราณรูปโคนไอศกรีมที่มีตัวโน้ตดนตรีลอยวน",
+        "en": "A vintage microphone shaped like an ice cream cone with musical notes swirling"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "9b81c810176fa5726d6b8bca507b8bb302c667312377e185ec6eed75df59b18e",
+      "thumbnailSha256": "2790e7ff8a2c1164933c92eea4138eecd79c33639e38e886062557c5b4a3c6a1"
+    },
+    {
+      "id": "cg-p032",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p032.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p032-thumb.webp",
+      "alt": {
+        "th": "มังกรน้อยนอนหลับขดตัวอยู่ด้านในกาน้ำชาทองแดงโบราณ",
+        "en": "A small dragon curled up asleep inside an antique teapot"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "185bd6c9dcc28aae7f471f6bd1c5d66d59e238bfd2145063c82204385efaa8ab",
+      "thumbnailSha256": "fe5d1b529bfb246f6e51bf1da0542df1bc9022e7831fecacc4ada723509be395"
+    },
+    {
+      "id": "cg-p033",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p033.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p033-thumb.webp",
+      "alt": {
+        "th": "บ้านนกไม้ที่สร้างอยู่ในกระเป๋ากล้องหนังเก่าห้อยลงมาจากกิ่งไม้",
+        "en": "A wooden birdhouse built inside an old leather camera bag hanging on a branch"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "eea3771dda6b57b81f2570dff3afe92fc0d740a33113d3b1a5b729a01a2e6feb",
+      "thumbnailSha256": "04d7799f23fae316469c6376f028b34b02d77b892d93fdf31bcc6de4dfb42fca"
+    },
+    {
+      "id": "cg-p034",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p034.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p034-thumb.webp",
+      "alt": {
+        "th": "จักรยานโบราณที่มีล้อจักรยานเป็นผลส้มหั่นแว่นขนาดใหญ่",
+        "en": "A vintage bicycle with giant sliced oranges for wheels and citrus spokes"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "e8ae1a7442ac8b9463ebdf254754dd776828bb6f27447766684805d970ba0011",
+      "thumbnailSha256": "6ab9393347ce7efc8a10f7bfd19d9e0bf904e3d9af95b11bab3d3d3f6f68eea2"
+    },
+    {
+      "id": "cg-p035",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p035.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p035-thumb.webp",
+      "alt": {
+        "th": "กล้องส่องทางไกลกำลังส่องดูลูกแก้วหิมะที่มีดาราจักรจิ๋วอยู่ด้านใน",
+        "en": "A brass spyglass telescope observing a snowglobe containing a miniature galaxy"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "22a43aef7f00702ad93069901a1d4a90794f45e2dff9c7800a46e59e2bfc8ad9",
+      "thumbnailSha256": "84131f18c2d31f98e642414ea6ec3280c0cc2e6464224bf38d85b9b1dc15d01d"
+    },
+    {
+      "id": "cg-p036",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p036.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p036-thumb.webp",
+      "alt": {
+        "th": "โทรทัศน์จอแก้วโบราณที่มีตู้ปลาและปลาทองว่ายน้ำอยู่ด้านใน",
+        "en": "A vintage television set containing an aquarium with a swimming goldfish inside"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "6210cf57bd02c829fc5a430744fad831cb1db8788aace4aa2eb2eef7539946db",
+      "thumbnailSha256": "1f22ce8782a0f2645821f842afcfc7f92751b3dcdcb0770c3e43ceb5847fd0f3"
+    },
+    {
+      "id": "cg-p037",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p037.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p037-thumb.webp",
+      "alt": {
+        "th": "หีบสมบัติไม้โบราณที่มีกิ่งไม้และดอกแอปเปิ้ลผลิบานงอกออกมา",
+        "en": "An antique treasure chest sprouting leafy branches and blooming blossoms"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "91ca74ff7c97c6c96c852df38f9b36588cfc781c108d6386d09af044683e0bf6",
+      "thumbnailSha256": "c7025c1c3fcd2bcc4745efee8d229aa5346f6327e18d770a5a3d0adeb7557e63"
+    },
+    {
+      "id": "cg-p038",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p038.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p038-thumb.webp",
+      "alt": {
+        "th": "ปากกาขนนกจุ่มขวดหมึกที่หมึกไหลรินกลายเป็นแม่น้ำทอดยาวใต้สะพาน",
+        "en": "A quill pen in an inkpot where ink flows into a winding river with a bridge"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "5d5cf7ca266faa3b81bbc02c0f9646a4c5c6c578e6a560a738352b5022b8932d",
+      "thumbnailSha256": "1732442fb37083310c3f30ec1bc8069ebc8981ee06cd330c143fadbf9140e821"
+    },
+    {
+      "id": "cg-p039",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p039.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p039-thumb.webp",
+      "alt": {
+        "th": "กล้องส่องทางไกลสองตาที่มีกิ่งไม้และนกน้อยเกาะอยู่บนเลนส์",
+        "en": "A pair of binoculars with leafy perches where two songbirds look through the lenses"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "b119ff3309b46531772947727cfeed49480a037ebd4be33aa570078646e8f547",
+      "thumbnailSha256": "44012a3ef1c5a171a0a4caa8b1f2e8da2121b261b910b0427d416b68b79e1eb0"
+    },
+    {
+      "id": "cg-p040",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p040.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p040-thumb.webp",
+      "alt": {
+        "th": "มงกุฎโบราณที่ถักทอจากลูกกุญแจ ขนนก และฟันเฟืองไขลาน",
+        "en": "An ornate royal crown interwoven from skeleton keys, feathers, and clockwork gears"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "fdae0392102f9d8952e764f22cf27d4af39490ec6aef612d2eb878fa0261326d",
+      "thumbnailSha256": "cd39da2a418f7ed2dd66b73210417331a54d4283b95b54a5bbb77efb9d2194ec"
+    },
+    {
+      "id": "cg-p041",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p041.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p041-thumb.webp",
+      "alt": {
+        "th": "เข็มทิศโบราณลอยอยู่เหนือน้ำทะเลที่มีประภาคารจิ๋วตั้งอยู่บนหน้าปัดทองเหลือง",
+        "en": "A vintage brass compass floating on water with a tiny lighthouse tower on its dial"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "6da654727f34e96458fa7c463cc9b06439daff9b2e31729711a87c6fa35ea6cc",
+      "thumbnailSha256": "198425cb081b2968a8b77817075b484be00f9fbc646637e0dd5254022f038748"
+    },
+    {
+      "id": "cg-p042",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p042.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p042-thumb.webp",
+      "alt": {
+        "th": "นาฬิกาลูกตุ้มโบราณที่มีลูกตุ้มเป็นสมอเรือแกว่งจุ่มลงในฟองคลื่นทะเล",
+        "en": "A grandfather clock whose pendulum is a ship anchor dipping into ocean waves"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "70539485cd6949b9934b4392c94e25f1d449d8969aa95176ace6982c02adfb88",
+      "thumbnailSha256": "616bc06e0745e93a24e4d5169146bd94738fcd6cd0920189ee8b20645eebe4e2"
+    },
+    {
+      "id": "cg-p043",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p043.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p043-thumb.webp",
+      "alt": {
+        "th": "ขวดน้ำหอมคริสตัลโบราณที่ฉีดพ่นละอองดวงดาวตกและพระจันทร์เสี้ยว",
+        "en": "An antique crystal perfume bottle spraying a shower of shooting stars and crescent moons"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "c96e2216de86166eb5d53fa57ee68710f56cb36bf910d63cdc5ae7476e094db7",
+      "thumbnailSha256": "eedc01a7c1d6c02dfbbf17281716c6fdc99e8f62156007902daed702773c0913"
+    },
+    {
+      "id": "cg-p044",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p044.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p044-thumb.webp",
+      "alt": {
+        "th": "แว่นขยายโบราณกำลังรวมแสงแดดที่กลายร่างเป็นผีเสื้อบิน",
+        "en": "An antique magnifying glass focusing sunlight that transforms into a flying butterfly"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "ab87479eda17e4efd0f4df343094f632ec0c4fe2ac615c3a13581cfe065a7fae",
+      "thumbnailSha256": "16107721943f51fe2b6ad703585171f985beb09b30b0c9d6ea0f1673460bf814"
+    },
+    {
+      "id": "cg-p045",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p045.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p045-thumb.webp",
+      "alt": {
+        "th": "กล่องใส่ไวโอลินไม้ที่เปิดออกกลายเป็นเรือนกระจกจิ๋วเต็มไปด้วยพืชและเฟิร์นผลิบาน",
+        "en": "An open violin case functioning as a miniature greenhouse with blooming flora"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "954977b3df49741fe0f563e27151eae01d8b13a866c3d0d447d6d0592fbf2620",
+      "thumbnailSha256": "e56f0d779e96c774b8959c849ed90083a6f0d1cb3d87b37b0dfc313a36bb533a"
+    },
+    {
+      "id": "cg-p046",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p046.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p046-thumb.webp",
+      "alt": {
+        "th": "บอลลูนลมร้อนรูปนกกระเรียนพับกระดาษโอริกามิลอยอยู่บนท้องฟ้า",
+        "en": "A hot air balloon crafted as an intricately folded origami crane"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "973c32fa44117f52802abbaf22b79c83850aea24efe38bc5fc2eaa3f5fb2dbd1",
+      "thumbnailSha256": "f9497c5603628b2dd20a6912fc2341920fc2c72e15b640d5fd4ad7b18b721149"
+    },
+    {
+      "id": "cg-p047",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p047.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p047-thumb.webp",
+      "alt": {
+        "th": "หมวกดำน้ำทองเหลืองโบราณใต้ทะเลที่มีต้นบอนไซจิ๋วเติบโตอยู่ด้านใน",
+        "en": "An antique diving helmet on the seabed functioning as a terrarium with a bonsai tree"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "3df55886097c15e334ff353f944361ad3a46d3acbdabfc1c39add63d516fd60b",
+      "thumbnailSha256": "91b485be33522d23464af5f7833d5f363d6d6b44fcb8d64350b8de1d19388583"
+    },
+    {
+      "id": "cg-p048",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p048.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p048-thumb.webp",
+      "alt": {
+        "th": "ปากกาขนนกกำลังเขียนโน้ตดนตรีบนบรรทัดห้าเส้นที่ตัวโน้ตบินกลายเป็นนกนางแอ่น",
+        "en": "A feather quill pen writing musical notes that take flight as swallows"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "1b74f8de20d3ae03514d5f7a11f15427ee9d7408df64eefde2f35d949cf0c842",
+      "thumbnailSha256": "2bf9b96064e2c46c0f1acf51e444c0274071602116148e8ecb54ddc1bba4c9c9"
+    },
+    {
+      "id": "cg-p049",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p049.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p049-thumb.webp",
+      "alt": {
+        "th": "กรงนกโบราณที่ซี่กรงเป็นสายพิณฮาร์ปและมีนกน้อยเกาะร้องเพลง",
+        "en": "An antique birdcage whose bars are harp strings with a songbird perching and singing"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "a50f8db1e362aba11e5525736b0b7a5f310f41759526d7eb92b10235ab667268",
+      "thumbnailSha256": "4dd7e9ceddc82d1a64e3b1c23e4811dfa25fdfe33974eda77af8bbe030d631eb"
+    },
+    {
+      "id": "cg-p050",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p050.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p050-thumb.webp",
+      "alt": {
+        "th": "เครื่องเล่นแผ่นเสียงโบราณที่ปากลำโพงผลิบานเป็นดอกผักบุ้งยักษ์พร้อมเถาวัลย์ดนตรี",
+        "en": "A vintage gramophone horn blooming into a giant morning glory flower with vines"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "a8cf18f42d068a3b2f3c4877dbabed3cfe497337591c257e9d5846d4061419ff",
+      "thumbnailSha256": "f7f634088130dabec7accc5178b74fe3cce29c499b8f712d39439670c70876d5"
+    },
+    {
+      "id": "cg-p051",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p051.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p051-thumb.webp",
+      "alt": {
+        "th": "ลูกกุญแจโบราณที่มีฟันกุญแจเป็นรูปหอคอยปราสาทเทพนิยายยุคกลาง",
+        "en": "An antique skeleton key whose teeth form the skyline of a medieval castle"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "b3ed8c2536dfd279398b54f821950c4160d3ffb673ba9123eb36f200b2154e77",
+      "thumbnailSha256": "2da0b416a4af589d6af5c1a7b4f36f85773a12ad1bfe60a6f564410a0ee1ab9c"
+    },
+    {
+      "id": "cg-p052",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p052.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p052-thumb.webp",
+      "alt": {
+        "th": "ถ้วยน้ำชาลายครามที่มีสะพานไม้ทรงโค้งทอดยาวข้ามผิวน้ำชาและมีปลาคาร์ปว่ายอยู่ข้างใต้",
+        "en": "A porcelain teacup with an arched bridge crossing over tea with swimming koi fish"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "76db47c1264f9bf33d2dd4b95c1cd868785d14da781659adcd1c578175886702",
+      "thumbnailSha256": "5f31df76c9997ab6f719f521d35c79049c66f8288957e3b322a15dd29d1c6e2b"
+    },
+    {
+      "id": "cg-p053",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p053.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p053-thumb.webp",
+      "alt": {
+        "th": "รองเท้าสเก็ตน้ำแข็งที่ใบมีดสเก็ตเป็นหัวปากกาหมึกซึมกำลังเขียนตัวอักษรลงบนน้ำแข็ง",
+        "en": "An ice skate with a fountain pen nib for a blade writing script on ice"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "e90b9c7f70edadeccff111d8fc8464900e1e39edbeccc56aa3195fca4700496a",
+      "thumbnailSha256": "f2d262b7f1f8406abc33f78aed529a4b1b661b2f863b607f92576cd7a8dafdcc"
+    },
+    {
+      "id": "cg-p054",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p054.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p054-thumb.webp",
+      "alt": {
+        "th": "ตะเกียงไฟโบราณที่ห้อยติดอยู่กับหางเพลิงของดาวตกบนท้องฟ้า",
+        "en": "An antique lantern hanging from the tail of a flying shooting star"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "33ce8038f7f68cfbad0bcc1f0e9335608970a6d743807ed83c9f75afb03b698a",
+      "thumbnailSha256": "82967e7b28c4d82ead679bcfe4b0a80d4f1a60350f9a11ad87e46aa735156b10"
+    },
+    {
+      "id": "cg-p055",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p055.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p055-thumb.webp",
+      "alt": {
+        "th": "นาฬิกาพกกลไกโบราณที่กางฝาออกกลายเป็นแมลงปีกแข็งพร้อมปีกเฟืองนาฬิกา",
+        "en": "A mechanical pocket watch unfolding into a clockwork scarab beetle with gear wings"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "91b944295fbf7fd17540fa1e49167a0bc6b1cf460159f8872b95b62b7fddfd43",
+      "thumbnailSha256": "92892823d09f93c62c30634f50cbec34e5d63e0c7a07e7ba31f7a655f724b768"
+    },
+    {
+      "id": "cg-p056",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p056.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p056-thumb.webp",
+      "alt": {
+        "th": "เรือพายไม้ลอยน้ำที่ด้านในตัวเรือเป็นชั้นวางหนังสือและคัมภีร์โบราณ",
+        "en": "A wooden rowboat floating on water with bookshelves and scrolls lining its interior"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "f4d61491328fb38ba04519ec4434e65b26cf7376467abad3235c24c8f5d1c42b",
+      "thumbnailSha256": "dce0a439559c2c995b0b4c6f6255988aad4b79f1e4ecc0af948ca5e29731847f"
+    },
+    {
+      "id": "cg-p057",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p057.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p057-thumb.webp",
+      "alt": {
+        "th": "เสาไฟถนนโบราณที่ส่องสว่างใต้ทะเลและมีฝูงปลากำลังว่ายวนเวียน",
+        "en": "A Victorian streetlamp under the sea with a school of fish swimming around its light"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "6bcdf519b42c7f3bc42f5a6b12c7acecbcf3b1d2fc18dfb73f0632d036291146",
+      "thumbnailSha256": "8ae6611bd40faba2384078ee4541039741a4444b90e894408e0e084aeea02992"
+    },
+    {
+      "id": "cg-p058",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p058.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p058-thumb.webp",
+      "alt": {
+        "th": "ลูกแก้วหิมะที่มีเรือใบสามเสาแล่นอยู่ท่ามกลางน้ำวนหมุนวน",
+        "en": "A glass snowglobe containing a miniature sailing ship caught in a gentle water whirlpool"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "e78140ee4ba7e816b3718930d20cb312fe16819e7a81caa3eab48f7028c1fc00",
+      "thumbnailSha256": "02731f5527a919a43a768a8ed6330342f86331929860be59c748c06e9d2bda1a"
+    },
+    {
+      "id": "cg-p059",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p059.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p059-thumb.webp",
+      "alt": {
+        "th": "ชุดเกราะซามูไรโบราณนั่งสมาธิที่มีกิ่งและกลีบดอกซากุระผลิบานพันรอบเกราะ",
+        "en": "A suit of samurai armor sitting peacefully overgrown with cherry blossom branches"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "cb078a7d790882afa05be82e6c153e5576a2296b70eed74b138664b66b07485c",
+      "thumbnailSha256": "c76e98f156e1633f0cd88e3f5c82489bc14bc7956c8f8dfd17fd4c72f59a3ce2"
+    },
+    {
+      "id": "cg-p060",
+      "src": "/images/cipher-grid/pictures-minimal/cg-p060.webp",
+      "thumbnail": "/images/cipher-grid/pictures-minimal/cg-p060-thumb.webp",
+      "alt": {
+        "th": "หนังสือปกแข็งเล่มใหญ่ที่สันหนังสือเป็นต้นไม้ใหญ่โบราณแผ่รากลึกลงบนหน้ากระดาษ",
+        "en": "An open book whose spine is an ancient tree trunk with roots growing into the pages"
+      },
+      "width": 768,
+      "height": 768,
+      "thumbnailWidth": 192,
+      "thumbnailHeight": 192,
+      "sha256": "80972122ff76de11274758dfe5413604088246821665670ba1cea224e53c6e81",
+      "thumbnailSha256": "cd25af9389dfe8961fe4a32b17b6977ee40f752df2b497383bb142ce9f629a91"
+    }
+  ]
+}

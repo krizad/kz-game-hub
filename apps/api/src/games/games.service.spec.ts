@@ -1346,6 +1346,28 @@ describe('GamesService', () => {
   });
 
   describe('updateConfig', () => {
+    it('defaults Ciphergrid to words and validates host-only lobby mode changes', () => {
+      const room = service.createRoom('host1', GameType.CIPHER_GRID);
+      expect(room.config.cipherGridMode).toBe('WORDS');
+      expect(room.config.cipherGridPicturePack).toBe('MINIMAL');
+      expect(service.updateConfig(room.code, 'guest', { cipherGridMode: 'PICTURES' })).toBeNull();
+      expect(
+        service.updateConfig(room.code, 'host1', { cipherGridMode: 'PICTURES' })?.config
+          .cipherGridMode,
+      ).toBe('PICTURES');
+      expect(
+        service.updateConfig(room.code, 'host1', { cipherGridPicturePack: 'CLASSIC' })?.config
+          .cipherGridPicturePack,
+      ).toBe('CLASSIC');
+      service.updateConfig(room.code, 'host1', { cipherGridMode: 'UNKNOWN' } as unknown as Partial<
+        RoomState['config']
+      >);
+      expect(room.config.cipherGridMode).toBe('PICTURES');
+      room.status = RoomStatus.PLAYING;
+      expect(service.updateConfig(room.code, 'host1', { cipherGridMode: 'WORDS' })).toBeNull();
+      expect(room.config.cipherGridMode).toBe('PICTURES');
+    });
+
     it('lets only the lobby host change visibility and spectator policy', () => {
       const room = service.createRoom('host1');
       expect(

@@ -191,8 +191,10 @@ interface GameState {
   cipherRevealCard: (cardIndex: number) => void;
   cipherEndTurn: () => void;
   cipherChallengeClue: () => void;
+  cipherRespondChallenge: (clueId: string, accept: boolean) => void;
   cipherNextRound: () => void;
   cipherReset: () => void;
+  cipherCancelRound: (round: number) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -1228,12 +1230,22 @@ export const useGameStore = create<GameState>((set, get) => {
       emitGameAction(SOCKET_EVENTS.CIPHER_CHALLENGE_CLUE);
     },
 
+    cipherRespondChallenge: (clueId: string, accept: boolean) => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_RESPOND_CHALLENGE, {
+        payload: () => ({ clueId, accept }),
+      });
+    },
+
     cipherNextRound: () => {
       emitGameAction(SOCKET_EVENTS.CIPHER_NEXT_ROUND);
     },
 
     cipherReset: () => {
       emitGameAction(SOCKET_EVENTS.CIPHER_RESET);
+    },
+
+    cipherCancelRound: (round: number) => {
+      emitGameAction(SOCKET_EVENTS.CIPHER_CANCEL_ROUND, { payload: () => ({ round }) });
     },
 
     spectateJoin: (code: string) => {

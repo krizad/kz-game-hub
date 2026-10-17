@@ -198,9 +198,13 @@ export function getRevealEvidence(
       const card = room.cipherGridState?.history
         .filter((h) => h.kind === 'REVEAL' || h.kind === 'PENALTY_REVEAL')
         .at(-1);
-      return card?.cardIndex !== undefined
-        ? room.cipherGridState!.board[card.cardIndex].word
-        : t('resultReveal.boardHint');
+      const revealedCard =
+        card?.cardIndex !== undefined ? room.cipherGridState?.board[card.cardIndex] : undefined;
+      return revealedCard?.kind === 'WORD'
+        ? revealedCard.word
+        : revealedCard?.kind === 'PICTURE'
+          ? t('cipherGrid.pictureNumber', { number: (card!.cardIndex ?? 0) + 1 })
+          : t('resultReveal.boardHint');
     }
     case GameType.THE_MIND:
       return t('resultReveal.mindEvidence', {

@@ -95,6 +95,17 @@ A concise in-game status that tells a player the current phase, whose turn it is
 
 **Lead Dog selection**: The host's choice of a random first actor each round or rotation through seat order, independent of room ownership.
 
+## Ciphergrid vocabulary
+
+| Term           | Definition                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Board mode     | The lobby-selected variant of the single CIPHER_GRID game: WORDS (25 word cards) or PICTURES (20 picture cards), fixed for a live round.   |
+| Picture card   | A public image referenced by an allow-listed stable picture ID; its team or hazard assignment remains private until revealed or round end. |
+| Cipher Key     | The server-owned card assignment shared privately with the two Cipher Leads. Public image descriptions never contain these assignments.    |
+| Clue challenge | A once-per-clue dispute awaiting its giver's acceptance or rejection; requesting it alone never reveals a card or ends a turn.             |
+
+See [ADR 0013](docs/adr/0013-ciphergrid-word-and-picture-modes.md) for mode presets and challenge policy, and [ADR 0014](docs/adr/0014-ciphergrid-picture-packs-and-round-cancellation.md) for the current image packs and host cancellation without scoring.
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |

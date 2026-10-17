@@ -502,6 +502,15 @@ export const GAME_MATRIX: MatrixEntry[] = [
 
   // --- Ciphergrid (สายลับคำใบ้) ---
   {
+    id: 'cipher-grid-pictures-4p',
+    game: 'CIPHER_GRID',
+    lobbyButton: 'Ciphergrid',
+    players: 4,
+    description: '20-picture team deduction, play to round end',
+    configure: ['cipher-grid-mode:PICTURES'],
+    timeout: 180000,
+  },
+  {
     id: 'cipher-grid-4p',
     game: 'CIPHER_GRID',
     lobbyButton: 'Ciphergrid',

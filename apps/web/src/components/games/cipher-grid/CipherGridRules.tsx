@@ -12,6 +12,7 @@ export function CipherGridRules() {
           {t('rules.cipherGrid.title')}
         </h4>
         <p className="opacity-80 mt-1">{t('rules.cipherGrid.overview')}</p>
+        <p className="opacity-80 mt-1">{t('cipherGrid.rulesMode')}</p>
       </div>
 
       <div className="border-2 border-black p-3 bg-cyan-50 shadow-[2px_2px_0_0_#000]">
@@ -58,7 +59,7 @@ export function CipherGridRules() {
         <h5 className="font-black uppercase mb-1 text-amber-800">
           {t('rules.cipherGrid.challengeTitle')}
         </h5>
-        <p className="opacity-90 text-xs sm:text-sm">{t('rules.cipherGrid.challengeDesc')}</p>
+        <p className="opacity-90 text-xs sm:text-sm">{t('cipherGrid.challengePolicy')}</p>
       </div>
 
       <div>

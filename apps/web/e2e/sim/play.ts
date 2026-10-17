@@ -69,6 +69,10 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
   for (const step of steps) {
     const [key, value] = step.split(':');
     switch (key) {
+      case 'cipher-grid-mode': {
+        await page.getByTestId('cipher-grid-mode').selectOption(value);
+        break;
+      }
       case 'rps-mode': {
         const map: Record<string, RegExp> = {
           ALL_AT_ONCE: /All At Once/i,
@@ -1721,7 +1725,7 @@ async function playCipherGrid(s: SimSession): Promise<void> {
   });
 
   // Play turns or until round end
-  for (let turn = 0; turn < 15; turn++) {
+  for (let turn = 0; turn < 55; turn++) {
     // Check if round ended
     if (
       await host
@@ -1761,6 +1765,7 @@ async function playCipherGrid(s: SimSession): Promise<void> {
           const revealBtn = p.locator('[data-testid="reveal-card-btn"]');
           if (await revealBtn.isVisible({ timeout: 500 }).catch(() => false)) {
             await revealBtn.click();
+            await p.getByTestId('confirm-reveal-btn').click();
             trackerRevealed = true;
             break;
           }
@@ -1776,8 +1781,7 @@ async function playCipherGrid(s: SimSession): Promise<void> {
     await host.waitForTimeout(STEP);
   }
 
-  // Verify board is still healthy and container is visible
-  await expect(host.locator('[data-testid="ciphergrid-container"]')).toBeVisible();
+  await expect(host.getByTestId('round-end-banner')).toBeVisible();
 }
 
 /* ------------------------------------------------------------------ */

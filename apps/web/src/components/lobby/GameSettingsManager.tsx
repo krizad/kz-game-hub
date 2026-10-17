@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { GameType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 
+import { CipherGridSettings } from '@/components/games/cipher-grid/CipherGridSettings';
 import { WhoKnowSettings } from '@/components/games/who-know/WhoKnowSettings';
 import { RpsSettings } from '@/components/games/rps/RpsSettings';
 import { WhoAmISettings } from '@/components/games/who-am-i/WhoAmISettings';
@@ -19,6 +20,7 @@ export function GameSettingsManager() {
   if (!room) return null;
 
   const hasSettings =
+    room.gameType === GameType.CIPHER_GRID ||
     room.gameType === GameType.WHO_KNOW ||
     room.gameType === GameType.RPS ||
     room.gameType === GameType.WHO_AM_I ||
@@ -89,6 +91,7 @@ export function GameSettingsManager() {
       </details>
       {hasSettings && (
         <div className="space-y-4 border-t border-amber-300 pt-4">
+          {room.gameType === GameType.CIPHER_GRID && <CipherGridSettings />}
           {room.gameType === GameType.DOG_RELAY && <DogRelaySettings />}
           {room.gameType === GameType.WHO_KNOW && <WhoKnowSettings />}
           {room.gameType === GameType.RPS && <RpsSettings />}

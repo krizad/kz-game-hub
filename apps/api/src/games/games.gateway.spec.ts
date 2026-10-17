@@ -31,6 +31,44 @@ const artistPresetsStub = () => ({
   getCatalog: jest.fn(async () => null),
 });
 
+describe('Ciphergrid cancellation timer', () => {
+  it('cancels the room turn timer only after an authorized cancellation succeeds', () => {
+    const room = { code: 'ABC123' } as RoomState;
+    const games = {
+      cipherCancelRound: jest.fn<RoomState | null, [string, string, number]>(() => room),
+    };
+    const timers = { cancel: jest.fn() };
+    const gateway = new GamesGateway(
+      games as never,
+      {} as never,
+      timers as never,
+      {} as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+    const broadcast = jest
+      .spyOn(
+        gateway as unknown as { broadcastRoomState: (room: RoomState) => void },
+        'broadcastRoomState',
+      )
+      .mockImplementation(() => {});
+    const client = { id: 'host', emit: jest.fn() };
+    gateway.handleCipherCancelRound({ code: room.code, round: 2 }, client as never);
+    expect(games.cipherCancelRound).toHaveBeenCalledWith(room.code, 'host', 2);
+    expect(timers.cancel).toHaveBeenCalledWith(room.code, 'cipher-grid');
+    expect(broadcast).toHaveBeenCalledWith(room);
+    timers.cancel.mockClear();
+    broadcast.mockClear();
+    games.cipherCancelRound.mockReturnValue(null);
+    gateway.handleCipherCancelRound({ code: room.code, round: 1 }, client as never);
+    expect(timers.cancel).not.toHaveBeenCalled();
+    expect(broadcast).not.toHaveBeenCalled();
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, {
+      message: 'Cannot cancel round.',
+    });
+  });
+});
+
 describe('GamesGateway payload guard', () => {
   let gateway: GamesGateway;
 

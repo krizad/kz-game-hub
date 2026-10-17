@@ -4,7 +4,14 @@
  * Cipher Leads and lives in PrivateStateService, never in the public state.
  */
 
+import type { CipherGridPicturePack } from './cipher-grid-pictures';
+
 export type CipherTeam = 'SOLAR' | 'LUNAR';
+export type CipherGridMode = 'WORDS' | 'PICTURES';
+export const CIPHER_GRID_MODE_PRESETS = {
+  WORDS: { columns: 5, rows: 5, boardSize: 25, first: 9, second: 8, decoys: 7 },
+  PICTURES: { columns: 5, rows: 4, boardSize: 20, first: 8, second: 7, decoys: 4 },
+} as const;
 export type CipherRole = 'CIPHER_LEAD' | 'TRACKER';
 export type CipherCardType = 'SOLAR' | 'LUNAR' | 'DECOY' | 'VIRUS';
 export type CipherGridPhase = 'TEAM_SETUP' | 'CLUE_GIVING' | 'DECODING' | 'ROUND_END';
@@ -15,11 +22,11 @@ export type CipherWinReason = 'ALL_FOUND' | 'VIRUS';
 export const CIPHER_GRID_BOARD_SIZE = 25;
 export const CIPHER_GRID_MIN_PLAYERS = 4;
 export const CIPHER_GRID_MAX_CLUE_COUNT = 9;
+export const CIPHER_GRID_MAX_CLUE_LENGTH = 30;
 /** Private-state key holding the Cipher Key for each Cipher Lead socket. */
 export const CIPHER_GRID_PRIVATE_KEY = 'cipherKeycard';
 
-export interface CipherCard {
-  word: string;
+export interface CipherCardBase {
   revealed: boolean;
   /** Only set once the card is revealed (or for every card at ROUND_END). */
   type?: CipherCardType;
@@ -27,15 +34,27 @@ export interface CipherCard {
   revealedBy?: CipherTeam | null;
 }
 
+export type CipherCard = CipherCardBase &
+  ({ kind: 'WORD'; word: string } | { kind: 'PICTURE'; pictureId: string });
+
 export interface CipherClue {
+  id: string;
   team: CipherTeam;
   word: string;
   count: CipherClueCount;
   giverId: string;
   challenged?: boolean;
+  challenge?: { team: CipherTeam; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' };
 }
 
-export type CipherHistoryKind = 'CLUE' | 'REVEAL' | 'CHALLENGE' | 'PENALTY_REVEAL' | 'END_TURN';
+export type CipherHistoryKind =
+  | 'CLUE'
+  | 'REVEAL'
+  | 'CHALLENGE'
+  | 'CHALLENGE_ACCEPTED'
+  | 'CHALLENGE_REJECTED'
+  | 'PENALTY_REVEAL'
+  | 'END_TURN';
 
 export interface CipherHistoryEntry {
   kind: CipherHistoryKind;
@@ -48,6 +67,8 @@ export interface CipherHistoryEntry {
 }
 
 export interface CipherGridState {
+  mode: CipherGridMode;
+  picturePack?: CipherGridPicturePack;
   phase: CipherGridPhase;
   round: number;
   /** socketId → team. Players without an entry sit this match out. */
@@ -91,4 +112,9 @@ export interface CipherGiveCluePayload {
 
 export interface CipherCardIndexPayload {
   cardIndex: number;
+}
+
+export interface CipherRespondChallengePayload {
+  clueId: string;
+  accept: boolean;
 }
