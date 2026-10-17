@@ -1339,6 +1339,13 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot challenge clue.' });
         }
     }
+    handleCipherRespondChallenge(data, client) {
+        const room = this.gamesService.cipherRespondChallenge(data.code, client.id, data.clueId, data.accept);
+        if (room)
+            this.broadcastRoomState(room);
+        else
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'CHALLENGE_EXPIRED' });
+    }
     handleCipherNextRound(data, client) {
         const room = this.gamesService.cipherNextRound(data.code, client.id);
         if (room) {
@@ -1357,6 +1364,16 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Not authorized to reset game.' });
+        }
+    }
+    handleCipherCancelRound(data, client) {
+        const room = this.gamesService.cipherCancelRound(data.code, client.id, data.round);
+        if (room) {
+            this.roomTimerService.cancel(room.code, 'cipher-grid');
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot cancel round.' });
         }
     }
     handleResultRevealAction(data, client) {
@@ -2750,6 +2767,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleCipherChallengeClue", null);
 __decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_RESPOND_CHALLENGE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherRespondChallenge", null);
+__decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_NEXT_ROUND),
     __param(0, (0, websockets_1.MessageBody)()),
     __param(1, (0, websockets_1.ConnectedSocket)()),
@@ -2765,6 +2790,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleCipherReset", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.CIPHER_CANCEL_ROUND),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleCipherCancelRound", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.RESULT_REVEAL_ACTION),
     __param(0, (0, websockets_1.MessageBody)()),

@@ -1,4 +1,4 @@
-import { RoomState, CipherClueCount, CipherGridState, CipherRole, CipherTeam } from '@repo/types';
+import { RoomState, CipherClueCount, CipherGridState, CipherGridMode, CipherRole, CipherTeam, CipherGridPicturePack } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 export type CipherOutcome = {
     room: RoomState;
@@ -10,9 +10,10 @@ export type CipherOutcome = {
 export declare class CipherGridService {
     private readonly privateState;
     constructor(privateState: PrivateStateService);
-    createInitialState(): CipherGridState;
+    createInitialState(mode?: CipherGridMode, picturePack?: CipherGridPicturePack): CipherGridState;
     startGame(room: RoomState, requesterId: string): RoomState | null;
     resetGame(room: RoomState, requesterId: string): RoomState | null;
+    cancelRound(room: RoomState, requesterId: string, round: number): CipherOutcome;
     assignTeam(room: RoomState, requesterId: string, team: CipherTeam | null, role?: CipherRole, targetId?: string): CipherOutcome;
     randomizeTeams(room: RoomState, requesterId: string): CipherOutcome;
     startMatch(room: RoomState, requesterId: string): CipherOutcome;
@@ -22,9 +23,11 @@ export declare class CipherGridService {
     revealCard(room: RoomState, requesterId: string, cardIndex: number): CipherOutcome;
     endTurn(room: RoomState, requesterId: string): CipherOutcome;
     challengeClue(room: RoomState, requesterId: string): CipherOutcome;
+    respondChallenge(room: RoomState, requesterId: string, clueId: string, accept: boolean): CipherOutcome;
     handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     remapSocketId(state: CipherGridState, oldSocketId: string, newSocketId: string): void;
     handlePlayerRemoved(room: RoomState, socketId: string): void;
+    private clearRound;
     private participants;
     private trackers;
     private removeFromTeams;

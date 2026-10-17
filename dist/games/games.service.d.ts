@@ -237,6 +237,8 @@ export declare class GamesService {
     cipherEndTurn(code: string, clientId: string): RoomState | null;
     cipherChallengeClue(code: string, clientId: string): RoomState | null;
     cipherNextRound(code: string, clientId: string): RoomState | null;
+    cipherCancelRound(code: string, clientId: string, round: number): RoomState | null;
+    cipherRespondChallenge(code: string, clientId: string, clueId: string, accept: boolean): RoomState | null;
     cipherTurnTimeout(code: string, deadline: number): RoomState | null;
     private getPlayerId;
 }

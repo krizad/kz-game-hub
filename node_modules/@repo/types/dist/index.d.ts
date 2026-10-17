@@ -20,3 +20,4 @@ export * from './dog-relay';
 export * from './dog-relay-cards';
 export * from './utils';
 export * from './result-reveal';
+export * from './cipher-grid-pictures';
