@@ -986,8 +986,14 @@ test.describe('Full Game Demos', () => {
     // Detectives vote for the Conspirator
     for (const page of pages) {
       const targetBtn = conspiratorName
-        ? page.locator('button').filter({ hasText: new RegExp(conspiratorName, 'i') }).first()
-        : page.locator('button').filter({ hasText: /D1|D2|DetHost/i }).first();
+        ? page
+            .locator('button')
+            .filter({ hasText: new RegExp(conspiratorName, 'i') })
+            .first()
+        : page
+            .locator('button')
+            .filter({ hasText: /D1|D2|DetHost/i })
+            .first();
       const voteBtn = page.locator('button', { hasText: /Confirm Vote|ยืนยันการโหวต/i }).first();
       if (
         (await targetBtn.isVisible({ timeout: 2500 }).catch(() => false)) &&
@@ -998,7 +1004,10 @@ test.describe('Full Game Demos', () => {
         await voteBtn.click();
         await page.waitForTimeout(400);
       } else {
-        const fallback = page.locator('button').filter({ hasText: /D1|D2|DetHost/i }).first();
+        const fallback = page
+          .locator('button')
+          .filter({ hasText: /D1|D2|DetHost/i })
+          .first();
         if (
           (await fallback.isVisible().catch(() => false)) &&
           (await voteBtn.isVisible().catch(() => false))
@@ -1066,7 +1075,10 @@ test.describe('Full Game Demos', () => {
     await buzzBtn.click();
 
     // Host judges the answer Correct!
-    const correctBtn = p1.locator('button').filter({ hasText: /Correct|ถูกต้อง/i }).first();
+    const correctBtn = p1
+      .locator('button')
+      .filter({ hasText: /Correct|ถูกต้อง/i })
+      .first();
     if (await correctBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await p1.waitForTimeout(800);
       await correctBtn.click();
@@ -1087,7 +1099,10 @@ test.describe('Full Game Demos', () => {
     if (await nextOrFinish.isVisible({ timeout: 5000 }).catch(() => false)) {
       await nextOrFinish.click();
     } else {
-      const endGameBtn = p1.locator('button').filter({ hasText: /End Game/i }).first();
+      const endGameBtn = p1
+        .locator('button')
+        .filter({ hasText: /End Game/i })
+        .first();
       if (await endGameBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
         await endGameBtn.click();
       }
@@ -1278,7 +1293,9 @@ test.describe('Full Game Demos', () => {
     // Play 1 full round from start (0,2) to Gold Pick -> Round End Role Reveal
     for (let step = 0; step < 160; step++) {
       const phase = await p1
-        .evaluate(() => (window as any).__useGameStore?.getState?.()?.room?.saboteurState?.currentPhase)
+        .evaluate(
+          () => (window as any).__useGameStore?.getState?.()?.room?.saboteurState?.currentPhase,
+        )
         .catch(() => '');
       if (phase === 'ROUND_END' || phase === 'GAME_OVER') break;
 
@@ -1786,13 +1803,21 @@ test.describe('Full Game Demos', () => {
     await joinRoom(lunarLead, origin, roomCode, 'Lunar Lead');
     await joinRoom(lunarTracker, origin, roomCode, 'Lunar Operative');
 
-    await setPerspectiveBadge(solarLead, '🎥 Solar Lead — Role: ☀️ Spymaster (Sees Keycard)', '#fde047');
+    await setPerspectiveBadge(
+      solarLead,
+      '🎥 Solar Lead — Role: ☀️ Spymaster (Sees Keycard)',
+      '#fde047',
+    );
     await setPerspectiveBadge(
       solarTracker,
       '🎥 Solar Operative — Role: ☀️ Field Agent (Guesser)',
       '#fed7aa',
     );
-    await setPerspectiveBadge(lunarLead, '🎥 Lunar Lead — Role: 🌙 Spymaster (Sees Keycard)', '#c4b5fd');
+    await setPerspectiveBadge(
+      lunarLead,
+      '🎥 Lunar Lead — Role: 🌙 Spymaster (Sees Keycard)',
+      '#c4b5fd',
+    );
     await setPerspectiveBadge(
       lunarTracker,
       '🎥 Lunar Operative — Role: 🌙 Field Agent (Guesser)',

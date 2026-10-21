@@ -1918,6 +1918,12 @@ export interface Dictionary {
       eligiblePlayers: string;
       mainPot: string;
       sidePot: string;
+      currentBet: string;
+      yourBet: string;
+      yourChips: string;
+      noBetYet: string;
+      checkAvailable: string;
+      betAmount: string;
       phase: {
         PREFLOP: string;
         FLOP: string;
