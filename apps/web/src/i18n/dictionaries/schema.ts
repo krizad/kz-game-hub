@@ -163,6 +163,15 @@ export interface Dictionary {
     roomCodePlaceholder: string;
     join: string;
     publicLobbies: string;
+    tabGames: string;
+    tabActiveRooms: string;
+    noActiveRooms: string;
+    noActiveRoomsDesc: string;
+    createRoomNow: string;
+    searchRoomsPlaceholder: string;
+    noMatchingRooms: string;
+    liveSync: string;
+    viewRooms: string;
     roomVisibility: string;
     publicRoom: string;
     unlistedRoom: string;

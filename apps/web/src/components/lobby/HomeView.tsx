@@ -56,6 +56,8 @@ export function HomeView() {
   const { randomizeName } = useAutoRandomName();
 
   const [joinCode, setJoinCode] = useState('');
+  const [activeTab, setActiveTab] = useState<'games' | 'rooms'>('games');
+  const [roomSearch, setRoomSearch] = useState('');
 
   const [groupSizeFilter, setGroupSizeFilter] = useState<'ALL' | '2' | '3-4' | '5+'>('ALL');
   const [styleFilter, setStyleFilter] = useState<'ALL' | GameStyle>('ALL');
@@ -95,6 +97,15 @@ export function HomeView() {
     if (textFilter === 'NOT_REQUIRED' && g.textRequired) return false;
 
     return true;
+  });
+
+  const filteredRooms = availableRooms.filter((r) => {
+    if (!roomSearch.trim()) return true;
+    const q = roomSearch.toLowerCase().trim();
+    const gameName = getGameName(r.gameType, t).toLowerCase();
+    const code = r.code.toLowerCase();
+    const host = (r.hostName || '').toLowerCase();
+    return code.includes(q) || gameName.includes(q) || host.includes(q);
   });
 
   return (
@@ -196,281 +207,398 @@ export function HomeView() {
 
         {/* Right Column (PC) / Bottom Section (Mobile) */}
         <div className="flex flex-col mt-8 lg:mt-0">
-          {/* Catalog Filter Bar */}
-          <div
-            data-testid="catalog-filter-bar"
-            className="mb-3 bg-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-black">
-                <span>🔍</span> {t('lobby.filters')}
+          {/* Lobby Tab Navigation */}
+          <div className="flex border-4 border-black mb-3 shadow-[4px_4px_0_0_#000] bg-white">
+            <button
+              type="button"
+              data-testid="lobby-tab-games"
+              onClick={() => setActiveTab('games')}
+              className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 border-r-4 border-black transition-all cursor-pointer ${
+                activeTab === 'games'
+                  ? 'bg-[#FEF08A] text-black shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-black'
+              }`}
+            >
+              <span className="text-base">🎮</span>
+              <span>{t('lobby.tabGames')}</span>
+            </button>
+            <button
+              type="button"
+              data-testid="lobby-tab-rooms"
+              onClick={() => setActiveTab('rooms')}
+              className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'rooms'
+                  ? 'bg-[#A855F7] text-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-black'
+              }`}
+            >
+              <span className="text-base">🚪</span>
+              <span>{t('lobby.tabActiveRooms')}</span>
+              <span
+                className={`px-2 py-0.5 text-[10px] font-black border-2 border-black rounded-full transition-all ${
+                  activeTab === 'rooms'
+                    ? 'bg-[#FEF08A] text-black'
+                    : availableRooms.length > 0
+                      ? 'bg-[#A3E635] text-black shadow-[1px_1px_0_0_#000] animate-pulse'
+                      : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {availableRooms.length}
               </span>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  data-testid="catalog-clear-filters-btn"
-                  onClick={clearFilters}
-                  className="text-[10px] font-black bg-rose-200 hover:bg-rose-300 text-black border-2 border-black px-2 py-0.5 shadow-[1px_1px_0_0_#000] active:translate-y-0.5"
-                >
-                  {t('lobby.clearFilters')}
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div>
-                <label
-                  htmlFor="filter-group-size"
-                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
-                >
-                  {t('lobby.groupSize')}
-                </label>
-                <select
-                  id="filter-group-size"
-                  data-testid="filter-group-size"
-                  value={groupSizeFilter}
-                  onChange={(e) => setGroupSizeFilter(e.target.value as any)}
-                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                >
-                  <option value="ALL">{t('lobby.groupSizeAll')}</option>
-                  <option value="2">{t('lobby.groupSize2')}</option>
-                  <option value="3-4">{t('lobby.groupSize3to4')}</option>
-                  <option value="5+">{t('lobby.groupSize5plus')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="filter-style"
-                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
-                >
-                  {t('lobby.style')}
-                </label>
-                <select
-                  id="filter-style"
-                  data-testid="filter-style"
-                  value={styleFilter}
-                  onChange={(e) => setStyleFilter(e.target.value as any)}
-                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                >
-                  <option value="ALL">{t('lobby.styleAll')}</option>
-                  <option value="party">{t('lobby.styleParty')}</option>
-                  <option value="competitive">{t('lobby.styleCompetitive')}</option>
-                  <option value="cooperative">{t('lobby.styleCooperative')}</option>
-                  <option value="bluffing">{t('lobby.styleBluffing')}</option>
-                  <option value="quick">{t('lobby.styleQuick')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="filter-audio"
-                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
-                >
-                  {t('lobby.audioFilter')}
-                </label>
-                <select
-                  id="filter-audio"
-                  data-testid="filter-audio"
-                  value={audioFilter}
-                  onChange={(e) => setAudioFilter(e.target.value as any)}
-                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                >
-                  <option value="ALL">{t('lobby.audioAll')}</option>
-                  <option value="REQUIRED">{t('lobby.audioRequired')}</option>
-                  <option value="NOT_REQUIRED">{t('lobby.audioNotRequired')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="filter-text"
-                  className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
-                >
-                  {t('lobby.textFilter')}
-                </label>
-                <select
-                  id="filter-text"
-                  data-testid="filter-text"
-                  value={textFilter}
-                  onChange={(e) => setTextFilter(e.target.value as any)}
-                  className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-                >
-                  <option value="ALL">{t('lobby.textAll')}</option>
-                  <option value="REQUIRED">{t('lobby.textRequired')}</option>
-                  <option value="NOT_REQUIRED">{t('lobby.textNotRequired')}</option>
-                </select>
-              </div>
-            </div>
+            </button>
           </div>
 
-          {/* Game Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            {filteredGames.length === 0 ? (
+          {activeTab === 'games' ? (
+            <>
+              {/* Catalog Filter Bar */}
               <div
-                data-testid="catalog-no-games"
-                className="col-span-full border-4 border-dashed border-black bg-white/70 p-6 text-center"
+                data-testid="catalog-filter-bar"
+                className="mb-3 bg-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] space-y-2"
               >
-                <p className="text-sm font-black text-slate-800">{t('lobby.noGamesFound')}</p>
-                {hasActiveFilters && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-black">
+                    <span>🔍</span> {t('lobby.filters')}
+                  </span>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      data-testid="catalog-clear-filters-btn"
+                      onClick={clearFilters}
+                      className="text-[10px] font-black bg-rose-200 hover:bg-rose-300 text-black border-2 border-black px-2 py-0.5 shadow-[1px_1px_0_0_#000] active:translate-y-0.5 cursor-pointer"
+                    >
+                      {t('lobby.clearFilters')}
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <label
+                      htmlFor="filter-group-size"
+                      className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                    >
+                      {t('lobby.groupSize')}
+                    </label>
+                    <select
+                      id="filter-group-size"
+                      data-testid="filter-group-size"
+                      value={groupSizeFilter}
+                      onChange={(e) => setGroupSizeFilter(e.target.value as any)}
+                      className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                    >
+                      <option value="ALL">{t('lobby.groupSizeAll')}</option>
+                      <option value="2">{t('lobby.groupSize2')}</option>
+                      <option value="3-4">{t('lobby.groupSize3to4')}</option>
+                      <option value="5+">{t('lobby.groupSize5plus')}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="filter-style"
+                      className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                    >
+                      {t('lobby.style')}
+                    </label>
+                    <select
+                      id="filter-style"
+                      data-testid="filter-style"
+                      value={styleFilter}
+                      onChange={(e) => setStyleFilter(e.target.value as any)}
+                      className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                    >
+                      <option value="ALL">{t('lobby.styleAll')}</option>
+                      <option value="party">{t('lobby.styleParty')}</option>
+                      <option value="competitive">{t('lobby.styleCompetitive')}</option>
+                      <option value="cooperative">{t('lobby.styleCooperative')}</option>
+                      <option value="bluffing">{t('lobby.styleBluffing')}</option>
+                      <option value="quick">{t('lobby.styleQuick')}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="filter-audio"
+                      className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                    >
+                      {t('lobby.audioFilter')}
+                    </label>
+                    <select
+                      id="filter-audio"
+                      data-testid="filter-audio"
+                      value={audioFilter}
+                      onChange={(e) => setAudioFilter(e.target.value as any)}
+                      className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                    >
+                      <option value="ALL">{t('lobby.audioAll')}</option>
+                      <option value="REQUIRED">{t('lobby.audioRequired')}</option>
+                      <option value="NOT_REQUIRED">{t('lobby.audioNotRequired')}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="filter-text"
+                      className="block text-[10px] font-black uppercase text-slate-600 mb-0.5"
+                    >
+                      {t('lobby.textFilter')}
+                    </label>
+                    <select
+                      id="filter-text"
+                      data-testid="filter-text"
+                      value={textFilter}
+                      onChange={(e) => setTextFilter(e.target.value as any)}
+                      className="w-full bg-amber-50 border-2 border-black p-1 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                    >
+                      <option value="ALL">{t('lobby.textAll')}</option>
+                      <option value="REQUIRED">{t('lobby.textRequired')}</option>
+                      <option value="NOT_REQUIRED">{t('lobby.textNotRequired')}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                {filteredGames.length === 0 ? (
+                  <div
+                    data-testid="catalog-no-games"
+                    className="col-span-full border-4 border-dashed border-black bg-white/70 p-6 text-center"
+                  >
+                    <p className="text-sm font-black text-slate-800">{t('lobby.noGamesFound')}</p>
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        data-testid="catalog-no-games-clear-btn"
+                        onClick={clearFilters}
+                        className="mt-3 inline-block bg-yellow-300 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] hover:bg-yellow-400 active:translate-y-0.5 cursor-pointer"
+                      >
+                        {t('lobby.clearFilters')}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  filteredGames.map((g) => {
+                    const enabled = isGameEnabled(g.type);
+                    const gameName = t(`lobby.gameNames.${g.catalogKey}`);
+                    return (
+                      <button
+                        key={g.type}
+                        type="button"
+                        data-testid={`catalog-card-${g.type}`}
+                        onClick={() => enabled && createRoom(g.type)}
+                        disabled={!enabled || !connected || !myName}
+                        aria-label={`${gameName}. ${t(`lobby.gameCards.${g.catalogKey}.category`)}. ${t(`lobby.gameCards.${g.catalogKey}.players`)}`}
+                        className={`group relative w-full overflow-hidden border-4 border-black p-3 text-left shadow-[4px_4px_0_0_#000] transition-all ${
+                          !enabled
+                            ? 'bg-slate-100 opacity-60 cursor-not-allowed'
+                            : 'bg-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]'
+                        }`}
+                      >
+                        <span
+                          className={`absolute inset-y-0 left-0 w-2 ${g.color}`}
+                          aria-hidden="true"
+                        />
+                        <span className="flex items-start gap-3 pl-2">
+                          <span
+                            className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border-2 border-black text-2xl shadow-[2px_2px_0_0_#000] ${g.color}`}
+                            aria-hidden="true"
+                          >
+                            {g.icon}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
+                              {t(`lobby.gameCards.${g.catalogKey}.category`)}
+                            </span>
+                            <span
+                              data-testid="catalog-card-title"
+                              className="block text-sm font-black leading-tight text-black"
+                            >
+                              {gameName}
+                            </span>
+                            <span className="mt-1 block text-xs font-medium leading-snug text-slate-700">
+                              {t(`lobby.gameCards.${g.catalogKey}.description`)}
+                            </span>
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <span className="inline-flex border-2 border-black bg-[#FEF08A] px-2 py-0.5 text-[10px] font-black text-black">
+                                👥 {t(`lobby.gameCards.${g.catalogKey}.players`)}
+                              </span>
+                              {!enabled && (
+                                <span
+                                  data-testid={`game-disabled-reason-${g.type}`}
+                                  className="inline-flex border-2 border-red-500 bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-700"
+                                >
+                                  🔒 {t('lobby.disabledReason')}
+                                </span>
+                              )}
+                            </div>
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Bottom Quick Switch Banner if Active Rooms Exist */}
+              {availableRooms.length > 0 && (
+                <div className="mt-3 border-4 border-black bg-[#E0E7FF] p-3 shadow-[4px_4px_0_0_#000] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg">🚪</span>
+                    <span className="text-xs font-black text-black truncate">
+                      {t('lobby.publicLobbies')}:{' '}
+                      <span className="bg-[#FEF08A] border-2 border-black px-1.5 py-0.5 rounded shadow-[1px_1px_0_0_#000] font-black">
+                        {availableRooms.length}
+                      </span>
+                    </span>
+                  </div>
                   <button
                     type="button"
-                    data-testid="catalog-no-games-clear-btn"
-                    onClick={clearFilters}
-                    className="mt-3 inline-block bg-yellow-300 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] hover:bg-yellow-400 active:translate-y-0.5"
+                    onClick={() => setActiveTab('rooms')}
+                    className="shrink-0 bg-[#A855F7] hover:bg-[#9333EA] text-white border-2 border-black text-[11px] font-black uppercase px-3 py-1.5 shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{t('lobby.viewRooms')}</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Active Rooms Tab View */
+            <div data-testid="lobby-active-rooms-panel" className="flex flex-col space-y-3">
+              {/* Search & Sync Status */}
+              <div className="bg-white border-4 border-black p-3 shadow-[4px_4px_0_0_#000] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-sm">🔍</span>
+                  <input
+                    type="text"
+                    value={roomSearch}
+                    onChange={(e) => setRoomSearch(e.target.value)}
+                    placeholder={t('lobby.searchRoomsPlaceholder')}
+                    className="w-full text-xs font-bold bg-amber-50 border-2 border-black p-2 text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                  />
+                  {roomSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setRoomSearch('')}
+                      className="text-xs font-black bg-rose-200 hover:bg-rose-300 text-black border-2 border-black px-2 py-1 shadow-[1px_1px_0_0_#000] cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 self-end sm:self-auto text-[10px] font-black text-emerald-700 bg-emerald-100 border-2 border-emerald-600 px-2 py-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{t('lobby.liveSync')}</span>
+                </div>
+              </div>
+
+              {/* Room Cards / Empty States */}
+              {availableRooms.length === 0 ? (
+                <div
+                  data-testid="no-active-rooms"
+                  className="border-4 border-dashed border-black bg-white/80 p-8 text-center shadow-[4px_4px_0_0_#000] space-y-3"
+                >
+                  <div className="text-5xl">🎲</div>
+                  <h3 className="text-base font-black text-black uppercase tracking-wide">
+                    {t('lobby.noActiveRooms')}
+                  </h3>
+                  <p className="text-xs font-medium text-slate-700 max-w-sm mx-auto leading-relaxed">
+                    {t('lobby.noActiveRoomsDesc')}
+                  </p>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('games')}
+                      className="mt-2 inline-flex items-center gap-2 bg-[#FEF08A] hover:bg-[#FDE047] text-black border-4 border-black px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
+                    >
+                      <span>🎮</span>
+                      <span>{t('lobby.createRoomNow')}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : filteredRooms.length === 0 ? (
+                <div className="border-4 border-dashed border-black bg-white/80 p-6 text-center shadow-[4px_4px_0_0_#000]">
+                  <p className="text-xs font-black text-slate-700">{t('lobby.noMatchingRooms')}</p>
+                  <button
+                    type="button"
+                    onClick={() => setRoomSearch('')}
+                    className="mt-2 text-[10px] font-black bg-amber-200 border-2 border-black px-2.5 py-1 uppercase shadow-[1px_1px_0_0_#000] cursor-pointer"
                   >
                     {t('lobby.clearFilters')}
                   </button>
-                )}
-              </div>
-            ) : (
-              filteredGames.map((g) => {
-                const enabled = isGameEnabled(g.type);
-                const gameName = t(`lobby.gameNames.${g.catalogKey}`);
-                return (
-                  <button
-                    key={g.type}
-                    type="button"
-                    data-testid={`catalog-card-${g.type}`}
-                    onClick={() => enabled && createRoom(g.type)}
-                    disabled={!enabled || !connected || !myName}
-                    aria-label={`${gameName}. ${t(`lobby.gameCards.${g.catalogKey}.category`)}. ${t(`lobby.gameCards.${g.catalogKey}.players`)}`}
-                    className={`group relative w-full overflow-hidden border-4 border-black p-3 text-left shadow-[4px_4px_0_0_#000] transition-all ${
-                      !enabled
-                        ? 'bg-slate-100 opacity-60 cursor-not-allowed'
-                        : 'bg-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_#000]'
-                    }`}
-                  >
-                    <span
-                      className={`absolute inset-y-0 left-0 w-2 ${g.color}`}
-                      aria-hidden="true"
-                    />
-                    <span className="flex items-start gap-3 pl-2">
-                      <span
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border-2 border-black text-2xl shadow-[2px_2px_0_0_#000] ${g.color}`}
-                        aria-hidden="true"
-                      >
-                        {g.icon}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
-                          {t(`lobby.gameCards.${g.catalogKey}.category`)}
-                        </span>
-                        <span
-                          data-testid="catalog-card-title"
-                          className="block text-sm font-black leading-tight text-black"
-                        >
-                          {gameName}
-                        </span>
-                        <span className="mt-1 block text-xs font-medium leading-snug text-slate-700">
-                          {t(`lobby.gameCards.${g.catalogKey}.description`)}
-                        </span>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex border-2 border-black bg-[#FEF08A] px-2 py-0.5 text-[10px] font-black text-black">
-                            👥 {t(`lobby.gameCards.${g.catalogKey}.players`)}
-                          </span>
-                          {!enabled && (
-                            <span
-                              data-testid={`game-disabled-reason-${g.type}`}
-                              className="inline-flex border-2 border-red-500 bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-700"
-                            >
-                              🔒 {t('lobby.disabledReason')}
-                            </span>
-                          )}
-                        </div>
-                      </span>
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                  {filteredRooms.map((r) => {
+                    const catalog = GAME_CATALOG.find((g) => g.type === r.gameType);
+                    const gameName = getGameName(r.gameType, t);
+                    const icon = catalog?.icon ?? '🎲';
+                    const color = catalog?.color ?? 'bg-[#A3E635]';
 
-          {availableRooms.length > 0 && (
-            <div className="mt-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-px bg-black flex-1 border-t-2 border-black"></div>
-                <h3 className="text-xs font-black text-black uppercase tracking-widest flex items-center gap-2">
-                  {t('lobby.publicLobbies')}
-                  <span className="bg-[#FEF08A] text-black border-2 border-black px-2 py-0.5 rounded-md shadow-[2px_2px_0_0_#000]">
-                    {availableRooms.length}
-                  </span>
-                </h3>
-                <div className="h-px bg-black flex-1 border-t-2 border-black"></div>
-              </div>
-
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {availableRooms.map((r) => (
-                  <button
-                    key={r.code}
-                    type="button"
-                    onClick={() => {
-                      if (!myName) {
-                        toast.error(t('errors.enterNameFirst'));
-                        return;
-                      }
-                      setJoinCode(r.code);
-                      joinRoom(r.code);
-                    }}
-                    className="w-full bg-white border-2 border-black hover:bg-[#FEF08A] p-4 text-left transition-all flex items-center justify-between group shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
-                  >
-                    <div>
-                      <div className="text-black font-black tracking-widest text-lg leading-none mb-1 flex items-center gap-2">
-                        {r.code}
-                        <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded border border-black leading-none ml-2 tracking-normal font-sans text-black font-bold bg-[#A3E635]`}
-                        >
-                          {getGameName(r.gameType, t)}
-                        </span>
-                      </div>
-                      <div className="text-black text-[10px] font-black uppercase mt-0.5 tracking-wider flex items-center gap-1.5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-black"
-                        >
-                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                        </svg>
-                        {t('lobby.host')}{' '}
-                        <span className="text-black normal-case font-black">{r.hostName}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
+                    return (
                       <div
-                        className="flex items-center gap-1.5 text-xs font-black text-black bg-white px-2.5 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] group-hover:shadow-[1px_1px_0_0_#000]"
-                        title={t('lobby.playersInRoom')}
+                        key={r.code}
+                        data-testid={`active-room-card-${r.code}`}
+                        className="group relative w-full overflow-hidden bg-white border-4 border-black p-4 text-left shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
-                        {r.playerCount}
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-black"
-                        >
-                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`w-12 h-12 shrink-0 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0_0_#000] ${color}`}
+                          >
+                            {icon}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-black font-black tracking-widest text-lg leading-none">
+                                {r.code}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded border-2 border-black font-sans text-black font-black bg-[#FEF08A] shadow-[1px_1px_0_0_#000]">
+                                {gameName}
+                              </span>
+                            </div>
+                            <div className="text-slate-700 text-xs font-bold mt-1.5 flex items-center gap-1.5 truncate">
+                              <span>👤</span>
+                              <span className="text-slate-500 font-medium">{t('lobby.host')}:</span>
+                              <span className="text-black font-black">
+                                {r.hostName || t('lobby.unknownHost')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t-2 sm:border-t-0 border-slate-200">
+                          <div
+                            className="flex items-center gap-1.5 text-xs font-black text-black bg-amber-50 px-3 py-1.5 border-2 border-black shadow-[2px_2px_0_0_#000]"
+                            title={t('lobby.playersInRoom')}
+                          >
+                            <span>👥</span>
+                            <span>
+                              {r.playerCount}
+                              {catalog ? ` / ${catalog.maxPlayers}` : ''}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!myName) {
+                                toast.error(t('errors.enterNameFirst'));
+                                return;
+                              }
+                              setJoinCode(r.code);
+                              joinRoom(r.code);
+                            }}
+                            className="bg-[#A855F7] hover:bg-[#9333EA] text-white border-2 border-black text-xs font-black uppercase px-4 py-2 shadow-[2px_2px_0_0_#000] hover:shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{t('lobby.join')}</span>
+                            <span>→</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="bg-[#A855F7] text-white border-2 border-black text-[10px] uppercase font-black px-4 py-2 shadow-[2px_2px_0_0_#000] opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
-                        {t('lobby.join')}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
