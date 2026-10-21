@@ -103,6 +103,10 @@ let GamesService = GamesService_1 = class GamesService {
     isGameEnabled(gameType) {
         return this.gameSettings.isEnabled(gameType);
     }
+    verifyAdminKey(adminKey) {
+        const adminSecret = process.env.ADMIN_SECRET;
+        return typeof adminKey === 'string' && !!adminSecret && adminKey === adminSecret;
+    }
     getReconnectToken(code, socketId) {
         const room = this.rooms.get(code);
         const player = room?.players.find((candidate) => candidate.socketId === socketId);

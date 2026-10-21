@@ -82,6 +82,7 @@ export declare class GamesService {
     getRoom(code: string): RoomState | undefined;
     getServerTime(): number;
     isGameEnabled(gameType: GameType): boolean;
+    verifyAdminKey(adminKey: unknown): boolean;
     getReconnectToken(code: string, socketId: string): string | null;
     hasSeatedSession(code: string, reconnectToken: string, name: string): boolean;
     createRoom(hostId: string, gameType?: GameType, initialConfig?: Partial<RoomConfig>): RoomState;

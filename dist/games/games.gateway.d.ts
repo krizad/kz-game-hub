@@ -7,7 +7,7 @@ import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -33,6 +33,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handleGetGameSettings(client: Socket): void;
     handleServerTimeRequest(client: Socket, data: ServerTimeRequestPayload): void;
     handleSetGameEnabled(data: SetGameEnabledPayload, client: Socket): Promise<void>;
+    handleAdminVerifyKey(client: Socket, data: AdminVerifyKeyPayload): void;
     private isAdminKey;
     private broadcastArtistPresets;
     private listArtistPresets;

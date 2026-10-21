@@ -192,7 +192,16 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.server.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
         this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
     }
+    handleAdminVerifyKey(client, data) {
+        const valid = this.isAdminKey(data?.adminKey);
+        client.emit(types_1.SOCKET_EVENTS.ADMIN_KEY_VERIFIED, {
+            valid,
+        });
+    }
     isAdminKey(adminKey) {
+        if (this.gamesService?.verifyAdminKey) {
+            return this.gamesService.verifyAdminKey(adminKey);
+        }
         return (typeof adminKey === 'string' &&
             !!process.env.ADMIN_SECRET &&
             adminKey === process.env.ADMIN_SECRET);
@@ -1801,6 +1810,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 typeof data.adminKey === 'string' &&
                 data.adminKey.length <= 200);
         }
+        if (event === types_1.SOCKET_EVENTS.ADMIN_VERIFY_KEY) {
+            return typeof data.adminKey === 'string' && data.adminKey.length <= 200;
+        }
         if (event === types_1.SOCKET_EVENTS.CREATE_ROOM) {
             return (this.isValidName(data.name) &&
                 (data.gameType === undefined || Object.values(types_1.GameType).includes(data.gameType)));
@@ -2134,6 +2146,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], GamesGateway.prototype, "handleSetGameEnabled", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.ADMIN_VERIFY_KEY),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleAdminVerifyKey", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.GET_ARTIST_PRESETS),
     __param(0, (0, websockets_1.MessageBody)()),
