@@ -540,6 +540,8 @@ export const th: Dictionary = {
     keyLabel: 'รหัสแอดมิน',
     keyPlaceholder: 'กรอกรหัสแอดมิน',
     unlock: 'ปลดล็อก',
+    verifying: 'กำลังตรวจสอบ...',
+    invalidKey: 'รหัสแอดมินไม่ถูกต้อง',
     hint: 'รหัสแอดมินคือค่า ADMIN_SECRET บนเกมเซิร์ฟเวอร์ เกมที่ปิดจะหายจากหน้าล็อบบี้และเข้าร่วมไม่ได้จนกว่าจะเปิดใหม่',
     gobblerMode: 'โหมดก็อบเบลอร์ (Tic-Tac-Toe)',
     ultimateMode: 'โหมดอัลติเมท (Tic-Tac-Toe)',

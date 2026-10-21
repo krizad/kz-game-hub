@@ -153,6 +153,11 @@ export class GamesService {
     return this.gameSettings.isEnabled(gameType);
   }
 
+  verifyAdminKey(adminKey: unknown): boolean {
+    const adminSecret = process.env.ADMIN_SECRET;
+    return typeof adminKey === 'string' && !!adminSecret && adminKey === adminSecret;
+  }
+
   getReconnectToken(code: string, socketId: string): string | null {
     const room = this.rooms.get(code);
     const player = room?.players.find((candidate) => candidate.socketId === socketId);

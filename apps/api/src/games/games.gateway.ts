@@ -36,6 +36,8 @@ import {
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
   SetGameEnabledPayload,
+  AdminVerifyKeyPayload,
+  AdminKeyVerifiedPayload,
   ServerTimeRequestPayload,
   ServerTimeResponsePayload,
   TttModeFlag,
@@ -282,8 +284,23 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
   }
 
+  /** Admin-only: verify an admin key before unlocking the client-side panel. */
+  @SubscribeMessage(SOCKET_EVENTS.ADMIN_VERIFY_KEY)
+  handleAdminVerifyKey(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: AdminVerifyKeyPayload,
+  ) {
+    const valid = this.isAdminKey(data?.adminKey);
+    client.emit(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, {
+      valid,
+    } satisfies AdminKeyVerifiedPayload);
+  }
+
   /** Shared admin auth for artist-preset mutations (same secret as game flags). */
   private isAdminKey(adminKey: unknown): boolean {
+    if (this.gamesService?.verifyAdminKey) {
+      return this.gamesService.verifyAdminKey(adminKey);
+    }
     return (
       typeof adminKey === 'string' &&
       !!process.env.ADMIN_SECRET &&
@@ -2531,6 +2548,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         typeof data.adminKey === 'string' &&
         data.adminKey.length <= 200
       );
+    }
+    if (event === SOCKET_EVENTS.ADMIN_VERIFY_KEY) {
+      return typeof data.adminKey === 'string' && data.adminKey.length <= 200;
     }
     if (event === SOCKET_EVENTS.CREATE_ROOM) {
       return (

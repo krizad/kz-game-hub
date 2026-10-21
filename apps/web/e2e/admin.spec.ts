@@ -16,8 +16,15 @@ test('admin panel unlocks and lists every game flag and artist preset', async ({
   await page.getByTestId('admin-settings-button').click();
   await expect(page.getByTestId('admin-key-input')).toBeVisible();
 
-  // Unlock is purely client-side (form submit, no server round-trip)
-  await page.getByTestId('admin-key-input').fill('e2e-readonly-key');
+  // Entering an invalid key keeps the panel locked and shows an error
+  await page.getByTestId('admin-key-input').fill('invalid-key-attempt');
+  await page.getByTestId('admin-unlock').click();
+  await expect(page.getByTestId('admin-key-error')).toBeVisible();
+  await expect(page.getByTestId('admin-game-toggle-WHO_KNOW')).toBeHidden();
+
+  // Valid key unlocks the panel and reveals the game flags
+  const adminSecret = process.env.ADMIN_SECRET || 'change-me';
+  await page.getByTestId('admin-key-input').fill(adminSecret);
   await page.getByTestId('admin-unlock').click();
 
   // 13 games + the two Tic-Tac-Toe mode flags

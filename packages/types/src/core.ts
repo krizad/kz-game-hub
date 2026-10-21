@@ -95,6 +95,8 @@ export const SOCKET_EVENTS = {
   GET_GAME_SETTINGS: 'get_game_settings',
   GAME_SETTINGS_UPDATED: 'game_settings_updated',
   SET_GAME_ENABLED: 'set_game_enabled',
+  ADMIN_VERIFY_KEY: 'admin_verify_key',
+  ADMIN_KEY_VERIFIED: 'admin_key_verified',
   // Artist presets (Music Trivia)
   GET_ARTIST_PRESETS: 'get_artist_presets',
   ARTIST_PRESETS_LIST: 'artist_presets_list',
@@ -394,6 +396,14 @@ export interface SetGameEnabledPayload {
   gameType: GameType | TttModeFlag;
   enabled: boolean;
   adminKey: string;
+}
+
+export interface AdminVerifyKeyPayload {
+  adminKey: string;
+}
+
+export interface AdminKeyVerifiedPayload {
+  valid: boolean;
 }
 
 /** Admin payload: enable/disable (or delete) a Music Trivia artist preset. */

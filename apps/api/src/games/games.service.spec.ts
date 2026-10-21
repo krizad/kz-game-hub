@@ -540,6 +540,29 @@ describe('GamesService', () => {
       expect(service.hasSeatedSession(room.code, reconnectToken, 'Changed')).toBe(false);
     });
 
+    it('verifies admin key against ADMIN_SECRET', () => {
+      const prevSecret = process.env.ADMIN_SECRET;
+      process.env.ADMIN_SECRET = 'test-secret';
+      try {
+        expect(service.verifyAdminKey('test-secret')).toBe(true);
+        expect(service.verifyAdminKey('wrong-secret')).toBe(false);
+        expect(service.verifyAdminKey('')).toBe(false);
+        expect(service.verifyAdminKey(null)).toBe(false);
+        expect(service.verifyAdminKey(undefined)).toBe(false);
+      } finally {
+        if (prevSecret === undefined) delete process.env.ADMIN_SECRET;
+        else process.env.ADMIN_SECRET = prevSecret;
+      }
+
+      delete process.env.ADMIN_SECRET;
+      try {
+        expect(service.verifyAdminKey('test-secret')).toBe(false);
+      } finally {
+        if (prevSecret === undefined) delete process.env.ADMIN_SECRET;
+        else process.env.ADMIN_SECRET = prevSecret;
+      }
+    });
+
     it('does not create a late viewer when a real seated token is used with a new name', () => {
       const room = service.createRoom('oldSock');
       service.joinRoom(room.code, { id: 'oldSock', name: 'Original', socketId: 'oldSock' });

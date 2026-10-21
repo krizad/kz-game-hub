@@ -16,6 +16,8 @@ import {
   AvailableRoom,
   GameSettingsMap,
   SetGameEnabledPayload,
+  AdminVerifyKeyPayload,
+  AdminKeyVerifiedPayload,
   GameType,
   WhoFirstGameActionType,
   WordCategory,
@@ -102,6 +104,7 @@ interface GameState {
   connect: () => void;
   setName: (name: string) => void;
   isGameEnabled: (gameType: GameType | TttModeFlag) => boolean;
+  verifyAdminKey: (adminKey: string) => Promise<boolean>;
   setGameEnabled: (gameType: GameType | TttModeFlag, enabled: boolean, adminKey: string) => void;
   getArtistPresets: (adminKey?: string) => void;
   setArtistEnabled: (artistId: string, enabled: boolean, adminKey: string) => void;
@@ -413,6 +416,28 @@ export const useGameStore = create<GameState>((set, get) => {
 
     isGameEnabled: (gameType) => get().gameSettings[gameType] ?? true,
 
+    verifyAdminKey: (adminKey) => {
+      const { socket } = get();
+      if (!socket || !socket.connected) {
+        return Promise.resolve(false);
+      }
+      return new Promise<boolean>((resolve) => {
+        const timeout = setTimeout(() => {
+          socket.off(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, onVerified);
+          resolve(false);
+        }, 5000);
+
+        const onVerified = (payload: AdminKeyVerifiedPayload) => {
+          clearTimeout(timeout);
+          socket.off(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, onVerified);
+          resolve(payload?.valid === true);
+        };
+
+        socket.once(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, onVerified);
+        socket.emit(SOCKET_EVENTS.ADMIN_VERIFY_KEY, { adminKey } satisfies AdminVerifyKeyPayload);
+      });
+    },
+
     setGameEnabled: (gameType, enabled, adminKey) => {
       const { socket } = get();
       socket?.emit(SOCKET_EVENTS.SET_GAME_ENABLED, {
@@ -503,6 +528,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on(SOCKET_EVENTS.ARTIST_PRESETS_UPDATED, (presets: ArtistPresetSummary[]) => {
         set({ artistPresets: presets });
+      });
+
+      socket.on(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, () => {
+        // Individual verifyAdminKey invocations resolve via their own once listener.
       });
 
       socket.on('disconnect', () => {

@@ -411,6 +411,8 @@ export interface Dictionary {
     keyLabel: string;
     keyPlaceholder: string;
     unlock: string;
+    verifying: string;
+    invalidKey: string;
     hint: string;
     gobblerMode: string;
     ultimateMode: string;

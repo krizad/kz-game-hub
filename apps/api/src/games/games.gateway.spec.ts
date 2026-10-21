@@ -481,6 +481,12 @@ describe('GamesGateway payload guard', () => {
     ).toBe(false);
   });
 
+  it('requires a well-formed admin_verify_key payload', () => {
+    expect(isValid(SOCKET_EVENTS.ADMIN_VERIFY_KEY, { adminKey: 'secret' })).toBe(true);
+    expect(isValid(SOCKET_EVENTS.ADMIN_VERIFY_KEY, { adminKey: 123 })).toBe(false);
+    expect(isValid(SOCKET_EVENTS.ADMIN_VERIFY_KEY, {})).toBe(false);
+  });
+
   it('blocks creating a room for a disabled game', () => {
     const createRoom = jest.fn();
     const gateway = new GamesGateway(
@@ -578,6 +584,32 @@ describe('GamesGateway payload guard', () => {
 
     expect(setEnabled).not.toHaveBeenCalled();
     expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
+  });
+
+  it('verifies admin key correctly via handleAdminVerifyKey', () => {
+    const gateway = new GamesGateway(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      artistPresetsStub() as never,
+    );
+    const client = { id: 'sock1', emit: jest.fn() };
+    const prevSecret = process.env.ADMIN_SECRET;
+    process.env.ADMIN_SECRET = 'correct-secret';
+
+    try {
+      gateway.handleAdminVerifyKey(client as never, { adminKey: 'wrong' });
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, { valid: false });
+
+      client.emit.mockClear();
+      gateway.handleAdminVerifyKey(client as never, { adminKey: 'correct-secret' });
+      expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, { valid: true });
+    } finally {
+      if (prevSecret === undefined) delete process.env.ADMIN_SECRET;
+      else process.env.ADMIN_SECRET = prevSecret;
+    }
   });
 });
 

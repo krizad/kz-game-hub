@@ -551,6 +551,8 @@ export const en: Dictionary = {
     keyLabel: 'Admin key',
     keyPlaceholder: 'Enter the admin key',
     unlock: 'Unlock',
+    verifying: 'Verifying...',
+    invalidKey: 'Invalid admin key',
     hint: 'The admin key comes from ADMIN_SECRET on the game server. Disabled games disappear from the lobby and cannot be joined until re-enabled.',
     gobblerMode: 'Gobbler Mode (Tic-Tac-Toe)',
     ultimateMode: 'Ultimate Mode (Tic-Tac-Toe)',

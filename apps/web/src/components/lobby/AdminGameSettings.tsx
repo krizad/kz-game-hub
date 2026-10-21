@@ -40,6 +40,8 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
   const [open, setOpen] = useState(false);
   const [adminKey, setAdminKey] = useState('');
   const [unlocked, setUnlocked] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useTranslate();
   const {
     gameSettings,
@@ -48,6 +50,7 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
     getArtistPresets,
     setArtistEnabled,
     deleteArtist,
+    verifyAdminKey,
   } = useGameStore();
 
   const isEnabled = (flag: GameType | TttModeFlag) => gameSettings[flag] ?? true;
@@ -56,6 +59,31 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
   useEffect(() => {
     if (unlocked) getArtistPresets(adminKey);
   }, [unlocked]);
+
+  const handleClose = () => {
+    setOpen(false);
+    setError(null);
+  };
+
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = adminKey.trim();
+    if (!trimmed || verifying) return;
+    setError(null);
+    setVerifying(true);
+    try {
+      const isValid = await verifyAdminKey(trimmed);
+      if (isValid) {
+        setUnlocked(true);
+      } else {
+        setError(t('adminSettings.invalidKey'));
+      }
+    } catch {
+      setError(t('adminSettings.invalidKey'));
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   return (
     <>
@@ -72,7 +100,7 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setOpen(false)}
+          onClick={handleClose}
         >
           <div
             className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-sm w-full max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
@@ -83,7 +111,7 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
                 ⚙️ {t('adminSettings.title')}
               </h2>
               <button
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 className="text-slate-500 hover:text-slate-700 hover:bg-amber-100 p-2 rounded-full transition-colors"
                 aria-label="Close admin settings"
               >
@@ -93,13 +121,7 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
 
             <div className="p-4 overflow-y-auto">
               {!unlocked ? (
-                <form
-                  className="flex flex-col gap-3"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (adminKey.trim()) setUnlocked(true);
-                  }}
-                >
+                <form className="flex flex-col gap-3" onSubmit={handleUnlock}>
                   <label className="text-xs font-black uppercase text-black" htmlFor="adminKey">
                     {t('adminSettings.keyLabel')}
                   </label>
@@ -108,18 +130,33 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
                     type="password"
                     autoComplete="off"
                     value={adminKey}
-                    onChange={(e) => setAdminKey(e.target.value)}
-                    className="w-full bg-white border-4 border-black px-3 py-2 text-black focus:outline-none focus:ring-4 focus:ring-[#8B5CF6] font-black"
+                    onChange={(e) => {
+                      setAdminKey(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    disabled={verifying}
+                    className="w-full bg-white border-4 border-black px-3 py-2 text-black focus:outline-none focus:ring-4 focus:ring-[#8B5CF6] font-black disabled:opacity-50"
                     placeholder={t('adminSettings.keyPlaceholder')}
                     data-testid="admin-key-input"
                   />
+                  {error && (
+                    <p
+                      className="text-xs font-bold text-red-600 bg-red-100 border-2 border-red-500 px-2 py-1"
+                      data-testid="admin-key-error"
+                    >
+                      {error}
+                    </p>
+                  )}
                   <button
                     type="submit"
-                    disabled={!adminKey.trim()}
-                    className="bg-[#A855F7] hover:bg-[#9333EA] disabled:bg-gray-400 text-white font-black px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#000] transition-all uppercase tracking-widest"
+                    disabled={!adminKey.trim() || verifying}
+                    className="bg-[#A855F7] hover:bg-[#9333EA] disabled:bg-gray-400 text-white font-black px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#000] transition-all uppercase tracking-widest flex items-center justify-center gap-2"
                     data-testid="admin-unlock"
                   >
-                    {t('adminSettings.unlock')}
+                    {verifying && <span className="animate-spin text-sm leading-none">⏳</span>}
+                    <span>
+                      {verifying ? t('adminSettings.verifying') : t('adminSettings.unlock')}
+                    </span>
                   </button>
                   <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
                     {t('adminSettings.hint')}
