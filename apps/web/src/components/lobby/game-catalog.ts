@@ -5,6 +5,7 @@ export type GameStyle = 'competitive' | 'party' | 'cooperative' | 'bluffing' | '
 export interface GameCatalogItem {
   type: GameType;
   icon: string;
+  coverImage?: string;
   catalogKey: string;
   color: string;
   minPlayers: number;
@@ -20,6 +21,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.DOG_RELAY,
     icon: '🐕',
+    coverImage: '/images/covers/dog-relay.jpg',
     catalogKey: 'dogRelay',
     color: 'bg-amber-300',
     minPlayers: 5,
@@ -32,6 +34,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WHO_KNOW,
     icon: '🎭',
+    coverImage: '/images/covers/who-know.jpg',
     catalogKey: 'whoKnow',
     color: 'bg-indigo-500',
     minPlayers: 4,
@@ -44,6 +47,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.SOUNDS_FISHY,
     icon: '💬',
+    coverImage: '/images/covers/sounds-fishy.jpg',
     catalogKey: 'soundsFishy',
     color: 'bg-teal-300',
     minPlayers: 3,
@@ -56,6 +60,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.TIC_TAC_TOE,
     icon: '❌',
+    coverImage: '/images/covers/tic-tac-toe.jpg',
     catalogKey: 'ticTacToe',
     color: 'bg-slate-400',
     minPlayers: 1, // 1 player vs bot or 2 players
@@ -69,6 +74,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.RPS,
     icon: '✊',
+    coverImage: '/images/covers/hand-duel.jpg',
     catalogKey: 'handDuel',
     color: 'bg-amber-300',
     minPlayers: 2,
@@ -82,6 +88,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.DETECTIVE_CLUB,
     icon: '🖼️',
+    coverImage: '/images/covers/detective-club.jpg',
     catalogKey: 'detectiveClub',
     color: 'bg-yellow-300',
     minPlayers: 3,
@@ -94,6 +101,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WHO_AM_I,
     icon: '🤔❓',
+    coverImage: '/images/covers/who-am-i.jpg',
     catalogKey: 'whoAmI',
     color: 'bg-pink-400',
     minPlayers: 2, // 2 for random/player input, 3 for host input
@@ -107,6 +115,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WHO_FIRST,
     icon: '🛎️',
+    coverImage: '/images/covers/who-first.jpg',
     catalogKey: 'whoFirst',
     color: 'bg-emerald-400',
     minPlayers: 2,
@@ -119,6 +128,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.MUSIC_TRIVIA,
     icon: '🎵',
+    coverImage: '/images/covers/music-trivia.jpg',
     catalogKey: 'musicTrivia',
     color: 'bg-violet-400',
     minPlayers: 2,
@@ -132,6 +142,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.THE_MIND,
     icon: '⏳',
+    coverImage: '/images/covers/the-mind.jpg',
     catalogKey: 'theMind',
     color: 'bg-orange-200',
     minPlayers: 2,
@@ -144,6 +155,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.SABOTEUR,
     icon: '⛏️',
+    coverImage: '/images/covers/saboteur.jpg',
     catalogKey: 'saboteur',
     color: 'bg-orange-500',
     minPlayers: 3,
@@ -156,6 +168,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.COUP,
     icon: '🏠📜',
+    coverImage: '/images/covers/coup.jpg',
     catalogKey: 'coup',
     color: 'bg-rose-200',
     minPlayers: 3,
@@ -168,6 +181,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.CARD_GAME,
     icon: '🃏',
+    coverImage: '/images/covers/card-game.jpg',
     catalogKey: 'cardGame',
     color: 'bg-amber-500',
     minPlayers: 2,
@@ -181,6 +195,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.BANANA_THIEF,
     icon: '🐒',
+    coverImage: '/images/covers/banana-thief.jpg',
     catalogKey: 'bananaThief',
     color: 'bg-lime-400',
     minPlayers: 4,
@@ -193,6 +208,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.POKER,
     icon: '🅰️',
+    coverImage: '/images/covers/poker.jpg',
     catalogKey: 'poker',
     color: 'bg-emerald-400',
     minPlayers: 2,
@@ -205,6 +221,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.CIPHER_GRID,
     icon: '🕵️',
+    coverImage: '/images/covers/cipher-grid.jpg',
     catalogKey: 'cipherGrid',
     color: 'bg-cyan-400',
     minPlayers: 4,

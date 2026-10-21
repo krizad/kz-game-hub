@@ -404,7 +404,15 @@ export function HomeView() {
                             className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border-2 border-black text-2xl shadow-[2px_2px_0_0_#000] ${g.color}`}
                             aria-hidden="true"
                           >
-                            {g.icon}
+                            {g.coverImage ? (
+                              <img
+                                src={g.coverImage}
+                                alt={gameName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              g.icon
+                            )}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">
@@ -544,9 +552,17 @@ export function HomeView() {
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
-                            className={`w-12 h-12 shrink-0 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0_0_#000] ${color}`}
+                            className={`w-12 h-12 shrink-0 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0_0_#000] overflow-hidden ${color}`}
                           >
-                            {icon}
+                            {catalog?.coverImage ? (
+                              <img
+                                src={catalog.coverImage}
+                                alt={gameName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              icon
+                            )}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
