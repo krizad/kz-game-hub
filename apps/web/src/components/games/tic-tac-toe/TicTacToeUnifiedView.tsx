@@ -19,7 +19,7 @@ export function TicTacToeUnifiedView() {
   return (
     <div className="flex-1 flex flex-col items-center w-full h-full overflow-y-auto overflow-x-hidden">
       {room.status === RoomStatus.LOBBY && <TicTacToeModeSelector />}
-      {room.status === RoomStatus.LOBBY && mode === 'CLASSIC' && <TicTacToeBotSettings />}
+      {room.status === RoomStatus.LOBBY && <TicTacToeBotSettings />}
       {mode === 'GOBBLER' && <GobblerView />}
       {mode === 'ULTIMATE' && <UltimateTicTacToeView />}
       {mode === 'CLASSIC' && <TicTacToeView />}

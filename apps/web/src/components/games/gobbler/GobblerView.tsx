@@ -1,12 +1,21 @@
 'use client';
 
 import { useGameStore } from '@/store/useGameStore';
-import { RoomStatus, GobblerSize, GobblerPiece, PlayerSide, UserState } from '@repo/types';
+import {
+  RoomStatus,
+  GobblerSize,
+  GobblerPiece,
+  PlayerSide,
+  UserState,
+  BOT_SOCKET_ID,
+} from '@repo/types';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 import clsx from 'clsx';
 
 const SIZE_STYLES: Record<GobblerSize, { board: string; inventory: string }> = {
@@ -70,6 +79,52 @@ export function GobblerView() {
       setSelectedBoardIndex(null);
     }
   }, [gb, selectedBoardIndex, mySide]);
+
+  // Game feel & audio reaction for piece placement, gobbling, and winner
+  const prevBoardRef = useState<GobblerPiece[][] | null>(null);
+  useEffect(() => {
+    if (!gb || !room) return;
+    if (prevBoardRef[0]) {
+      let gobbled = false;
+      let placed = false;
+      for (let i = 0; i < 9; i++) {
+        const oldCell = prevBoardRef[0][i] ?? [];
+        const newCell = gb.board[i] ?? [];
+        if (newCell.length > oldCell.length) {
+          placed = true;
+          if (
+            oldCell.length > 0 &&
+            oldCell[oldCell.length - 1].side !== newCell[newCell.length - 1].side
+          ) {
+            gobbled = true;
+          }
+        }
+      }
+      if (gobbled) {
+        audioManager.playGobble();
+        gameFeel.shake(0.25);
+        gameFeel.flash('white', 150);
+        gameFeel.haptic([80]);
+      } else if (placed) {
+        audioManager.playPlaceMark(gb.currentTurn === 'X' ? 'O' : 'X');
+      }
+    }
+    prevBoardRef[1](gb.board.map((cell) => [...cell]));
+
+    if (gb.winner && room.status === RoomStatus.PLAYING) {
+      if (gb.winner === mySide) {
+        audioManager.playSuccessChime();
+        void gameFeel.celebrate();
+        gameFeel.flash('gold', 500);
+        gameFeel.haptic([100, 50, 150]);
+      } else if (gb.winner !== 'DRAW') {
+        audioManager.playErrorBuzz();
+        gameFeel.shake(0.35);
+        gameFeel.flash('red', 300);
+        gameFeel.haptic([100]);
+      }
+    }
+  }, [gb?.board, gb?.winner, mySide, room?.status]);
 
   if (!gb) return null;
 
@@ -188,12 +243,18 @@ export function GobblerView() {
           className={clsx(
             'relative w-14 h-14 sm:w-20 sm:h-20 lg:w-12 lg:h-12 xl:w-16 xl:h-16 2xl:w-20 2xl:h-20 flex-shrink-0 bg-white border-4 border-black transition-all flex items-center justify-center group font-mono',
             isInventoryOwner && isMyTurn && room.status === RoomStatus.PLAYING
-              ? 'cursor-pointer hover:bg-yellow-300 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+              ? 'cursor-grab active:cursor-grabbing hover:bg-yellow-300 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
               : 'opacity-80 cursor-not-allowed',
             isSelected
               ? 'bg-yellow-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1'
               : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
           )}
+          draggable={isInventoryOwner && isMyTurn && room.status === RoomStatus.PLAYING}
+          onDragStart={(e) => {
+            e.dataTransfer.setData('text/gobbler-piece', topPiece.id);
+            e.dataTransfer.effectAllowed = 'move';
+            handleInventoryClick(topPiece.id);
+          }}
           onClick={() => isInventoryOwner && handleInventoryClick(topPiece.id)}
         >
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
@@ -278,7 +339,11 @@ export function GobblerView() {
         </div>
         <div className="flex flex-col min-w-0">
           <div className="text-sm sm:text-lg lg:text-xs xl:text-base 2xl:text-lg font-black text-black truncate w-full">
-            {details ? details.name : t('gameGobbler.player', { side })}
+            {details?.socketId === BOT_SOCKET_ID
+              ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+              : details
+                ? details.name
+                : t('gameGobbler.player', { side })}
             {isMe && (
               <span className="ml-2 text-black bg-white px-1 border-2 border-black font-bold text-xs sm:text-sm inline-block -">
                 {t('lobby.you')}
@@ -495,6 +560,22 @@ export function GobblerView() {
                         data-testid={`gobbler-cell-${idx}`}
                         aria-label={ariaLabel}
                         disabled={!isCellClickable}
+                        onDragOver={(e) => {
+                          if (isCellClickable && isMyTurn) {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const pieceId = e.dataTransfer.getData('text/gobbler-piece');
+                          if (pieceId && isMyTurn) {
+                            gobblerPlacePiece(pieceId, idx);
+                            setSelectedInventoryPieceId(null);
+                          } else {
+                            handleCellClick(idx);
+                          }
+                        }}
                         onClick={() => handleCellClick(idx)}
                         className={clsx(
                           'bg-white border-4 relative overflow-hidden transition-all duration-300 group flex items-center justify-center',

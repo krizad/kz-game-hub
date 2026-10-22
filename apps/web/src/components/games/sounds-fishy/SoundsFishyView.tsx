@@ -53,6 +53,63 @@ export function SoundsFishyView() {
   const nonPickerPlayers = room.players.filter((p) => p.socketId !== state.pickerId);
   const allRevealed = nonPickerPlayers.every((p) => state.playerAnswers[p.socketId]?.isRevealed);
 
+  // Keyboard shortcut: Number keys 1-8 to reveal/eliminate players
+  useEffect(() => {
+    if (!isPicker || actionLoading) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+
+      if (e.key >= '1' && e.key <= '8') {
+        const playerIndex = parseInt(e.key, 10) - 1;
+        const targetPlayer = nonPickerPlayers[playerIndex];
+        if (!targetPlayer) return;
+
+        const isEliminated = state.eliminatedPlayers.includes(targetPlayer.socketId);
+        const isRevealed = !!state.playerAnswers[targetPlayer.socketId]?.isRevealed;
+
+        if (!isEliminated) {
+          if (
+            !isRevealed &&
+            (state.currentPhase === SoundsFishyPhase.THE_PITCH ||
+              state.currentPhase === SoundsFishyPhase.THE_HUNT)
+          ) {
+            e.preventDefault();
+            soundsFishyRevealAnswer(targetPlayer.socketId);
+            audioManager.playCardSnap();
+          } else if (
+            isRevealed &&
+            allRevealed &&
+            state.currentPhase === SoundsFishyPhase.THE_HUNT
+          ) {
+            e.preventDefault();
+            soundsFishyEliminatePlayer(targetPlayer.socketId);
+            audioManager.playSplash();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isPicker,
+    actionLoading,
+    nonPickerPlayers,
+    state?.currentPhase,
+    state?.eliminatedPlayers,
+    state?.playerAnswers,
+    allRevealed,
+  ]);
+
   return (
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto max-w-4xl mx-auto space-y-6 relative font-mono">
       {actionLoading && <ActionLoadingOverlay />}

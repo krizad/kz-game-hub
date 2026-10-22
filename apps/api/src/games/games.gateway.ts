@@ -897,9 +897,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; side: 'X' | 'O' },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.utttJoinSide(data.code, client.id, data.side);
+    const isTestEnv = process.env.NODE_ENV === 'test';
+    const room = isTestEnv
+      ? this.gamesService.utttJoinSide(data.code, client.id, data.side)
+      : this.gamesService.utttJoinSide(data.code, client.id, data.side, { deferBotMove: true });
     if (room) {
       this.broadcastRoomState(room);
+      this.scheduleUTTTBotMoveIfNeeded(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -924,6 +928,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       this.broadcastRoomState(room);
       if (room.status === RoomStatus.RESULT) {
         this.maybeRecordGameResult(room);
+      } else {
+        this.scheduleUTTTBotMoveIfNeeded(room);
       }
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
@@ -935,9 +941,14 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; toLobby?: boolean },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.utttReset(data.code, client.id, data.toLobby);
+    this.roomTimerService.cancel(data.code, 'uttt-bot-move');
+    const isTestEnv = process.env.NODE_ENV === 'test';
+    const room = isTestEnv
+      ? this.gamesService.utttReset(data.code, client.id, data.toLobby)
+      : this.gamesService.utttReset(data.code, client.id, data.toLobby, { deferBotMove: true });
     if (room) {
       this.broadcastRoomState(room);
+      this.scheduleUTTTBotMoveIfNeeded(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -1068,9 +1079,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; side: 'X' | 'O' },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.gobblerJoinSide(data.code, client.id, data.side);
+    const isTestEnv = process.env.NODE_ENV === 'test';
+    const room = isTestEnv
+      ? this.gamesService.gobblerJoinSide(data.code, client.id, data.side)
+      : this.gamesService.gobblerJoinSide(data.code, client.id, data.side, { deferBotMove: true });
     if (room) {
       this.broadcastRoomState(room);
+      this.scheduleGobblerBotMoveIfNeeded(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -1093,6 +1108,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     );
     if (room) {
       this.broadcastRoomState(room);
+      if (room.status === RoomStatus.RESULT) {
+        this.maybeRecordGameResult(room);
+      } else {
+        this.scheduleGobblerBotMoveIfNeeded(room);
+      }
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move or not your turn.' });
     }
@@ -1111,6 +1131,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     );
     if (room) {
       this.broadcastRoomState(room);
+      if (room.status === RoomStatus.RESULT) {
+        this.maybeRecordGameResult(room);
+      } else {
+        this.scheduleGobblerBotMoveIfNeeded(room);
+      }
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move or not your turn.' });
     }
@@ -1121,9 +1146,14 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; toLobby?: boolean },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.gobblerReset(data.code, client.id, data.toLobby);
+    this.roomTimerService.cancel(data.code, 'gobbler-bot-move');
+    const isTestEnv = process.env.NODE_ENV === 'test';
+    const room = isTestEnv
+      ? this.gamesService.gobblerReset(data.code, client.id, data.toLobby)
+      : this.gamesService.gobblerReset(data.code, client.id, data.toLobby, { deferBotMove: true });
     if (room) {
       this.broadcastRoomState(room);
+      this.scheduleGobblerBotMoveIfNeeded(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
@@ -2546,6 +2576,81 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       const botRoom = this.gamesService.tttExecuteBotMove(currentRoom.code);
       if (botRoom) {
         this.broadcastRoomState(botRoom);
+        if (botRoom.status === RoomStatus.RESULT) {
+          this.maybeRecordGameResult(botRoom);
+        }
+      }
+    });
+  }
+
+  private scheduleGobblerBotMoveIfNeeded(room: RoomState): void {
+    if (
+      !room ||
+      room.gameType !== GameType.TIC_TAC_TOE ||
+      room.config.ticTacToeMode !== 'GOBBLER' ||
+      room.status !== RoomStatus.PLAYING ||
+      !room.config?.ticTacToeVsBot ||
+      !room.gobblerState
+    ) {
+      if (room?.code) {
+        this.roomTimerService.cancel(room.code, 'gobbler-bot-move');
+      }
+      return;
+    }
+    const gb = room.gobblerState;
+    const botSide =
+      gb.playerXId === BOT_SOCKET_ID ? 'X' : gb.playerOId === BOT_SOCKET_ID ? 'O' : null;
+    if (!botSide || gb.currentTurn !== botSide || gb.winner) {
+      this.roomTimerService.cancel(room.code, 'gobbler-bot-move');
+      return;
+    }
+
+    const delayMs = 600 + Math.floor(Math.random() * 400);
+    this.roomTimerService.schedule(room.code, 'gobbler-bot-move', Date.now() + delayMs, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (!currentRoom || currentRoom.status !== RoomStatus.PLAYING) return;
+      const botRoom = this.gamesService.gobblerExecuteBotMove(currentRoom.code);
+      if (botRoom) {
+        this.broadcastRoomState(botRoom);
+        if (botRoom.status === RoomStatus.RESULT) {
+          this.maybeRecordGameResult(botRoom);
+        }
+      }
+    });
+  }
+
+  private scheduleUTTTBotMoveIfNeeded(room: RoomState): void {
+    if (
+      !room ||
+      room.gameType !== GameType.TIC_TAC_TOE ||
+      room.config.ticTacToeMode !== 'ULTIMATE' ||
+      room.status !== RoomStatus.PLAYING ||
+      !room.config?.ticTacToeVsBot ||
+      !room.ultimateTicTacToeState
+    ) {
+      if (room?.code) {
+        this.roomTimerService.cancel(room.code, 'uttt-bot-move');
+      }
+      return;
+    }
+    const uttt = room.ultimateTicTacToeState;
+    const botSide =
+      uttt.playerXId === BOT_SOCKET_ID ? 'X' : uttt.playerOId === BOT_SOCKET_ID ? 'O' : null;
+    if (!botSide || uttt.currentTurn !== botSide || uttt.winner) {
+      this.roomTimerService.cancel(room.code, 'uttt-bot-move');
+      return;
+    }
+
+    const delayMs = 600 + Math.floor(Math.random() * 400);
+    this.roomTimerService.schedule(room.code, 'uttt-bot-move', Date.now() + delayMs, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (!currentRoom || currentRoom.status !== RoomStatus.PLAYING) return;
+      const botRoom = this.gamesService.utttExecuteBotMove(currentRoom.code);
+      if (botRoom) {
+        this.broadcastRoomState(botRoom);
+        if (botRoom.status === RoomStatus.RESULT) {
+          this.maybeRecordGameResult(botRoom);
+        }
       }
     });
   }

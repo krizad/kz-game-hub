@@ -137,7 +137,8 @@ export const WhoFirstView = () => {
         if (
           target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
-          target.isContentEditable
+          target.isContentEditable ||
+          document.querySelector('[role="dialog"]')
         ) {
           return;
         }

@@ -22,6 +22,8 @@ import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { gameFeel } from '@/lib/gameFeel';
+import { audioManager } from '@/lib/audioManager';
 import clsx from 'clsx';
 import {
   ActionCardFace,
@@ -88,15 +90,22 @@ export function SaboteurView() {
           break;
         case 'BREAK':
           playSound('break');
+          gameFeel.flash('red', 200);
+          gameFeel.haptic([80]);
           break;
         case 'REPAIR':
           playSound('repair');
+          gameFeel.flash('green', 200);
           break;
         case 'MAP':
           playSound('map');
           break;
         case 'ROCKFALL':
           playSound('rockfall');
+          audioManager.playRockCrumble();
+          gameFeel.shake(0.65);
+          gameFeel.flash('red', 300);
+          gameFeel.haptic([150, 50, 150]);
           break;
         case 'DISCARD':
           playSound('discard');
@@ -106,12 +115,27 @@ export function SaboteurView() {
           break;
         case 'PICK_GOLD':
           playSound('gold');
+          gameFeel.flash('gold', 200);
           break;
         case 'MINERS_WIN':
           playSound('win');
+          if (privateState.sbRole === SaboteurRole.MINER) {
+            void gameFeel.celebrate();
+            gameFeel.flash('gold', 500);
+            gameFeel.haptic([100, 50, 150]);
+          } else {
+            gameFeel.flash('white', 250);
+          }
           break;
         case 'SABOTEURS_WIN':
           playSound('lose');
+          if (privateState.sbRole === SaboteurRole.SABOTEUR) {
+            void gameFeel.celebrate();
+            gameFeel.flash('gold', 500);
+            gameFeel.haptic([100, 50, 150]);
+          } else {
+            gameFeel.flash('red', 250);
+          }
           break;
       }
     }
@@ -369,6 +393,16 @@ export function SaboteurView() {
             key={key}
             data-testid={`saboteur-cell-${key}`}
             onClick={() => handleBoardCellClick(x, y)}
+            onDragOver={(e) => {
+              if (ghostHere || targetable) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleBoardCellClick(x, y);
+            }}
             disabled={!ghostHere && !targetable}
             aria-label={ariaLabel}
             className={clsx(
@@ -504,6 +538,16 @@ export function SaboteurView() {
           key={player.id}
           data-testid={`saboteur-player-${player.id}`}
           onClick={() => handlePlayerClick(player.id)}
+          onDragOver={(e) => {
+            if (isTargetable) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            handlePlayerClick(player.id);
+          }}
           disabled={!isTargetable}
           className={clsx(
             'w-full flex items-center gap-2 bg-white border-4 shadow-[3px_3px_0_0_#000] px-2 py-1.5 text-left rounded-xl transition-all',
@@ -573,11 +617,18 @@ export function SaboteurView() {
             <button
               data-testid={`saboteur-hand-${index}`}
               aria-label={cardName}
+              draggable={isMyTurn && !pathBlocked}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/saboteur-card-idx', String(index));
+                e.dataTransfer.effectAllowed = 'move';
+                handleHandClick(index);
+              }}
               onClick={() => handleHandClick(index)}
               disabled={!isMyTurn}
               title={pathBlocked ? `${t('gameSaboteur.brokenToolCanNotBuild')}` : cardName}
               className={clsx(
                 'w-14 h-20 sm:w-16 sm:h-24 rounded-xl border-4 border-black overflow-hidden transition-all bg-white',
+                isMyTurn && !pathBlocked && 'cursor-grab active:cursor-grabbing',
                 isSelected
                   ? '-translate-y-3 shadow-[4px_7px_0_0_#000] ring-4 ring-purple-500'
                   : 'shadow-[3px_3px_0_0_#000]',
@@ -613,6 +664,14 @@ export function SaboteurView() {
                 <button
                   data-testid="saboteur-discard-btn"
                   onClick={handleDiscard}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDiscard();
+                  }}
                   className="text-[10px] font-black bg-red-300 hover:bg-red-200 border-2 border-black rounded px-1.5 py-0.5 shadow-[2px_2px_0_0_#000]"
                 >
                   {t('gameSaboteur.discard')}

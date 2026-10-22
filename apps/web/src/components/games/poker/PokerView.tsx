@@ -163,6 +163,46 @@ export function PokerView() {
     : raiseMin;
   const additionalChips = mySeat ? Math.max(0, amount - mySeat.bet) : 0;
   const stackAfter = mySeat ? Math.max(0, mySeat.chips - additionalChips) : 0;
+
+  // Keyboard Shortcuts: F (Fold), C (Check/Call), R (Raise), A (All-in)
+  useEffect(() => {
+    if (!isMyTurn || !mySeat || actionLoading) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === 'f') {
+        e.preventDefault();
+        act({ type: 'FOLD' });
+      } else if (key === 'c') {
+        e.preventDefault();
+        if (toCall === 0) {
+          act({ type: 'CHECK' });
+        } else {
+          act({ type: 'CALL' });
+        }
+      } else if (key === 'a' && canRaise) {
+        e.preventDefault();
+        act({ type: 'ALL_IN' });
+      } else if (key === 'r' && canRaise) {
+        e.preventDefault();
+        act(amount === myMax ? { type: 'ALL_IN' } : { type: 'BET', amount });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMyTurn, mySeat, actionLoading, toCall, canRaise, amount, myMax]);
+
   const quickAmounts = [
     { key: 'min', value: raiseMin },
     {
@@ -594,28 +634,39 @@ export function PokerView() {
               type="button"
               data-testid="poker-fold"
               onClick={() => act({ type: 'FOLD' })}
-              className="flex-1 min-w-[80px] bg-red-400 hover:bg-red-300 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none"
+              className="flex-1 min-w-[80px] bg-red-400 hover:bg-red-300 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5"
             >
-              {t('poker.action.fold')}
+              <span>{t('poker.action.fold')}</span>
+              <span className="text-[10px] font-mono bg-black text-white px-1.5 py-0.2 rounded font-black">
+                F
+              </span>
             </button>
             {toCall === 0 ? (
               <button
                 type="button"
                 data-testid="poker-check"
                 onClick={() => act({ type: 'CHECK' })}
-                className="flex-1 min-w-[80px] bg-white hover:bg-slate-100 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none"
+                className="flex-1 min-w-[80px] bg-white hover:bg-slate-100 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5"
               >
-                {t('poker.action.check')}
+                <span>{t('poker.action.check')}</span>
+                <span className="text-[10px] font-mono bg-black text-white px-1.5 py-0.2 rounded font-black">
+                  C
+                </span>
               </button>
             ) : (
               <button
                 type="button"
                 data-testid="poker-call"
                 onClick={() => act({ type: 'CALL' })}
-                className="flex-1 min-w-[80px] bg-sky-300 hover:bg-sky-200 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none"
+                className="flex-1 min-w-[80px] bg-sky-300 hover:bg-sky-200 border-4 border-black font-black uppercase py-3 shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5"
               >
-                {t('poker.action.call')} {callAmount}
-                {callAmount < toCall ? ` · ${t('poker.action.allIn')}` : ''}
+                <span>
+                  {t('poker.action.call')} {callAmount}
+                  {callAmount < toCall ? ` · ${t('poker.action.allIn')}` : ''}
+                </span>
+                <span className="text-[10px] font-mono bg-black text-white px-1.5 py-0.2 rounded font-black">
+                  C
+                </span>
               </button>
             )}
           </div>

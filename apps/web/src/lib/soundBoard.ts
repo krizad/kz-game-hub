@@ -1,3 +1,5 @@
+import { audioManager } from './audioManager';
+
 export interface SoundSpec {
   src: string;
   volume?: number;
@@ -6,26 +8,44 @@ export interface SoundSpec {
 export type SoundPlayer<S extends string> = (name: S) => void;
 
 /**
- * Builds a fire-and-forget sound board over an audio asset map. Clips are
- * preloaded lazily on first use; overlapping plays clone the element so rapid
- * cues never cut each other off. Playback failures (autoplay policy, missing
- * file) are non-fatal.
+ * Builds a fire-and-forget sound board over an audio asset map.
+ * Integrates with audioManager singleton bus to respect global mute and volume sliders.
+ * Reuses audio elements safely to prevent DOM memory leaks on mobile browsers.
  */
 export function createSoundBoard<S extends string>(specs: Record<S, SoundSpec>): SoundPlayer<S> {
-  const loaded = new Map<S, HTMLAudioElement>();
+  const loaded = new Map<S, HTMLAudioElement[]>();
+
   return (name: S) => {
+    if (typeof window === 'undefined' || !audioManager.isEnabled()) {
+      return;
+    }
+
     try {
-      let base = loaded.get(name);
-      if (!base) {
-        base = new Audio(specs[name].src);
-        base.preload = 'auto';
-        base.volume = specs[name].volume ?? 0.5;
-        loaded.set(name, base);
+      let pool = loaded.get(name);
+      if (!pool) {
+        pool = [];
+        loaded.set(name, pool);
       }
-      const clip = base.cloneNode(true) as HTMLAudioElement;
-      clip.volume = base.volume;
+
+      // Reuse an idle audio element from the pool or create a new one (max 4 per cue)
+      let clip = pool.find((el) => el.paused || el.ended);
+      if (!clip) {
+        if (pool.length < 4) {
+          clip = new Audio(specs[name].src);
+          clip.preload = 'auto';
+          pool.push(clip);
+        } else {
+          clip = pool[0];
+          clip.currentTime = 0;
+        }
+      }
+
+      const masterVol = audioManager.getVolume();
+      const specVol = specs[name].volume ?? 0.5;
+      clip.volume = Math.max(0, Math.min(1, specVol * masterVol));
+
       void clip.play().catch(() => {
-        // autoplay policy or missing file — non-fatal
+        // Autoplay policy or missing file — non-fatal
       });
     } catch {
       // non-fatal

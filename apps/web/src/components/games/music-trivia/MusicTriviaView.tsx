@@ -5,6 +5,9 @@ import { useGameStore } from '@/store/useGameStore';
 import { MusicTriviaAction, MusicTriviaActionType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useMusicPlayback } from '@/hooks/useMusicPlayback';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 
 export function MusicTriviaView() {
   const { t } = useTranslate();
@@ -20,7 +23,6 @@ export function MusicTriviaView() {
   const isPreset = !!(room?.config.musicTriviaArtistPresetId || state?.artistPresetName);
 
   const [answerInput, setAnswerInput] = useState('');
-  const [countdown, setCountdown] = useState<number | null>(null);
   const [answerTimeLeft, setAnswerTimeLeft] = useState<number | null>(null);
   const serverOffset = useGameStore((s) => s.serverOffset);
   const playback = useMusicPlayback(
@@ -47,20 +49,6 @@ export function MusicTriviaView() {
       musicTriviaGameAction({ type: 'PLAYER_READY' });
     }
   }, [state?.phase, hasTestedAudio, state?.readyPlayerIds, socketId, musicTriviaGameAction]);
-
-  // Handle countdown calculation for COUNTDOWN phase
-  useEffect(() => {
-    if (state?.phase === 'COUNTDOWN' && state.countdownEndsAt) {
-      const interval = setInterval(() => {
-        const serverNow = Date.now() + serverOffset;
-        const remaining = Math.max(0, Math.ceil((state.countdownEndsAt! - serverNow) / 1000));
-        setCountdown(remaining);
-      }, 100);
-      return () => clearInterval(interval);
-    } else {
-      setCountdown(null);
-    }
-  }, [state?.phase, state?.countdownEndsAt, serverOffset]);
 
   // Auto-fetch tracks if we just started the game
   useEffect(() => {
@@ -137,8 +125,33 @@ export function MusicTriviaView() {
   };
 
   const handleBuzz = () => {
+    audioManager.playBuzzerPress();
+    gameFeel.flash('white', 150);
+    gameFeel.haptic(50);
     handleAction('PRESS_BUZZER');
   };
+
+  // Game feel on round results
+  const prevRoundPhaseRef = React.useRef<string | undefined>(state.phase);
+  React.useEffect(() => {
+    if (state.phase === 'ROUND_RESULT' && prevRoundPhaseRef.current !== 'ROUND_RESULT') {
+      const winnerId = state.currentRound?.winnerId;
+      if (winnerId === socketId) {
+        audioManager.playSuccessChime();
+        void gameFeel.celebrate();
+        gameFeel.flash('gold', 500);
+        gameFeel.haptic([100, 50, 150]);
+      } else if (winnerId) {
+        gameFeel.flash('white', 250);
+        gameFeel.haptic(50);
+      } else {
+        audioManager.playErrorBuzz();
+        gameFeel.shake(0.35);
+        gameFeel.flash('red', 300);
+      }
+    }
+    prevRoundPhaseRef.current = state.phase;
+  }, [state.phase, state.currentRound?.winnerId, socketId]);
 
   const submitAnswer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +160,29 @@ export function MusicTriviaView() {
   };
 
   const amIStruckOut = state.currentRound?.struckOutIds.includes(socketId || '');
+
+  // Keyboard shortcut: Spacebar to Buzz in
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          document.querySelector('[role="dialog"]')
+        ) {
+          return;
+        }
+        if (state.phase === 'PLAYING' && (!isHost || state.hostPlays) && !amIStruckOut) {
+          e.preventDefault();
+          handleBuzz();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state?.phase, isHost, state?.hostPlays, amIStruckOut]);
 
   return (
     <div className="flex flex-col h-full bg-yellow-300 relative overflow-hidden font-mono">
@@ -407,9 +443,15 @@ export function MusicTriviaView() {
                 {t('gameMusicTrivia.game.countdownTitle')}
               </h3>
               <div className="relative">
-                <div className="text-[12rem] leading-none font-black text-black drop-shadow-[8px_8px_0px_rgba(0,0,0,1)] animate-bounce -">
-                  {countdown}
-                </div>
+                <CountdownBadge
+                  deadline={state.countdownEndsAt}
+                  serverOffset={serverOffset}
+                  render={(sec) => (
+                    <div className="text-[12rem] leading-none font-black text-black drop-shadow-[8px_8px_0px_rgba(0,0,0,1)] animate-bounce -">
+                      {sec}
+                    </div>
+                  )}
+                />
               </div>
             </div>
           )}
@@ -572,9 +614,14 @@ export function MusicTriviaView() {
                   <button
                     onClick={handleBuzz}
                     disabled={amIStruckOut}
-                    className={`w-full h-32 text-5xl font-black uppercase tracking-widest border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all ${amIStruckOut ? 'bg-slate-400 text-slate-800 cursor-not-allowed opacity-50' : 'bg-rose-500 hover:bg-rose-400 text-white active:translate-y-2 active:shadow-none '}`}
+                    className={`w-full h-32 text-5xl font-black uppercase tracking-widest border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col items-center justify-center gap-1 ${amIStruckOut ? 'bg-slate-400 text-slate-800 cursor-not-allowed opacity-50' : 'bg-rose-500 hover:bg-rose-400 text-white active:translate-y-2 active:shadow-none '}`}
                   >
-                    {amIStruckOut ? '❌ X' : '🚨 BUZZ!'}
+                    <span>{amIStruckOut ? '❌ X' : '🚨 BUZZ!'}</span>
+                    {!amIStruckOut && (
+                      <span className="text-xs font-mono font-bold bg-black text-yellow-300 px-2 py-0.5 rounded">
+                        Space
+                      </span>
+                    )}
                   </button>
                   <button
                     onClick={() => handleAction('GIVE_UP')}
@@ -929,12 +976,6 @@ export function MusicTriviaView() {
                   </button>
                 </div>
               )}
-              {countdown !== null && (
-                <div className="pt-4 text-black font-black text-xl animate-pulse">
-                  {t('gameMusicTrivia.game.autoProceedingIn', { count: countdown }) ||
-                    `Auto-proceeding in ${countdown}s...`}
-                </div>
-              )}
             </div>
           )}
 
@@ -1029,12 +1070,6 @@ export function MusicTriviaView() {
                   >
                     {t('gameMusicTrivia.game.nextRound')}
                   </button>
-                </div>
-              )}
-              {countdown !== null && (
-                <div className="pt-4 text-black font-black text-xl animate-pulse">
-                  {t('gameMusicTrivia.game.autoProceedingIn', { count: countdown }) ||
-                    `Auto-proceeding in ${countdown}s...`}
                 </div>
               )}
             </div>

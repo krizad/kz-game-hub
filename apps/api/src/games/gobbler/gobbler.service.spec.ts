@@ -239,4 +239,32 @@ describe('GobblerService', () => {
     expect(service.joinSide(result!, 'p1', 'X')).not.toBeNull();
     expect(service.joinSide(result!, 'p2', 'O')).not.toBeNull();
   });
+
+  describe('bot play', () => {
+    it('auto-seats bot and starts game when vsBot is enabled', () => {
+      const room = createRoom(RoomStatus.LOBBY, { playerXId: undefined, playerOId: undefined });
+      room.config.ticTacToeVsBot = true;
+
+      const result = service.joinSide(room, 'p1', 'X', { deferBotMove: true });
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.gobblerState!.playerXId).toBe('p1');
+      expect(result!.gobblerState!.playerOId).toBe('bot-player');
+    });
+
+    it('executes bot move when it is bot turn', () => {
+      const room = createRoom(RoomStatus.LOBBY, { playerXId: undefined, playerOId: undefined });
+      room.config.ticTacToeVsBot = true;
+
+      // Join as O, so bot is X and starts first
+      service.joinSide(room, 'p1', 'O', { deferBotMove: true });
+      expect(room.gobblerState!.currentTurn).toBe('X');
+      expect(room.gobblerState!.playerXId).toBe('bot-player');
+
+      const executed = service.executeBotMoveIfNeeded(room);
+      expect(executed).toBe(true);
+      expect(room.gobblerState!.board.some((cell) => cell.length > 0)).toBe(true);
+      expect(room.gobblerState!.currentTurn).toBe('O');
+    });
+  });
 });

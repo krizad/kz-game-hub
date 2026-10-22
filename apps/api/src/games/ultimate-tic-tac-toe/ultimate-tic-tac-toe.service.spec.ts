@@ -333,4 +333,34 @@ describe('UltimateTicTacToeService', () => {
     expect(service.joinSide(result!, 'p1', 'X')).not.toBeNull();
     expect(service.joinSide(result!, 'p2', 'O')).not.toBeNull();
   });
+
+  describe('bot play', () => {
+    it('auto-seats bot and starts game when vsBot is enabled', () => {
+      const room = createRoom(RoomStatus.LOBBY, { playerXId: undefined, playerOId: undefined });
+      room.config.ticTacToeVsBot = true;
+
+      const result = service.joinSide(room, 'p1', 'X', { deferBotMove: true });
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(RoomStatus.PLAYING);
+      expect(result!.ultimateTicTacToeState!.playerXId).toBe('p1');
+      expect(result!.ultimateTicTacToeState!.playerOId).toBe('bot-player');
+    });
+
+    it('executes bot move when it is bot turn', () => {
+      const room = createRoom(RoomStatus.LOBBY, { playerXId: undefined, playerOId: undefined });
+      room.config.ticTacToeVsBot = true;
+
+      // Join as O, so bot is X and starts first
+      service.joinSide(room, 'p1', 'O', { deferBotMove: true });
+      expect(room.ultimateTicTacToeState!.currentTurn).toBe('X');
+      expect(room.ultimateTicTacToeState!.playerXId).toBe('bot-player');
+
+      const executed = service.executeBotMoveIfNeeded(room);
+      expect(executed).toBe(true);
+      expect(
+        room.ultimateTicTacToeState!.subBoards.some((sb) => sb.cells.some((c) => c !== null)),
+      ).toBe(true);
+      expect(room.ultimateTicTacToeState!.currentTurn).toBe('O');
+    });
+  });
 });

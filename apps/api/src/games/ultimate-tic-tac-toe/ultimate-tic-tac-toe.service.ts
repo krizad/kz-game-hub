@@ -6,7 +6,9 @@ import {
   UltimateSubBoardState,
   UltimateTicTacToeState,
   UltimateTTTCell,
+  BOT_SOCKET_ID,
 } from '@repo/types';
+import { getUltimateMove } from './ultimate-tic-tac-toe-ai';
 
 @Injectable()
 export class UltimateTicTacToeService {
@@ -33,7 +35,7 @@ export class UltimateTicTacToeService {
   }
 
   private isMember(room: RoomState, clientId: string): boolean {
-    return room.players.some((p) => p.socketId === clientId);
+    return clientId === BOT_SOCKET_ID || room.players.some((p) => p.socketId === clientId);
   }
 
   private isValidIndex(index: unknown): index is number {
@@ -57,7 +59,33 @@ export class UltimateTicTacToeService {
     return room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE';
   }
 
-  joinSide(room: RoomState, clientId: string, side: 'X' | 'O'): RoomState | null {
+  executeBotMoveIfNeeded(room: RoomState): boolean {
+    if (!this.isUltimateTTTRoom(room) || room.status !== RoomStatus.PLAYING) {
+      return false;
+    }
+    if (!room.config.ticTacToeVsBot) return false;
+
+    const uttt = room.ultimateTicTacToeState;
+    if (!uttt || uttt.winner) return false;
+
+    const botSide: 'X' | 'O' | null =
+      uttt.playerXId === BOT_SOCKET_ID ? 'X' : uttt.playerOId === BOT_SOCKET_ID ? 'O' : null;
+    if (!botSide || uttt.currentTurn !== botSide) return false;
+
+    const difficulty = room.config.ticTacToeBotDifficulty ?? 'GOD';
+    const move = getUltimateMove(uttt, botSide, difficulty);
+    if (!move) return false;
+
+    const res = this.makeMove(room, BOT_SOCKET_ID, move.macroIndex, move.microIndex);
+    return !!res;
+  }
+
+  joinSide(
+    room: RoomState,
+    clientId: string,
+    side: 'X' | 'O',
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (!this.isUltimateTTTRoom(room) || room.status !== RoomStatus.LOBBY) {
       return null;
     }
@@ -66,11 +94,29 @@ export class UltimateTicTacToeService {
     if (side !== 'X' && side !== 'O') return null;
 
     const uttt = room.ultimateTicTacToeState;
+    const isVsBot = !!room.config.ticTacToeVsBot;
+
+    if (isVsBot) {
+      if (side === 'X') {
+        uttt.playerXId = clientId;
+        uttt.playerOId = BOT_SOCKET_ID;
+      } else {
+        uttt.playerOId = clientId;
+        uttt.playerXId = BOT_SOCKET_ID;
+      }
+      room.status = RoomStatus.PLAYING;
+      if (!options?.deferBotMove) {
+        this.executeBotMoveIfNeeded(room);
+      }
+      return room;
+    }
+
     const otherSide: 'X' | 'O' = side === 'X' ? 'O' : 'X';
     const targetSeat = side === 'X' ? uttt.playerXId : uttt.playerOId;
 
     // Seat already taken by someone else
-    if (targetSeat && targetSeat !== clientId) return null;
+    const targetSeatCurrent = side === 'X' ? uttt.playerXId : uttt.playerOId;
+    if (targetSeatCurrent && targetSeatCurrent !== clientId) return null;
 
     let changed = false;
     if (targetSeat !== clientId) {
@@ -181,7 +227,12 @@ export class UltimateTicTacToeService {
     return room;
   }
 
-  reset(room: RoomState, clientId: string, toLobby = false): RoomState | null {
+  reset(
+    room: RoomState,
+    clientId: string,
+    toLobby = false,
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (!this.isUltimateTTTRoom(room) || room.status !== RoomStatus.RESULT) {
       return null;
     }
@@ -213,6 +264,12 @@ export class UltimateTicTacToeService {
 
     if (previousWinner === 'DRAW') {
       room.ultimateTicTacToeState.currentTurn = 'X';
+    }
+
+    if (room.status === RoomStatus.PLAYING && room.config.ticTacToeVsBot) {
+      if (!options?.deferBotMove) {
+        this.executeBotMoveIfNeeded(room);
+      }
     }
 
     return room;

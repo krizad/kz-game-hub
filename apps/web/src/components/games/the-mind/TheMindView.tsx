@@ -10,6 +10,7 @@ import { GameType, getResultRevealProgress, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 
 import {
   Play,
@@ -46,12 +47,12 @@ export function TheMindView() {
   const { t } = useTranslate();
 
   const [displayPhase, setDisplayPhase] = React.useState<TheMindPhase | null>(null);
-  const [remainingTime, setRemainingTime] = React.useState<number | null>(null);
   const previousPhaseRef = React.useRef<TheMindPhase | null>(null);
   const playedCardsContainerRef = React.useRef<HTMLDivElement>(null);
   const resultCardsContainerRef = React.useRef<HTMLDivElement>(null);
   const [revealedCount, setRevealedCount] = React.useState(0);
   const [selectedExtremeCard, setSelectedExtremeCard] = React.useState<number | null>(null);
+  const [dragOverPile, setDragOverPile] = React.useState<'NORMAL' | 'UP' | 'DOWN' | null>(null);
   const revealTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [isSubmittingNextLevel, setIsSubmittingNextLevel] = React.useState(false);
 
@@ -240,23 +241,6 @@ export function TheMindView() {
     setIsSubmittingNextLevel(true);
     theMindNextLevel();
   }, [isSubmittingNextLevel, theMindNextLevel]);
-
-  React.useEffect(() => {
-    if (room?.theMindState?.levelEndTime && room?.theMindState?.phase === TheMindPhase.PLAYING) {
-      const timer = setInterval(() => {
-        const remaining = room.theMindState!.levelEndTime! - Date.now();
-        if (remaining <= 0) {
-          setRemainingTime(0);
-          clearInterval(timer);
-        } else {
-          setRemainingTime(Math.ceil(remaining / 1000));
-        }
-      }, 200);
-      return () => clearInterval(timer);
-    } else {
-      setRemainingTime(null);
-    }
-  }, [room?.theMindState?.levelEndTime, room?.theMindState?.phase]);
 
   React.useEffect(() => {
     if (resultCardsContainerRef.current && revealedCount > 0) {
@@ -614,26 +598,57 @@ export function TheMindView() {
           })}
       </div>
 
-      {remainingTime !== null && (
-        <div
-          className={`flex items-center justify-center p-3 border-4 border-black font-black text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors duration-300 motion-reduce:animate-none ${remainingTime <= 10 ? 'bg-rose-500 text-black animate-pulse' : 'bg-white text-black'}`}
-        >
-          ⏱️ {remainingTime}s
-        </div>
+      {state.levelEndTime && state.phase === TheMindPhase.PLAYING && (
+        <CountdownBadge
+          deadline={state.levelEndTime}
+          render={(sec) => (
+            <div
+              className={`flex items-center justify-center p-3 border-4 border-black font-black text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors duration-300 motion-reduce:animate-none ${
+                sec <= 10 ? 'bg-rose-500 text-black animate-pulse' : 'bg-white text-black'
+              }`}
+            >
+              ⏱️ {sec}s
+            </div>
+          )}
+        />
       )}
 
       {room.config?.theMindMode === 'EXTREME' ? (
         <div className="flex gap-4">
           <button
             data-testid="the-mind-pile-up"
-            disabled={!canPlay || selectedExtremeCard === null}
+            disabled={!canPlay}
+            onDragOver={(e) => {
+              if (canPlay) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDragOverPile('UP');
+              }
+            }}
+            onDragLeave={() => setDragOverPile((p) => (p === 'UP' ? null : p))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverPile(null);
+              const raw = e.dataTransfer.getData('text/the-mind-card');
+              const cardVal = parseInt(raw, 10);
+              if (!isNaN(cardVal) && canPlay) {
+                theMindPlayCard(cardVal, 'UP');
+                audioManager.playCardSnap();
+              }
+            }}
             onClick={() => {
               if (canPlay && selectedExtremeCard !== null) {
                 theMindPlayCard(selectedExtremeCard, 'UP');
                 audioManager.playCardSnap();
               }
             }}
-            className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-cyan-300 hover:bg-cyan-200 cursor-pointer active:translate-y-1 active:shadow-none -' : 'bg-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
+              dragOverPile === 'UP'
+                ? 'bg-yellow-300 ring-4 ring-black scale-105'
+                : canPlay && selectedExtremeCard !== null
+                  ? 'bg-cyan-300 hover:bg-cyan-200 cursor-pointer active:translate-y-1 active:shadow-none -'
+                  : 'bg-cyan-200 opacity-90'
+            }`}
           >
             <p className="text-[10px] font-black text-black uppercase tracking-widest mb-1 bg-white inline-block px-1 border-2 border-black ">
               {t('gameTheMind.game.whitePileUp')}
@@ -646,17 +661,46 @@ export function TheMindView() {
                 {t('gameTheMind.game.playCard', { card: Math.abs(selectedExtremeCard) })}
               </div>
             )}
+            {dragOverPile === 'UP' && (
+              <div className="text-[10px] font-black text-black bg-yellow-400 border border-black px-1 mt-1">
+                ⬇️ Drop to Play UP
+              </div>
+            )}
           </button>
           <button
             data-testid="the-mind-pile-down"
-            disabled={!canPlay || selectedExtremeCard === null}
+            disabled={!canPlay}
+            onDragOver={(e) => {
+              if (canPlay) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDragOverPile('DOWN');
+              }
+            }}
+            onDragLeave={() => setDragOverPile((p) => (p === 'DOWN' ? null : p))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverPile(null);
+              const raw = e.dataTransfer.getData('text/the-mind-card');
+              const cardVal = parseInt(raw, 10);
+              if (!isNaN(cardVal) && canPlay) {
+                theMindPlayCard(cardVal, 'DOWN');
+                audioManager.playCardSnap();
+              }
+            }}
             onClick={() => {
               if (canPlay && selectedExtremeCard !== null) {
                 theMindPlayCard(selectedExtremeCard, 'DOWN');
                 audioManager.playCardSnap();
               }
             }}
-            className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-[#E6B3A4] hover:bg-rose-300 cursor-pointer active:translate-y-1 active:shadow-none ' : 'bg-slate-200 opacity-70 cursor-not-allowed'}`}
+            className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
+              dragOverPile === 'DOWN'
+                ? 'bg-yellow-300 ring-4 ring-black scale-105'
+                : canPlay && selectedExtremeCard !== null
+                  ? 'bg-[#E6B3A4] hover:bg-rose-300 cursor-pointer active:translate-y-1 active:shadow-none '
+                  : 'bg-rose-200 opacity-90'
+            }`}
           >
             <p className="text-[10px] font-black text-black uppercase tracking-widest mb-1 bg-white inline-block px-1 border-2 border-black -">
               {t('gameTheMind.game.redPileDown')}
@@ -669,15 +713,42 @@ export function TheMindView() {
                 {t('gameTheMind.game.playCard', { card: Math.abs(selectedExtremeCard) })}
               </div>
             )}
+            {dragOverPile === 'DOWN' && (
+              <div className="text-[10px] font-black text-black bg-yellow-400 border border-black px-1 mt-1">
+                ⬇️ Drop to Play DOWN
+              </div>
+            )}
           </button>
         </div>
       ) : (
         <div
           data-testid="the-mind-pile-normal"
-          className="bg-purple-300 border-4 border-black p-6 text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] "
+          onDragOver={(e) => {
+            if (canPlay) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDragOverPile('NORMAL');
+            }
+          }}
+          onDragLeave={() => setDragOverPile((p) => (p === 'NORMAL' ? null : p))}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOverPile(null);
+            const raw = e.dataTransfer.getData('text/the-mind-card');
+            const cardVal = parseInt(raw, 10);
+            if (!isNaN(cardVal) && canPlay) {
+              theMindPlayCard(cardVal, 'UP');
+              audioManager.playCardSnap();
+            }
+          }}
+          className={`border-4 border-black p-6 text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all ${
+            dragOverPile === 'NORMAL'
+              ? 'bg-yellow-300 ring-4 ring-black scale-105'
+              : 'bg-purple-300'
+          }`}
         >
           <p className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block px-3 py-1 border-2 border-black -">
-            {t('gameTheMind.game.pileTop')}
+            {dragOverPile === 'NORMAL' ? '⬇️ Drop Card to Play!' : t('gameTheMind.game.pileTop')}
           </p>
           <div className="text-7xl font-black text-black leading-none my-4">
             {room.config?.theMindBlindMode ? '?' : state.pileTop}
@@ -761,6 +832,14 @@ export function TheMindView() {
               <button
                 key={card}
                 data-testid="the-mind-hand-card"
+                draggable={canPlay && isPlayable}
+                onDragStart={(e) => {
+                  if (canPlay && isPlayable) {
+                    e.dataTransfer.setData('text/the-mind-card', String(card));
+                    e.dataTransfer.effectAllowed = 'move';
+                    audioManager.playCardSnap();
+                  }
+                }}
                 onClick={() => {
                   if (canPlay && isExtreme) {
                     setSelectedExtremeCard(card);
@@ -772,7 +851,9 @@ export function TheMindView() {
                 }}
                 disabled={!canPlay || !isPlayable}
                 aria-pressed={isExtreme ? isSelected : undefined}
-                className={`w-16 h-24 font-black text-2xl flex flex-col items-center justify-center relative ${buttonClass}`}
+                className={`w-16 h-24 font-black text-2xl flex flex-col items-center justify-center relative ${
+                  canPlay && isPlayable ? 'cursor-grab active:cursor-grabbing' : ''
+                } ${buttonClass}`}
               >
                 <span>{displayCard}</span>
                 {isPlayable && canPlay && !isExtreme && (

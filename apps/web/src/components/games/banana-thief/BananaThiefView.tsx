@@ -7,7 +7,10 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { GameDialog } from '@/components/core/GameDialog';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { useBananaThiefSounds, type BananaThiefSound } from '@/hooks/useBananaThiefSounds';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 import { RoleArtwork } from './RoleArtwork';
 import {
   BANANA_THIEF_CLOCK_HOURS,
@@ -19,50 +22,17 @@ import {
   BananaStatus,
 } from '@repo/types';
 
-/** Ticking seconds remaining until a server deadline (null when none). */
-function useCountdown(deadline?: number | null): number | null {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!deadline) return;
-    const interval = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(interval);
-  }, [deadline]);
-  if (!deadline) return null;
-  return Math.max(0, Math.ceil((deadline - now) / 1000));
-}
-
 /**
  * Stealth sync: a very quiet clock tick from every device masks the sound of
- * neighbours tapping their screens. WebAudio-generated, no assets needed.
+ * neighbours tapping their screens. WebAudio-generated via audioManager singleton.
  */
 function useBananaThiefAmbient(enabled: boolean, active: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null);
   useEffect(() => {
     if (!enabled || !active) return;
-    const tick = () => {
-      try {
-        if (!ctxRef.current) {
-          const Ctor =
-            window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-          ctxRef.current = new Ctor();
-        }
-        const ctx = ctxRef.current;
-        if (ctx.state === 'suspended') void ctx.resume();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.015, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.08);
-      } catch {
-        // Audio unavailable (autoplay policy etc.) — silence is fine.
-      }
-    };
-    tick();
-    const interval = setInterval(tick, 1000);
+    audioManager.playStealthTick();
+    const interval = setInterval(() => {
+      audioManager.playStealthTick();
+    }, 1000);
     return () => clearInterval(interval);
   }, [enabled, active]);
 }
@@ -167,16 +137,26 @@ function useBananaThiefNarrator({
         }
       } else if (phase === BananaThiefPhase.VOTING) {
         playSound('vote');
+        gameFeel.flash('white', 200);
+        gameFeel.haptic(50);
       } else if (phase === BananaThiefPhase.RESULT) {
         if (winner === 'SCAPEGOAT') {
           playSound('result-goat-win');
+          void gameFeel.celebrate({ particleCount: 60, spread: 70 });
+          gameFeel.flash('gold', 400);
         } else if (winner === 'MICE') {
           playSound('result-mice-win');
+          void gameFeel.celebrate({ particleCount: 75, spread: 80 });
+          gameFeel.flash('gold', 400);
         } else if (winner === 'THIEF') {
           if (hasFollowers) {
             playSound('result-fled');
+            gameFeel.shake(0.5);
+            gameFeel.flash('red', 400);
           } else {
             playSound('result-thief-win');
+            void gameFeel.celebrate({ particleCount: 60, spread: 70 });
+            gameFeel.flash('gold', 400);
           }
         }
       }
@@ -347,8 +327,6 @@ export function BananaThiefView() {
   const voteTargets = participants.filter((p) => p.socketId !== socketId);
 
   const tickSeconds = room?.config.bananaThiefTickSeconds ?? 6;
-  const nightRemaining = useCountdown(state?.tickEndsAt);
-  const phaseRemaining = useCountdown(state?.phaseEndsAt);
   useBananaThiefAmbient(
     soundsEnabled,
     state?.phase === BananaThiefPhase.NIGHT || state?.phase === BananaThiefPhase.CHOOSE_FOLLOWER,
@@ -457,10 +435,12 @@ export function BananaThiefView() {
             ⏳ {t('gameBananaThief.graceNote')}
           </div>
         )}
-        {nightRemaining !== null && state.clock > 0 && state.clock <= BANANA_THIEF_CLOCK_HOURS && (
-          <div className="text-xs font-black text-slate-500 tabular-nums">
-            {fmtTime(nightRemaining)}
-          </div>
+        {state.clock > 0 && state.clock <= BANANA_THIEF_CLOCK_HOURS && state.tickEndsAt && (
+          <CountdownBadge
+            deadline={state.tickEndsAt}
+            format="mm:ss"
+            className="text-xs font-black text-slate-500 tabular-nums"
+          />
         )}
       </div>
 
@@ -659,24 +639,18 @@ export function BananaThiefView() {
   );
 
   // Countdown warning in last 10 seconds of discussion
-  const countdownWarned = useRef(false);
   useEffect(() => {
-    if (state?.phase !== BananaThiefPhase.DISCUSSION) {
-      countdownWarned.current = false;
+    if (state?.phase !== BananaThiefPhase.DISCUSSION || !state?.phaseEndsAt) {
       return;
     }
-    if (
-      phaseRemaining !== null &&
-      phaseRemaining <= 10 &&
-      phaseRemaining > 0 &&
-      !countdownWarned.current
-    ) {
-      countdownWarned.current = true;
+    const delay = Math.max(0, state.phaseEndsAt - Date.now() - 10000);
+    const timer = setTimeout(() => {
       if (soundsEnabled && !hostPaced && language === 'th') {
         playSound('countdown');
       }
-    }
-  }, [state?.phase, phaseRemaining, soundsEnabled, hostPaced, language, playSound]);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [state?.phase, state?.phaseEndsAt, soundsEnabled, hostPaced, language, playSound]);
 
   const renderSetup = () => {
     const readyIds = state.readyIds ?? [];
@@ -858,10 +832,13 @@ export function BananaThiefView() {
             <div className="text-xs font-bold text-slate-300 mt-1 max-w-md">
               {t('gameBananaThief.chooseFollowerDesc')}
             </div>
-            <div className="mt-2 text-xs font-black text-amber-300 tabular-nums">
-              ⏳ {phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--'} (
-              {chosenFollowers.length}/{quota})
-            </div>
+            <CountdownBadge
+              deadline={state.phaseEndsAt}
+              format="mm:ss"
+              prefix="⏳ "
+              suffix={` (${chosenFollowers.length}/${quota})`}
+              className="mt-2 text-xs font-black text-amber-300 tabular-nums"
+            />
           </div>
 
           <div className="w-full max-w-md space-y-2 mt-2">
@@ -923,9 +900,13 @@ export function BananaThiefView() {
           <div className="text-xs font-bold text-slate-400 mt-1 max-w-sm">
             {t('gameBananaThief.waitingThiefFollowerDesc')}
           </div>
-          <div className="text-xs font-black text-slate-500 mt-2 tabular-nums">
-            ⏳ {phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--'}
-          </div>
+          <CountdownBadge
+            deadline={state.phaseEndsAt}
+            format="mm:ss"
+            prefix="⏳ "
+            fallback="⏳ --:--"
+            className="text-xs font-black text-slate-500 mt-2 tabular-nums"
+          />
         </div>
 
         {role === BananaThiefRole.FOLLOWER && (
@@ -979,14 +960,19 @@ export function BananaThiefView() {
       </motion.div>
       <div className="text-sm font-bold text-gray-600">{t('gameBananaThief.discussionHint')}</div>
       <div className="bg-amber-200 border-4 border-black shadow-[4px_4px_0_0_#000] px-6 py-3 text-center">
-        <div className="text-[10px] font-black uppercase tracking-widest">
-          {t('gameBananaThief.discussionTime', {
-            time: phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--',
-          })}
-        </div>
-        <div className="text-4xl font-black tabular-nums">
-          {phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--'}
-        </div>
+        <CountdownBadge
+          deadline={state.phaseEndsAt}
+          format="mm:ss"
+          fallback={<div className="text-4xl font-black tabular-nums">--:--</div>}
+          render={(sec) => (
+            <>
+              <div className="text-[10px] font-black uppercase tracking-widest">
+                {t('gameBananaThief.discussionTime', { time: fmtTime(sec) })}
+              </div>
+              <div className="text-4xl font-black tabular-nums">{fmtTime(sec)}</div>
+            </>
+          )}
+        />
       </div>
       {isHost ? (
         <button
@@ -1019,9 +1005,12 @@ export function BananaThiefView() {
           🗳️ {t('gameBananaThief.voteTitle')}
         </div>
         <div className="text-xs font-black text-gray-500 mt-1 tabular-nums">
-          {t('gameBananaThief.voteTime', {
-            time: phaseRemaining !== null ? fmtTime(phaseRemaining) : '--:--',
-          })}
+          <CountdownBadge
+            deadline={state.phaseEndsAt}
+            format="mm:ss"
+            fallback={<span>{t('gameBananaThief.voteTime', { time: '--:--' })}</span>}
+            render={(sec) => <span>{t('gameBananaThief.voteTime', { time: fmtTime(sec) })}</span>}
+          />
           {' · '}
           {state.votesRecorded}/{state.votesTotal}
         </div>

@@ -110,6 +110,15 @@ class AudioManager {
     return this.volume;
   }
 
+  public getAudioContext(): AudioContext | null {
+    return this.initContext();
+  }
+
+  public getSfxDestination(): GainNode | null {
+    this.initContext();
+    return this.sfxGain;
+  }
+
   public setVolume(vol: number): void {
     this.volume = Math.max(0, Math.min(1, vol));
     if (typeof window !== 'undefined') {
@@ -387,6 +396,178 @@ class AudioManager {
       gain.connect(dest);
       osc.start(now);
       osc.stop(now + 0.13);
+    });
+  }
+
+  /**
+   * Saboteur Rockfall: cavern rumble and crumbling stone burst.
+   */
+  public playRockCrumble(): void {
+    const jitter = this.getPitchJitter();
+    this.runSfx((ctx, dest, now) => {
+      // Low rumble
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(110 * jitter, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.35);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+      osc.connect(gain);
+      gain.connect(dest);
+      osc.start(now);
+      osc.stop(now + 0.36);
+
+      // Crackle impact
+      const snap = ctx.createOscillator();
+      const snapGain = ctx.createGain();
+      snap.type = 'square';
+      snap.frequency.setValueAtTime(180 * jitter, now);
+      snap.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+
+      snapGain.gain.setValueAtTime(0.2, now);
+      snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      snap.connect(snapGain);
+      snapGain.connect(dest);
+      snap.start(now);
+      snap.stop(now + 0.13);
+    });
+  }
+
+  /**
+   * Gobbler Piece Gobble: suction/gulp downward sweep.
+   */
+  public playGobble(): void {
+    const jitter = this.getPitchJitter();
+    this.runSfx((ctx, dest, now) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(360 * jitter, now);
+      osc.frequency.exponentialRampToValueAtTime(95 * jitter, now + 0.18);
+
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(dest);
+      osc.start(now);
+      osc.stop(now + 0.19);
+    });
+  }
+
+  /**
+   * Cipher Grid Assassin: dramatic sudden-death dissonance and low boom.
+   */
+  public playAssassin(): void {
+    this.runSfx((ctx, dest, now) => {
+      // Low ominous thud
+      const boom = ctx.createOscillator();
+      const boomGain = ctx.createGain();
+      boom.type = 'sine';
+      boom.frequency.setValueAtTime(75, now);
+      boom.frequency.exponentialRampToValueAtTime(25, now + 0.45);
+
+      boomGain.gain.setValueAtTime(0.4, now);
+      boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      boom.connect(boomGain);
+      boomGain.connect(dest);
+      boom.start(now);
+      boom.stop(now + 0.46);
+
+      // Dissonant minor-second screech
+      const sting1 = ctx.createOscillator();
+      const sting2 = ctx.createOscillator();
+      const stingGain = ctx.createGain();
+
+      sting1.type = 'sawtooth';
+      sting2.type = 'sawtooth';
+      sting1.frequency.setValueAtTime(780, now);
+      sting2.frequency.setValueAtTime(825, now);
+
+      stingGain.gain.setValueAtTime(0.18, now);
+      stingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+      sting1.connect(stingGain);
+      sting2.connect(stingGain);
+      stingGain.connect(dest);
+
+      sting1.start(now);
+      sting2.start(now);
+      sting1.stop(now + 0.4);
+      sting2.stop(now + 0.4);
+    });
+  }
+
+  /**
+   * Buzzer Press: snappy tactile mechanical trigger for Who First & Music Trivia.
+   */
+  public playBuzzerPress(): void {
+    const jitter = this.getPitchJitter();
+    this.runSfx((ctx, dest, now) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(220 * jitter, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      osc.connect(gain);
+      gain.connect(dest);
+      osc.start(now);
+      osc.stop(now + 0.09);
+    });
+  }
+
+  /**
+   * Ultimate Tic-Tac-Toe: Sub-board conquest mini-fanfare (C5 -> E5 -> G5).
+   */
+  public playSubBoardWin(): void {
+    const notes = [523.25, 659.25, 783.99];
+    notes.forEach((freq, idx) => {
+      this.runSfx((ctx, dest, now) => {
+        const start = now + idx * 0.06;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+
+        osc.connect(gain);
+        gain.connect(dest);
+        osc.start(start);
+        osc.stop(start + 0.23);
+      });
+    });
+  }
+
+  /**
+   * Banana Thief: stealth clock tick for masked room ambience.
+   */
+  public playStealthTick(): void {
+    this.runSfx((ctx, dest, now) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+
+      gain.gain.setValueAtTime(0.015, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+
+      osc.connect(gain);
+      gain.connect(dest);
+      osc.start(now);
+      osc.stop(now + 0.06);
     });
   }
 }

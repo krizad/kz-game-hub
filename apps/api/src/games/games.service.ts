@@ -820,10 +820,8 @@ export class GamesService {
   }
 
   private syncBotPlayer(room: RoomState): void {
-    const isClassicTTT =
-      room.gameType === GameType.TIC_TAC_TOE &&
-      (!room.config.ticTacToeMode || room.config.ticTacToeMode === 'CLASSIC');
-    const vsBot = isClassicTTT && !!room.config.ticTacToeVsBot;
+    const isTTT = room.gameType === GameType.TIC_TAC_TOE;
+    const vsBot = isTTT && !!room.config.ticTacToeVsBot;
 
     const botIndex = room.players.findIndex((p) => p.socketId === BOT_SOCKET_ID);
 
@@ -1412,10 +1410,17 @@ export class GamesService {
 
   // --- Ultimate Tic-Tac-Toe Logic ---
 
-  utttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {
+  utttJoinSide(
+    code: string,
+    clientId: string,
+    side: 'X' | 'O',
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
-      this.ultimateTicTacToeService.joinSide(room, clientId, side),
+      options !== undefined
+        ? this.ultimateTicTacToeService.joinSide(room, clientId, side, options)
+        : this.ultimateTicTacToeService.joinSide(room, clientId, side),
     );
   }
 
@@ -1431,12 +1436,24 @@ export class GamesService {
     );
   }
 
-  utttReset(code: string, clientId: string, toLobby = false): RoomState | null {
+  utttExecuteBotMove(code: string): RoomState | null {
+    return this.withRoom(code, (room) => {
+      const executed = this.ultimateTicTacToeService.executeBotMoveIfNeeded(room);
+      return executed ? room : null;
+    });
+  }
+
+  utttReset(
+    code: string,
+    clientId: string,
+    toLobby = false,
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
-      toLobby
-        ? this.ultimateTicTacToeService.reset(room, clientId, true)
-        : this.ultimateTicTacToeService.reset(room, clientId),
+      options !== undefined
+        ? this.ultimateTicTacToeService.reset(room, clientId, toLobby, options)
+        : this.ultimateTicTacToeService.reset(room, clientId, toLobby),
     );
   }
 
@@ -1459,9 +1476,18 @@ export class GamesService {
 
   // --- Gobbler Tic-Tac-Toe Logic ---
 
-  gobblerJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {
+  gobblerJoinSide(
+    code: string,
+    clientId: string,
+    side: 'X' | 'O',
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.gobblerService.joinSide(room, clientId, side));
+    return this.withRoom(code, (room) =>
+      options !== undefined
+        ? this.gobblerService.joinSide(room, clientId, side, options)
+        : this.gobblerService.joinSide(room, clientId, side),
+    );
   }
 
   gobblerPlacePiece(
@@ -1488,12 +1514,24 @@ export class GamesService {
     );
   }
 
-  gobblerReset(code: string, clientId: string, toLobby = false): RoomState | null {
+  gobblerExecuteBotMove(code: string): RoomState | null {
+    return this.withRoom(code, (room) => {
+      const executed = this.gobblerService.executeBotMoveIfNeeded(room);
+      return executed ? room : null;
+    });
+  }
+
+  gobblerReset(
+    code: string,
+    clientId: string,
+    toLobby = false,
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
     return this.withRoom(code, (room) =>
-      toLobby
-        ? this.gobblerService.reset(room, clientId, true)
-        : this.gobblerService.reset(room, clientId),
+      options !== undefined
+        ? this.gobblerService.reset(room, clientId, toLobby, options)
+        : this.gobblerService.reset(room, clientId, toLobby),
     );
   }
 

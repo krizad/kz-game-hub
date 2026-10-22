@@ -7,8 +7,10 @@ import {
   GobblerSize,
   GobblerState,
   PlayerSide,
+  BOT_SOCKET_ID,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
+import { getGobblerMove } from './gobbler-ai';
 
 @Injectable()
 export class GobblerService {
@@ -24,7 +26,7 @@ export class GobblerService {
   }
 
   private isMember(room: RoomState, clientId: string): boolean {
-    return room.players.some((p) => p.socketId === clientId);
+    return clientId === BOT_SOCKET_ID || room.players.some((p) => p.socketId === clientId);
   }
 
   private isValidIndex(index: unknown): index is number {
@@ -35,13 +37,59 @@ export class GobblerService {
     return room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER';
   }
 
-  joinSide(room: RoomState, clientId: string, side: PlayerSide): RoomState | null {
+  executeBotMoveIfNeeded(room: RoomState): boolean {
+    if (!this.isGobblerRoom(room) || room.status !== RoomStatus.PLAYING) return false;
+    if (!room.config.ticTacToeVsBot) return false;
+
+    const gb = room.gobblerState;
+    if (!gb || gb.winner) return false;
+
+    const botSide: PlayerSide | null =
+      gb.playerXId === BOT_SOCKET_ID ? 'X' : gb.playerOId === BOT_SOCKET_ID ? 'O' : null;
+    if (!botSide || gb.currentTurn !== botSide) return false;
+
+    const difficulty = room.config.ticTacToeBotDifficulty ?? 'GOD';
+    const move = getGobblerMove(gb, botSide, difficulty);
+    if (!move) return false;
+
+    if (move.type === 'PLACE') {
+      const res = this.placePiece(room, BOT_SOCKET_ID, move.pieceId, move.toIndex);
+      return !!res;
+    } else {
+      const res = this.movePiece(room, BOT_SOCKET_ID, move.fromIndex, move.toIndex);
+      return !!res;
+    }
+  }
+
+  joinSide(
+    room: RoomState,
+    clientId: string,
+    side: PlayerSide,
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (!this.isGobblerRoom(room) || room.status !== RoomStatus.LOBBY) return null;
     if (!room.gobblerState) return null;
     if (!this.isMember(room, clientId)) return null;
     if (side !== 'X' && side !== 'O') return null;
 
     const gb = room.gobblerState;
+    const isVsBot = !!room.config.ticTacToeVsBot;
+
+    if (isVsBot) {
+      if (side === 'X') {
+        gb.playerXId = clientId;
+        gb.playerOId = BOT_SOCKET_ID;
+      } else {
+        gb.playerOId = clientId;
+        gb.playerXId = BOT_SOCKET_ID;
+      }
+      room.status = RoomStatus.PLAYING;
+      if (!options?.deferBotMove) {
+        this.executeBotMoveIfNeeded(room);
+      }
+      return room;
+    }
+
     const otherSide: PlayerSide = side === 'X' ? 'O' : 'X';
     const otherSideSeat = side === 'X' ? gb.playerOId : gb.playerXId;
 
@@ -220,7 +268,12 @@ export class GobblerService {
     return room;
   }
 
-  reset(room: RoomState, clientId: string, toLobby = false): RoomState | null {
+  reset(
+    room: RoomState,
+    clientId: string,
+    toLobby = false,
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (!this.isGobblerRoom(room) || room.status !== RoomStatus.RESULT) return null;
 
     if (
@@ -251,6 +304,12 @@ export class GobblerService {
 
     if (previousWinner === 'DRAW' || !previousWinner) {
       room.gobblerState.currentTurn = 'X';
+    }
+
+    if (room.status === RoomStatus.PLAYING && room.config.ticTacToeVsBot) {
+      if (!options?.deferBotMove) {
+        this.executeBotMoveIfNeeded(room);
+      }
     }
 
     return room;

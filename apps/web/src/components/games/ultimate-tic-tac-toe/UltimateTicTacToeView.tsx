@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
-import { RoomStatus, GameType } from '@repo/types';
+import { RoomStatus, GameType, BOT_SOCKET_ID } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { RulesModal } from '@/components/RulesModal';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 export function UltimateTicTacToeView() {
   const { room, socketId, utttJoinSide, utttMakeMove, utttReset, actionLoading } = useGameStore();
@@ -25,10 +27,62 @@ export function UltimateTicTacToeView() {
 
   const isFreeMove = uttt.activeMacroIndex === null;
 
-  const playerXName = room.players.find((p) => p.socketId === uttt.playerXId)?.name;
-  const playerOName = room.players.find((p) => p.socketId === uttt.playerOId)?.name;
+  const playerXName =
+    uttt.playerXId === BOT_SOCKET_ID
+      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+      : room.players.find((p) => p.socketId === uttt.playerXId)?.name;
+  const playerOName =
+    uttt.playerOId === BOT_SOCKET_ID
+      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+      : room.players.find((p) => p.socketId === uttt.playerOId)?.name;
   const playerXScore = room.players.find((p) => p.socketId === uttt.playerXId)?.score || 0;
   const playerOScore = room.players.find((p) => p.socketId === uttt.playerOId)?.score || 0;
+
+  // Game Feel & Audio reaction for cell marks, sub-board wins, and game winners
+  const prevMacroBoardRef = React.useRef<(string | null)[]>(uttt.macroBoard);
+  const prevTurnRef = React.useRef<string>(uttt.currentTurn);
+  const prevWinnerRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (room.status !== RoomStatus.PLAYING) return;
+
+    // Check if any sub-board was won
+    const prevMacro = prevMacroBoardRef.current;
+    let subBoardWon = false;
+    for (let i = 0; i < 9; i++) {
+      if (uttt.macroBoard[i] && !prevMacro[i]) {
+        subBoardWon = true;
+        break;
+      }
+    }
+    prevMacroBoardRef.current = [...uttt.macroBoard];
+
+    if (subBoardWon) {
+      audioManager.playSubBoardWin();
+      gameFeel.flash('white', 200);
+      gameFeel.haptic([60, 40, 80]);
+    } else if (uttt.currentTurn !== prevTurnRef.current) {
+      audioManager.playPlaceMark(uttt.currentTurn === 'X' ? 'O' : 'X');
+    }
+    prevTurnRef.current = uttt.currentTurn;
+
+    // Check final game winner
+    const currentWinner = (uttt as unknown as { winner?: string }).winner;
+    if (currentWinner && currentWinner !== prevWinnerRef.current) {
+      if (currentWinner === mySide) {
+        audioManager.playSuccessChime();
+        void gameFeel.celebrate();
+        gameFeel.flash('gold', 500);
+        gameFeel.haptic([100, 50, 150]);
+      } else if (currentWinner !== 'DRAW') {
+        audioManager.playErrorBuzz();
+        gameFeel.shake(0.35);
+        gameFeel.flash('red', 300);
+        gameFeel.haptic([100]);
+      }
+    }
+    prevWinnerRef.current = currentWinner ?? null;
+  }, [uttt.macroBoard, uttt.currentTurn, room.status, mySide]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative font-mono h-full overflow-y-auto overflow-x-hidden w-full max-w-4xl mx-auto">

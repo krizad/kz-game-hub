@@ -8,7 +8,8 @@ import { CountdownTimer } from '@/components/core/CountdownTimer';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { RulesModal } from '@/components/RulesModal';
 import { useTranslate } from '@/hooks/useTranslate';
-import { celebrateWin } from '@/lib/celebrateWin';
+import { gameFeel } from '@/lib/gameFeel';
+import { audioManager } from '@/lib/audioManager';
 
 const PHASES = [
   { status: RoomStatus.WORD_SETTING, label: 'gameWhoKnow.phaseSteps.word' },
@@ -37,7 +38,10 @@ export function WhoKnowView() {
     if (hasCelebrated.current || !room.winner || room.winner === 'TIMEOUT') return;
 
     hasCelebrated.current = true;
-    void celebrateWin().catch(() => undefined);
+    audioManager.playSuccessChime();
+    void gameFeel.celebrate();
+    gameFeel.flash('gold', 500);
+    gameFeel.haptic([100, 50, 150]);
   }, [room?.gameType, room?.status, room?.winner]);
 
   if (!room || room.gameType !== GameType.WHO_KNOW) return null;

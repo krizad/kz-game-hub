@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { CipherTeam, CipherCardType, CipherClueCount } from '@repo/types';
 import { CipherPictureCard, CipherPictureImage } from './CipherPictureCard';
 import {
@@ -13,6 +13,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
 import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 export function CipherGridView() {
   const { room, socketId, privateState, ...actions } = useGameStore();
@@ -87,6 +88,47 @@ export function CipherGridView() {
   useEffect(() => {
     if (state?.currentClue?.giverId === socketId) setClueWord('');
   }, [state?.currentClue?.id, socketId]);
+
+  // Sensory Game Feel: react to newly revealed cards and round completions
+  const seenHistoryLengthRef = useRef(state?.history.length ?? 0);
+  useEffect(() => {
+    if (!state?.history) return;
+    const currentLen = state.history.length;
+    if (currentLen > seenHistoryLengthRef.current) {
+      const latest = state.history[currentLen - 1];
+      if (latest.kind === 'REVEAL') {
+        if (latest.cardType === 'VIRUS') {
+          audioManager.playAssassin();
+          gameFeel.shake(0.85);
+          gameFeel.flash('red', 500);
+          gameFeel.haptic([200, 100, 200]);
+        } else if (latest.cardType === myTeam) {
+          audioManager.playSuccessChime();
+          gameFeel.flash('green', 200);
+          gameFeel.haptic([50]);
+        } else {
+          audioManager.playCardSnap();
+          gameFeel.flash('white', 150);
+        }
+      }
+    }
+    seenHistoryLengthRef.current = currentLen;
+  }, [state?.history, myTeam]);
+
+  // Celebration when my team wins
+  const hasCelebratedWin = useRef(false);
+  useEffect(() => {
+    if (state?.phase === 'ROUND_END' && state.winner) {
+      if (!hasCelebratedWin.current && state.winner === myTeam) {
+        hasCelebratedWin.current = true;
+        void gameFeel.celebrate();
+        gameFeel.flash('gold', 500);
+        gameFeel.haptic([100, 50, 150]);
+      }
+    } else {
+      hasCelebratedWin.current = false;
+    }
+  }, [state?.phase, state?.winner, myTeam]);
 
   if (!state || !room) {
     return null;
