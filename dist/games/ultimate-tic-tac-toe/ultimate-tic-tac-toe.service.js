@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UltimateTicTacToeService = void 0;
 const common_1 = require("@nestjs/common");
 const types_1 = require("@repo/types");
+const ultimate_tic_tac_toe_ai_1 = require("./ultimate-tic-tac-toe-ai");
 let UltimateTicTacToeService = class UltimateTicTacToeService {
     constructor() {
         this.winningLines = [
@@ -33,7 +34,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         };
     }
     isMember(room, clientId) {
-        return room.players.some((p) => p.socketId === clientId);
+        return clientId === types_1.BOT_SOCKET_ID || room.players.some((p) => p.socketId === clientId);
     }
     isValidIndex(index) {
         return Number.isInteger(index) && index >= 0 && index < 9;
@@ -50,7 +51,26 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
     isUltimateTTTRoom(room) {
         return room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE';
     }
-    joinSide(room, clientId, side) {
+    executeBotMoveIfNeeded(room) {
+        if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.PLAYING) {
+            return false;
+        }
+        if (!room.config.ticTacToeVsBot)
+            return false;
+        const uttt = room.ultimateTicTacToeState;
+        if (!uttt || uttt.winner)
+            return false;
+        const botSide = uttt.playerXId === types_1.BOT_SOCKET_ID ? 'X' : uttt.playerOId === types_1.BOT_SOCKET_ID ? 'O' : null;
+        if (!botSide || uttt.currentTurn !== botSide)
+            return false;
+        const difficulty = room.config.ticTacToeBotDifficulty ?? 'GOD';
+        const move = (0, ultimate_tic_tac_toe_ai_1.getUltimateMove)(uttt, botSide, difficulty);
+        if (!move)
+            return false;
+        const res = this.makeMove(room, types_1.BOT_SOCKET_ID, move.macroIndex, move.microIndex);
+        return !!res;
+    }
+    joinSide(room, clientId, side, options) {
         if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.LOBBY) {
             return null;
         }
@@ -61,9 +81,26 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         if (side !== 'X' && side !== 'O')
             return null;
         const uttt = room.ultimateTicTacToeState;
+        const isVsBot = !!room.config.ticTacToeVsBot;
+        if (isVsBot) {
+            if (side === 'X') {
+                uttt.playerXId = clientId;
+                uttt.playerOId = types_1.BOT_SOCKET_ID;
+            }
+            else {
+                uttt.playerOId = clientId;
+                uttt.playerXId = types_1.BOT_SOCKET_ID;
+            }
+            room.status = types_1.RoomStatus.PLAYING;
+            if (!options?.deferBotMove) {
+                this.executeBotMoveIfNeeded(room);
+            }
+            return room;
+        }
         const otherSide = side === 'X' ? 'O' : 'X';
         const targetSeat = side === 'X' ? uttt.playerXId : uttt.playerOId;
-        if (targetSeat && targetSeat !== clientId)
+        const targetSeatCurrent = side === 'X' ? uttt.playerXId : uttt.playerOId;
+        if (targetSeatCurrent && targetSeatCurrent !== clientId)
             return null;
         let changed = false;
         if (targetSeat !== clientId) {
@@ -151,7 +188,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         uttt.currentTurn = uttt.currentTurn === 'X' ? 'O' : 'X';
         return room;
     }
-    reset(room, clientId, toLobby = false) {
+    reset(room, clientId, toLobby = false, options) {
         if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.RESULT) {
             return null;
         }
@@ -176,6 +213,11 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         };
         if (previousWinner === 'DRAW') {
             room.ultimateTicTacToeState.currentTurn = 'X';
+        }
+        if (room.status === types_1.RoomStatus.PLAYING && room.config.ticTacToeVsBot) {
+            if (!options?.deferBotMove) {
+                this.executeBotMoveIfNeeded(room);
+            }
         }
         return room;
     }

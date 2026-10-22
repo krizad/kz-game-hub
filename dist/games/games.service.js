@@ -667,9 +667,8 @@ let GamesService = GamesService_1 = class GamesService {
         this.syncBotPlayer(room);
     }
     syncBotPlayer(room) {
-        const isClassicTTT = room.gameType === types_1.GameType.TIC_TAC_TOE &&
-            (!room.config.ticTacToeMode || room.config.ticTacToeMode === 'CLASSIC');
-        const vsBot = isClassicTTT && !!room.config.ticTacToeVsBot;
+        const isTTT = room.gameType === types_1.GameType.TIC_TAC_TOE;
+        const vsBot = isTTT && !!room.config.ticTacToeVsBot;
         const botIndex = room.players.findIndex((p) => p.socketId === types_1.BOT_SOCKET_ID);
         if (vsBot) {
             if (botIndex === -1) {
@@ -1145,22 +1144,30 @@ let GamesService = GamesService_1 = class GamesService {
             ? this.ticTacToeService.reset(room, clientId, true)
             : this.ticTacToeService.reset(room, clientId));
     }
-    utttJoinSide(code, clientId, side) {
+    utttJoinSide(code, clientId, side, options) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.ultimateTicTacToeService.joinSide(room, clientId, side));
+        return this.withRoom(code, (room) => options !== undefined
+            ? this.ultimateTicTacToeService.joinSide(room, clientId, side, options)
+            : this.ultimateTicTacToeService.joinSide(room, clientId, side));
     }
     utttMakeMove(code, clientId, macroIndex, microIndex) {
         if (this.rejectViewer(code, clientId))
             return null;
         return this.withRoom(code, (room) => this.ultimateTicTacToeService.makeMove(room, clientId, macroIndex, microIndex));
     }
-    utttReset(code, clientId, toLobby = false) {
+    utttExecuteBotMove(code) {
+        return this.withRoom(code, (room) => {
+            const executed = this.ultimateTicTacToeService.executeBotMoveIfNeeded(room);
+            return executed ? room : null;
+        });
+    }
+    utttReset(code, clientId, toLobby = false, options) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => toLobby
-            ? this.ultimateTicTacToeService.reset(room, clientId, true)
-            : this.ultimateTicTacToeService.reset(room, clientId));
+        return this.withRoom(code, (room) => options !== undefined
+            ? this.ultimateTicTacToeService.reset(room, clientId, toLobby, options)
+            : this.ultimateTicTacToeService.reset(room, clientId, toLobby));
     }
     rpsMakeChoice(code, clientId, choice) {
         if (this.rejectViewer(code, clientId))
@@ -1177,10 +1184,12 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.rpsService.reset(room, clientId));
     }
-    gobblerJoinSide(code, clientId, side) {
+    gobblerJoinSide(code, clientId, side, options) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.gobblerService.joinSide(room, clientId, side));
+        return this.withRoom(code, (room) => options !== undefined
+            ? this.gobblerService.joinSide(room, clientId, side, options)
+            : this.gobblerService.joinSide(room, clientId, side));
     }
     gobblerPlacePiece(code, clientId, pieceId, toIndex) {
         if (this.rejectViewer(code, clientId))
@@ -1192,12 +1201,18 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.gobblerService.movePiece(room, clientId, fromIndex, toIndex));
     }
-    gobblerReset(code, clientId, toLobby = false) {
+    gobblerExecuteBotMove(code) {
+        return this.withRoom(code, (room) => {
+            const executed = this.gobblerService.executeBotMoveIfNeeded(room);
+            return executed ? room : null;
+        });
+    }
+    gobblerReset(code, clientId, toLobby = false, options) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => toLobby
-            ? this.gobblerService.reset(room, clientId, true)
-            : this.gobblerService.reset(room, clientId));
+        return this.withRoom(code, (room) => options !== undefined
+            ? this.gobblerService.reset(room, clientId, toLobby, options)
+            : this.gobblerService.reset(room, clientId, toLobby));
     }
     soundsFishyTypeAnswer(code, clientId, answer) {
         if (this.rejectViewer(code, clientId))

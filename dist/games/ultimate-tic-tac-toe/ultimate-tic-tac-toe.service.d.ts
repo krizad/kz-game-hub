@@ -9,8 +9,13 @@ export declare class UltimateTicTacToeService {
         line?: number[];
     };
     private isUltimateTTTRoom;
-    joinSide(room: RoomState, clientId: string, side: 'X' | 'O'): RoomState | null;
+    executeBotMoveIfNeeded(room: RoomState): boolean;
+    joinSide(room: RoomState, clientId: string, side: 'X' | 'O', options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
     makeMove(room: RoomState, clientId: string, macroIndex: number, microIndex: number): RoomState | null;
-    reset(room: RoomState, clientId: string, toLobby?: boolean): RoomState | null;
+    reset(room: RoomState, clientId: string, toLobby?: boolean, options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
     remapSocketId(state: UltimateTicTacToeState, oldSocketId: string, newSocketId: string): void;
 }

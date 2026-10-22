@@ -369,6 +369,8 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncWhoKnowTimer;
     private syncTheMindTimer;
     private scheduleTTTBotMoveIfNeeded;
+    private scheduleGobblerBotMoveIfNeeded;
+    private scheduleUTTTBotMoveIfNeeded;
     private isValidPayload;
     private isValidName;
     private isSettingsKey;

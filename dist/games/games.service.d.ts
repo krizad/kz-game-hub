@@ -149,16 +149,26 @@ export declare class GamesService {
     }): RoomState | null;
     tttExecuteBotMove(code: string): RoomState | null;
     tttReset(code: string, clientId: string, toLobby?: boolean): RoomState | null;
-    utttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
+    utttJoinSide(code: string, clientId: string, side: 'X' | 'O', options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
     utttMakeMove(code: string, clientId: string, macroIndex: number, microIndex: number): RoomState | null;
-    utttReset(code: string, clientId: string, toLobby?: boolean): RoomState | null;
+    utttExecuteBotMove(code: string): RoomState | null;
+    utttReset(code: string, clientId: string, toLobby?: boolean, options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
     rpsMakeChoice(code: string, clientId: string, choice: RPSChoice): RoomState | null;
     rpsNextRound(code: string, clientId: string): RoomState | null;
     rpsReset(code: string, clientId: string): RoomState | null;
-    gobblerJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
+    gobblerJoinSide(code: string, clientId: string, side: 'X' | 'O', options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
     gobblerPlacePiece(code: string, clientId: string, pieceId: string, toIndex: number): RoomState | null;
     gobblerMovePiece(code: string, clientId: string, fromIndex: number, toIndex: number): RoomState | null;
-    gobblerReset(code: string, clientId: string, toLobby?: boolean): RoomState | null;
+    gobblerExecuteBotMove(code: string): RoomState | null;
+    gobblerReset(code: string, clientId: string, toLobby?: boolean, options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
     soundsFishyTypeAnswer(code: string, clientId: string, answer: string): RoomState | null;
     soundsFishySubmitAnswer(code: string, clientId: string, answer: string): RoomState | null;
     soundsFishyRevealPlayer(code: string, clientId: string, targetId: string): RoomState | null;
