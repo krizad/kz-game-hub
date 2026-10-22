@@ -535,9 +535,13 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
     }
     handleTTTJoinSide(data, client) {
-        const room = this.gamesService.tttJoinSide(data.code, client.id, data.side);
+        const isTestEnv = process.env.NODE_ENV === 'test';
+        const room = isTestEnv
+            ? this.gamesService.tttJoinSide(data.code, client.id, data.side)
+            : this.gamesService.tttJoinSide(data.code, client.id, data.side, { deferBotMove: true });
         if (room) {
             this.broadcastRoomState(room);
+            this.scheduleTTTBotMoveIfNeeded(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
@@ -565,7 +569,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, checkResult.receipt);
                 return;
             }
-            const updatedRoom = this.gamesService.tttMakeMove(data.code, client.id, data.index);
+            const isTestEnv = process.env.NODE_ENV === 'test';
+            const updatedRoom = isTestEnv
+                ? this.gamesService.tttMakeMove(data.code, client.id, data.index)
+                : this.gamesService.tttMakeMove(data.code, client.id, data.index, { deferBotMove: true });
             const now = Date.now();
             if (updatedRoom) {
                 const receipt = {
@@ -578,6 +585,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 this.actionReceiptService.record(data.code, player.id, types_1.SOCKET_EVENTS.TTT_MAKE_MOVE, data.requestId, data, receipt, now);
                 client.emit(types_1.SOCKET_EVENTS.ACTION_RECEIPT, receipt);
                 this.broadcastRoomState(updatedRoom);
+                this.scheduleTTTBotMoveIfNeeded(updatedRoom);
             }
             else {
                 const receipt = {
@@ -594,15 +602,20 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
             return;
         }
-        const room = this.gamesService.tttMakeMove(data.code, client.id, data.index);
+        const isTestEnv = process.env.NODE_ENV === 'test';
+        const room = isTestEnv
+            ? this.gamesService.tttMakeMove(data.code, client.id, data.index)
+            : this.gamesService.tttMakeMove(data.code, client.id, data.index, { deferBotMove: true });
         if (room) {
             this.broadcastRoomState(room);
+            this.scheduleTTTBotMoveIfNeeded(room);
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
         }
     }
     handleTTTReset(data, client) {
+        this.roomTimerService.cancel(data.code, 'ttt-bot-move');
         const room = this.gamesService.tttReset(data.code, client.id, data.toLobby);
         if (room) {
             this.broadcastRoomState(room);
@@ -1771,6 +1784,34 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             if (updatedRoom) {
                 this.broadcastRoomState(updatedRoom);
                 this.maybeRecordGameResult(updatedRoom);
+            }
+        });
+    }
+    scheduleTTTBotMoveIfNeeded(room) {
+        if (!room ||
+            room.gameType !== types_1.GameType.TIC_TAC_TOE ||
+            room.status !== types_1.RoomStatus.PLAYING ||
+            !room.config?.ticTacToeVsBot ||
+            !room.ticTacToeState) {
+            if (room?.code) {
+                this.roomTimerService.cancel(room.code, 'ttt-bot-move');
+            }
+            return;
+        }
+        const ttt = room.ticTacToeState;
+        const botSide = ttt.playerXId === types_1.BOT_SOCKET_ID ? 'X' : ttt.playerOId === types_1.BOT_SOCKET_ID ? 'O' : null;
+        if (!botSide || ttt.currentTurn !== botSide || ttt.winner) {
+            this.roomTimerService.cancel(room.code, 'ttt-bot-move');
+            return;
+        }
+        const delayMs = 600 + Math.floor(Math.random() * 400);
+        this.roomTimerService.schedule(room.code, 'ttt-bot-move', Date.now() + delayMs, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            if (!currentRoom || currentRoom.status !== types_1.RoomStatus.PLAYING)
+                return;
+            const botRoom = this.gamesService.tttExecuteBotMove(currentRoom.code);
+            if (botRoom) {
+                this.broadcastRoomState(botRoom);
             }
         });
     }

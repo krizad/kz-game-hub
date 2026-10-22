@@ -141,8 +141,13 @@ export declare class GamesService {
     clearSaboteurTurnDeadline(code: string): void;
     getPlayerRole(code: string, socketId: string): Role | undefined;
     whoKnowServerTimeout(code: string): RoomState | null;
-    tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
-    tttMakeMove(code: string, clientId: string, index: number): RoomState | null;
+    tttJoinSide(code: string, clientId: string, side: 'X' | 'O', options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
+    tttMakeMove(code: string, clientId: string, index: number, options?: {
+        deferBotMove?: boolean;
+    }): RoomState | null;
+    tttExecuteBotMove(code: string): RoomState | null;
     tttReset(code: string, clientId: string, toLobby?: boolean): RoomState | null;
     utttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null;
     utttMakeMove(code: string, clientId: string, macroIndex: number, microIndex: number): RoomState | null;

@@ -1118,15 +1118,25 @@ let GamesService = GamesService_1 = class GamesService {
     whoKnowServerTimeout(code) {
         return this.withRoom(code, (room) => this.whoKnowService.handleQuestioningTimeout(room));
     }
-    tttJoinSide(code, clientId, side) {
+    tttJoinSide(code, clientId, side, options) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.ticTacToeService.joinSide(room, clientId, side));
+        return this.withRoom(code, (room) => options !== undefined
+            ? this.ticTacToeService.joinSide(room, clientId, side, options)
+            : this.ticTacToeService.joinSide(room, clientId, side));
     }
-    tttMakeMove(code, clientId, index) {
+    tttMakeMove(code, clientId, index, options) {
         if (this.rejectViewer(code, clientId))
             return null;
-        return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
+        return this.withRoom(code, (room) => options !== undefined
+            ? this.ticTacToeService.makeMove(room, clientId, index, options)
+            : this.ticTacToeService.makeMove(room, clientId, index));
+    }
+    tttExecuteBotMove(code) {
+        return this.withRoom(code, (room) => {
+            const executed = this.ticTacToeService.executeBotMoveIfNeeded(room);
+            return executed ? room : null;
+        });
     }
     tttReset(code, clientId, toLobby = false) {
         if (this.rejectViewer(code, clientId))
