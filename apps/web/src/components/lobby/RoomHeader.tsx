@@ -8,10 +8,13 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 import { RulesModal } from '@/components/RulesModal';
+import { SoundToggle } from '@/components/core/SoundToggle';
+import { useSoundSettings } from '@/hooks/useSoundSettings';
 
 export function RoomHeader() {
   const { room, leaveRoom } = useGameStore();
   const { t } = useTranslate();
+  const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
 
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -149,6 +152,14 @@ export function RoomHeader() {
             </svg>
             <span className="hidden sm:inline">{t('lobby.qrCode')}</span>
           </button>
+          <SoundToggle
+            enabled={soundsEnabled}
+            onToggle={toggleSound}
+            titleOn={t('whoFirst.game.soundOn') || 'Sound effects on'}
+            titleOff={t('whoFirst.game.soundOff') || 'Sound effects off'}
+            testId="header-sound-toggle"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg !border-2 shadow-[2px_2px_0_0_#000]"
+          />
           <LanguageSwitcher />
           <RulesModal
             defaultGameType={room.gameType}

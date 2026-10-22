@@ -1028,6 +1028,8 @@ export interface Dictionary {
     resultLine: string;
     finishOrder: string;
     trickInfo: string;
+    dropToPlay: string;
+    dragHint: string;
     reasons: {
       selectCards: string;
       sameRank: string;
@@ -1092,6 +1094,7 @@ export interface Dictionary {
     nextRound: string;
     draw: string;
     stand: string;
+    dropToStand: string;
     waiting: string;
     revealing: string;
     settlement: string;

@@ -10,6 +10,8 @@ import { toast } from 'react-hot-toast';
 import { useCoupSounds, type CoupSound } from '@/hooks/useCoupSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { useServerClock } from '@/hooks/useServerClock';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
+import { gameFeel } from '@/lib/gameFeel';
 
 const roleEmoji: Record<CoupRole, string> = {
   [CoupRole.DUKE]: '👒',
@@ -77,30 +79,7 @@ export function CoupView() {
   const [exchangeKeep, setExchangeKeep] = useState<number[]>([]);
   const [isExchangeSubmitting, setIsExchangeSubmitting] = useState<boolean>(false);
   const [actionHistory, setActionHistory] = useState<string[]>([]);
-  const { getRemainingMs } = useServerClock();
-  const [, setTick] = useState<number>(0);
-
   const state = room?.coupState;
-
-  const activeDeadline =
-    state?.phase === CoupPhase.AWAITING_CHALLENGE
-      ? state.challengeWindowDeadline
-      : state?.phase === CoupPhase.AWAITING_BLOCK
-        ? state.blockWindowDeadline
-        : null;
-
-  useEffect(() => {
-    if (!activeDeadline) return;
-    const timer = setInterval(() => {
-      setTick((t) => t + 1);
-    }, 250);
-    return () => clearInterval(timer);
-  }, [activeDeadline]);
-
-  const getSecondsLeft = (deadline: number | null | undefined): number => {
-    if (!deadline) return 0;
-    return Math.max(0, Math.ceil(getRemainingMs(deadline) / 1000));
-  };
 
   useEffect(() => {
     if (state?.phase !== CoupPhase.AWAITING_EXCHANGE) {
@@ -335,14 +314,34 @@ export function CoupView() {
           const [id, c] = pair.split(':');
           before[id] = Number(c);
         });
+        const myDropped =
+          (before[socketId] ?? state.influences[socketId]?.count ?? 0) >
+          (state.influences[socketId]?.count ?? 0);
         const dropped = Object.entries(state.influences).some(
           ([id, inf]) => (before[id] ?? inf.count) > inf.count,
         );
-        if (dropped) playSound('coup');
+        if (dropped) {
+          playSound('coup');
+          if (myDropped) {
+            gameFeel.shake(0.75);
+            gameFeel.flash('red');
+            gameFeel.haptic([150, 50, 150]);
+          } else {
+            gameFeel.shake(0.35);
+            gameFeel.flash('white');
+          }
+        }
       }
       // Winner decided
       if (winnerKey && winnerKey !== prev.winner) {
         playSound('win');
+        if (state.winnerId === socketId) {
+          void gameFeel.celebrate();
+          gameFeel.flash('gold');
+          gameFeel.haptic([100, 50, 150]);
+        } else {
+          gameFeel.shake(0.3);
+        }
       }
     }
 
@@ -568,7 +567,6 @@ export function CoupView() {
             );
             const canChallenge =
               actorId !== socketId && (state.influences[socketId]?.count ?? 0) > 0;
-            const secondsLeft = getSecondsLeft(state.challengeWindowDeadline);
 
             return (
               <>
@@ -576,7 +574,11 @@ export function CoupView() {
                   data-testid="coup-countdown"
                   className="text-xs font-black text-center mt-1 text-red-800"
                 >
-                  ⏱️ {t('gameCoup.countdown', { seconds: secondsLeft })}
+                  ⏱️{' '}
+                  <CountdownBadge
+                    deadline={state.challengeWindowDeadline}
+                    render={(sec) => t('gameCoup.countdown', { seconds: sec })}
+                  />
                 </div>
                 <div
                   data-testid="coup-eligible-responders"
@@ -635,7 +637,6 @@ export function CoupView() {
             );
             const canChallengeBlock =
               blockerId !== socketId && (state.influences[socketId]?.count ?? 0) > 0;
-            const secondsLeft = getSecondsLeft(state.challengeWindowDeadline);
 
             return (
               <>
@@ -643,7 +644,11 @@ export function CoupView() {
                   data-testid="coup-countdown"
                   className="text-xs font-black text-center mt-1 text-amber-900"
                 >
-                  ⏱️ {t('gameCoup.countdown', { seconds: secondsLeft })}
+                  ⏱️{' '}
+                  <CountdownBadge
+                    deadline={state.challengeWindowDeadline}
+                    render={(sec) => t('gameCoup.countdown', { seconds: sec })}
+                  />
                 </div>
                 <div
                   data-testid="coup-eligible-responders"
@@ -686,7 +691,6 @@ export function CoupView() {
             const isForeignAid = state.pendingAction!.type === 'FOREIGN_AID';
             const isAssassinate = state.pendingAction!.type === 'ASSASSINATE';
             const isSteal = state.pendingAction!.type === 'STEAL';
-            const secondsLeft = getSecondsLeft(state.blockWindowDeadline);
 
             const canBlockForeignAid =
               isForeignAid &&
@@ -711,7 +715,11 @@ export function CoupView() {
                   data-testid="coup-countdown"
                   className="text-xs font-black text-center mt-1 text-blue-900"
                 >
-                  ⏱️ {t('gameCoup.countdown', { seconds: secondsLeft })}
+                  ⏱️{' '}
+                  <CountdownBadge
+                    deadline={state.blockWindowDeadline}
+                    render={(sec) => t('gameCoup.countdown', { seconds: sec })}
+                  />
                 </div>
                 <div
                   data-testid="coup-eligible-responders"

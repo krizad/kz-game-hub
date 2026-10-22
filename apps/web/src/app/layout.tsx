@@ -12,6 +12,9 @@ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://game-hub.krizad.com'
 
 export const viewport: Viewport = {
   themeColor: '#FEF08A',
+  viewportFit: 'cover',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export const metadata: Metadata = {

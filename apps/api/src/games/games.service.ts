@@ -1366,14 +1366,39 @@ export class GamesService {
 
   // --- Tic-Tac-Toe Logic ---
 
-  tttJoinSide(code: string, clientId: string, side: 'X' | 'O'): RoomState | null {
+  tttJoinSide(
+    code: string,
+    clientId: string,
+    side: 'X' | 'O',
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.ticTacToeService.joinSide(room, clientId, side));
+    return this.withRoom(code, (room) =>
+      options !== undefined
+        ? this.ticTacToeService.joinSide(room, clientId, side, options)
+        : this.ticTacToeService.joinSide(room, clientId, side),
+    );
   }
 
-  tttMakeMove(code: string, clientId: string, index: number): RoomState | null {
+  tttMakeMove(
+    code: string,
+    clientId: string,
+    index: number,
+    options?: { deferBotMove?: boolean },
+  ): RoomState | null {
     if (this.rejectViewer(code, clientId)) return null;
-    return this.withRoom(code, (room) => this.ticTacToeService.makeMove(room, clientId, index));
+    return this.withRoom(code, (room) =>
+      options !== undefined
+        ? this.ticTacToeService.makeMove(room, clientId, index, options)
+        : this.ticTacToeService.makeMove(room, clientId, index),
+    );
+  }
+
+  tttExecuteBotMove(code: string): RoomState | null {
+    return this.withRoom(code, (room) => {
+      const executed = this.ticTacToeService.executeBotMoveIfNeeded(room);
+      return executed ? room : null;
+    });
   }
 
   tttReset(code: string, clientId: string, toLobby = false): RoomState | null {

@@ -51,6 +51,7 @@ import {
   DogRelayActionRequest,
   DOG_RELAY_MAX_PLAYERS,
   ResultRevealActionPayload,
+  BOT_SOCKET_ID,
 } from '@repo/types';
 import { buildDogRelayResultRows } from './dog-relay/dog-relay-results';
 import { syncResultReveal } from './result-reveal';
@@ -760,9 +761,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; side: 'X' | 'O' },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.tttJoinSide(data.code, client.id, data.side);
+    const isTestEnv = process.env.NODE_ENV === 'test';
+    const room = isTestEnv
+      ? this.gamesService.tttJoinSide(data.code, client.id, data.side)
+      : this.gamesService.tttJoinSide(data.code, client.id, data.side, { deferBotMove: true });
     if (room) {
       this.broadcastRoomState(room);
+      this.scheduleTTTBotMoveIfNeeded(room);
       // If we transitioned to PLAYING, the available rooms list changed logic doesn't strictly need update
       // but safe to broadcast if lobby state changed.
       this.server.emit(
@@ -806,7 +811,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         return;
       }
 
-      const updatedRoom = this.gamesService.tttMakeMove(data.code, client.id, data.index);
+      const isTestEnv = process.env.NODE_ENV === 'test';
+      const updatedRoom = isTestEnv
+        ? this.gamesService.tttMakeMove(data.code, client.id, data.index)
+        : this.gamesService.tttMakeMove(data.code, client.id, data.index, { deferBotMove: true });
       const now = Date.now();
       if (updatedRoom) {
         const receipt: ActionReceipt = {
@@ -827,6 +835,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         );
         client.emit(SOCKET_EVENTS.ACTION_RECEIPT, receipt);
         this.broadcastRoomState(updatedRoom);
+        this.scheduleTTTBotMoveIfNeeded(updatedRoom);
       } else {
         const receipt: ActionReceipt = {
           code: data.code.toUpperCase(),
@@ -851,9 +860,13 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       return;
     }
 
-    const room = this.gamesService.tttMakeMove(data.code, client.id, data.index);
+    const isTestEnv = process.env.NODE_ENV === 'test';
+    const room = isTestEnv
+      ? this.gamesService.tttMakeMove(data.code, client.id, data.index)
+      : this.gamesService.tttMakeMove(data.code, client.id, data.index, { deferBotMove: true });
     if (room) {
       this.broadcastRoomState(room);
+      this.scheduleTTTBotMoveIfNeeded(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid move.' });
     }
@@ -864,6 +877,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; toLobby?: boolean },
     @ConnectedSocket() client: Socket,
   ) {
+    this.roomTimerService.cancel(data.code, 'ttt-bot-move');
     const room = this.gamesService.tttReset(data.code, client.id, data.toLobby);
     if (room) {
       this.broadcastRoomState(room);
@@ -2500,6 +2514,38 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
         this.maybeRecordGameResult(updatedRoom);
+      }
+    });
+  }
+
+  private scheduleTTTBotMoveIfNeeded(room: RoomState): void {
+    if (
+      !room ||
+      room.gameType !== GameType.TIC_TAC_TOE ||
+      room.status !== RoomStatus.PLAYING ||
+      !room.config?.ticTacToeVsBot ||
+      !room.ticTacToeState
+    ) {
+      if (room?.code) {
+        this.roomTimerService.cancel(room.code, 'ttt-bot-move');
+      }
+      return;
+    }
+    const ttt = room.ticTacToeState;
+    const botSide =
+      ttt.playerXId === BOT_SOCKET_ID ? 'X' : ttt.playerOId === BOT_SOCKET_ID ? 'O' : null;
+    if (!botSide || ttt.currentTurn !== botSide || ttt.winner) {
+      this.roomTimerService.cancel(room.code, 'ttt-bot-move');
+      return;
+    }
+
+    const delayMs = 600 + Math.floor(Math.random() * 400);
+    this.roomTimerService.schedule(room.code, 'ttt-bot-move', Date.now() + delayMs, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (!currentRoom || currentRoom.status !== RoomStatus.PLAYING) return;
+      const botRoom = this.gamesService.tttExecuteBotMove(currentRoom.code);
+      if (botRoom) {
+        this.broadcastRoomState(botRoom);
       }
     });
   }

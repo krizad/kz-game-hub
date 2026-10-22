@@ -19,7 +19,13 @@ export function GameDialog({
     if (!open || !dialog) return;
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
-    if (!dialog.open) dialog.showModal();
+    if (!dialog.open) {
+      dialog.showModal();
+      const firstFocusable = dialog.querySelector<HTMLElement>(
+        'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])',
+      );
+      firstFocusable?.focus();
+    }
     document.body.style.overflow = 'hidden';
     return () => {
       dialog.close();

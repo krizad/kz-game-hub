@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Play, RotateCcw, AlertTriangle, Users, Trophy } from 'lucide-react';
 import { useServerClock } from '@/hooks/useServerClock';
 import { SoundToggle } from '@/components/core/SoundToggle';
+import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 export const WhoFirstView = () => {
   const { room, socketId, startGame, updateConfig, whoFirstGameAction, resetRoom, actionLoading } =
@@ -15,7 +18,7 @@ export const WhoFirstView = () => {
   const { serverOffset } = useServerClock();
   const [activeTime, setActiveTime] = useState<number>(0);
   const [countdownRemaining, setCountdownRemaining] = useState<number>(0);
-  const [soundsEnabled, setSoundsEnabled] = useState<boolean>(true);
+  const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const [isSubmittingNext, setIsSubmittingNext] = useState<boolean>(false);
   const prevPhaseRef = useRef<string | null>(null);
 
@@ -24,46 +27,15 @@ export const WhoFirstView = () => {
 
   const playSound = useCallback(
     (type: 'ready' | 'go' | 'foul' | 'win') => {
-      if (!soundsEnabled || typeof window === 'undefined') return;
-      try {
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        const now = ctx.currentTime;
-        if (type === 'go') {
-          osc.frequency.setValueAtTime(880, now);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-          osc.start(now);
-          osc.stop(now + 0.3);
-        } else if (type === 'ready') {
-          osc.frequency.setValueAtTime(440, now);
-          gain.gain.setValueAtTime(0.1, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-          osc.start(now);
-          osc.stop(now + 0.15);
-        } else if (type === 'foul') {
-          osc.frequency.setValueAtTime(220, now);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          osc.start(now);
-          osc.stop(now + 0.35);
-        } else if (type === 'win') {
-          osc.frequency.setValueAtTime(587.33, now);
-          osc.frequency.setValueAtTime(880, now + 0.1);
-          gain.gain.setValueAtTime(0.15, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
-        }
-      } catch {
-        // AudioContext unallowed/unsupported
+      if (!soundsEnabled) return;
+      if (type === 'go') {
+        audioManager.playBuzzer();
+      } else if (type === 'ready') {
+        audioManager.playReady();
+      } else if (type === 'foul') {
+        audioManager.playFoul();
+      } else if (type === 'win') {
+        audioManager.playSuccessChime();
       }
     },
     [soundsEnabled],
@@ -73,14 +45,27 @@ export const WhoFirstView = () => {
     if (state?.phase && state.phase !== prevPhaseRef.current) {
       if (state.phase === 'ACTIVE') {
         playSound('go');
+        gameFeel.flash('white', 200);
+        gameFeel.haptic(50);
       } else if (state.phase === 'COUNTDOWN') {
         playSound('ready');
       } else if (state.phase === 'ROUND_RESULT' || state.phase === 'FINISHED') {
         playSound('win');
+        const winner = state.presses[0];
+        const localPress = state.presses.find((p) => p.socketId === socketId);
+        if (winner && winner.socketId === socketId) {
+          void gameFeel.celebrate();
+          gameFeel.flash('gold');
+          gameFeel.haptic([80, 50, 100]);
+        } else if (localPress?.isPenalty) {
+          gameFeel.shake(0.6);
+          gameFeel.flash('red');
+          gameFeel.haptic([150]);
+        }
       }
       prevPhaseRef.current = state.phase;
     }
-  }, [state?.phase, playSound]);
+  }, [state?.phase, state?.presses, socketId, playSound]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -180,7 +165,7 @@ export const WhoFirstView = () => {
             </h2>
             <SoundToggle
               enabled={soundsEnabled}
-              onToggle={() => setSoundsEnabled(!soundsEnabled)}
+              onToggle={toggleSound}
               titleOn={t('whoFirst.game.soundOn')}
               titleOff={t('whoFirst.game.soundOff')}
               testId="who-first-sound-toggle"
@@ -388,7 +373,7 @@ export const WhoFirstView = () => {
         <div className="flex items-center gap-2 ml-auto">
           <SoundToggle
             enabled={soundsEnabled}
-            onToggle={() => setSoundsEnabled(!soundsEnabled)}
+            onToggle={toggleSound}
             titleOn={t('whoFirst.game.soundOn')}
             titleOff={t('whoFirst.game.soundOff')}
             testId="who-first-sound-toggle"

@@ -8,6 +8,8 @@ import { getAvatarEmoji } from '@/components/core/utils';
 import { toast } from 'react-hot-toast';
 import { GameType, getResultRevealProgress, TheMindPhase } from '@repo/types';
 import { Button } from '@/components/ui/button';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 import {
   Play,
@@ -73,8 +75,16 @@ export function TheMindView() {
       };
 
       if (success) {
+        audioManager.playSuccessChime();
+        void gameFeel.celebrate({ particleCount: 50, spread: 60 });
+        gameFeel.flash('gold');
+        gameFeel.haptic([80, 40, 80]);
         toast.success(t('gameTheMind.game.levelCleared'), options);
       } else {
+        audioManager.playErrorBuzz();
+        gameFeel.shake(0.7);
+        gameFeel.flash('red');
+        gameFeel.haptic([120, 50, 120]);
         toast.error(t('gameTheMind.game.mistake'), options);
       }
     },
@@ -455,6 +465,38 @@ export function TheMindView() {
   const isShurikenProposer = state.shurikenProposerId === playerId;
   const blindMistakeIndexes = new Set(state.result?.invalidPlayIndexes ?? []);
 
+  React.useEffect(() => {
+    if (!canPlay || myHand.length === 0) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const isExtreme = room.config?.theMindMode === 'EXTREME';
+        if (isExtreme) {
+          if (selectedExtremeCard !== null) {
+            theMindPlayCard(selectedExtremeCard, 'UP');
+            audioManager.playCardSnap();
+          }
+        } else {
+          theMindPlayCard(myHand[0], 'UP');
+          audioManager.playCardSnap();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canPlay, myHand, room?.config?.theMindMode, selectedExtremeCard, theMindPlayCard]);
+
   const renderSetup = () => {
     const connectedPlayers = room.players.filter((p) => p.connected && !p.isViewer);
     const unreadyPlayers = connectedPlayers.filter((p) => !state.readyPlayers.includes(p.id));
@@ -588,6 +630,7 @@ export function TheMindView() {
             onClick={() => {
               if (canPlay && selectedExtremeCard !== null) {
                 theMindPlayCard(selectedExtremeCard, 'UP');
+                audioManager.playCardSnap();
               }
             }}
             className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-cyan-300 hover:bg-cyan-200 cursor-pointer active:translate-y-1 active:shadow-none -' : 'bg-slate-200 opacity-70 cursor-not-allowed'}`}
@@ -610,6 +653,7 @@ export function TheMindView() {
             onClick={() => {
               if (canPlay && selectedExtremeCard !== null) {
                 theMindPlayCard(selectedExtremeCard, 'DOWN');
+                audioManager.playCardSnap();
               }
             }}
             className={`flex-1 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${canPlay && selectedExtremeCard !== null ? 'bg-[#E6B3A4] hover:bg-rose-300 cursor-pointer active:translate-y-1 active:shadow-none ' : 'bg-slate-200 opacity-70 cursor-not-allowed'}`}
@@ -720,15 +764,22 @@ export function TheMindView() {
                 onClick={() => {
                   if (canPlay && isExtreme) {
                     setSelectedExtremeCard(card);
+                    audioManager.playCardSnap();
                   } else if (canPlay && isPlayable) {
                     theMindPlayCard(card, 'UP');
+                    audioManager.playCardSnap();
                   }
                 }}
                 disabled={!canPlay || !isPlayable}
                 aria-pressed={isExtreme ? isSelected : undefined}
-                className={`w-16 h-24 font-black text-2xl flex items-center justify-center ${buttonClass}`}
+                className={`w-16 h-24 font-black text-2xl flex flex-col items-center justify-center relative ${buttonClass}`}
               >
-                {displayCard}
+                <span>{displayCard}</span>
+                {isPlayable && canPlay && !isExtreme && (
+                  <span className="text-[9px] font-mono font-bold bg-black text-yellow-300 px-1 py-0.2 rounded -mb-1">
+                    Space
+                  </span>
+                )}
               </button>
             );
           })}

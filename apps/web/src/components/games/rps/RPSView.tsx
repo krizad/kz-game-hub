@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { GameActionArea } from '@/components/core/GameActionArea';
 import { motion, useReducedMotion } from 'framer-motion';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 export function RPSView() {
   const {
@@ -28,12 +31,63 @@ export function RPSView() {
   if (!room || !room.rpsState) return null;
   const rps = room.rpsState;
 
+  const prevStatusRef = useRef(room.status);
+  useEffect(() => {
+    if (prevStatusRef.current !== RoomStatus.RESULT && room.status === RoomStatus.RESULT) {
+      audioManager.playClash();
+      const isWinner =
+        isWinnerId(rps.gameWinner, socketId) || isWinnerId(rps.roundWinner, socketId);
+      if (isWinner) {
+        void gameFeel.celebrate();
+        gameFeel.flash('gold');
+        gameFeel.haptic([100, 50, 150]);
+      } else if (rps.roundWinner || rps.gameWinner) {
+        gameFeel.shake(0.35);
+        gameFeel.flash('white');
+        gameFeel.haptic([60]);
+      }
+    }
+    prevStatusRef.current = room.status;
+  }, [room.status, rps.gameWinner, rps.roundWinner, socketId]);
+
   const isMyTurn = rps.activePlayers.includes(socketId);
   const mySideIndex = rps.activePlayers.indexOf(socketId);
   const myChoice = privateState.rpsChoice as string | undefined;
   const isMyChoiceLocked = !!myChoice || (isMyTurn && rps.choicesMade.includes(socketId));
   const isHost = room.roomHostId === socketId;
   const myQueueIndex = rps.queue.indexOf(socketId);
+  const canMakeChoice =
+    room.status === RoomStatus.PLAYING && isMyTurn && !isMyChoiceLocked && !actionLoading;
+
+  useEffect(() => {
+    if (!canMakeChoice) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      const key = e.key.toLowerCase();
+      if (key === '1' || key === 'r') {
+        e.preventDefault();
+        rpsMakeChoice('ROCK');
+        audioManager.playCardSnap();
+      } else if (key === '2' || key === 'p') {
+        e.preventDefault();
+        rpsMakeChoice('PAPER');
+        audioManager.playCardSnap();
+      } else if (key === '3' || key === 's') {
+        e.preventDefault();
+        rpsMakeChoice('SCISSORS');
+        audioManager.playCardSnap();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canMakeChoice, rpsMakeChoice]);
 
   const roundKey =
     room.status === RoomStatus.RESULT
@@ -253,12 +307,18 @@ export function RPSView() {
                     data-testid={`rps-choice-${id.toLowerCase()}`}
                     aria-label={label}
                     disabled={actionLoading}
-                    onClick={() => rpsMakeChoice(id)}
+                    onClick={() => {
+                      rpsMakeChoice(id);
+                      audioManager.playCardSnap();
+                    }}
                     className="w-24 h-28 sm:w-32 sm:h-36 bg-white hover:bg-yellow-200 flex flex-col items-center justify-center gap-1.5 transition-all hover:scale-105 active:translate-y-1 active:shadow-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
                     <span className="text-4xl sm:text-5xl drop-">{getEmoji(id)}</span>
                     <span className="text-xs sm:text-sm font-black text-black uppercase tracking-wider group-hover:text-indigo-600">
                       {label}
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500 font-bold border border-zinc-300 px-1 rounded bg-zinc-100 group-hover:border-black">
+                      {id === 'ROCK' ? '1 / R' : id === 'PAPER' ? '2 / P' : '3 / S'}
                     </span>
                   </button>
                 ))}

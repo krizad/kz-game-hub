@@ -2,6 +2,7 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { audioManager } from '@/lib/audioManager';
 
 export function CardGameActionPanel() {
   const { room, socketId, actionLoading, cardGameAction } = useGameStore();
@@ -60,7 +61,14 @@ export function CardGameActionPanel() {
             <button
               key={kind}
               disabled={actionLoading}
-              onClick={() => cardGameAction({ type: kind })}
+              onClick={() => {
+                if (kind === 'DRAW') {
+                  audioManager.playCardSnap();
+                } else {
+                  audioManager.playChipClink();
+                }
+                cardGameAction({ type: kind });
+              }}
               className={`border-4 border-black px-5 py-3 font-black shadow-[4px_4px_0_0_#000] disabled:opacity-50 ${kind === 'DRAW' ? 'bg-red-400' : 'bg-white'}`}
             >
               {t(`cardGameRules.actionNames.${kind}`)}

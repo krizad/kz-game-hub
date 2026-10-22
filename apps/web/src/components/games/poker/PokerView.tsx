@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Crown, Hourglass, Minus, Plus, ScrollText, Settings2, Spade } from 'lucide-react';
 import {
   GameType,
@@ -17,7 +17,10 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from '@/components/games/card-game/CardHand';
 import { GameDialog } from '@/components/core/GameDialog';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { PokerHandRankings } from './PokerHandRankings';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 const POKER_STREETS: PokerPhase[] = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
 const LAST_ACTION_KEYS: Record<PokerLastAction, string> = {
@@ -55,7 +58,6 @@ function seatBadgeLabel(seat: PokerSeat): string | null {
 export function PokerView() {
   const { room, socketId, pokerAction, resetRoom, actionLoading } = useGameStore();
   const { t } = useTranslate();
-  const [now, setNow] = useState(() => Date.now());
   const [betInputText, setBetInputText] = useState<string>('');
   const [revealedCount, setRevealedCount] = useState<number>(0);
   const [awardSelection, setAwardSelection] = useState<string[]>([]);
@@ -95,11 +97,6 @@ export function PokerView() {
     state?.showdown?.pendingPots?.[0]?.eligiblePlayerIds?.join(','),
   ]);
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(timer);
-  }, []);
-
   const playerName = useMemo(() => {
     const map: Record<string, string> = {};
     for (const player of room?.players ?? []) map[player.socketId] = player.name;
@@ -128,6 +125,11 @@ export function PokerView() {
   const matchOver = room.status === RoomStatus.RESULT;
 
   const act = (action: PokerAction) => {
+    if (action.type === 'FOLD') {
+      audioManager.playCardSnap();
+    } else {
+      audioManager.playChipClink();
+    }
     pokerAction(action);
   };
 
@@ -137,6 +139,22 @@ export function PokerView() {
       setBetInputText(String(raiseMin));
     }
   }, [isMyTurn, state?.handNumber, state?.phase, state?.activePlayerId, raiseMin]);
+
+  const prevPhaseRef = useRef(state?.phase);
+  useEffect(() => {
+    if (prevPhaseRef.current !== 'SHOWDOWN' && state?.phase === 'SHOWDOWN') {
+      const wonAnyPot = state.handResult?.pots.some((p) => p.winnerIds.includes(socketId));
+      if (wonAnyPot) {
+        audioManager.playSuccessChime();
+        void gameFeel.celebrate();
+        gameFeel.flash('gold');
+        gameFeel.haptic([100, 50, 150]);
+      } else {
+        gameFeel.flash('white', 250);
+      }
+    }
+    prevPhaseRef.current = state?.phase;
+  }, [state?.phase, state?.handResult, socketId]);
 
   // Effective bet amount (clamped into the legal window; server re-checks).
   const parsedBet = parseInt(betInputText, 10);
@@ -156,11 +174,6 @@ export function PokerView() {
   ].map((quick) => ({ ...quick, value: Math.min(Math.max(quick.value, raiseMin), myMax) }));
 
   const standings = [...room.players].filter((p) => !p.isViewer).sort((a, b) => b.score - a.score);
-
-  const secondsLeft =
-    state.turnDeadline && state.activePlayerId
-      ? Math.max(0, Math.ceil((state.turnDeadline - now) / 1000))
-      : null;
 
   const totalPot = state.pot + Object.values(state.seats).reduce((sum, seat) => sum + seat.bet, 0);
 
@@ -419,10 +432,13 @@ export function PokerView() {
                 )}
               </div>
 
-              {isActive && secondsLeft !== null && (
+              {isActive && state.turnDeadline && (
                 <span className="flex items-center gap-1 text-[11px] font-black text-red-600">
-                  <Hourglass size={12} /> {secondsLeft}
-                  {t('poker.table.seconds')}
+                  <Hourglass size={12} />
+                  <CountdownBadge
+                    deadline={state.turnDeadline}
+                    suffix={` ${t('poker.table.seconds')}`}
+                  />
                 </span>
               )}
 

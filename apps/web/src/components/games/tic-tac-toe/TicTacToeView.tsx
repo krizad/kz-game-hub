@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { BOT_SOCKET_ID, GameType, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { FirstRoundGuide } from '@/components/lobby/FirstRoundGuide';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 export function TicTacToeView() {
   const {
@@ -31,10 +34,117 @@ export function TicTacToeView() {
   const mySide = isX ? 'X' : isO ? 'O' : null;
   const isMyTurn = mySide === ttt.currentTurn;
 
+  const prevStatusRef = useRef(room.status);
+  useEffect(() => {
+    if (prevStatusRef.current !== RoomStatus.RESULT && room.status === RoomStatus.RESULT) {
+      if (ttt.winner === 'X' || ttt.winner === 'O') {
+        audioManager.playSuccessChime();
+        if (ttt.winner === mySide) {
+          void gameFeel.celebrate();
+          gameFeel.flash('gold');
+          gameFeel.haptic([100, 50, 150]);
+        } else if (mySide) {
+          gameFeel.shake(0.4);
+          gameFeel.flash('red');
+          gameFeel.haptic([100]);
+        }
+      }
+    }
+    prevStatusRef.current = room.status;
+  }, [room.status, ttt.winner, mySide]);
+
   const isVsBot = !!room.config?.ticTacToeVsBot;
   const botSide =
     ttt.playerXId === BOT_SOCKET_ID ? 'X' : ttt.playerOId === BOT_SOCKET_ID ? 'O' : null;
   const isBotTurn = room.status === RoomStatus.PLAYING && botSide === ttt.currentTurn;
+
+  useEffect(() => {
+    if (room.status !== RoomStatus.PLAYING || !isMyTurn || actionLoading) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      let cellIndex: number | undefined;
+      switch (e.code) {
+        // Numpad mapped to 3x3 layout
+        case 'Numpad7':
+          cellIndex = 0;
+          break;
+        case 'Numpad8':
+          cellIndex = 1;
+          break;
+        case 'Numpad9':
+          cellIndex = 2;
+          break;
+        case 'Numpad4':
+          cellIndex = 3;
+          break;
+        case 'Numpad5':
+          cellIndex = 4;
+          break;
+        case 'Numpad6':
+          cellIndex = 5;
+          break;
+        case 'Numpad1':
+          cellIndex = 6;
+          break;
+        case 'Numpad2':
+          cellIndex = 7;
+          break;
+        case 'Numpad3':
+          cellIndex = 8;
+          break;
+        // Digits mapped 1-9
+        case 'Digit1':
+          cellIndex = 0;
+          break;
+        case 'Digit2':
+          cellIndex = 1;
+          break;
+        case 'Digit3':
+          cellIndex = 2;
+          break;
+        case 'Digit4':
+          cellIndex = 3;
+          break;
+        case 'Digit5':
+          cellIndex = 4;
+          break;
+        case 'Digit6':
+          cellIndex = 5;
+          break;
+        case 'Digit7':
+          cellIndex = 6;
+          break;
+        case 'Digit8':
+          cellIndex = 7;
+          break;
+        case 'Digit9':
+          cellIndex = 8;
+          break;
+        default:
+          if (e.key >= '1' && e.key <= '9') {
+            cellIndex = Number(e.key) - 1;
+          }
+      }
+
+      if (cellIndex !== undefined && ttt.board[cellIndex] === null) {
+        e.preventDefault();
+        tttMakeMove(cellIndex);
+        audioManager.playPlaceMark(mySide ?? 'X');
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [room.status, isMyTurn, actionLoading, ttt.board, mySide, tttMakeMove]);
 
   const playerXName =
     ttt.playerXId === BOT_SOCKET_ID
@@ -190,15 +300,23 @@ export function TicTacToeView() {
                     cell !== null ||
                     actionLoading
                   }
-                  onClick={() => tttMakeMove(index)}
+                  onClick={() => {
+                    tttMakeMove(index);
+                    audioManager.playPlaceMark(mySide ?? 'X');
+                  }}
                   className={`
- w-20 h-20 sm:w-24 sm:h-24 bg-white flex items-center justify-center text-6xl font-black transition-colors
+ w-20 h-20 sm:w-24 sm:h-24 bg-white flex items-center justify-center text-6xl font-black transition-colors relative group
  ${cell === null && isMyTurn && room.status === RoomStatus.PLAYING && !actionLoading ? 'hover:bg-yellow-200 cursor-pointer active:bg-yellow-400' : 'cursor-default'}
  ${cell === 'X' ? 'text-cyan-500' : cell === 'O' ? 'text-pink-500' : ''}
  ${isWinningCell ? 'bg-green-300 animate-pulse' : ''}
  `}
                 >
                   <span>{cell}</span>
+                  {cell === null && isMyTurn && room.status === RoomStatus.PLAYING && (
+                    <span className="absolute top-1 left-1.5 text-[10px] text-zinc-400 font-mono font-bold select-none opacity-40 group-hover:opacity-100">
+                      {index + 1}
+                    </span>
+                  )}
                 </button>
               );
             })}

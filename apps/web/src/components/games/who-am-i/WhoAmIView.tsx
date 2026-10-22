@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, WhoAmIGameState } from '@repo/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,8 @@ import { getAvatarEmoji } from '@/components/core/utils';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { GameDialog } from '@/components/core/GameDialog';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 export function WhoAmIView() {
   const { room, socketId, privateState, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
@@ -62,6 +64,17 @@ export function WhoAmIView() {
     }
   }, [gameState.turnStatus]);
 
+  const prevStatusRef = useRef(room.status);
+  useEffect(() => {
+    if (prevStatusRef.current !== RoomStatus.RESULT && room.status === RoomStatus.RESULT) {
+      audioManager.playSuccessChime();
+      void gameFeel.celebrate();
+      gameFeel.flash('gold');
+      gameFeel.haptic([100, 50, 150]);
+    }
+    prevStatusRef.current = room.status;
+  }, [room.status]);
+
   const handleSubmitPlayerWord = () => {
     const trimmed = playerWordInput.trim();
     if (!trimmed || actionLoading) return;
@@ -71,6 +84,7 @@ export function WhoAmIView() {
   const handleSubmitGuess = () => {
     const trimmed = guessInput.trim();
     if (!trimmed || actionLoading) return;
+    audioManager.playCardSnap();
     gameActionWhoAmI({ type: 'GUESS_WORD', guess: trimmed });
   };
 
@@ -568,21 +582,30 @@ export function WhoAmIView() {
                         </p>
                         <div className="grid grid-cols-3 gap-3">
                           <button
-                            onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' })}
+                            onClick={() => {
+                              gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' });
+                              audioManager.playPlaceMark('X');
+                            }}
                             disabled={actionLoading}
                             className={`py-3 sm:py-4 font-black transition-all border-4 border-black disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-400 text-black shadow-none translate-y-1' : 'bg-white text-black hover:bg-rose-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                           >
                             ❌ {t('gameWhoAmI.no')}
                           </button>
                           <button
-                            onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'MAYBE' })}
+                            onClick={() => {
+                              gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'MAYBE' });
+                              audioManager.playCardSnap();
+                            }}
                             disabled={actionLoading}
                             className={`py-3 sm:py-4 font-black transition-all border-4 border-black disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'MAYBE' ? 'bg-yellow-400 text-black shadow-none translate-y-1' : 'bg-white text-black hover:bg-yellow-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                           >
                             🤷 {t('gameWhoAmI.maybe')}
                           </button>
                           <button
-                            onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' })}
+                            onClick={() => {
+                              gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' });
+                              audioManager.playPlaceMark('O');
+                            }}
                             disabled={actionLoading}
                             className={`py-3 sm:py-4 font-black transition-all border-4 border-black disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-400 text-black shadow-none translate-y-1' : 'bg-white text-black hover:bg-emerald-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                           >
@@ -689,14 +712,20 @@ export function WhoAmIView() {
                         </p>
                         <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
                           <button
-                            onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' })}
+                            onClick={() => {
+                              gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'YES' });
+                              audioManager.playPlaceMark('O');
+                            }}
                             disabled={actionLoading}
                             className={`py-3 sm:py-4 font-black transition-all border-4 border-black disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'YES' ? 'bg-emerald-400 text-black shadow-none translate-y-1' : 'bg-white text-black hover:bg-emerald-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                           >
                             ✅ {t('gameWhoAmI.yes')}
                           </button>
                           <button
-                            onClick={() => gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' })}
+                            onClick={() => {
+                              gameActionWhoAmI({ type: 'VOTE_GUESS', vote: 'NO' });
+                              audioManager.playPlaceMark('X');
+                            }}
                             disabled={actionLoading}
                             className={`py-3 sm:py-4 font-black transition-all border-4 border-black disabled:opacity-50 disabled:cursor-not-allowed ${gameState.votes[socketId] === 'NO' ? 'bg-rose-400 text-black shadow-none translate-y-1' : 'bg-white text-black hover:bg-rose-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
                           >

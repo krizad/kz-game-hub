@@ -1272,6 +1272,8 @@ export const en: Dictionary = {
     resultLine: 'Winners: {winners}',
     finishOrder: 'Finish order',
     trickInfo: 'Trick: {rank} × {count}',
+    dropToPlay: 'Drop here to play',
+    dragHint: '💡 Drag cards to the trick area to play',
     reasons: {
       selectCards: 'Select 1 to 3 cards of the same rank',
       sameRank: 'All cards must have the same rank',
@@ -1336,6 +1338,7 @@ export const en: Dictionary = {
     nextRound: 'Next round',
     draw: 'Draw third card',
     stand: 'Stand',
+    dropToStand: 'Drop cards here to Stand',
     waiting: 'Waiting for players to draw or stand…',
     revealing: 'Revealing the dealer hand…',
     settlement: 'Settlement breakdown',

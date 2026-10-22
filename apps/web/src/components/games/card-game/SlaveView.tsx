@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CardGamePrivateState, PlayingCard } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from './CardHand';
 import { CardGameLog } from './CardGameLog';
+import { audioManager } from '@/lib/audioManager';
+import { gameFeel } from '@/lib/gameFeel';
 
 const SLAVE_RANK_ORDER: PlayingCard['rank'][] = [
   '3',
@@ -27,6 +29,7 @@ export function SlaveView() {
   const { room, socketId, privateState, cardGameAction, actionLoading } = useGameStore();
   const { t } = useTranslate();
   const [selected, setSelected] = useState<string[]>([]);
+  const [isDragOverTrick, setIsDragOverTrick] = useState(false);
   const state = room?.cardGameState;
   const privateCardState = privateState.cardGame as CardGamePrivateState | undefined;
 
@@ -42,6 +45,18 @@ export function SlaveView() {
   useEffect(() => {
     setSelected((current) => current.filter((id) => cards.some((c) => c.id === id)));
   }, [cards]);
+
+  const prevPhaseRef = useRef(state?.phase);
+  useEffect(() => {
+    if (prevPhaseRef.current !== 'RESULT' && state?.phase === 'RESULT') {
+      if (state.result?.winnerIds?.includes(socketId)) {
+        void gameFeel.celebrate();
+        gameFeel.flash('gold');
+        gameFeel.haptic([100, 50, 150]);
+      }
+    }
+    prevPhaseRef.current = state?.phase;
+  }, [state?.phase, state?.result?.winnerIds, socketId]);
 
   if (!room || !state) return null;
 
@@ -62,39 +77,46 @@ export function SlaveView() {
     (!room.cardGameLog || !room.cardGameLog.some((e) => e.kind === 'PLAYED')) &&
     cards.some((c) => c.id === '3-CLUBS');
 
-  let selectionReason = '';
-  let isValidPlay = false;
-
-  if (selectedCards.length === 0) {
-    selectionReason = t('gameSlave.reasons.selectCards');
-  } else if (selectedCards.length > 3) {
-    selectionReason = t('gameSlave.reasons.maxThree');
-  } else if (!selectedCards.every((card) => card.rank === selectedCards[0]?.rank)) {
-    selectionReason = t('gameSlave.reasons.sameRank');
-  } else if (isOpeningLead && leading && !selectedCards.some((c) => c.id === '3-CLUBS')) {
-    selectionReason = t('gameSlave.reasons.threeOfClubs');
-  } else if (!leading && trick && trick.playedById) {
-    if (selectedCards.length !== trick.cards.length) {
-      selectionReason = t('gameSlave.reasons.matchCount', { count: trick.cards.length });
-    } else if (
-      SLAVE_RANK_ORDER.indexOf(selectedCards[0].rank) <=
-      SLAVE_RANK_ORDER.indexOf(trick.cards[0].rank)
-    ) {
-      selectionReason = t('gameSlave.reasons.higherRank', { rank: trick.cards[0].rank });
-    } else {
-      isValidPlay = true;
-      selectionReason = t('gameSlave.reasons.validPlay', {
-        rank: selectedCards[0].rank,
-        count: selectedCards.length,
-      });
+  const checkPlayValidity = (candidateCards: PlayingCard[]) => {
+    if (candidateCards.length === 0) {
+      return { isValid: false, reason: t('gameSlave.reasons.selectCards') };
     }
-  } else {
-    isValidPlay = true;
-    selectionReason = t('gameSlave.reasons.validPlay', {
-      rank: selectedCards[0].rank,
-      count: selectedCards.length,
-    });
-  }
+    if (candidateCards.length > 3) {
+      return { isValid: false, reason: t('gameSlave.reasons.maxThree') };
+    }
+    if (!candidateCards.every((card) => card.rank === candidateCards[0]?.rank)) {
+      return { isValid: false, reason: t('gameSlave.reasons.sameRank') };
+    }
+    if (isOpeningLead && leading && !candidateCards.some((c) => c.id === '3-CLUBS')) {
+      return { isValid: false, reason: t('gameSlave.reasons.threeOfClubs') };
+    }
+    if (!leading && trick && trick.playedById) {
+      if (candidateCards.length !== trick.cards.length) {
+        return {
+          isValid: false,
+          reason: t('gameSlave.reasons.matchCount', { count: trick.cards.length }),
+        };
+      }
+      if (
+        SLAVE_RANK_ORDER.indexOf(candidateCards[0].rank) <=
+        SLAVE_RANK_ORDER.indexOf(trick.cards[0].rank)
+      ) {
+        return {
+          isValid: false,
+          reason: t('gameSlave.reasons.higherRank', { rank: trick.cards[0].rank }),
+        };
+      }
+    }
+    return {
+      isValid: true,
+      reason: t('gameSlave.reasons.validPlay', {
+        rank: candidateCards[0].rank,
+        count: candidateCards.length,
+      }),
+    };
+  };
+
+  const { isValid: isValidPlay, reason: selectionReason } = checkPlayValidity(selectedCards);
 
   const toggleCard = (card: PlayingCard) => {
     if (!myTurn) return;
@@ -103,14 +125,51 @@ export function SlaveView() {
     );
   };
 
+  const playCards = (cardIds: string[]) => {
+    cardGameAction({ type: 'PLAY', cards: cardIds });
+    audioManager.playCardSnap();
+    if (cardIds.length >= 3 || cardIds.some((id) => id.startsWith('2-'))) {
+      gameFeel.shake(0.4);
+      gameFeel.flash('white');
+      gameFeel.haptic([60, 40, 80]);
+    }
+  };
+
   const playSelected = () => {
-    // Preserve selection in case the server rejects the move;
-    // successful plays will remove cards from hand and trigger useEffect.
-    cardGameAction({ type: 'PLAY', cards: selected });
+    playCards(selected);
+  };
+
+  const handleDropOnTrick = (e: React.DragEvent) => {
+    if (!myTurn) return;
+    e.preventDefault();
+    setIsDragOverTrick(false);
+
+    try {
+      const json = e.dataTransfer.getData('application/json');
+      const data = json ? JSON.parse(json) : null;
+      const cardIdsToPlay: string[] =
+        data?.selectedIds && data.selectedIds.length > 0
+          ? data.selectedIds
+          : [e.dataTransfer.getData('text/plain')].filter(Boolean);
+
+      if (cardIdsToPlay.length === 0) return;
+
+      const candidateCards = cards.filter((c) => cardIdsToPlay.includes(c.id));
+      const { isValid } = checkPlayValidity(candidateCards);
+
+      if (isValid) {
+        playCards(cardIdsToPlay);
+      } else {
+        setSelected(cardIdsToPlay);
+      }
+    } catch {
+      // Fallback
+    }
   };
 
   const handlePass = () => {
     cardGameAction({ type: 'PASS' });
+    audioManager.playChipClink();
     setSelected([]);
   };
 
@@ -152,9 +211,35 @@ export function SlaveView() {
           })}
       </div>
 
-      <div className="border-4 border-black bg-white p-4">
+      <div
+        data-testid="slave-trick-area"
+        onDragOver={(e) => {
+          if (!myTurn) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          setIsDragOverTrick(true);
+        }}
+        onDragLeave={() => setIsDragOverTrick(false)}
+        onDrop={handleDropOnTrick}
+        className={`border-4 border-black p-4 transition-all ${
+          isDragOverTrick
+            ? 'bg-lime-100 border-lime-600 scale-[1.01] shadow-[6px_6px_0_0_#16a34a]'
+            : 'bg-white'
+        }`}
+      >
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-black uppercase text-sm">{t('gameSlave.trick')}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-black uppercase text-sm">{t('gameSlave.trick')}</h3>
+            {isDragOverTrick ? (
+              <span className="text-xs font-black bg-lime-400 border-2 border-black px-2 py-0.5 animate-bounce">
+                {t('gameSlave.dropToPlay')}
+              </span>
+            ) : myTurn ? (
+              <span className="text-[10px] font-bold text-zinc-500 hidden sm:inline">
+                {t('gameSlave.dragHint')}
+              </span>
+            ) : null}
+          </div>
           <span
             data-testid="slave-trick-info"
             className="text-xs font-bold px-2 py-0.5 bg-amber-100 border-2 border-black"
@@ -244,7 +329,13 @@ export function SlaveView() {
               type="button"
               disabled={!isValidPlay || actionLoading}
               onClick={playSelected}
-              className="px-4 py-2 border-4 border-black bg-red-400 font-black uppercase disabled:opacity-50 shadow-[2px_2px_0_0_#000]"
+              onDragOver={(e) => {
+                if (!myTurn) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={handleDropOnTrick}
+              className="px-4 py-2 border-4 border-black bg-red-400 font-black uppercase disabled:opacity-50 shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
             >
               {t('gameSlave.play')}
             </button>

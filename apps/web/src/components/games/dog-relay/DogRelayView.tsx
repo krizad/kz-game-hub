@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { DOG_RELAY_CARDS, type DogRelayPrivateState } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { DogRelayCard } from './DogRelayCard';
 import { DogRelayResult } from './DogRelayResult';
 import { DogRelayCardCatalog } from './DogRelayCardCatalog';
+import { audioManager } from '@/lib/audioManager';
 
 export function getDogRelayPrivateState(
   value: unknown,
@@ -35,7 +37,6 @@ export function DogRelayView() {
   const [suspect, setSuspect] = useState('');
   const [victim, setVictim] = useState('');
   const [target, setTarget] = useState('');
-  const [now, setNow] = useState(Date.now());
   const state = room?.dogRelayState;
   useEffect(() => {
     setRevealed(false);
@@ -45,11 +46,9 @@ export function DogRelayView() {
   }, [state?.roundId, state?.phase]);
   useEffect(() => {
     const hide = () => setRevealed(false);
-    const timer = setInterval(() => setNow(Date.now()), 500);
     window.addEventListener('blur', hide);
     document.addEventListener('visibilitychange', hide);
     return () => {
-      clearInterval(timer);
       window.removeEventListener('blur', hide);
       document.removeEventListener('visibilitychange', hide);
     };
@@ -60,8 +59,6 @@ export function DogRelayView() {
   const isHost = socketId === room.roomHostId;
   const name = (id: string | null | undefined) =>
     room.players.find((p) => p.id === id)?.name ?? '—';
-  const seconds = (deadline: number) =>
-    Math.max(0, Math.ceil((deadline - now - serverOffset) / 1000));
   const disabled = actionLoading || !!state.pause || !connected;
   const buttonClass =
     'w-full min-h-12 border-2 border-black bg-amber-300 p-3 font-black shadow-[3px_3px_0_0_#000] disabled:opacity-40 focus-visible:outline focus-visible:outline-4 focus-visible:outline-indigo-600';
@@ -217,6 +214,7 @@ export function DogRelayView() {
                   onSelect={
                     active && playerId === finalPlayer
                       ? () => {
+                          audioManager.playCardSnap();
                           if (!suspect) setSuspect(id);
                           else if (suspect === id) {
                             setSuspect('');
@@ -274,10 +272,15 @@ export function DogRelayView() {
             <p>{t('dogRelay.discussHint')}</p>
             {(state.phaseEndsAt !== null || state.pause?.remainingPhaseMs != null) && (
               <p role="timer" className="text-4xl font-black">
-                {state.pause?.remainingPhaseMs != null
-                  ? Math.ceil(state.pause.remainingPhaseMs / 1000)
-                  : seconds(state.phaseEndsAt!)}
-                s
+                {state.pause?.remainingPhaseMs != null ? (
+                  `${Math.ceil(state.pause.remainingPhaseMs / 1000)}s`
+                ) : (
+                  <CountdownBadge
+                    deadline={state.phaseEndsAt}
+                    serverOffset={serverOffset}
+                    suffix="s"
+                  />
+                )}
               </p>
             )}
             {isHost && state.phase === 'DISCUSS' && (
@@ -319,7 +322,10 @@ export function DogRelayView() {
                           data-testid={`dog-relay-vote-${id}`}
                           aria-pressed={target === id}
                           className={`${buttonClass} ${target === id ? 'ring-4 ring-indigo-500' : ''}`}
-                          onClick={() => setTarget(id)}
+                          onClick={() => {
+                            setTarget(id);
+                            audioManager.playCardSnap();
+                          }}
                         >
                           {name(id)}
                         </button>
@@ -349,7 +355,12 @@ export function DogRelayView() {
           <ul>
             {state.pause.disconnectedIds.map((id) => (
               <li key={id}>
-                {name(id)} · {seconds(state.pause!.graceEndsAtById[id])}s
+                {name(id)} ·{' '}
+                <CountdownBadge
+                  deadline={state.pause!.graceEndsAtById[id]}
+                  serverOffset={serverOffset}
+                  suffix="s"
+                />
               </li>
             ))}
           </ul>

@@ -1,11 +1,12 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Eye, FastForward, Trophy } from 'lucide-react';
 import { GameType, getResultRevealProgress, RoomState, ResultRevealState } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { gameFeel } from '@/lib/gameFeel';
 import {
   getRevealCard,
   getRevealEvidence,
@@ -91,7 +92,7 @@ function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevea
   const reducedMotion = useReducedMotion();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 100);
+    const interval = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(interval);
   }, []);
   const progress = getResultRevealProgress(reveal, Math.max(now, Date.now()) + serverOffset);
@@ -114,6 +115,22 @@ function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevea
       (room.gameType === GameType.CIPHER_GRID && !!room.cipherGridState?.teams[me.socketId]));
   const didWin =
     !!me && (outcome.winnerIds.includes(me.socketId) || outcome.winnerIds.includes(me.id));
+
+  const prevShowWinnerRef = useRef(false);
+  useEffect(() => {
+    if (!prevShowWinnerRef.current && progress.showWinner) {
+      if (didWin || outcome.cooperative) {
+        void gameFeel.celebrate();
+        gameFeel.flash('gold');
+        gameFeel.haptic([100, 50, 150]);
+      } else {
+        gameFeel.shake(0.35);
+        gameFeel.flash('white');
+        gameFeel.haptic([80]);
+      }
+    }
+    prevShowWinnerRef.current = progress.showWinner;
+  }, [progress.showWinner, didWin, outcome.cooperative]);
   const currentOpened = progress.revealedCount > progress.activeIndex;
   const phaseKey = progress.showWinner
     ? 'winner'
@@ -337,26 +354,47 @@ function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevea
 export function ResultRevealBoundary({ children }: { children: ReactNode }) {
   const room = useGameStore((state) => state.room);
   const offset = useGameStore((state) => state.serverOffset);
-  const [now, setNow] = useState(() => Date.now());
   const reveal = room?.resultReveal;
-  const complete =
-    !reveal || getResultRevealProgress(reveal, Math.max(now, Date.now()) + offset).complete;
+
+  const [isComplete, setIsComplete] = useState(() => {
+    if (!reveal) return true;
+    return getResultRevealProgress(reveal, Date.now() + offset).complete;
+  });
+
   useEffect(() => {
-    if (complete) return;
-    const interval = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(interval);
-  }, [reveal?.id, complete]);
+    if (!reveal) {
+      setIsComplete(true);
+      return;
+    }
+    const currentProgress = getResultRevealProgress(reveal, Date.now() + offset);
+    if (currentProgress.complete) {
+      setIsComplete(true);
+      return;
+    }
+    setIsComplete(false);
+    const totalMs =
+      reveal.introMs +
+      reveal.playerIds.length * reveal.stepMs +
+      reveal.winnerMs -
+      reveal.advancedMs;
+    const remainingMs = Math.max(0, reveal.startedAt + totalMs - (Date.now() + offset));
+    const timer = setTimeout(() => {
+      setIsComplete(true);
+    }, remainingMs + 50);
+    return () => clearTimeout(timer);
+  }, [reveal?.id, reveal?.skipped, reveal?.advancedMs, offset]);
+
   // Retain Music Trivia's user-unlocked audio across round-result presentations.
   if (room?.gameType === GameType.MUSIC_TRIVIA) {
     return (
       <div className="flex-1 min-h-0 flex flex-col">
-        {!complete && reveal && <RevealSequence key={reveal.id} room={room} reveal={reveal} />}
-        <div hidden={!complete} className="flex-1 min-h-0">
+        {!isComplete && reveal && <RevealSequence key={reveal.id} room={room} reveal={reveal} />}
+        <div hidden={!isComplete} className="flex-1 min-h-0">
           {children}
         </div>
       </div>
     );
   }
-  if (!room || !reveal || complete) return children;
+  if (!room || !reveal || isComplete) return children;
   return <RevealSequence key={reveal.id} room={room} reveal={reveal} />;
 }

@@ -5,6 +5,7 @@ import { RoomStatus, GameType, SoundsFishyPhase } from '@repo/types';
 import { useEffect, useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { audioManager } from '@/lib/audioManager';
 
 export function SoundsFishyView() {
   const {
@@ -326,7 +327,10 @@ export function SoundsFishyView() {
                         state.currentPhase === SoundsFishyPhase.THE_HUNT) && (
                         <button
                           data-testid={`fishy-reveal-${p.socketId}`}
-                          onClick={() => soundsFishyRevealAnswer(p.socketId)}
+                          onClick={() => {
+                            soundsFishyRevealAnswer(p.socketId);
+                            audioManager.playCardSnap();
+                          }}
                           disabled={actionLoading}
                           className="w-full sm:w-auto bg-yellow-300 hover:bg-yellow-200 text-black font-black px-4 py-2.5 border-3 border-black transition-transform shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm cursor-pointer"
                         >
@@ -341,7 +345,10 @@ export function SoundsFishyView() {
                       state.currentPhase === SoundsFishyPhase.THE_HUNT && (
                         <button
                           data-testid={`fishy-eliminate-${p.socketId}`}
-                          onClick={() => soundsFishyEliminatePlayer(p.socketId)}
+                          onClick={() => {
+                            soundsFishyEliminatePlayer(p.socketId);
+                            audioManager.playSplash();
+                          }}
                           disabled={actionLoading}
                           className="w-full sm:w-auto bg-rose-400 hover:bg-rose-300 text-black font-black px-4 py-2.5 border-3 border-black transition-transform shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm cursor-pointer"
                         >
@@ -384,7 +391,10 @@ export function SoundsFishyView() {
               {state.roundScorePool > 0 ? (
                 <button
                   data-testid="fishy-bank-button"
-                  onClick={() => soundsFishyBankPoints()}
+                  onClick={() => {
+                    soundsFishyBankPoints();
+                    audioManager.playChipClink();
+                  }}
                   disabled={actionLoading}
                   className="w-full sm:w-auto bg-emerald-400 hover:bg-emerald-300 text-black font-black px-6 py-3 border-4 border-black text-base uppercase tracking-widest transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap cursor-pointer"
                 >

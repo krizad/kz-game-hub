@@ -1,29 +1,39 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { audioManager } from '@/lib/audioManager';
 
 /**
- * Global game sound-effect settings persisted in localStorage.
- * useEffect plays are opt-out via the mute toggle.
+ * Global game sound-effect settings hook.
+ * Synchronizes with audioManager and localStorage across all open components.
  */
-const STORAGE_KEY = 'kzGameSoundsEnabled';
-
 export function useSoundSettings() {
-  const [enabled, setEnabled] = useState(true);
-  const [loaded, setLoaded] = useState(false);
+  const [enabled, setEnabled] = useState<boolean>(() => audioManager.isEnabled());
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) setEnabled(saved === '1');
+    setEnabled(audioManager.isEnabled());
     setLoaded(true);
+
+    const onSettingsChange = (event: Event) => {
+      const custom = event as CustomEvent<{ enabled: boolean }>;
+      if (custom.detail && typeof custom.detail.enabled === 'boolean') {
+        setEnabled(custom.detail.enabled);
+      } else {
+        setEnabled(audioManager.isEnabled());
+      }
+    };
+
+    window.addEventListener('kz-sound-settings-change', onSettingsChange);
+    return () => {
+      window.removeEventListener('kz-sound-settings-change', onSettingsChange);
+    };
   }, []);
 
   const toggle = useCallback(() => {
-    setEnabled((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
-      return next;
-    });
+    const next = !audioManager.isEnabled();
+    audioManager.setEnabled(next);
+    setEnabled(next);
   }, []);
 
   return { enabled, toggle, loaded };

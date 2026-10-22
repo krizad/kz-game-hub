@@ -1232,6 +1232,8 @@ export const th: Dictionary = {
     resultLine: 'ผู้ชนะ: {winners}',
     finishOrder: 'ลำดับผู้เล่น',
     trickInfo: 'กองปัจจุบัน: {rank} × {count}',
+    dropToPlay: 'วางไพ่ตรงนี้เพื่อลง',
+    dragHint: '💡 ลากไพ่ขึ้นมาวางบนกองกลางเพื่อลงได้',
     reasons: {
       selectCards: 'เลือกไพ่แต้มเดียวกัน 1–3 ใบ',
       sameRank: 'ไพ่ที่เลือกต้องมีแต้มเดียวกันทั้งหมด',
@@ -1296,6 +1298,7 @@ export const th: Dictionary = {
     nextRound: 'ตาถัดไป',
     draw: 'จั่วใบที่ 3',
     stand: 'อยู่',
+    dropToStand: 'วางไพ่ตรงนี้เพื่ออยู่ (Stand)',
     waiting: 'รอผู้เล่นเลือกจั่วหรืออยู่…',
     revealing: 'กำลังเปิดไพ่เจ้ามือ…',
     settlement: 'สรุปยอดชิป',

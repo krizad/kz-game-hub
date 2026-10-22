@@ -15,6 +15,7 @@ import { GameViewManager } from '@/components/lobby/GameViewManager';
 import { SecretWordModal } from '@/components/lobby/SecretWordModal';
 import { LoadingFallback } from '@/components/lobby/LoadingFallback';
 import { ConnectionStatus } from '@/components/core/ConnectionStatus';
+import { GameFeelLayer } from '@/components/core/GameFeelLayer';
 
 // Components extracted to separate files
 
@@ -59,25 +60,27 @@ function GameLobby() {
   }
 
   return (
-    <main className="flex min-h-[100dvh] overflow-x-hidden overflow-y-auto flex-col items-center p-2 sm:p-4 md:p-6 lg:p-8 bg-[#FEF08A] text-black">
-      <div className="w-full max-w-7xl mx-auto flex flex-col gap-2 sm:gap-4 md:gap-6 flex-1 relative min-h-0">
-        {/* Header */}
-        <RoomHeader />
+    <GameFeelLayer>
+      <main className="flex min-h-[100dvh] overflow-x-hidden overflow-y-auto flex-col items-center p-2 sm:p-4 md:p-6 lg:p-8 pt-safe pb-safe pl-safe pr-safe bg-[#FEF08A] text-black">
+        <div className="w-full max-w-7xl mx-auto flex flex-col gap-2 sm:gap-4 md:gap-6 flex-1 relative min-h-0">
+          {/* Header */}
+          <RoomHeader />
 
-        {/* Role Section at Top */}
-        {myRole && room.gameType === GameType.WHO_KNOW && room.status !== RoomStatus.RESULT && (
-          <div className="flex-none w-full relative z-0">
-            <RoleCard role={myRole} word={secretWord} roomCode={room.code} />
-          </div>
-        )}
+          {/* Role Section at Top */}
+          {myRole && room.gameType === GameType.WHO_KNOW && room.status !== RoomStatus.RESULT && (
+            <div className="flex-none w-full relative z-0">
+              <RoleCard role={myRole} word={secretWord} roomCode={room.code} />
+            </div>
+          )}
 
-        {/* Main Content Area */}
-        <GameViewManager />
-      </div>
+          {/* Main Content Area */}
+          <GameViewManager />
+        </div>
 
-      {/* Secret Word Setting Modal Handle */}
-      {room.status === RoomStatus.WORD_SETTING && myRole === Role.Host && <SecretWordModal />}
-    </main>
+        {/* Secret Word Setting Modal Handle */}
+        {room.status === RoomStatus.WORD_SETTING && myRole === Role.Host && <SecretWordModal />}
+      </main>
+    </GameFeelLayer>
   );
 }
 

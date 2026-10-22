@@ -11,6 +11,8 @@ import {
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
+import { audioManager } from '@/lib/audioManager';
 
 export function CipherGridView() {
   const { room, socketId, privateState, ...actions } = useGameStore();
@@ -25,13 +27,6 @@ export function CipherGridView() {
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
   const [confirmReveal, setConfirmReveal] = useState(false);
   const [showCancelRound, setShowCancelRound] = useState(false);
-  const [now, setNow] = useState(Date.now());
-
-  // Tick for turn timer
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const state = room?.cipherGridState;
   const isHost = Boolean(socketId && room?.roomHostId === socketId);
@@ -80,12 +75,6 @@ export function CipherGridView() {
     if (!state.currentClue) return false;
     return state.guessesThisTurn >= 1;
   }, [state, isMyTeamTurn, isTracker]);
-
-  // Seconds left for turn
-  const secondsLeft = useMemo(() => {
-    if (!state?.turnEndsAt) return null;
-    return Math.max(0, Math.ceil((state.turnEndsAt - now) / 1000));
-  }, [state?.turnEndsAt, now]);
 
   useEffect(() => {
     setSelectedCardIndex(null);
@@ -446,9 +435,9 @@ export function CipherGridView() {
                   ? `☀️ ${t('cipherGrid.solarTeam')}`
                   : `🌙 ${t('cipherGrid.lunarTeam')}`}
               </span>
-              {typeof secondsLeft === 'number' && (
+              {state.turnEndsAt && (
                 <span className="text-xs font-mono font-black bg-stone-900 text-white px-2 py-0.5 border border-black">
-                  ⏱️ {secondsLeft}s
+                  ⏱️ <CountdownBadge deadline={state.turnEndsAt} suffix="s" />
                 </span>
               )}
             </div>
@@ -677,7 +666,12 @@ export function CipherGridView() {
                 pingCount={pingingSockets.length}
                 pack={picturePack}
                 onSelect={
-                  isMyTeamDecoding && !isRevealed ? () => setSelectedCardIndex(idx) : undefined
+                  isMyTeamDecoding && !isRevealed
+                    ? () => {
+                        setSelectedCardIndex(idx);
+                        audioManager.playCardSnap();
+                      }
+                    : undefined
                 }
                 onZoom={() => setZoomIndex(idx)}
               />
@@ -694,6 +688,7 @@ export function CipherGridView() {
               onClick={() => {
                 if (!isRevealed && !isRoundEnd) {
                   setSelectedCardIndex(idx === selectedCardIndex ? null : idx);
+                  audioManager.playCardSnap();
                 }
               }}
               className={`relative flex flex-col items-center justify-center p-1.5 sm:p-3 min-h-[60px] sm:min-h-[85px] text-center select-none transition-all ${tileStyle} ${
