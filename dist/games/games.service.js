@@ -357,6 +357,9 @@ let GamesService = GamesService_1 = class GamesService {
                 this.battleshipService.remapSocketId(room.battleshipState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
+            if (room.gameType === types_1.GameType.THE_MIND && room.theMindState) {
+                this.theMindService.handleReconnect(room);
+            }
             if (room.gameType === types_1.GameType.WHO_AM_I && room.whoAmIState) {
                 this.whoAmIService.syncVisibleWords(room);
             }

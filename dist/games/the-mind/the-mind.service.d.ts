@@ -5,7 +5,9 @@ export declare class TheMindService {
     constructor(privateState: PrivateStateService);
     private shuffleArray;
     private getMaxLevel;
+    private resolvePlayerId;
     private socketIdOf;
+    handleReconnect(room: RoomState): void;
     private getHand;
     private setHand;
     private getHands;

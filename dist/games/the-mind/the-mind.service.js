@@ -38,8 +38,15 @@ let TheMindService = class TheMindService {
             return 10;
         return 8;
     }
+    resolvePlayerId(room, idOrSocketId) {
+        return (room.players.find((p) => p.id === idOrSocketId || p.socketId === idOrSocketId)?.id ??
+            idOrSocketId);
+    }
     socketIdOf(room, playerId) {
-        return room.players.find((p) => p.id === playerId)?.socketId;
+        return room.players.find((p) => p.id === playerId || p.socketId === playerId)?.socketId;
+    }
+    handleReconnect(room) {
+        this.syncHandSizes(room);
     }
     getHand(room, playerId) {
         const socketId = this.socketIdOf(room, playerId);
@@ -182,8 +189,9 @@ let TheMindService = class TheMindService {
             return null;
         if (state.phase !== types_1.TheMindPhase.SETUP)
             return null;
-        if (!state.readyPlayers.includes(clientId)) {
-            state.readyPlayers.push(clientId);
+        const playerId = this.resolvePlayerId(room, clientId);
+        if (!state.readyPlayers.includes(playerId)) {
+            state.readyPlayers.push(playerId);
         }
         const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
         if (state.readyPlayers.length >= playerCount) {
@@ -198,7 +206,8 @@ let TheMindService = class TheMindService {
             return null;
         if (state.phase !== types_1.TheMindPhase.PLAYING)
             return null;
-        const hand = this.getHand(room, clientId);
+        const playerId = this.resolvePlayerId(room, clientId);
+        const hand = this.getHand(room, playerId);
         if (!hand.length || !hand.includes(card))
             return null;
         const isExtreme = room.config?.theMindMode === 'EXTREME';
@@ -209,7 +218,7 @@ let TheMindService = class TheMindService {
         if (isExtreme && !pile)
             return null;
         if (room.config?.theMindBlindMode) {
-            return this.playCardBlind(room, clientId, hand, card, pile, isExtreme);
+            return this.playCardBlind(room, playerId, hand, card, pile, isExtreme);
         }
         const currentUP = state.pileTop;
         const currentDOWN = isExtreme ? (state.pileTopDOWN ?? 101) : 101;
@@ -227,7 +236,7 @@ let TheMindService = class TheMindService {
         const deadCards = [];
         for (const [pid, h] of Object.entries(this.getHands(room))) {
             for (const c of h) {
-                if (pid === clientId && c === card)
+                if (pid === playerId && c === card)
                     continue;
                 let isDead = false;
                 if (isExtreme) {
@@ -249,9 +258,9 @@ let TheMindService = class TheMindService {
                     discarded[m.playerId] = [];
                 discarded[m.playerId].push(m.card);
             }
-            if (!discarded[clientId])
-                discarded[clientId] = [];
-            discarded[clientId].push(card);
+            if (!discarded[playerId])
+                discarded[playerId] = [];
+            discarded[playerId].push(card);
             for (const [pid, dCards] of Object.entries(discarded)) {
                 const h = this.getHand(room, pid);
                 this.setHand(room, pid, h.filter((c) => !dCards.includes(c)));
@@ -262,17 +271,17 @@ let TheMindService = class TheMindService {
             else {
                 state.pileTop = card;
             }
-            state.pileTopPlayerId = clientId;
-            state.playedCards.push({ card, playerId: clientId, pile });
+            state.pileTopPlayerId = playerId;
+            state.playedCards.push({ card, playerId, pile });
             const allEmpty = Object.values(this.getHands(room)).every((h) => h.length === 0);
             state.result = {
                 success: false,
-                failedPlayerId: clientId,
+                failedPlayerId: playerId,
                 discardedCards: discarded,
                 livesLost: 1,
                 levelCleared: allEmpty,
             };
-            state.failedPlayerId = clientId;
+            state.failedPlayerId = playerId;
             state.discardedCards = discarded;
             state.phase = types_1.TheMindPhase.LEVEL_RESULT;
             if (state.lives <= 0) {
@@ -288,9 +297,9 @@ let TheMindService = class TheMindService {
             else {
                 state.pileTop = card;
             }
-            state.pileTopPlayerId = clientId;
-            state.playedCards.push({ card, playerId: clientId, pile });
-            this.setHand(room, clientId, hand.filter((c) => c !== card));
+            state.pileTopPlayerId = playerId;
+            state.playedCards.push({ card, playerId, pile });
+            this.setHand(room, playerId, hand.filter((c) => c !== card));
             const allEmpty = Object.values(this.getHands(room)).every((h) => h.length === 0);
             if (allEmpty) {
                 if (state.level >= state.maxLevel) {
@@ -456,8 +465,9 @@ let TheMindService = class TheMindService {
             return null;
         if (state.shuriken <= 0)
             return null;
-        state.shurikenProposerId = clientId;
-        state.shurikenVotes = { [clientId]: true };
+        const playerId = this.resolvePlayerId(room, clientId);
+        state.shurikenProposerId = playerId;
+        state.shurikenVotes = { [playerId]: true };
         state.phase = types_1.TheMindPhase.SHURIKEN_VOTE;
         return room;
     }
@@ -467,7 +477,8 @@ let TheMindService = class TheMindService {
             return null;
         if (state.phase !== types_1.TheMindPhase.SHURIKEN_VOTE)
             return null;
-        state.shurikenVotes[clientId] = agree;
+        const playerId = this.resolvePlayerId(room, clientId);
+        state.shurikenVotes[playerId] = agree;
         const playerCount = room.players.filter((p) => p.connected && !p.isViewer).length;
         const voteCount = Object.keys(state.shurikenVotes).length;
         if (voteCount >= playerCount) {
@@ -548,7 +559,8 @@ let TheMindService = class TheMindService {
             return null;
         if (state.phase !== types_1.TheMindPhase.SHURIKEN_VOTE)
             return null;
-        if (state.shurikenProposerId !== clientId)
+        const playerId = this.resolvePlayerId(room, clientId);
+        if (state.shurikenProposerId !== playerId)
             return null;
         state.shurikenProposerId = null;
         state.shurikenVotes = {};
