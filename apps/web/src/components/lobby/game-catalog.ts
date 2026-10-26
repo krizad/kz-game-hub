@@ -231,6 +231,19 @@ export const GAME_CATALOG: GameCatalogItem[] = [
     textRequired: true,
     styles: ['party', 'competitive'],
   },
+  {
+    type: GameType.WEREWOLF,
+    icon: '🐺',
+    coverImage: '/images/covers/werewolf.jpg',
+    catalogKey: 'werewolf',
+    color: 'bg-indigo-400',
+    minPlayers: 6,
+    maxPlayers: 12,
+    cooperative: false,
+    audioRequired: false,
+    textRequired: false,
+    styles: ['party', 'bluffing'],
+  },
 ];
 
 export function getGameCatalogItem(type: GameType): GameCatalogItem | undefined {

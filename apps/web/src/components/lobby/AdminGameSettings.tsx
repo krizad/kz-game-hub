@@ -25,6 +25,7 @@ const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.BANANA_THIEF, labelKey: 'rules.modal.tabs.bananaThief' },
   { type: GameType.DOG_RELAY, labelKey: 'lobby.gameNames.dogRelay' },
   { type: GameType.CIPHER_GRID, labelKey: 'rules.modal.tabs.cipherGrid' },
+  { type: GameType.WEREWOLF, labelKey: 'rules.modal.tabs.werewolf' },
 ];
 
 interface AdminGameSettingsProps {

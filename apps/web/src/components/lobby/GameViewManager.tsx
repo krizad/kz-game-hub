@@ -23,6 +23,7 @@ import { PokerSettings } from '@/components/games/poker/PokerSettings';
 import { CipherGridView } from '@/components/games/cipher-grid/CipherGridView';
 import { DogRelayView } from '@/components/games/dog-relay/DogRelayView';
 import { DogRelaySeats } from '@/components/games/dog-relay/DogRelaySeats';
+import { WerewolfView } from '@/components/games/werewolf/WerewolfView';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -154,6 +155,21 @@ function getGameStatus(
         }
       }
       break;
+    case GameType.WEREWOLF:
+      if (room.werewolfState) {
+        phase = room.werewolfState.phase;
+        if (
+          room.werewolfState.phase === 'DAY_VOTE' &&
+          room.werewolfState.voteProgress &&
+          room.werewolfState.voteProgress.total > 0
+        ) {
+          progress = {
+            current: room.werewolfState.voteProgress.cast,
+            total: room.werewolfState.voteProgress.total,
+          };
+        }
+      }
+      break;
     default:
       break;
   }
@@ -184,6 +200,7 @@ function getGameStatus(
     [GameType.BANANA_THIEF]: 'bg-lime-400',
     [GameType.CIPHER_GRID]: 'bg-amber-400',
     [GameType.DOG_RELAY]: 'bg-amber-300',
+    [GameType.WEREWOLF]: 'bg-indigo-300',
   };
 
   return {
@@ -234,6 +251,9 @@ export function GameViewManager() {
     }
     if (room.gameType === GameType.CIPHER_GRID && room.status !== RoomStatus.LOBBY) {
       return <CipherGridView />;
+    }
+    if (room.gameType === GameType.WEREWOLF && room.status !== RoomStatus.LOBBY) {
+      return <WerewolfView />;
     }
 
     return (

@@ -52,6 +52,8 @@ import {
   DOG_RELAY_MAX_PLAYERS,
   ResultRevealActionPayload,
   BOT_SOCKET_ID,
+  WerewolfNightActionKind,
+  WerewolfPhase,
 } from '@repo/types';
 import { buildDogRelayResultRows } from './dog-relay/dog-relay-results';
 import { syncResultReveal } from './result-reveal';
@@ -559,6 +561,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           msg = 'Cannot start game. Need at least 4 players.';
         } else if (gameType === GameType.CIPHER_GRID) {
           msg = 'Cannot start game. Need at least 4 players.';
+        } else if (gameType === GameType.WEREWOLF) {
+          msg = 'Cannot start game. Need 6-12 players for Werewolf.';
         }
       }
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
@@ -2064,6 +2068,39 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room) this.broadcastRoomState(room);
   }
 
+  // --- Werewolf (ADR 0015) ---
+
+  @SubscribeMessage(SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION)
+  handleWerewolfNightAction(
+    @MessageBody() data: { code: string; action: WerewolfNightActionKind; targetId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.werewolfNightAction(
+      data.code,
+      client.id,
+      data.action,
+      data.targetId,
+    );
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid night action' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.WEREWOLF_DAY_VOTE)
+  handleWerewolfDayVote(
+    @MessageBody() data: { code: string; targetId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.werewolfDayVote(data.code, client.id, data.targetId);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid vote' });
+    }
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)
   async handleLeaderboardGet(
     @MessageBody() data: { gameType?: string },
@@ -2132,6 +2169,31 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.CIPHER_GRID) {
       this.syncCipherGridTimer(room);
     }
+    if (room.gameType === GameType.WEREWOLF) {
+      this.syncWerewolfTimer(room);
+    }
+  }
+
+  /**
+   * Werewolf phases are deadline-driven: the service only stamps
+   * `phaseEndsAt`; a paused phase has none, which cancels the timer.
+   */
+  private syncWerewolfTimer(room: RoomState): void {
+    const state = room.werewolfState;
+    if (
+      !state ||
+      state.phase === WerewolfPhase.GAME_OVER ||
+      state.paused ||
+      state.phaseEndsAt === null
+    ) {
+      this.roomTimerService.cancel(room.code, 'werewolf');
+      return;
+    }
+    const deadline = state.phaseEndsAt;
+    this.roomTimerService.schedule(room.code, 'werewolf', deadline, () => {
+      const updated = this.gamesService.werewolfPhaseTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
   }
 
   private syncDogRelayTimer(room: RoomState): void {
@@ -2844,6 +2906,16 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
     if (event === SOCKET_EVENTS.BANANA_THIEF_REACTION) {
       return (BANANA_THIEF_REACTIONS as readonly string[]).includes(data.emoji as string);
+    }
+    if (event === SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION) {
+      return (
+        ['KILL', 'CHECK', 'HEAL', 'POISON', 'SHOT'].includes(data.action as string) &&
+        typeof data.targetId === 'string' &&
+        data.targetId.length <= 64
+      );
+    }
+    if (event === SOCKET_EVENTS.WEREWOLF_DAY_VOTE) {
+      return typeof data.targetId === 'string' && data.targetId.length <= 64;
     }
     if (event === SOCKET_EVENTS.CIPHER_ASSIGN_TEAM) {
       return (

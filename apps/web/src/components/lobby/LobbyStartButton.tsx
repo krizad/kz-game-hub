@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/useGameStore';
-import { GameType, getBananaThiefRequiredPlayerCount } from '@repo/types';
+import { GameType, getBananaThiefRequiredPlayerCount, WEREWOLF_MIN_PLAYERS } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
 import { translateServerError } from '@/i18n/serverErrors';
@@ -40,6 +40,8 @@ export function LobbyStartButton() {
     switch (room.gameType) {
       case GameType.DOG_RELAY:
         return 5;
+      case GameType.WEREWOLF:
+        return WEREWOLF_MIN_PLAYERS;
       case GameType.WHO_KNOW:
       case GameType.CIPHER_GRID:
         return 4;

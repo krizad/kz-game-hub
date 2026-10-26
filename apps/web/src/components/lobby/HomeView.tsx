@@ -44,6 +44,8 @@ const getGameName = (gameType: GameType, t: any) => {
       return t('lobby.gameNames.dogRelay');
     case GameType.CIPHER_GRID:
       return t('lobby.gameNames.cipherGrid').toUpperCase();
+    case GameType.WEREWOLF:
+      return t('lobby.gameNames.werewolf').toUpperCase();
     default:
       return t('lobby.gameNames.whoKnow').toUpperCase();
   }

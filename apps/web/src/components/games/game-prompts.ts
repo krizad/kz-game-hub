@@ -462,6 +462,42 @@ export function getGamePrompt(
       }
       break;
     }
+
+    case GameType.WEREWOLF: {
+      const state = room.werewolfState;
+      if (isSpectator) return { key: 'gamePrompts.spectating' };
+      if (!state) return { key: 'gamePrompts.spectating' };
+      if (state.paused) return { key: 'gamePrompts.werewolf.sleeping' };
+      if (state.phase === 'NIGHT') {
+        const night = privateState.wwNight as { kind: string } | null | undefined;
+        const slot = state.nightSlots[state.nightSlotIndex];
+        if (night && slot) {
+          if (night.kind === 'KILL') return { key: 'gamePrompts.werewolf.wolvesWake' };
+          if (night.kind === 'CHECK') return { key: 'gamePrompts.werewolf.sleeping' };
+        }
+        return { key: 'gamePrompts.werewolf.sleeping' };
+      }
+      if (state.phase === 'DAY_DISCUSSION') {
+        return { key: 'gamePrompts.werewolf.discussion' };
+      }
+      if (state.phase === 'DAY_VOTE') {
+        return privateState.wwDayVote
+          ? { key: 'gamePrompts.werewolf.voteWaiting' }
+          : { key: 'gamePrompts.werewolf.votePrompt' };
+      }
+      if (state.phase === 'DAY_RESULT') {
+        return { key: 'gamePrompts.werewolf.result' };
+      }
+      if (state.phase === 'DAY_HUNTER_SHOT') {
+        return state.hunterShot?.hunterId === socketId
+          ? { key: 'gamePrompts.werewolf.hunterShotYou' }
+          : { key: 'gamePrompts.werewolf.hunterShotWaiting' };
+      }
+      if (state.phase === 'GAME_OVER') {
+        return { key: 'gamePrompts.werewolf.gameOver' };
+      }
+      break;
+    }
   }
 
   return { key: 'gameStatus.groupAction' };

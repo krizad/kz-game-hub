@@ -11,6 +11,7 @@ import { WhoAmISettings } from '@/components/games/who-am-i/WhoAmISettings';
 import { MusicTriviaSettings } from '@/components/games/music-trivia/MusicTriviaSettings';
 import { SaboteurSettings } from '@/components/games/saboteur/SaboteurSettings';
 import { BananaThiefSettings } from '@/components/games/banana-thief/BananaThiefSettings';
+import { WerewolfSettings } from '@/components/games/werewolf/WerewolfSettings';
 import { DogRelaySettings } from '@/components/games/dog-relay/DogRelaySettings';
 
 export function GameSettingsManager() {
@@ -27,7 +28,8 @@ export function GameSettingsManager() {
     room.gameType === GameType.MUSIC_TRIVIA ||
     room.gameType === GameType.SABOTEUR ||
     room.gameType === GameType.BANANA_THIEF ||
-    room.gameType === GameType.DOG_RELAY;
+    room.gameType === GameType.DOG_RELAY ||
+    room.gameType === GameType.WEREWOLF;
 
   const isHost = room.roomHostId === socketId;
   const visibility = room.config.visibility ?? 'PUBLIC';
@@ -99,6 +101,7 @@ export function GameSettingsManager() {
           {room.gameType === GameType.MUSIC_TRIVIA && <MusicTriviaSettings />}
           {room.gameType === GameType.SABOTEUR && <SaboteurSettings />}
           {room.gameType === GameType.BANANA_THIEF && <BananaThiefSettings />}
+          {room.gameType === GameType.WEREWOLF && <WerewolfSettings />}
         </div>
       )}
     </div>

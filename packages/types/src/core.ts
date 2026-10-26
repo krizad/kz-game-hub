@@ -28,6 +28,7 @@ import { PokerMode, PokerPublicState } from './poker';
 import { CipherGridState, CipherGridMode } from './cipher-grid';
 import { CipherGridPicturePack } from './cipher-grid-pictures';
 import { DogRelayPublicState, DogRelayLeaderSelection } from './dog-relay';
+import { WerewolfState, WerewolfWolfRevealMode, WerewolfWolfCoordinationMode } from './werewolf';
 import type { ResultRevealState } from './result-reveal';
 
 export const APP_VERSION = 'v1.0.0';
@@ -60,6 +61,7 @@ export enum GameType {
   POKER = 'POKER',
   CIPHER_GRID = 'CIPHER_GRID',
   DOG_RELAY = 'DOG_RELAY',
+  WEREWOLF = 'WEREWOLF',
 }
 
 /**
@@ -199,6 +201,9 @@ export const SOCKET_EVENTS = {
   CIPHER_NEXT_ROUND: 'cipher_next_round',
   CIPHER_RESET: 'cipher_reset',
   CIPHER_CANCEL_ROUND: 'cipher_cancel_round',
+  // Werewolf (ADR 0015): two client events; every transition is server-driven
+  WEREWOLF_NIGHT_ACTION: 'werewolf_night_action',
+  WEREWOLF_DAY_VOTE: 'werewolf_day_vote',
   // Shared gameplay receipt (TASK-SH-002)
   ACTION_RECEIPT: 'action_receipt',
   // Server clock sync (TASK-SH-001)
@@ -332,6 +337,21 @@ export interface RoomConfig {
   cipherGridPicturePack?: CipherGridPicturePack;
   /** Who Barks: random Leader or clockwise seat rotation. */
   dogRelayLeaderSelection?: DogRelayLeaderSelection;
+  // Werewolf config (ADR 0015)
+  /** How wolves first learn one another; fixed for the whole match. */
+  werewolfWolfReveal?: WerewolfWolfRevealMode;
+  /** How living wolves settle the night kill on their phones. */
+  werewolfWolfCoordination?: WerewolfWolfCoordinationMode;
+  /** Seconds per night wake slot (WOLVES/SEER/DOCTOR/WITCH/HUNTER_SHOT). */
+  werewolfNightSeconds?: number;
+  /** Day discussion length in seconds. */
+  werewolfDiscussionSeconds?: number;
+  /** Day vote length in seconds. */
+  werewolfVoteSeconds?: number;
+  /** Deal the Witch when the player count allows it (8+). */
+  werewolfWitchEnabled?: boolean;
+  /** Deal the Hunter when the player count allows it (9+). */
+  werewolfHunterEnabled?: boolean;
 }
 
 export interface RoomState {
@@ -376,6 +396,8 @@ export interface RoomState {
   /** Ciphergrid board — unrevealed card colours live in private state only. */
   cipherGridState?: CipherGridState;
   dogRelayState?: DogRelayPublicState;
+  /** Werewolf public state — roles, rosters, actions and votes are private. */
+  werewolfState?: WerewolfState;
 }
 
 export interface AvailableRoom {

@@ -518,6 +518,26 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: '4-player team deduction (Solar vs Lunar), clue giving and decoding',
     timeout: 180000,
   },
+
+  // --- Werewolf (ADR 0015: hostless local party, phones at the table) ---
+  {
+    id: 'werewolf-6p',
+    game: 'WEREWOLF',
+    lobbyButton: 'Werewolf',
+    players: 6,
+    description: 'PRIVATE_ROSTER + SECRET_BALLOT, night kills and day lynch to a winner',
+    configure: ['werewolf-fast'],
+    timeout: 600000,
+  },
+  {
+    id: 'werewolf-8p-consensus',
+    game: 'WEREWOLF',
+    lobbyButton: 'Werewolf',
+    players: 8,
+    description: 'SILENT_CONSENSUS wolves with witch/hunter disabled',
+    configure: ['werewolf-fast', 'werewolf-consensus'],
+    timeout: 600000,
+  },
 ];
 
 export function filterMatrix(idsOrPrefixes: string[]): MatrixEntry[] {

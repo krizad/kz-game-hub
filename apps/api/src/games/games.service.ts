@@ -53,6 +53,12 @@ import { validateConfig } from './card-game/card-engine.service';
 import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
+import { WerewolfService } from './werewolf/werewolf.service';
+import {
+  WerewolfNightActionKind,
+  WerewolfWolfCoordinationMode,
+  WerewolfWolfRevealMode,
+} from '@repo/types';
 import { CipherTeam, CipherRole, CipherClueCount } from '@repo/types';
 
 /** Result of leaving a room, so callers can react without sniffing shapes. */
@@ -114,6 +120,7 @@ export class GamesService {
     private readonly pokerService: PokerService,
     private readonly cipherGridService: CipherGridService,
     private readonly dogRelayService: DogRelayService,
+    private readonly werewolfService: WerewolfService,
     private readonly gameSettings: GameSettingsService,
     private readonly roomStartGuardService: RoomStartGuardService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
@@ -294,6 +301,15 @@ export class GamesService {
     } else if (gameType === GameType.DOG_RELAY) {
       room.config.dogRelayLeaderSelection ??= 'RANDOM';
       this.dogRelayService.initLobby(room);
+    } else if (gameType === GameType.WEREWOLF) {
+      room.config.werewolfWolfReveal ??= WerewolfWolfRevealMode.EYE_CONTACT;
+      room.config.werewolfWolfCoordination ??= WerewolfWolfCoordinationMode.SECRET_BALLOT;
+      room.config.werewolfNightSeconds = 20;
+      room.config.werewolfDiscussionSeconds = 180;
+      room.config.werewolfVoteSeconds = 60;
+      room.config.werewolfWitchEnabled = true;
+      room.config.werewolfHunterEnabled = true;
+      // WerewolfState is initialized when the game starts via assignRoles
     }
 
     this.syncBotPlayer(room);
@@ -403,6 +419,9 @@ export class GamesService {
       if (room.cipherGridState) {
         this.cipherGridService.remapSocketId(room.cipherGridState, oldSocketId, user.socketId);
       }
+      if (room.werewolfState) {
+        this.werewolfService.remapSocketId(room.werewolfState, oldSocketId, user.socketId);
+      }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
       if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
@@ -411,6 +430,9 @@ export class GamesService {
       if (room.gameType === GameType.DOG_RELAY) {
         this.dogRelayService.onReconnect(room, existingPlayer.id, Date.now());
         this.dogRelayService.refreshPrivateStates(room);
+      }
+      if (room.gameType === GameType.WEREWOLF) {
+        this.werewolfService.handleReconnect(room, existingPlayer.id);
       }
       this.playerSessionService.retain(code, existingPlayer.id, reconnectToken!, user.socketId);
     } else {
@@ -655,6 +677,9 @@ export class GamesService {
     }
     if (room.gameType === GameType.CIPHER_GRID && room.cipherGridState) {
       this.cipherGridService.handlePlayerRemoved(room, socketId);
+    }
+    if (room.gameType === GameType.WEREWOLF && room.werewolfState) {
+      this.werewolfService.handlePlayerDisconnect(room, socketId);
     }
   }
 
@@ -976,6 +1001,13 @@ export class GamesService {
     copyInteger('cipherGridTurnSeconds', 0, 300);
     copyEnum('cipherGridMode', ['WORDS', 'PICTURES']);
     copyEnum('cipherGridPicturePack', ['CLASSIC', 'MINIMAL']);
+    copyEnum('werewolfWolfReveal', ['EYE_CONTACT', 'PRIVATE_ROSTER']);
+    copyEnum('werewolfWolfCoordination', ['SECRET_BALLOT', 'LIVE_TALLY', 'SILENT_CONSENSUS']);
+    copyInteger('werewolfNightSeconds', 5, 90);
+    copyInteger('werewolfDiscussionSeconds', 30, 600);
+    copyInteger('werewolfVoteSeconds', 15, 180);
+    copyBoolean('werewolfWitchEnabled');
+    copyBoolean('werewolfHunterEnabled');
 
     return result;
   }
@@ -1145,6 +1177,13 @@ export class GamesService {
       }
     }
 
+    if (room.gameType === GameType.WEREWOLF) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.werewolfService.startGame(r, requesterId),
+      );
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     if (room.gameType === GameType.WHO_KNOW) {
       return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
@@ -1268,6 +1307,8 @@ export class GamesService {
         return this.withRoom(code, (r) => this.bananaThiefService.reset(r, requesterId));
       case GameType.CIPHER_GRID:
         return this.withRoom(code, (r) => this.cipherGridService.resetGame(r, requesterId));
+      case GameType.WEREWOLF:
+        return this.withRoom(code, (r) => this.werewolfService.reset(r, requesterId));
       default:
         return null;
     }
@@ -2061,6 +2102,29 @@ export class GamesService {
       if (room.gameType !== GameType.CIPHER_GRID) return null;
       return this.cipherGridService.handleTurnTimeout(room, deadline);
     });
+  }
+
+  werewolfNightAction(
+    code: string,
+    clientId: string,
+    action: WerewolfNightActionKind,
+    targetId: string,
+  ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) =>
+      this.werewolfService.handleNightAction(room, clientId, action, targetId),
+    );
+  }
+
+  werewolfDayVote(code: string, clientId: string, targetId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) =>
+      this.werewolfService.handleDayVote(room, clientId, targetId),
+    );
+  }
+
+  werewolfPhaseTimeout(code: string, deadline: number): RoomState | null {
+    return this.withRoom(code, (room) => this.werewolfService.handlePhaseTimeout(room, deadline));
   }
 
   private getPlayerId(room: RoomState, socketId: string): string | null {

@@ -68,6 +68,10 @@ export function getResultRevealPlan(room: RoomState): ResultRevealPlan | null {
       if (room.coupState?.phase === 'RESULT') key = 'result';
       kind = 'ROLES';
       break;
+    case GameType.WEREWOLF:
+      if (room.werewolfState?.phase === 'GAME_OVER') key = 'result';
+      kind = 'ROLES';
+      break;
     case GameType.WHO_AM_I:
       if (room.status === RoomStatus.RESULT && room.whoAmIState) key = 'result';
       break;

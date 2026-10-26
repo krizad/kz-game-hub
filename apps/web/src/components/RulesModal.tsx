@@ -18,6 +18,7 @@ import { PokerRules } from './games/poker/PokerRules';
 import { BananaThiefRules } from './games/banana-thief/BananaThiefRules';
 import { DogRelayRules } from './games/dog-relay/DogRelayRules';
 import { CipherGridRules } from './games/cipher-grid/CipherGridRules';
+import { WerewolfRules } from './games/werewolf/WerewolfRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
 import { GameDialog } from './core/GameDialog';
@@ -85,6 +86,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <DogRelayRules />;
       case GameType.CIPHER_GRID:
         return <CipherGridRules />;
+      case GameType.WEREWOLF:
+        return <WerewolfRules />;
       default:
         return null;
     }
@@ -296,6 +299,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.CIPHER_GRID ? 'bg-cyan-300 text-black border-2 border-black border border-cyan-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.cipherGrid')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.WEREWOLF) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.WEREWOLF)}
+                      className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WEREWOLF ? 'bg-indigo-300 text-black border-2 border-black border border-indigo-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.werewolf')}
                     </button>
                   )}
                 </div>

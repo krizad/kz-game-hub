@@ -27,6 +27,7 @@ import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
+import { WerewolfService } from './werewolf/werewolf.service';
 
 @Module({
   providers: [
@@ -58,6 +59,7 @@ import { DogRelayService } from './dog-relay/dog-relay.service';
     ArtistPresetService,
     CipherGridService,
     DogRelayService,
+    WerewolfService,
   ],
 })
 export class GamesModule {}

@@ -38,6 +38,7 @@ import {
   CipherClueCount,
   WhoAmICategoriesResponsePayload,
   ResultRevealActionPayload,
+  WerewolfNightActionKind,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -198,6 +199,8 @@ interface GameState {
   cipherNextRound: () => void;
   cipherReset: () => void;
   cipherCancelRound: (round: number) => void;
+  werewolfNightAction: (action: WerewolfNightActionKind, targetId: string) => void;
+  werewolfDayVote: (targetId: string) => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -1275,6 +1278,16 @@ export const useGameStore = create<GameState>((set, get) => {
 
     cipherCancelRound: (round: number) => {
       emitGameAction(SOCKET_EVENTS.CIPHER_CANCEL_ROUND, { payload: () => ({ round }) });
+    },
+
+    werewolfNightAction: (action: WerewolfNightActionKind, targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION, {
+        payload: () => ({ action, targetId }),
+      });
+    },
+
+    werewolfDayVote: (targetId: string) => {
+      emitGameAction(SOCKET_EVENTS.WEREWOLF_DAY_VOTE, { payload: () => ({ targetId }) });
     },
 
     spectateJoin: (code: string) => {

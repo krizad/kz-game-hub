@@ -306,6 +306,26 @@ export async function applyLobbyConfig(page: Page, steps: string[]) {
         }
         break;
       }
+      case 'werewolf-fast': {
+        // Werewolf pacing: minimum allowed timers (5s wakes, 30s talk, 15s vote).
+        await page.getByTestId('werewolf-setting-werewolfNightSeconds').fill('5');
+        await page.getByTestId('werewolf-setting-werewolfDiscussionSeconds').fill('30');
+        await page.getByTestId('werewolf-setting-werewolfVoteSeconds').fill('15');
+        break;
+      }
+      case 'werewolf-consensus': {
+        await page
+          .getByTestId('werewolf-setting-coordination')
+          .click()
+          .catch(() => {});
+        await page
+          .locator('button')
+          .filter({ hasText: /Unanimous|เห็นพร้อง/i })
+          .first()
+          .click()
+          .catch(() => {});
+        break;
+      }
       default:
         throw new Error(`Unknown lobby config step: ${key}`);
     }
@@ -1826,7 +1846,58 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playPoker(s, entry);
     case 'CIPHER_GRID':
       return playCipherGrid(s);
+    case 'WEREWOLF':
+      return playWerewolf(s);
     default:
       throw new Error(`No driver for game ${entry.game}`);
   }
+}
+
+/**
+ * Werewolf (ADR 0015): the UI drives everything — night action buttons, day
+ * vote buttons — until a winner banner appears. Each living player clicks the
+ * first available target, which deterministically lynches the first living
+ * player every day, so the match always terminates.
+ */
+async function playWerewolf(s: SimSession): Promise<void> {
+  const { host, players } = s;
+  await startGame(host);
+  await expect(host.getByTestId('werewolf-night-screen')).toBeVisible({ timeout: 15000 });
+
+  // Consensus wolves may never settle a kill (each excludes themselves from
+  // their own list), so matches finish through day lynches — allow enough
+  // loop budget for the slowest parity path (~5 day cycles at minimum timers).
+  for (let i = 0; i < 3000; i++) {
+    const isOver = await host
+      .locator('[data-testid="werewolf-winner-banner"]')
+      .isVisible()
+      .catch(() => false);
+    if (isOver) break;
+
+    let acted = false;
+    for (const p of players) {
+      // Night actions (wolves/seer/doctor/witch poison/hunter shot) and day votes
+      const nightArea = p.locator('[data-testid="werewolf-night-action-area"]');
+      if (await nightArea.isVisible().catch(() => false)) {
+        const target = nightArea
+          .locator('[data-testid="werewolf-target-btn"]:not([disabled])')
+          .first();
+        if (await target.isVisible().catch(() => false)) {
+          await target.click().catch(() => {});
+          acted = true;
+          continue;
+        }
+      }
+      const voteBtn = p.locator('[data-testid="werewolf-vote-btn"]:not([disabled])').first();
+      if (await voteBtn.isVisible().catch(() => false)) {
+        await voteBtn.click().catch(() => {});
+        acted = true;
+      }
+    }
+    if (!acted) await host.waitForTimeout(400);
+  }
+
+  await expect(host.getByTestId('werewolf-winner-banner')).toBeVisible({
+    timeout: 15000,
+  });
 }
