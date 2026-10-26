@@ -538,6 +538,16 @@ export const GAME_MATRIX: MatrixEntry[] = [
     configure: ['werewolf-fast', 'werewolf-consensus'],
     timeout: 600000,
   },
+
+  // --- Battleship (ADR 0016: Naval strategy, Team & Free-for-all) ---
+  {
+    id: 'battleship-ffa',
+    game: 'BATTLESHIP',
+    lobbyButton: 'Battleship',
+    players: 2,
+    description: 'Free-for-all 2-player naval battle royale',
+    timeout: 180000,
+  },
 ];
 
 export function filterMatrix(idsOrPrefixes: string[]): MatrixEntry[] {

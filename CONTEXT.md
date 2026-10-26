@@ -121,6 +121,23 @@ See [ADR 0013](docs/adr/0013-ciphergrid-word-and-picture-modes.md) for mode pres
 | Parity                     | The wolves' winning threshold: wolves win when living wolves equal or outnumber all other living players; the village wins when no wolf remains.                                                                                                                                                                                           |
 | Ghost view                 | What a dead player sees until the match ends: public information only — never another player's secret role.                                                                                                                                                                                                                                |
 
+## ยุทธการเรือรบ / Battleship vocabulary
+
+| Term                       | Definition                                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| ยุทธการเรือรบ / Battleship | The Thai/English display names of the naval strategy board game (identity: `BATTLESHIP`), supporting Team and Free-for-all modes.            |
+| Ocean Grid                 | The coordinate grid (e.g. 10x10 or 8x8) where a player or team secretly places their naval fleet.                                            |
+| Target Grid                | The tracking grid displaying shot results (Hit / Miss / Sunk) fired against opponent(s).                                                     |
+| Fleet                      | The set of ships (e.g. Carrier, Battleship, Cruiser, Submarine, Destroyer) placed on the ocean grid.                                         |
+| Placement Phase            | The initial secret phase where players/teams arrange their ships without overlapping or boundary violations.                                 |
+| Shared Board Team          | Team mode where members share 1 ocean grid and 1 fleet, cooperating on targeting.                                                            |
+| Multi Board Team           | Team mode where each player owns an individual ocean grid, winning when all opposing fleets are eliminated.                                  |
+| Simultaneous Volley        | All living players submit a target coordinate simultaneously within a countdown window.                                                      |
+| Hit Streak                 | Optional sequential rule granting a consecutive shot immediately upon scoring a hit.                                                         |
+| Teammate Ping              | A temporary visual coordinate recommendation marked on the target grid by a teammate.                                                        |
+| Strict Ghost View          | Eliminated player state allowing view of public hits/misses while keeping hidden opponent ship locations secret.                             |
+| Shell Collision            | In simultaneous volley, when two or more players target the same coordinate on the same victim, shells collide mid-air and deal zero damage. |
+
 ## MVP preset contracts
 
 | Preset   | Mandatory mechanics                                                                                                            | Explicitly deferred                                 |

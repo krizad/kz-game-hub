@@ -26,6 +26,7 @@ const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.DOG_RELAY, labelKey: 'lobby.gameNames.dogRelay' },
   { type: GameType.CIPHER_GRID, labelKey: 'rules.modal.tabs.cipherGrid' },
   { type: GameType.WEREWOLF, labelKey: 'rules.modal.tabs.werewolf' },
+  { type: GameType.BATTLESHIP, labelKey: 'rules.modal.tabs.battleship' },
 ];
 
 interface AdminGameSettingsProps {

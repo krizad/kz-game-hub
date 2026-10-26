@@ -24,6 +24,7 @@ import { CipherGridView } from '@/components/games/cipher-grid/CipherGridView';
 import { DogRelayView } from '@/components/games/dog-relay/DogRelayView';
 import { DogRelaySeats } from '@/components/games/dog-relay/DogRelaySeats';
 import { WerewolfView } from '@/components/games/werewolf/WerewolfView';
+import { BattleshipView } from '@/components/games/battleship/BattleshipView';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -170,6 +171,12 @@ function getGameStatus(
         }
       }
       break;
+    case GameType.BATTLESHIP:
+      if (room.battleshipState) {
+        phase = room.battleshipState.phase;
+        activePlayerId = room.battleshipState.turnPlayerId;
+      }
+      break;
     default:
       break;
   }
@@ -201,6 +208,7 @@ function getGameStatus(
     [GameType.CIPHER_GRID]: 'bg-amber-400',
     [GameType.DOG_RELAY]: 'bg-amber-300',
     [GameType.WEREWOLF]: 'bg-indigo-300',
+    [GameType.BATTLESHIP]: 'bg-sky-400',
   };
 
   return {
@@ -254,6 +262,9 @@ export function GameViewManager() {
     }
     if (room.gameType === GameType.WEREWOLF && room.status !== RoomStatus.LOBBY) {
       return <WerewolfView />;
+    }
+    if (room.gameType === GameType.BATTLESHIP && room.status !== RoomStatus.LOBBY) {
+      return <BattleshipView />;
     }
 
     return (

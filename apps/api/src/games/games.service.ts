@@ -54,6 +54,15 @@ import { CARD_GAME_PRESETS, presetForConfig } from './card-game/presets';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
+import { BattleshipService } from './battleship/battleship.service';
+import {
+  BattleshipPlaceShipsPayload,
+  BattleshipFirePayload,
+  BattleshipPingPayload,
+  BattleshipMode,
+  BattleshipTeamFleetMode,
+  BattleshipGridPreset,
+} from '@repo/types';
 import {
   WerewolfNightActionKind,
   WerewolfWolfCoordinationMode,
@@ -121,6 +130,7 @@ export class GamesService {
     private readonly cipherGridService: CipherGridService,
     private readonly dogRelayService: DogRelayService,
     private readonly werewolfService: WerewolfService,
+    private readonly battleshipService: BattleshipService,
     private readonly gameSettings: GameSettingsService,
     private readonly roomStartGuardService: RoomStartGuardService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
@@ -310,6 +320,8 @@ export class GamesService {
       room.config.werewolfWitchEnabled = true;
       room.config.werewolfHunterEnabled = true;
       // WerewolfState is initialized when the game starts via assignRoles
+    } else if (gameType === GameType.BATTLESHIP) {
+      this.battleshipService.initLobby(room);
     }
 
     this.syncBotPlayer(room);
@@ -422,6 +434,9 @@ export class GamesService {
       if (room.werewolfState) {
         this.werewolfService.remapSocketId(room.werewolfState, oldSocketId, user.socketId);
       }
+      if (room.battleshipState) {
+        this.battleshipService.remapSocketId(room.battleshipState, oldSocketId, user.socketId);
+      }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
       if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
@@ -433,6 +448,9 @@ export class GamesService {
       }
       if (room.gameType === GameType.WEREWOLF) {
         this.werewolfService.handleReconnect(room, existingPlayer.id);
+      }
+      if (room.gameType === GameType.BATTLESHIP) {
+        this.battleshipService.handleReconnect(room, existingPlayer.id);
       }
       this.playerSessionService.retain(code, existingPlayer.id, reconnectToken!, user.socketId);
     } else {
@@ -680,6 +698,9 @@ export class GamesService {
     }
     if (room.gameType === GameType.WEREWOLF && room.werewolfState) {
       this.werewolfService.handlePlayerDisconnect(room, socketId);
+    }
+    if (room.gameType === GameType.BATTLESHIP && room.battleshipState) {
+      this.battleshipService.handlePlayerDisconnect(room, socketId);
     }
   }
 
@@ -1008,6 +1029,11 @@ export class GamesService {
     copyInteger('werewolfVoteSeconds', 15, 180);
     copyBoolean('werewolfWitchEnabled');
     copyBoolean('werewolfHunterEnabled');
+    copyEnum('battleshipMode', ['FREE_FOR_ALL', 'TEAM_VS_TEAM']);
+    copyEnum('battleshipTeamFleetMode', ['SHARED_BOARD', 'MULTI_BOARD']);
+    copyEnum('battleshipGridPreset', ['CLASSIC_10x10', 'QUICK_8x8']);
+    copyBoolean('battleshipHitStreak');
+    copyInteger('battleshipTurnSeconds', 5, 120);
 
     return result;
   }
@@ -1184,6 +1210,13 @@ export class GamesService {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.BATTLESHIP) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.battleshipService.startGame(r, requesterId),
+      );
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     if (room.gameType === GameType.WHO_KNOW) {
       return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
@@ -1309,6 +1342,8 @@ export class GamesService {
         return this.withRoom(code, (r) => this.cipherGridService.resetGame(r, requesterId));
       case GameType.WEREWOLF:
         return this.withRoom(code, (r) => this.werewolfService.reset(r, requesterId));
+      case GameType.BATTLESHIP:
+        return this.withRoom(code, (r) => this.battleshipService.reset(r, requesterId));
       default:
         return null;
     }
@@ -2125,6 +2160,38 @@ export class GamesService {
 
   werewolfPhaseTimeout(code: string, deadline: number): RoomState | null {
     return this.withRoom(code, (room) => this.werewolfService.handlePhaseTimeout(room, deadline));
+  }
+
+  battleshipPlaceShips(
+    code: string,
+    clientId: string,
+    payload: BattleshipPlaceShipsPayload,
+  ): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => {
+      const outcome = this.battleshipService.placeShips(room, clientId, payload);
+      return outcome.room ?? null;
+    });
+  }
+
+  battleshipFire(code: string, clientId: string, payload: BattleshipFirePayload): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => {
+      const outcome = this.battleshipService.fireShot(room, clientId, payload);
+      return outcome.room ?? null;
+    });
+  }
+
+  battleshipPing(code: string, clientId: string, payload: BattleshipPingPayload): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => {
+      const outcome = this.battleshipService.pingCoordinate(room, clientId, payload);
+      return outcome.room ?? null;
+    });
+  }
+
+  battleshipPhaseTimeout(code: string, deadline: number): RoomState | null {
+    return this.withRoom(code, (room) => this.battleshipService.handleTimeout(room, deadline));
   }
 
   private getPlayerId(room: RoomState, socketId: string): string | null {

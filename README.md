@@ -27,6 +27,8 @@ Built as a modern web application within a Turborepo.
 
 - **Who Barks (หมาตัวไหน):** A face-to-face acting relay for 5–9 players, each using their own phone. Pass a secret suspect/victim scene while one hidden troublemaker distorts it; restore the pair or vote out the troublemaker. Includes 30 numbered bilingual dog characters and [base-image generation prompts](docs/games/who-barks-cards.md). Artwork is optional.
 
+- **Battleship (ยุทธการเรือรบ):** Modern naval strategy supporting both Team vs Team (Shared Fleet or Multi-Board) and Free-for-all Battle Royale for 2–8 players. Features mobile-first fleet placement with auto-randomize, real-time teammate ping coordination, sequential hit streaks, and simultaneous volleys with mid-air shell collision explosions. See [ADR 0016](docs/adr/0016-battleship-team-and-ffa-architecture.md).
+
 ## ✨ Core Features
 
 - **Real-time Multiplayer:** Play live with your friends using WebSockets.

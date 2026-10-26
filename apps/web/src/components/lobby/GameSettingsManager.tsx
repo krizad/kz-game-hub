@@ -13,6 +13,7 @@ import { SaboteurSettings } from '@/components/games/saboteur/SaboteurSettings';
 import { BananaThiefSettings } from '@/components/games/banana-thief/BananaThiefSettings';
 import { WerewolfSettings } from '@/components/games/werewolf/WerewolfSettings';
 import { DogRelaySettings } from '@/components/games/dog-relay/DogRelaySettings';
+import { BattleshipSettings } from '@/components/games/battleship/BattleshipSettings';
 
 export function GameSettingsManager() {
   const { room, socketId, updateConfig } = useGameStore();
@@ -29,7 +30,8 @@ export function GameSettingsManager() {
     room.gameType === GameType.SABOTEUR ||
     room.gameType === GameType.BANANA_THIEF ||
     room.gameType === GameType.DOG_RELAY ||
-    room.gameType === GameType.WEREWOLF;
+    room.gameType === GameType.WEREWOLF ||
+    room.gameType === GameType.BATTLESHIP;
 
   const isHost = room.roomHostId === socketId;
   const visibility = room.config.visibility ?? 'PUBLIC';
@@ -102,6 +104,7 @@ export function GameSettingsManager() {
           {room.gameType === GameType.SABOTEUR && <SaboteurSettings />}
           {room.gameType === GameType.BANANA_THIEF && <BananaThiefSettings />}
           {room.gameType === GameType.WEREWOLF && <WerewolfSettings />}
+          {room.gameType === GameType.BATTLESHIP && <BattleshipSettings />}
         </div>
       )}
     </div>

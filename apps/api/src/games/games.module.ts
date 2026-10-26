@@ -28,6 +28,7 @@ import { ActionReceiptService } from './action-receipt.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
+import { BattleshipService } from './battleship/battleship.service';
 
 @Module({
   providers: [
@@ -60,6 +61,7 @@ import { WerewolfService } from './werewolf/werewolf.service';
     CipherGridService,
     DogRelayService,
     WerewolfService,
+    BattleshipService,
   ],
 })
 export class GamesModule {}

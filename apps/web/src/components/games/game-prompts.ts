@@ -498,6 +498,21 @@ export function getGamePrompt(
       }
       break;
     }
+
+    case GameType.BATTLESHIP: {
+      const state = room.battleshipState;
+      if (isSpectator) return { key: 'gamePrompts.spectating' };
+      if (!state) return { key: 'gamePrompts.spectating' };
+      if (state.phase === 'PLACEMENT') return { key: 'battleship.placementTitle' };
+      if (state.phase === 'PLAYING') {
+        if (state.mode === 'FREE_FOR_ALL') return { key: 'battleship.simultaneousPrompt' };
+        return state.turnPlayerId === socketId
+          ? { key: 'battleship.yourTurnToFire' }
+          : { key: 'battleship.waitingEnemyTurn' };
+      }
+      if (state.phase === 'RESULT') return { key: 'battleship.victory' };
+      break;
+    }
   }
 
   return { key: 'gameStatus.groupAction' };

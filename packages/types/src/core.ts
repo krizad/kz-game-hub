@@ -29,6 +29,12 @@ import { CipherGridState, CipherGridMode } from './cipher-grid';
 import { CipherGridPicturePack } from './cipher-grid-pictures';
 import { DogRelayPublicState, DogRelayLeaderSelection } from './dog-relay';
 import { WerewolfState, WerewolfWolfRevealMode, WerewolfWolfCoordinationMode } from './werewolf';
+import {
+  BattleshipState,
+  BattleshipMode,
+  BattleshipTeamFleetMode,
+  BattleshipGridPreset,
+} from './battleship';
 import type { ResultRevealState } from './result-reveal';
 
 export const APP_VERSION = 'v1.0.0';
@@ -62,6 +68,7 @@ export enum GameType {
   CIPHER_GRID = 'CIPHER_GRID',
   DOG_RELAY = 'DOG_RELAY',
   WEREWOLF = 'WEREWOLF',
+  BATTLESHIP = 'BATTLESHIP',
 }
 
 /**
@@ -204,6 +211,11 @@ export const SOCKET_EVENTS = {
   // Werewolf (ADR 0015): two client events; every transition is server-driven
   WEREWOLF_NIGHT_ACTION: 'werewolf_night_action',
   WEREWOLF_DAY_VOTE: 'werewolf_day_vote',
+  // Battleship (ADR 0016)
+  BATTLESHIP_PLACE_SHIPS: 'battleship_place_ships',
+  BATTLESHIP_FIRE: 'battleship_fire',
+  BATTLESHIP_PING: 'battleship_ping',
+  BATTLESHIP_RESET: 'battleship_reset',
   // Shared gameplay receipt (TASK-SH-002)
   ACTION_RECEIPT: 'action_receipt',
   // Server clock sync (TASK-SH-001)
@@ -352,6 +364,12 @@ export interface RoomConfig {
   werewolfWitchEnabled?: boolean;
   /** Deal the Hunter when the player count allows it (9+). */
   werewolfHunterEnabled?: boolean;
+  // Battleship config (ADR 0016)
+  battleshipMode?: BattleshipMode;
+  battleshipTeamFleetMode?: BattleshipTeamFleetMode;
+  battleshipGridPreset?: BattleshipGridPreset;
+  battleshipHitStreak?: boolean;
+  battleshipTurnSeconds?: number;
 }
 
 export interface RoomState {
@@ -398,6 +416,8 @@ export interface RoomState {
   dogRelayState?: DogRelayPublicState;
   /** Werewolf public state — roles, rosters, actions and votes are private. */
   werewolfState?: WerewolfState;
+  /** Battleship public state — unrevealed ships live in private state only. */
+  battleshipState?: BattleshipState;
 }
 
 export interface AvailableRoom {

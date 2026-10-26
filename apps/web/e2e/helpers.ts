@@ -80,6 +80,8 @@ export async function extractRoomCode(page: Page): Promise<string> {
     'Banana Thief',
     'Ciphergrid',
     'สายลับคำใบ้',
+    'Battleship',
+    'ยุทธการเรือรบ',
   ];
   for (const name of knownNames) {
     const idx = bodyText.indexOf(name);

@@ -21,6 +21,7 @@ import { PokerService } from './poker/poker.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
+import { BattleshipService } from './battleship/battleship.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
 import { RoomState, RoomStatus, GameType, Role, SOCKET_EVENTS } from '@repo/types';
@@ -279,6 +280,7 @@ describe('GamesService', () => {
         { provide: CipherGridService, useValue: mockGameServices.cipherGrid },
         DogRelayService,
         WerewolfService,
+        BattleshipService,
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

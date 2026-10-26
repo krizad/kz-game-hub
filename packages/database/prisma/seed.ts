@@ -70,6 +70,7 @@ async function main() {
     'CIPHER_GRID',
     'DOG_RELAY',
     'WEREWOLF',
+    'BATTLESHIP',
     // Tic-Tac-Toe mode flags (gate individual modes, not whole games)
     'GOBBLER_MODE',
     'ULTIMATE_MODE',

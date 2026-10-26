@@ -54,6 +54,9 @@ import {
   BOT_SOCKET_ID,
   WerewolfNightActionKind,
   WerewolfPhase,
+  BattleshipPlaceShipsPayload,
+  BattleshipFirePayload,
+  BattleshipPingPayload,
 } from '@repo/types';
 import { buildDogRelayResultRows } from './dog-relay/dog-relay-results';
 import { syncResultReveal } from './result-reveal';
@@ -2101,6 +2104,53 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
+  // --- Battleship (ADR 0016) ---
+
+  @SubscribeMessage(SOCKET_EVENTS.BATTLESHIP_PLACE_SHIPS)
+  handleBattleshipPlaceShips(
+    @MessageBody() data: { code: string; payload: BattleshipPlaceShipsPayload },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.battleshipPlaceShips(data.code, client.id, data.payload);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid ship placement' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.BATTLESHIP_FIRE)
+  handleBattleshipFire(
+    @MessageBody() data: { code: string; payload: BattleshipFirePayload },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.battleshipFire(data.code, client.id, data.payload);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid shot' });
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.BATTLESHIP_PING)
+  handleBattleshipPing(
+    @MessageBody() data: { code: string; payload: BattleshipPingPayload },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.battleshipPing(data.code, client.id, data.payload);
+    if (room) {
+      this.broadcastRoomState(room);
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.BATTLESHIP_RESET)
+  handleBattleshipReset(@MessageBody() data: { code: string }, @ConnectedSocket() client: Socket) {
+    const room = this.gamesService.resetGame(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    }
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.LEADERBOARD_GET)
   async handleLeaderboardGet(
     @MessageBody() data: { gameType?: string },
@@ -2172,6 +2222,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.WEREWOLF) {
       this.syncWerewolfTimer(room);
     }
+    if (room.gameType === GameType.BATTLESHIP) {
+      this.syncBattleshipTimer(room);
+    }
+  }
+
+  private syncBattleshipTimer(room: RoomState): void {
+    const state = room.battleshipState;
+    if (!state || state.phase === 'RESULT' || state.turnDeadline === null) {
+      this.roomTimerService.cancel(room.code, 'battleship');
+      return;
+    }
+    const deadline = state.turnDeadline;
+    this.roomTimerService.schedule(room.code, 'battleship', deadline, () => {
+      const updated = this.gamesService.battleshipPhaseTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
   }
 
   /**

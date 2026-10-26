@@ -244,6 +244,18 @@ export const GAME_CATALOG: GameCatalogItem[] = [
     textRequired: false,
     styles: ['party', 'bluffing'],
   },
+  {
+    type: GameType.BATTLESHIP,
+    icon: '⚓',
+    catalogKey: 'battleship',
+    color: 'bg-sky-400',
+    minPlayers: 2,
+    maxPlayers: 8,
+    cooperative: true,
+    audioRequired: false,
+    textRequired: false,
+    styles: ['competitive', 'cooperative'],
+  },
 ];
 
 export function getGameCatalogItem(type: GameType): GameCatalogItem | undefined {

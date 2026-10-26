@@ -39,6 +39,7 @@ import {
   WhoAmICategoriesResponsePayload,
   ResultRevealActionPayload,
   WerewolfNightActionKind,
+  ShipPlacement,
 } from '@repo/types';
 import { toast } from 'react-hot-toast';
 import { useI18nStore } from './useI18nStore';
@@ -201,6 +202,10 @@ interface GameState {
   cipherCancelRound: (round: number) => void;
   werewolfNightAction: (action: WerewolfNightActionKind, targetId: string) => void;
   werewolfDayVote: (targetId: string) => void;
+  battleshipPlaceShips: (ships: ShipPlacement[]) => void;
+  battleshipFire: (targetId: string, x: number, y: number) => void;
+  battleshipPing: (x: number, y: number) => void;
+  battleshipReset: () => void;
   spectateJoin: (code: string) => void;
 
   musicTriviaTrackAnswer: MusicTriviaTrackAnswerPayload | null;
@@ -1288,6 +1293,28 @@ export const useGameStore = create<GameState>((set, get) => {
 
     werewolfDayVote: (targetId: string) => {
       emitGameAction(SOCKET_EVENTS.WEREWOLF_DAY_VOTE, { payload: () => ({ targetId }) });
+    },
+
+    battleshipPlaceShips: (ships: ShipPlacement[]) => {
+      emitGameAction(SOCKET_EVENTS.BATTLESHIP_PLACE_SHIPS, {
+        payload: () => ({ payload: { ships } }),
+      });
+    },
+
+    battleshipFire: (targetId: string, x: number, y: number) => {
+      emitGameAction(SOCKET_EVENTS.BATTLESHIP_FIRE, {
+        payload: () => ({ payload: { targetId, x, y } }),
+      });
+    },
+
+    battleshipPing: (x: number, y: number) => {
+      emitGameAction(SOCKET_EVENTS.BATTLESHIP_PING, {
+        payload: () => ({ payload: { x, y } }),
+      });
+    },
+
+    battleshipReset: () => {
+      emitGameAction(SOCKET_EVENTS.BATTLESHIP_RESET);
     },
 
     spectateJoin: (code: string) => {

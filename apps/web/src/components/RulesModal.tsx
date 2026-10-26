@@ -19,6 +19,7 @@ import { BananaThiefRules } from './games/banana-thief/BananaThiefRules';
 import { DogRelayRules } from './games/dog-relay/DogRelayRules';
 import { CipherGridRules } from './games/cipher-grid/CipherGridRules';
 import { WerewolfRules } from './games/werewolf/WerewolfRules';
+import { BattleshipRules } from './games/battleship/BattleshipRules';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameStore } from '@/store/useGameStore';
 import { GameDialog } from './core/GameDialog';
@@ -88,6 +89,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <CipherGridRules />;
       case GameType.WEREWOLF:
         return <WerewolfRules />;
+      case GameType.BATTLESHIP:
+        return <BattleshipRules />;
       default:
         return null;
     }
@@ -307,6 +310,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.WEREWOLF ? 'bg-indigo-300 text-black border-2 border-black border border-indigo-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.werewolf')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.BATTLESHIP) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.BATTLESHIP)}
+                      className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.BATTLESHIP ? 'bg-sky-400 text-black border-2 border-black border border-sky-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.battleship')}
                     </button>
                   )}
                 </div>
