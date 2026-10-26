@@ -247,6 +247,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.BATTLESHIP,
     icon: '⚓',
+    coverImage: '/images/covers/battleship.jpg',
     catalogKey: 'battleship',
     color: 'bg-sky-400',
     minPlayers: 2,
