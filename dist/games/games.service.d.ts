@@ -23,6 +23,8 @@ import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
+import { WerewolfService } from './werewolf/werewolf.service';
+import { WerewolfNightActionKind } from '@repo/types';
 import { CipherTeam, CipherRole, CipherClueCount } from '@repo/types';
 export type LeaveRoomResult = {
     outcome: 'ROOM_CLOSED';
@@ -65,6 +67,7 @@ export declare class GamesService {
     private readonly pokerService;
     private readonly cipherGridService;
     private readonly dogRelayService;
+    private readonly werewolfService;
     private readonly gameSettings;
     private readonly roomStartGuardService;
     private readonly actionReceiptService;
@@ -74,7 +77,7 @@ export declare class GamesService {
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, cipherGridService: CipherGridService, dogRelayService: DogRelayService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
@@ -256,5 +259,8 @@ export declare class GamesService {
     cipherCancelRound(code: string, clientId: string, round: number): RoomState | null;
     cipherRespondChallenge(code: string, clientId: string, clueId: string, accept: boolean): RoomState | null;
     cipherTurnTimeout(code: string, deadline: number): RoomState | null;
+    werewolfNightAction(code: string, clientId: string, action: WerewolfNightActionKind, targetId: string): RoomState | null;
+    werewolfDayVote(code: string, clientId: string, targetId: string): RoomState | null;
+    werewolfPhaseTimeout(code: string, deadline: number): RoomState | null;
     private getPlayerId;
 }

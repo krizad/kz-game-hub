@@ -405,6 +405,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 else if (gameType === types_1.GameType.CIPHER_GRID) {
                     msg = 'Cannot start game. Need at least 4 players.';
                 }
+                else if (gameType === types_1.GameType.WEREWOLF) {
+                    msg = 'Cannot start game. Need 6-12 players for Werewolf.';
+                }
             }
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: msg });
             const currentRoom = result?.room ?? roomInfo;
@@ -1438,6 +1441,24 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room)
             this.broadcastRoomState(room);
     }
+    handleWerewolfNightAction(data, client) {
+        const room = this.gamesService.werewolfNightAction(data.code, client.id, data.action, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid night action' });
+        }
+    }
+    handleWerewolfDayVote(data, client) {
+        const room = this.gamesService.werewolfDayVote(data.code, client.id, data.targetId);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid vote' });
+        }
+    }
     async handleLeaderboardGet(data, client) {
         const leaderboard = await this.leaderboardService.getLeaderboard(data?.gameType);
         client.emit(types_1.SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
@@ -1492,6 +1513,25 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.CIPHER_GRID) {
             this.syncCipherGridTimer(room);
         }
+        if (room.gameType === types_1.GameType.WEREWOLF) {
+            this.syncWerewolfTimer(room);
+        }
+    }
+    syncWerewolfTimer(room) {
+        const state = room.werewolfState;
+        if (!state ||
+            state.phase === types_1.WerewolfPhase.GAME_OVER ||
+            state.paused ||
+            state.phaseEndsAt === null) {
+            this.roomTimerService.cancel(room.code, 'werewolf');
+            return;
+        }
+        const deadline = state.phaseEndsAt;
+        this.roomTimerService.schedule(room.code, 'werewolf', deadline, () => {
+            const updated = this.gamesService.werewolfPhaseTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
     }
     syncDogRelayTimer(room) {
         const state = room.dogRelayState;
@@ -2068,6 +2108,14 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         if (event === types_1.SOCKET_EVENTS.BANANA_THIEF_REACTION) {
             return types_1.BANANA_THIEF_REACTIONS.includes(data.emoji);
+        }
+        if (event === types_1.SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION) {
+            return (['KILL', 'CHECK', 'HEAL', 'POISON', 'SHOT'].includes(data.action) &&
+                typeof data.targetId === 'string' &&
+                data.targetId.length <= 64);
+        }
+        if (event === types_1.SOCKET_EVENTS.WEREWOLF_DAY_VOTE) {
+            return typeof data.targetId === 'string' && data.targetId.length <= 64;
         }
         if (event === types_1.SOCKET_EVENTS.CIPHER_ASSIGN_TEAM) {
             return ((data.team === null ||
@@ -2967,6 +3015,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleResultRevealAction", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleWerewolfNightAction", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.WEREWOLF_DAY_VOTE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleWerewolfDayVote", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.LEADERBOARD_GET),
     __param(0, (0, websockets_1.MessageBody)()),
