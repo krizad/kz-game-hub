@@ -7,7 +7,7 @@ import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind, BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -351,6 +351,21 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         code: string;
         targetId: string;
     }, client: Socket): void;
+    handleBattleshipPlaceShips(data: {
+        code: string;
+        payload: BattleshipPlaceShipsPayload;
+    }, client: Socket): void;
+    handleBattleshipFire(data: {
+        code: string;
+        payload: BattleshipFirePayload;
+    }, client: Socket): void;
+    handleBattleshipPing(data: {
+        code: string;
+        payload: BattleshipPingPayload;
+    }, client: Socket): void;
+    handleBattleshipReset(data: {
+        code: string;
+    }, client: Socket): void;
     handleLeaderboardGet(data: {
         gameType?: string;
     }, client: Socket): Promise<void>;
@@ -359,6 +374,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         name: string;
     }, client: Socket): void;
     private broadcastRoomState;
+    private syncBattleshipTimer;
     private syncWerewolfTimer;
     private syncDogRelayTimer;
     private emitMusicTriviaSyncPlay;

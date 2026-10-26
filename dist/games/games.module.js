@@ -37,6 +37,7 @@ const action_receipt_service_1 = require("./action-receipt.service");
 const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const werewolf_service_1 = require("./werewolf/werewolf.service");
+const battleship_service_1 = require("./battleship/battleship.service");
 let GamesModule = class GamesModule {
 };
 exports.GamesModule = GamesModule;
@@ -72,6 +73,7 @@ exports.GamesModule = GamesModule = __decorate([
             cipher_grid_service_1.CipherGridService,
             dog_relay_service_1.DogRelayService,
             werewolf_service_1.WerewolfService,
+            battleship_service_1.BattleshipService,
         ],
     })
 ], GamesModule);

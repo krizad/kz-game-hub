@@ -1459,6 +1459,36 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid vote' });
         }
     }
+    handleBattleshipPlaceShips(data, client) {
+        const room = this.gamesService.battleshipPlaceShips(data.code, client.id, data.payload);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid ship placement' });
+        }
+    }
+    handleBattleshipFire(data, client) {
+        const room = this.gamesService.battleshipFire(data.code, client.id, data.payload);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid shot' });
+        }
+    }
+    handleBattleshipPing(data, client) {
+        const room = this.gamesService.battleshipPing(data.code, client.id, data.payload);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+    }
+    handleBattleshipReset(data, client) {
+        const room = this.gamesService.resetGame(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+    }
     async handleLeaderboardGet(data, client) {
         const leaderboard = await this.leaderboardService.getLeaderboard(data?.gameType);
         client.emit(types_1.SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
@@ -1516,6 +1546,22 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.WEREWOLF) {
             this.syncWerewolfTimer(room);
         }
+        if (room.gameType === types_1.GameType.BATTLESHIP) {
+            this.syncBattleshipTimer(room);
+        }
+    }
+    syncBattleshipTimer(room) {
+        const state = room.battleshipState;
+        if (!state || state.phase === 'RESULT' || state.turnDeadline === null) {
+            this.roomTimerService.cancel(room.code, 'battleship');
+            return;
+        }
+        const deadline = state.turnDeadline;
+        this.roomTimerService.schedule(room.code, 'battleship', deadline, () => {
+            const updated = this.gamesService.battleshipPhaseTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
     }
     syncWerewolfTimer(room) {
         const state = room.werewolfState;
@@ -3031,6 +3077,38 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleWerewolfDayVote", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BATTLESHIP_PLACE_SHIPS),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBattleshipPlaceShips", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BATTLESHIP_FIRE),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBattleshipFire", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BATTLESHIP_PING),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBattleshipPing", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BATTLESHIP_RESET),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleBattleshipReset", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.LEADERBOARD_GET),
     __param(0, (0, websockets_1.MessageBody)()),

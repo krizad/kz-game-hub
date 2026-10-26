@@ -42,6 +42,7 @@ const presets_1 = require("./card-game/presets");
 const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const werewolf_service_1 = require("./werewolf/werewolf.service");
+const battleship_service_1 = require("./battleship/battleship.service");
 const types_2 = require("@repo/types");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
@@ -49,7 +50,7 @@ let GamesService = GamesService_1 = class GamesService {
         const room = this.rooms.get(code);
         return room && (0, result_reveal_1.applyResultRevealAction)(room, socketId, payload) ? room : null;
     }
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, dogRelayService, werewolfService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, dogRelayService, werewolfService, battleshipService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -72,6 +73,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.cipherGridService = cipherGridService;
         this.dogRelayService = dogRelayService;
         this.werewolfService = werewolfService;
+        this.battleshipService = battleshipService;
         this.gameSettings = gameSettings;
         this.roomStartGuardService = roomStartGuardService;
         this.actionReceiptService = actionReceiptService;
@@ -256,6 +258,9 @@ let GamesService = GamesService_1 = class GamesService {
             room.config.werewolfWitchEnabled = true;
             room.config.werewolfHunterEnabled = true;
         }
+        else if (gameType === types_1.GameType.BATTLESHIP) {
+            this.battleshipService.initLobby(room);
+        }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
         return room;
@@ -348,6 +353,9 @@ let GamesService = GamesService_1 = class GamesService {
             if (room.werewolfState) {
                 this.werewolfService.remapSocketId(room.werewolfState, oldSocketId, user.socketId);
             }
+            if (room.battleshipState) {
+                this.battleshipService.remapSocketId(room.battleshipState, oldSocketId, user.socketId);
+            }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             if (room.gameType === types_1.GameType.WHO_AM_I && room.whoAmIState) {
                 this.whoAmIService.syncVisibleWords(room);
@@ -358,6 +366,9 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.gameType === types_1.GameType.WEREWOLF) {
                 this.werewolfService.handleReconnect(room, existingPlayer.id);
+            }
+            if (room.gameType === types_1.GameType.BATTLESHIP) {
+                this.battleshipService.handleReconnect(room, existingPlayer.id);
             }
             this.playerSessionService.retain(code, existingPlayer.id, reconnectToken, user.socketId);
         }
@@ -561,6 +572,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.gameType === types_1.GameType.WEREWOLF && room.werewolfState) {
             this.werewolfService.handlePlayerDisconnect(room, socketId);
+        }
+        if (room.gameType === types_1.GameType.BATTLESHIP && room.battleshipState) {
+            this.battleshipService.handlePlayerDisconnect(room, socketId);
         }
     }
     transferHost(room, formerHostSocketId) {
@@ -841,6 +855,11 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('werewolfVoteSeconds', 15, 180);
         copyBoolean('werewolfWitchEnabled');
         copyBoolean('werewolfHunterEnabled');
+        copyEnum('battleshipMode', ['FREE_FOR_ALL', 'TEAM_VS_TEAM']);
+        copyEnum('battleshipTeamFleetMode', ['SHARED_BOARD', 'MULTI_BOARD']);
+        copyEnum('battleshipGridPreset', ['CLASSIC_10x10', 'QUICK_8x8']);
+        copyBoolean('battleshipHitStreak');
+        copyInteger('battleshipTurnSeconds', 5, 120);
         return result;
     }
     isViewerClient(room, socketId) {
@@ -965,6 +984,10 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.werewolfService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.BATTLESHIP) {
+            const startedRoom = this.withRoom(code, (r) => this.battleshipService.startGame(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
         }
@@ -1072,6 +1095,8 @@ let GamesService = GamesService_1 = class GamesService {
                 return this.withRoom(code, (r) => this.cipherGridService.resetGame(r, requesterId));
             case types_1.GameType.WEREWOLF:
                 return this.withRoom(code, (r) => this.werewolfService.reset(r, requesterId));
+            case types_1.GameType.BATTLESHIP:
+                return this.withRoom(code, (r) => this.battleshipService.reset(r, requesterId));
             default:
                 return null;
         }
@@ -1663,6 +1688,33 @@ let GamesService = GamesService_1 = class GamesService {
     werewolfPhaseTimeout(code, deadline) {
         return this.withRoom(code, (room) => this.werewolfService.handlePhaseTimeout(room, deadline));
     }
+    battleshipPlaceShips(code, clientId, payload) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const outcome = this.battleshipService.placeShips(room, clientId, payload);
+            return outcome.room ?? null;
+        });
+    }
+    battleshipFire(code, clientId, payload) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const outcome = this.battleshipService.fireShot(room, clientId, payload);
+            return outcome.room ?? null;
+        });
+    }
+    battleshipPing(code, clientId, payload) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => {
+            const outcome = this.battleshipService.pingCoordinate(room, clientId, payload);
+            return outcome.room ?? null;
+        });
+    }
+    battleshipPhaseTimeout(code, deadline) {
+        return this.withRoom(code, (room) => this.battleshipService.handleTimeout(room, deadline));
+    }
     getPlayerId(room, socketId) {
         return room.players.find((player) => player.socketId === socketId)?.id ?? null;
     }
@@ -1693,6 +1745,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         cipher_grid_service_1.CipherGridService,
         dog_relay_service_1.DogRelayService,
         werewolf_service_1.WerewolfService,
+        battleship_service_1.BattleshipService,
         game_settings_service_1.GameSettingsService,
         room_start_guard_service_1.RoomStartGuardService,
         action_receipt_service_1.ActionReceiptService])
