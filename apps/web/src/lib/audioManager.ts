@@ -73,9 +73,12 @@ class AudioManager {
 
       this.ctx = new AudioContextClass();
 
-      // Master bus
+      // Master bus (perceptual logarithmic/quadratic gain curve per audio-design Pattern 1)
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.enabled ? this.volume : 0, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(
+        this.enabled ? this.volume * this.volume : 0,
+        this.ctx.currentTime,
+      );
       this.masterGain.connect(this.ctx.destination);
 
       // SFX bus
@@ -134,7 +137,8 @@ class AudioManager {
 
   private updateGains(): void {
     if (!this.ctx || !this.masterGain) return;
-    const targetGain = this.enabled ? this.volume : 0;
+    // Map linear 0..1 slider through a perceptual quadratic curve (audio-design Pattern 1)
+    const targetGain = this.enabled ? this.volume * this.volume : 0;
     try {
       this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
       this.masterGain.gain.setValueAtTime(targetGain, this.ctx.currentTime);

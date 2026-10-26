@@ -2,8 +2,9 @@
 
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GameType, SoundsFishyPhase } from '@repo/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useGameFeel } from '@/hooks/useGameFeel';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { audioManager } from '@/lib/audioManager';
 
@@ -21,6 +22,8 @@ export function SoundsFishyView() {
     actionLoading,
   } = useGameStore();
   const { t } = useTranslate();
+  const { shake, flash, haptic, celebrate } = useGameFeel();
+  const prevStatusRef = useRef<RoomStatus | undefined>(undefined);
 
   const [answerInput, setAnswerInput] = useState('');
   const currentPhase = room?.soundsFishyState?.currentPhase;
@@ -29,6 +32,26 @@ export function SoundsFishyView() {
   useEffect(() => {
     setAnswerInput('');
   }, [currentPhase, roomStatus]);
+
+  useEffect(() => {
+    if (!room?.soundsFishyState || prevStatusRef.current === roomStatus) return;
+    prevStatusRef.current = roomStatus;
+    if (roomStatus === RoomStatus.RESULT) {
+      const state = room.soundsFishyState;
+      const blueCaught = !!(state.blueFishId && state.eliminatedPlayers.includes(state.blueFishId));
+      if (blueCaught) {
+        audioManager.playErrorBuzz();
+        shake(0.6);
+        flash('red', 350);
+        haptic([80, 40, 80]);
+      } else {
+        audioManager.playSuccessChime();
+        celebrate({ particleCount: 65, spread: 70 });
+        flash('gold', 400);
+        haptic(50);
+      }
+    }
+  }, [room?.soundsFishyState, roomStatus, shake, flash, haptic, celebrate]);
 
   if (!room || room.gameType !== GameType.SOUNDS_FISHY) return null;
 

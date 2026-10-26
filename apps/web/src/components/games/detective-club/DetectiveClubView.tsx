@@ -11,6 +11,7 @@ import { VotingPhase } from './phases/VotingPhase';
 import { ScoringPhase } from './phases/ScoringPhase';
 import { useDetectiveClubSounds } from '@/hooks/useDetectiveClubSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
+import { useGameFeel } from '@/hooks/useGameFeel';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { useDetectiveClubSoundCues } from './useDetectiveClubSoundCues';
 
@@ -30,6 +31,7 @@ function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslat
 export function DetectiveClubView() {
   const { room, socketId, privateState } = useGameStore();
   const { t } = useTranslate();
+  const { shake, flash, celebrate } = useGameFeel();
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const playSound = useDetectiveClubSounds(soundsEnabled);
   const dcState = room?.detectiveClubState ?? null;
@@ -49,7 +51,15 @@ export function DetectiveClubView() {
       | string
       | undefined;
     playSound(myRole === 'CONSPIRATOR' ? 'conspirator-win' : 'detective-win');
-  }, [dcState?.scoreDeltas, playSound, room, socketId, privateState]);
+    const myDelta = dcState.scoreDeltas[socketId] ?? 0;
+    if (myDelta > 0) {
+      celebrate({ particleCount: 60, spread: 70 });
+      flash('gold', 400);
+    } else {
+      shake(0.45);
+      flash('white', 300);
+    }
+  }, [dcState?.scoreDeltas, playSound, room, socketId, privateState, shake, flash, celebrate]);
 
   if (!room || room.gameType !== GameType.DETECTIVE_CLUB) return null;
 

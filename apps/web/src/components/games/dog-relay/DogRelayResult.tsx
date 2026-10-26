@@ -1,16 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useGameFeel } from '@/hooks/useGameFeel';
+import { audioManager } from '@/lib/audioManager';
 import { DogRelayCard } from './DogRelayCard';
 
 export function DogRelayResult() {
   const { room, playerId, socketId, sendDogRelayAction, actionLoading } = useGameStore();
   const { t } = useTranslate();
+  const { shake, flash, celebrate } = useGameFeel();
+  const celebratedRoundRef = useRef<string | null>(null);
   const [best, setBest] = useState('');
   const [worst, setWorst] = useState('');
   const state = room?.dogRelayState;
+
+  useEffect(() => {
+    if (!state?.result || !state.roundId) return;
+    if (celebratedRoundRef.current === state.roundId) return;
+    celebratedRoundRef.current = state.roundId;
+
+    const myRole = state.result.roles[playerId];
+    const didMySideWin =
+      (state.result.winningTeam === 'GOOD' && (myRole === 'GOOD' || myRole === 'LEADER')) ||
+      (state.result.winningTeam === 'EVIL' && myRole === 'EVIL');
+
+    if (didMySideWin) {
+      audioManager.playSuccessChime();
+      celebrate({ particleCount: 70, spread: 70 });
+      flash('gold', 400);
+    } else {
+      audioManager.playErrorBuzz();
+      shake(0.5);
+      flash('red', 350);
+    }
+  }, [state?.result, state?.roundId, playerId, shake, flash, celebrate]);
   if (!room || !state?.result) return null;
   const result = state.result;
   const name = (id: string) => room.players.find((p) => p.id === id)?.name ?? id;

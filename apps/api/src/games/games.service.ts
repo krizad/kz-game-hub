@@ -439,6 +439,9 @@ export class GamesService {
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
+      if (room.gameType === GameType.THE_MIND && room.theMindState) {
+        this.theMindService.handleReconnect(room);
+      }
       if (room.gameType === GameType.WHO_AM_I && room.whoAmIState) {
         this.whoAmIService.syncVisibleWords(room);
       }

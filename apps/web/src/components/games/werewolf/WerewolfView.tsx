@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   GameType,
   RoomStatus,
@@ -16,6 +16,8 @@ import {
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useServerClock } from '@/hooks/useServerClock';
+import { useGameFeel } from '@/hooks/useGameFeel';
+import { audioManager } from '@/lib/audioManager';
 import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { WerewolfNarrator } from './WerewolfNarrator';
 
@@ -64,6 +66,7 @@ function PlayerTargetButton({
     <button
       key={id}
       data-testid={testid ?? 'werewolf-target-btn'}
+      aria-pressed={!!selected}
       disabled={disabled}
       onClick={onClick}
       className={`px-3 py-2 border-4 border-black font-black shadow-[3px_3px_0_0_#000] active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed text-sm sm:text-base ${
@@ -79,11 +82,31 @@ export function WerewolfView() {
   const { room, socketId, privateState, resetRoom } = useGameStore();
   const { t, language } = useTranslate();
   const { serverOffset } = useServerClock();
+  const { shake, flash, celebrate } = useGameFeel();
+  const prevPhaseRef = useRef<WerewolfPhase | undefined>(undefined);
   const werewolfNightAction = useGameStore((s) => s.werewolfNightAction);
   const werewolfDayVote = useGameStore((s) => s.werewolfDayVote);
   const [showNarrator, setShowNarrator] = useState(false);
 
   const state = room?.werewolfState as WerewolfState | undefined;
+
+  useEffect(() => {
+    if (!state) return;
+    if (prevPhaseRef.current === state.phase) return;
+    prevPhaseRef.current = state.phase;
+
+    if (state.phase === WerewolfPhase.DAY_DISCUSSION && (state.dawn?.deaths.length ?? 0) > 0) {
+      shake(0.45);
+      flash('red', 350);
+    } else if (state.phase === WerewolfPhase.DAY_RESULT && state.voteResult?.lynchedPlayerId) {
+      shake(0.5);
+      flash('red', 350);
+    } else if (state.phase === WerewolfPhase.GAME_OVER) {
+      audioManager.playSuccessChime();
+      celebrate({ particleCount: 70, spread: 70 });
+      flash('gold', 400);
+    }
+  }, [state, shake, flash, celebrate]);
   const me = useMemo(() => room?.players.find((p) => p.socketId === socketId), [room, socketId]);
   const isHost = room?.roomHostId === socketId;
   const isSpectator = me?.isViewer === true;

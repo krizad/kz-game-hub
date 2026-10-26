@@ -336,4 +336,25 @@ describe('TheMindService', () => {
     expect(result!.theMindState!.shurikenVotes).toEqual({});
     expect(result!.theMindState!.shuriken).toBe(1);
   });
+
+  it('resolves actions by either player.id or reconnected socketId and syncs hand sizes on reconnect', () => {
+    const room = createRoom({}, defaultPlayers(), { phase: TheMindPhase.SETUP });
+    seedHands(room, { 'player-1': [15], 'player-2': [30] });
+
+    // Simulate player-2 reconnecting on a new socket
+    privateState.remapSocketId(room.code, 'socket-2', 'socket-2-new');
+    room.players[1].socketId = 'socket-2-new';
+    service.handleReconnect(room);
+
+    expect(room.theMindState!.handSizes['player-2']).toBe(1);
+
+    // Calling ready and playCard using socketId directly still maps to player.id
+    expect(service.ready(room, 'socket-1')).not.toBeNull();
+    expect(service.ready(room, 'socket-2-new')).not.toBeNull();
+    expect(room.theMindState!.phase).toBe(TheMindPhase.PLAYING);
+
+    const afterPlay = service.playCard(room, 'socket-2-new', 30);
+    expect(afterPlay).not.toBeNull();
+    expect(afterPlay!.theMindState!.pileTopPlayerId).toBe('player-2');
+  });
 });

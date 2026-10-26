@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShipType,
@@ -14,6 +14,8 @@ import {
 } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useGameFeel } from '@/hooks/useGameFeel';
+import { audioManager } from '@/lib/audioManager';
 import {
   Crosshair,
   RotateCw,
@@ -22,11 +24,9 @@ import {
   Flame,
   Waves,
   Skull,
-  Bomb,
   Award,
   Users,
   Compass,
-  AlertTriangle,
   RotateCcw,
 } from 'lucide-react';
 
@@ -49,6 +49,9 @@ export function BattleshipView() {
     battleshipReset,
   } = useGameStore();
   const { t } = useTranslate();
+  const { shake, flash, haptic, celebrate } = useGameFeel();
+  const prevVolleySigRef = useRef<string>('');
+  const prevPhaseRef = useRef<string | undefined>(undefined);
 
   const state = room?.battleshipState;
   const isHost = socketId === room?.roomHostId;
@@ -146,6 +149,8 @@ export function BattleshipView() {
     }
 
     setPlacedShips(placements);
+    audioManager.playPlaceMark('X');
+    haptic(25);
   };
 
   // Helper: Try placing ship at cell
@@ -156,7 +161,11 @@ export function BattleshipView() {
     // Check bounds
     const endX = orientation === 'HORIZONTAL' ? x + currentShip.length - 1 : x;
     const endY = orientation === 'VERTICAL' ? y + currentShip.length - 1 : y;
-    if (endX >= gridSize || endY >= gridSize) return;
+    if (endX >= gridSize || endY >= gridSize) {
+      audioManager.playErrorBuzz();
+      haptic(30);
+      return;
+    }
 
     // Check overlap with other ships (excluding current ship type if re-placing)
     const otherShips = placedShips.filter((s) => s.type !== currentShip.type);
@@ -172,7 +181,11 @@ export function BattleshipView() {
     for (let i = 0; i < currentShip.length; i++) {
       const cx = orientation === 'HORIZONTAL' ? x + i : x;
       const cy = orientation === 'VERTICAL' ? y + i : y;
-      if (occupied.has(`${cx},${cy}`)) return; // Collision
+      if (occupied.has(`${cx},${cy}`)) {
+        audioManager.playErrorBuzz();
+        haptic(30);
+        return; // Collision
+      }
     }
 
     const newShip: ShipPlacement = {
@@ -187,6 +200,8 @@ export function BattleshipView() {
     };
 
     setPlacedShips([...otherShips, newShip]);
+    audioManager.playPlaceMark('O');
+    haptic(25);
 
     // Advance to next ship if available
     if (selectedShipIndex < fleetConfig.length - 1) {
@@ -196,20 +211,73 @@ export function BattleshipView() {
 
   const handleConfirmPlacement = () => {
     if (placedShips.length === fleetConfig.length) {
+      audioManager.playReady();
+      haptic(40);
       battleshipPlaceShips(placedShips);
     }
   };
 
   const handleFire = () => {
     if (!selectedFireCoord || !selectedTargetId) return;
+    audioManager.playBuzzerPress();
+    haptic(40);
     battleshipFire(selectedTargetId, selectedFireCoord.x, selectedFireCoord.y);
     setSelectedFireCoord(null);
   };
 
   const handlePing = () => {
     if (!selectedFireCoord) return;
+    audioManager.playReady();
+    haptic(20);
     battleshipPing(selectedFireCoord.x, selectedFireCoord.y);
   };
+
+  // Trigger audio-visual feedback on new volley results & phase transitions
+  useEffect(() => {
+    if (!state) return;
+
+    if (state.lastVolleyResults && state.lastVolleyResults.length > 0) {
+      const sig = `${state.round}:${state.lastVolleyResults
+        .map((v) => `${v.shooterId}-${v.targetId}-${v.x},${v.y}-${v.result}`)
+        .join('|')}`;
+      if (sig !== prevVolleySigRef.current) {
+        prevVolleySigRef.current = sig;
+        const hasSunk = state.lastVolleyResults.some((v) => v.result === 'SUNK');
+        const hasCollision = state.lastVolleyResults.some((v) => v.result === 'COLLISION');
+        const hasHit = state.lastVolleyResults.some((v) => v.result === 'HIT');
+
+        if (hasSunk) {
+          audioManager.playRockCrumble();
+          shake(0.75);
+          flash('red', 400);
+          haptic([100, 40, 120]);
+        } else if (hasCollision) {
+          audioManager.playClash();
+          shake(0.55);
+          flash('gold', 350);
+          haptic([60, 30, 60]);
+        } else if (hasHit) {
+          audioManager.playClash();
+          shake(0.4);
+          flash('red', 300);
+          haptic(60);
+        } else {
+          audioManager.playSplash();
+          haptic(20);
+        }
+      }
+    }
+
+    if (prevPhaseRef.current !== state.phase) {
+      prevPhaseRef.current = state.phase;
+      if (state.phase === 'RESULT') {
+        audioManager.playSuccessChime();
+        celebrate({ particleCount: 80, spread: 75 });
+        flash('gold', 450);
+        haptic([80, 40, 100]);
+      }
+    }
+  }, [state, shake, flash, haptic, celebrate]);
 
   if (!state) return null;
 
@@ -242,7 +310,7 @@ export function BattleshipView() {
                     myTeam === 'RED' ? 'bg-red-600' : 'bg-blue-600'
                   }`}
                 >
-                  {myTeam === 'RED' ? 'ทีมแดง' : 'ทีมน้ำเงิน'}
+                  {myTeam === 'RED' ? t('battleship.teamRed') : t('battleship.teamBlue')}
                 </span>
               )}
             </h2>
@@ -251,7 +319,7 @@ export function BattleshipView() {
                 {state.mode === 'FREE_FOR_ALL' ? t('battleship.ffaMode') : t('battleship.teamMode')}
               </span>
               <span>•</span>
-              <span>รอบที่ {state.round}</span>
+              <span>{t('battleship.roundLabel', { round: state.round })}</span>
             </div>
           </div>
         </div>
@@ -378,16 +446,20 @@ export function BattleshipView() {
             {/* Action Buttons */}
             <div className="flex gap-2">
               <button
+                data-testid="battleship-rotate-btn"
                 onClick={() =>
                   setOrientation(orientation === 'HORIZONTAL' ? 'VERTICAL' : 'HORIZONTAL')
                 }
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-white hover:bg-slate-50 border-3 border-black rounded-lg font-black text-xs shadow-[2px_2px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]"
               >
                 <RotateCw className="w-4 h-4" />
-                {orientation === 'HORIZONTAL' ? 'แนวนอน (H)' : 'แนวตั้ง (V)'}
+                {orientation === 'HORIZONTAL'
+                  ? t('battleship.horizontalBtn')
+                  : t('battleship.verticalBtn')}
               </button>
 
               <button
+                data-testid="battleship-randomize-btn"
                 onClick={handleAutoRandomize}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-[#a7f3d0] hover:bg-[#6ee7b7] border-3 border-black rounded-lg font-black text-xs shadow-[2px_2px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]"
               >
@@ -398,6 +470,7 @@ export function BattleshipView() {
 
             {/* Confirm Placement */}
             <button
+              data-testid="battleship-confirm-placement-btn"
               onClick={handleConfirmPlacement}
               disabled={placedShips.length !== fleetConfig.length || isReady}
               className={`w-full py-3 px-4 border-4 border-black rounded-xl font-black text-sm shadow-[4px_4px_0_0_#000] transition-all ${
@@ -409,7 +482,7 @@ export function BattleshipView() {
               }`}
             >
               {isReady
-                ? '✓ ล็อกตำแหน่งแล้ว (รอคนอื่น)'
+                ? t('battleship.placementLocked')
                 : `${t('battleship.confirmPlacement')} (${placedShips.length}/${fleetConfig.length})`}
             </button>
           </div>
@@ -459,6 +532,8 @@ export function BattleshipView() {
                 return (
                   <button
                     key={`${x},${y}`}
+                    data-testid={`battleship-place-cell-${x}-${y}`}
+                    aria-label={t('battleship.cellAriaLabel', { x: x + 1, y: y + 1 })}
                     onClick={() => handleCellClickPlacement(x, y)}
                     onMouseEnter={() => setHoverCoord({ x, y })}
                     onMouseLeave={() => setHoverCoord(null)}
@@ -490,9 +565,9 @@ export function BattleshipView() {
             <div className="flex items-center justify-between text-xs font-black text-slate-700">
               <span className="flex items-center gap-1.5 uppercase tracking-wide">
                 <Users className="w-4 h-4 text-slate-900" />
-                เล็งเป้าหมายคู่ต่อสู้
+                {t('battleship.aimOpponentTitle')}
               </span>
-              <span>{isAlive ? 'พร้อมยิง' : t('battleship.eliminated')}</span>
+              <span>{isAlive ? t('battleship.readyToFire') : t('battleship.eliminated')}</span>
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
@@ -505,6 +580,8 @@ export function BattleshipView() {
                     return (
                       <button
                         key={teamKey}
+                        data-testid={`battleship-target-${teamKey}`}
+                        aria-pressed={isSelected}
                         onClick={() => isOpponent && setSelectedTargetId(teamKey)}
                         disabled={!isOpponent}
                         className={`flex-1 flex items-center justify-between p-2.5 rounded-lg border-3 border-black text-xs font-black transition-all ${
@@ -519,13 +596,17 @@ export function BattleshipView() {
                           <span
                             className={`w-3.5 h-3.5 rounded-full ${teamKey === 'RED' ? 'bg-red-500' : 'bg-blue-500'}`}
                           />
-                          <span>{teamKey === 'RED' ? 'ทีมแดง' : 'ทีมน้ำเงิน'}</span>
+                          <span>
+                            {teamKey === 'RED' ? t('battleship.teamRed') : t('battleship.teamBlue')}
+                          </span>
                           {!isOpponent && (
-                            <span className="text-[10px] bg-slate-300 px-1 rounded">(ทีมเรา)</span>
+                            <span className="text-[10px] bg-slate-300 px-1 rounded">
+                              {t('battleship.ourTeamTag')}
+                            </span>
                           )}
                         </span>
                         <span className="font-mono bg-black text-white px-2 py-0.5 rounded">
-                          เรือรอด: {remaining}
+                          {t('battleship.shipsRemainingLabel', { count: remaining })}
                         </span>
                       </button>
                     );
@@ -542,6 +623,8 @@ export function BattleshipView() {
                       return (
                         <button
                           key={player.socketId}
+                          data-testid="battleship-target-player"
+                          aria-pressed={isSelected}
                           onClick={() =>
                             !isSelf && isTargetAlive && setSelectedTargetId(player.socketId)
                           }
@@ -561,9 +644,15 @@ export function BattleshipView() {
                             {!isTargetAlive && <Skull className="w-3.5 h-3.5 text-red-600" />}
                           </div>
                           <div className="flex items-center justify-between text-[11px] font-mono">
-                            <span>{isSelf ? '(คุณ)' : isTargetAlive ? 'รอดชีวิต' : 'อับปาง'}</span>
+                            <span>
+                              {isSelf
+                                ? t('battleship.youTag')
+                                : isTargetAlive
+                                  ? t('battleship.statusAlive')
+                                  : t('battleship.statusSunk')}
+                            </span>
                             <span className="bg-black text-white px-1.5 py-0.2 rounded">
-                              {remaining} ลำ
+                              {t('battleship.shipsCountUnit', { count: remaining })}
                             </span>
                           </div>
                         </button>
@@ -607,7 +696,10 @@ export function BattleshipView() {
                 </span>
                 {selectedFireCoord && (
                   <span className="font-mono text-xs bg-rose-500 text-white px-2 py-0.5 border border-black rounded">
-                    เล็ง: ({selectedFireCoord.x + 1}, {selectedFireCoord.y + 1})
+                    {t('battleship.aimingAt', {
+                      x: selectedFireCoord.x + 1,
+                      y: selectedFireCoord.y + 1,
+                    })}
                   </span>
                 )}
               </div>
@@ -627,6 +719,9 @@ export function BattleshipView() {
                   return (
                     <button
                       key={coordKey}
+                      data-testid="battleship-target-cell"
+                      aria-label={t('battleship.cellAriaLabel', { x: x + 1, y: y + 1 })}
+                      aria-pressed={isSelected}
                       onClick={() => !status && isAlive && setSelectedFireCoord({ x, y })}
                       disabled={!!status || !isAlive}
                       className={`relative w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center font-black text-xs border rounded transition-all ${
@@ -661,23 +756,25 @@ export function BattleshipView() {
               {/* Firing Controls */}
               <div className="w-full flex gap-2 mt-4">
                 <button
+                  data-testid="battleship-fire-btn"
                   onClick={handleFire}
                   disabled={
                     !selectedFireCoord || (!isMyTurn && state.mode !== 'FREE_FOR_ALL') || !isAlive
                   }
                   className="flex-1 py-3 px-4 bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed border-4 border-black rounded-xl font-black text-sm text-white shadow-[3px_3px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]"
                 >
-                  🚀 ยิงขีปนาวุธ (FIRE)
+                  {t('battleship.fireMissileBtn')}
                 </button>
 
                 {state.mode === 'TEAM_VS_TEAM' && state.teamFleetMode === 'SHARED_BOARD' && (
                   <button
+                    data-testid="battleship-ping-btn"
                     onClick={handlePing}
                     disabled={!selectedFireCoord || !isAlive}
                     className="py-3 px-4 bg-amber-400 hover:bg-amber-500 disabled:opacity-40 border-4 border-black rounded-xl font-black text-sm text-black shadow-[3px_3px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]"
-                    title="ปักหมุดแนะนำพิกัดให้เพื่อนร่วมทีม"
+                    title={t('battleship.pingTargetTitle')}
                   >
-                    📍 ชี้เป้า
+                    {t('battleship.pingTargetBtn')}
                   </button>
                 )}
               </div>
@@ -692,10 +789,12 @@ export function BattleshipView() {
               <div className="w-full flex items-center justify-between mb-3 text-white">
                 <span className="font-black text-sm flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-emerald-300" />
-                  {t('battleship.myOcean')} (ตำแหน่งเรือของคุณ)
+                  {t('battleship.myOcean')} {t('battleship.myOceanSubtitle')}
                 </span>
                 <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded">
-                  เรือรอด: {myTargetId ? (state.shipsRemaining[myTargetId] ?? 0) : 0}
+                  {t('battleship.shipsRemainingLabel', {
+                    count: myTargetId ? (state.shipsRemaining[myTargetId] ?? 0) : 0,
+                  })}
                 </span>
               </div>
 
@@ -755,21 +854,24 @@ export function BattleshipView() {
 
       {/* --- PHASE 3: RESULT PHASE (GAME OVER & FULL OCEAN REVEAL) --- */}
       {state.phase === 'RESULT' && (
-        <div className="flex flex-col gap-6 p-4 sm:p-6 bg-white border-4 border-black rounded-2xl shadow-[6px_6px_0_0_#000]">
+        <div
+          data-testid="battleship-winner-banner"
+          className="flex flex-col gap-6 p-4 sm:p-6 bg-white border-4 border-black rounded-2xl shadow-[6px_6px_0_0_#000]"
+        >
           {/* Winner Title */}
           <div className="flex flex-col items-center text-center gap-2 p-4 bg-amber-300 border-4 border-black rounded-xl shadow-[4px_4px_0_0_#000]">
             <Award className="w-12 h-12 text-black animate-bounce" />
             <h2 className="font-black text-2xl sm:text-3xl text-slate-900">
               {state.winner?.team
                 ? state.winner.team === 'RED'
-                  ? 'ทีมแดง ชนะการรบ!'
-                  : 'ทีมน้ำเงิน ชนะการรบ!'
-                : `${state.winner?.playerName} คว้าชัยชนะเหนือน่านน้ำ!`}
+                  ? t('battleship.winnerTeamRed')
+                  : t('battleship.winnerTeamBlue')
+                : t('battleship.winnerPlayer', { name: state.winner?.playerName ?? '' })}
             </h2>
             <p className="text-sm font-bold text-slate-800">
               {state.mode === 'TEAM_VS_TEAM'
-                ? 'สมาชิกลูกเรือทุกคนในทีมชนะได้รับ +1 คะแนน'
-                : 'ผู้รอดชีวิตคนสุดท้ายได้รับ +1 คะแนน'}
+                ? t('battleship.winnerTeamDesc')
+                : t('battleship.winnerFfaDesc')}
             </p>
           </div>
 
@@ -777,16 +879,16 @@ export function BattleshipView() {
           <div className="flex flex-col gap-3">
             <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
               <Compass className="w-5 h-5" />
-              เฉลยตำแหน่งเรือทั้งหมด (Full Ocean Reveal)
+              {t('battleship.fullOceanReveal')}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(state.revealedOceanGrids || {}).map(([targetId, ships]) => {
                 const title =
                   targetId === 'RED'
-                    ? 'กองเรือทีมแดง (Red Team)'
+                    ? t('battleship.redTeamFleet')
                     : targetId === 'BLUE'
-                      ? 'กองเรือทีมน้ำเงิน (Blue Team)'
+                      ? t('battleship.blueTeamFleet')
                       : room?.players.find((p) => p.socketId === targetId)?.name || targetId;
 
                 const boardStatus = state.targetGrids[targetId] || {};
@@ -843,17 +945,19 @@ export function BattleshipView() {
 
           {/* Battle Statistics Table */}
           <div className="flex flex-col gap-2">
-            <h3 className="font-black text-base text-slate-900">📊 สถิติการรบ (Battle Stats)</h3>
+            <h3 className="font-black text-base text-slate-900">
+              {t('battleship.battleStatsTitle')}
+            </h3>
             <div className="overflow-x-auto border-3 border-black rounded-xl">
               <table className="w-full text-xs font-bold text-left bg-white">
                 <thead className="bg-slate-100 border-b-2 border-black font-black uppercase">
                   <tr>
-                    <th className="p-2.5">ผู้เล่น</th>
-                    <th className="p-2.5">ยิงทั้งหมด</th>
-                    <th className="p-2.5">ยิงโดน</th>
-                    <th className="p-2.5">จมเรือ</th>
-                    <th className="p-2.5">กระสุนชนกัน</th>
-                    <th className="p-2.5">ความแม่นยำ</th>
+                    <th className="p-2.5">{t('battleship.statsPlayer')}</th>
+                    <th className="p-2.5">{t('battleship.statsShotsFired')}</th>
+                    <th className="p-2.5">{t('battleship.statsHits')}</th>
+                    <th className="p-2.5">{t('battleship.statsShipsSunk')}</th>
+                    <th className="p-2.5">{t('battleship.statsCollisions')}</th>
+                    <th className="p-2.5">{t('battleship.statsAccuracy')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-black">
@@ -878,10 +982,11 @@ export function BattleshipView() {
           {/* Play Again Button */}
           {isHost && (
             <button
+              data-testid="battleship-reset-btn"
               onClick={battleshipReset}
               className="w-full py-3.5 bg-emerald-400 hover:bg-emerald-500 border-4 border-black rounded-xl font-black text-base shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]"
             >
-              🔄 เริ่มเกมใหม่ (Return to Lobby)
+              {t('battleship.returnToLobbyBtn')}
             </button>
           )}
         </div>

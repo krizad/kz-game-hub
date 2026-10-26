@@ -12,6 +12,7 @@ export function GameFeelLayer({ children }: GameFeelLayerProps) {
   const traumaRef = useRef<number>(0);
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const phaseTimeRef = useRef<number>(0);
 
   const [flash, setFlash] = useState<{ active: boolean; type: FlashType }>({
     active: false,
@@ -50,9 +51,12 @@ export function GameFeelLayer({ children }: GameFeelLayerProps) {
         if (trauma > 0.01) {
           const maxOffset = 12; // px
           const maxAngle = 2.5; // deg
-          const x = (Math.random() * 2 - 1) * maxOffset * shake;
-          const y = (Math.random() * 2 - 1) * maxOffset * shake;
-          const rot = (Math.random() * 2 - 1) * maxAngle * shake;
+          // Smooth pseudo-random via sampled incommensurate sine waves (game-feel Pattern 1)
+          phaseTimeRef.current += (dt / 1000) * 35;
+          const t = phaseTimeRef.current;
+          const x = Math.sin(t * 1.7) * maxOffset * shake;
+          const y = Math.sin(t * 2.3) * maxOffset * shake;
+          const rot = Math.sin(t * 1.1) * maxAngle * shake;
           el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0px) rotate(${rot.toFixed(2)}deg)`;
           animFrameRef.current = requestAnimationFrame(shakeLoop);
         } else {

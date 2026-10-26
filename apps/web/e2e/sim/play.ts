@@ -1848,6 +1848,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playCipherGrid(s);
     case 'WEREWOLF':
       return playWerewolf(s);
+    case 'BATTLESHIP':
+      return playBattleship(s);
     default:
       throw new Error(`No driver for game ${entry.game}`);
   }
@@ -1898,6 +1900,48 @@ async function playWerewolf(s: SimSession): Promise<void> {
   }
 
   await expect(host.getByTestId('werewolf-winner-banner')).toBeVisible({
+    timeout: 15000,
+  });
+}
+
+async function playBattleship(s: SimSession): Promise<void> {
+  const { host, players } = s;
+  await startGame(host);
+
+  // Placement phase: randomize and confirm for all players
+  for (const p of players) {
+    const randBtn = p.getByTestId('battleship-randomize-btn');
+    await expect(randBtn).toBeVisible({ timeout: 15000 });
+    await randBtn.click();
+    const confirmBtn = p.getByTestId('battleship-confirm-placement-btn');
+    await expect(confirmBtn).toBeEnabled({ timeout: 5000 });
+    await confirmBtn.click();
+  }
+
+  // Playing phase: each player fires at the first available target cell until a winner appears
+  for (let i = 0; i < 400; i++) {
+    const isOver = await host
+      .getByTestId('battleship-winner-banner')
+      .isVisible()
+      .catch(() => false);
+    if (isOver) break;
+
+    let acted = false;
+    for (const p of players) {
+      const cell = p.locator('[data-testid="battleship-target-cell"]:not([disabled])').first();
+      const fireBtn = p.getByTestId('battleship-fire-btn');
+      if (await cell.isVisible().catch(() => false)) {
+        await cell.click().catch(() => {});
+        if (await fireBtn.isEnabled().catch(() => false)) {
+          await fireBtn.click().catch(() => {});
+          acted = true;
+        }
+      }
+    }
+    if (!acted) await host.waitForTimeout(250);
+  }
+
+  await expect(host.getByTestId('battleship-winner-banner')).toBeVisible({
     timeout: 15000,
   });
 }
