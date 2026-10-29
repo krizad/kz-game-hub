@@ -1688,6 +1688,11 @@ let GamesService = GamesService_1 = class GamesService {
             return null;
         return this.withRoom(code, (room) => this.werewolfService.handleDayVote(room, clientId, targetId));
     }
+    werewolfSkipDiscussion(code, clientId) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.werewolfService.handleSkipDiscussion(room, clientId));
+    }
     werewolfPhaseTimeout(code, deadline) {
         return this.withRoom(code, (room) => this.werewolfService.handlePhaseTimeout(room, deadline));
     }

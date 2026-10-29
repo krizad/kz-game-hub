@@ -1459,6 +1459,15 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid vote' });
         }
     }
+    handleWerewolfSkipDiscussion(data, client) {
+        const room = this.gamesService.werewolfSkipDiscussion(data.code, client.id);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Cannot skip discussion' });
+        }
+    }
     handleBattleshipPlaceShips(data, client) {
         const room = this.gamesService.battleshipPlaceShips(data.code, client.id, data.payload);
         if (room) {
@@ -3077,6 +3086,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handleWerewolfDayVote", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.WEREWOLF_SKIP_DISCUSSION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleWerewolfSkipDiscussion", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.BATTLESHIP_PLACE_SHIPS),
     __param(0, (0, websockets_1.MessageBody)()),

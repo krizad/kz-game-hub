@@ -4,7 +4,7 @@ exports.SlaveRuntime = void 0;
 const types_1 = require("@repo/types");
 const card_engine_service_1 = require("./card-engine.service");
 const slave_preset_1 = require("./presets/slave.preset");
-const PRIVATE_KEY = 'cardGame';
+const PRIVATE_STATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
 const FIRST_PLAY_KEY = 'slaveFirstPlay';
 const LEADER_CARD_ID = '3-CLUBS';
@@ -209,13 +209,13 @@ class SlaveRuntime {
         room.status = types_1.RoomStatus.RESULT;
     }
     setHand(roomCode, socketId, hand) {
-        this.privateStateService.set(roomCode, socketId, PRIVATE_KEY, {
+        this.privateStateService.set(roomCode, socketId, PRIVATE_STATE_KEY, {
             preset: 'SLAVE',
             hand,
         });
     }
     getHand(roomCode, socketId) {
-        return this.privateStateService.get(roomCode, socketId, PRIVATE_KEY)
+        return this.privateStateService.get(roomCode, socketId, PRIVATE_STATE_KEY)
             ?.hand;
     }
     setFirstPlayed(roomCode, played) {

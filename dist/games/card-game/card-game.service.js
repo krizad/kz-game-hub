@@ -17,7 +17,7 @@ const card_engine_service_1 = require("./card-engine.service");
 const pok_deng_preset_1 = require("./presets/pok-deng.preset");
 const presets_1 = require("./presets");
 const slave_runtime_1 = require("./slave.runtime");
-const PRIVATE_KEY = 'cardGame';
+const PRIVATE_STATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
 const PILES_KEY = 'piles';
 let CardGameService = class CardGameService {
@@ -164,7 +164,7 @@ let CardGameService = class CardGameService {
         if (!state || room.gameType !== types_1.GameType.CARD_GAME)
             return;
         for (const socketId of state.playerOrder) {
-            this.privateStateService.delete(room.code, socketId, PRIVATE_KEY);
+            this.privateStateService.delete(room.code, socketId, PRIVATE_STATE_KEY);
         }
         this.privateStateService.delete(room.code, ENGINE_SOCKET_ID, PILES_KEY);
         room.cardGameState = undefined;
@@ -314,13 +314,13 @@ let CardGameService = class CardGameService {
         return (0, card_engine_service_1.shuffleDeck)(deck);
     }
     setHand(roomCode, socketId, hand) {
-        this.privateStateService.set(roomCode, socketId, PRIVATE_KEY, {
+        this.privateStateService.set(roomCode, socketId, PRIVATE_STATE_KEY, {
             preset: 'POK_DENG',
             hand,
         });
     }
     getHand(roomCode, socketId) {
-        return this.privateStateService.get(roomCode, socketId, PRIVATE_KEY)
+        return this.privateStateService.get(roomCode, socketId, PRIVATE_STATE_KEY)
             ?.hand;
     }
     setPiles(roomCode, piles) {

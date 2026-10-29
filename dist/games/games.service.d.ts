@@ -264,6 +264,7 @@ export declare class GamesService {
     cipherTurnTimeout(code: string, deadline: number): RoomState | null;
     werewolfNightAction(code: string, clientId: string, action: WerewolfNightActionKind, targetId: string): RoomState | null;
     werewolfDayVote(code: string, clientId: string, targetId: string): RoomState | null;
+    werewolfSkipDiscussion(code: string, clientId: string): RoomState | null;
     werewolfPhaseTimeout(code: string, deadline: number): RoomState | null;
     battleshipPlaceShips(code: string, clientId: string, payload: BattleshipPlaceShipsPayload): RoomState | null;
     battleshipFire(code: string, clientId: string, payload: BattleshipFirePayload): RoomState | null;

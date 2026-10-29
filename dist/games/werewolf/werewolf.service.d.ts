@@ -39,6 +39,7 @@ export declare class WerewolfService {
     private slotForAction;
     private refreshWolfTally;
     handleDayVote(room: RoomState, socketId: string, targetId: string): RoomState | null;
+    handleSkipDiscussion(room: RoomState, socketId: string): RoomState | null;
     handlePlayerDisconnect(room: RoomState, socketId: string): void;
     handleReconnect(room: RoomState, playerId: string): void;
     private pausePhase;

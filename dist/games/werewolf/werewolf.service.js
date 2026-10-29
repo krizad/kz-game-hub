@@ -762,6 +762,17 @@ let WerewolfService = class WerewolfService {
         this.privateStateService.set(room.code, socketId, 'wwDayVote', targetId === 'ABSTAIN' ? 'ABSTAIN' : (this.playerBySocket(room, targetId)?.name ?? null));
         return room;
     }
+    handleSkipDiscussion(room, socketId) {
+        const state = room.werewolfState;
+        if (!state || room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        if (state.phase !== types_1.WerewolfPhase.DAY_DISCUSSION || state.paused)
+            return null;
+        if (socketId !== room.roomHostId)
+            return null;
+        this.beginVote(room);
+        return room;
+    }
     handlePlayerDisconnect(room, socketId) {
         const state = room.werewolfState;
         if (!state || state.phase === types_1.WerewolfPhase.GAME_OVER)

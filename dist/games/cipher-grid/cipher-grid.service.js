@@ -531,17 +531,17 @@ let CipherGridService = class CipherGridService {
         const leads = new Set(Object.values(state?.cipherLeads ?? {}));
         for (const player of room.players) {
             if (keycard && leads.has(player.socketId)) {
-                this.privateState.set(room.code, player.socketId, types_1.CIPHER_GRID_PRIVATE_KEY, [...keycard]);
+                this.privateState.set(room.code, player.socketId, types_1.CIPHER_GRID_PRIVATE_STATE_KEY, [...keycard]);
             }
             else {
-                this.privateState.delete(room.code, player.socketId, types_1.CIPHER_GRID_PRIVATE_KEY);
+                this.privateState.delete(room.code, player.socketId, types_1.CIPHER_GRID_PRIVATE_STATE_KEY);
             }
         }
     }
     clearKeycards(room) {
         this.privateState.delete(room.code, ROOM_KEY, ROOM_KEYCARD);
         for (const player of room.players) {
-            this.privateState.delete(room.code, player.socketId, types_1.CIPHER_GRID_PRIVATE_KEY);
+            this.privateState.delete(room.code, player.socketId, types_1.CIPHER_GRID_PRIVATE_STATE_KEY);
         }
     }
     pickWords(language) {

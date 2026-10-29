@@ -351,6 +351,9 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         code: string;
         targetId: string;
     }, client: Socket): void;
+    handleWerewolfSkipDiscussion(data: {
+        code: string;
+    }, client: Socket): void;
     handleBattleshipPlaceShips(data: {
         code: string;
         payload: BattleshipPlaceShipsPayload;

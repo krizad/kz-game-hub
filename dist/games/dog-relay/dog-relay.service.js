@@ -318,7 +318,7 @@ let DogRelayService = class DogRelayService {
         const state = room.dogRelayState;
         const secrets = this.privateState.get(room.code, '__room__', 'dogRelaySecrets');
         for (const player of room.players) {
-            this.privateState.delete(room.code, player.socketId, types_1.DOG_RELAY_PRIVATE_KEY);
+            this.privateState.delete(room.code, player.socketId, types_1.DOG_RELAY_PRIVATE_STATE_KEY);
             if (!state?.roundId ||
                 !secrets ||
                 !Object.prototype.hasOwnProperty.call(secrets.roles, player.id) ||
@@ -333,11 +333,11 @@ let DogRelayService = class DogRelayService {
                 projection.truePair = { ...secrets.truePair };
             if (secrets.ballots[player.id])
                 projection.ownVoteTargetId = secrets.ballots[player.id];
-            this.privateState.set(room.code, player.socketId, types_1.DOG_RELAY_PRIVATE_KEY, projection);
+            this.privateState.set(room.code, player.socketId, types_1.DOG_RELAY_PRIVATE_STATE_KEY, projection);
         }
     }
     clear(room) {
-        this.privateState.takeRoomData(room.code, types_1.DOG_RELAY_PRIVATE_KEY);
+        this.privateState.takeRoomData(room.code, types_1.DOG_RELAY_PRIVATE_STATE_KEY);
         this.privateState.delete(room.code, '__room__', 'dogRelaySecrets');
     }
     finish(room, winningTeam, reason) {
