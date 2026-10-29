@@ -44,6 +44,9 @@
   },
   "packageManager": "pnpm@9.1.0",
   "pnpm": {
+    "neverBuiltDependencies": [
+      "unrs-resolver"
+    ],
     "patchedDependencies": {
       "playwright@1.61.0": "patches/playwright@1.61.0.patch"
     }
