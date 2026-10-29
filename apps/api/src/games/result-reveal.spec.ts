@@ -49,7 +49,6 @@ describe('paced result reveal', () => {
     [GameType.SABOTEUR, { saboteurState: { currentPhase: 'GAME_OVER', round: 3 } }],
     [GameType.COUP, { coupState: { phase: 'RESULT' } }],
     [GameType.WHO_AM_I, { status: RoomStatus.RESULT, whoAmIState: { winner: null } }],
-    [GameType.RPS, { status: RoomStatus.RESULT }],
     [GameType.MUSIC_TRIVIA, { musicTriviaState: { phase: 'ROUND_RESULT', scores: {} } }],
     [GameType.MUSIC_TRIVIA, { musicTriviaState: { phase: 'ANSWER_RESULT', scores: {} } }],
     [GameType.MUSIC_TRIVIA, { musicTriviaState: { phase: 'FINISHED', scores: {} } }],
@@ -61,15 +60,6 @@ describe('paced result reveal', () => {
     [GameType.CARD_GAME, { cardGameState: { phase: 'RESULT', preset: 'POK_DENG', result: {} } }],
     [GameType.CARD_GAME, { cardGameState: { phase: 'RESULT', preset: 'SLAVE', result: {} } }],
     [GameType.POKER, { pokerState: { phase: 'HAND_RESULT', handNumber: 1 } }],
-    [GameType.TIC_TAC_TOE, { ticTacToeState: { winner: 'X' } }],
-    [
-      GameType.TIC_TAC_TOE,
-      { config: { ticTacToeMode: 'GOBBLER' }, gobblerState: { winner: 'DRAW' } },
-    ],
-    [
-      GameType.TIC_TAC_TOE,
-      { config: { ticTacToeMode: 'ULTIMATE' }, ultimateTicTacToeState: { winner: 'O' } },
-    ],
     [GameType.CIPHER_GRID, { cipherGridState: { phase: 'ROUND_END', round: 1 } }],
     [GameType.THE_MIND, { theMindState: { phase: 'GAME_OVER', level: 2 } }],
   ] as const)('recognizes the result for %s (%j)', (gameType, state) => {
@@ -159,7 +149,9 @@ describe('paced result reveal', () => {
   });
 
   it('does not allow role actions to rush hands or scores', () => {
-    const room = roomFor(GameType.RPS, { status: RoomStatus.RESULT });
+    const room = roomFor(GameType.CARD_GAME, {
+      cardGameState: { phase: 'RESULT', preset: 'SLAVE', result: {} },
+    });
     syncResultReveal(room, 1000);
     expect(
       applyResultRevealAction(
@@ -182,13 +174,27 @@ describe('paced result reveal', () => {
     expect(room.resultReveal!.id).not.toBe(handId);
   });
 
-  it('ignores a stale winner belonging to another tic-tac-toe mode', () => {
-    const room = roomFor(GameType.TIC_TAC_TOE, {
-      config: { ticTacToeMode: 'ULTIMATE' },
-      ticTacToeState: { winner: 'X' },
-      ultimateTicTacToeState: {},
-    });
-    expect(getResultRevealPlan(room)).toBeNull();
+  it('does not trigger result reveal for open-information or fast-paced games (TIC_TAC_TOE, RPS)', () => {
+    expect(
+      getResultRevealPlan(roomFor(GameType.TIC_TAC_TOE, { ticTacToeState: { winner: 'X' } })),
+    ).toBeNull();
+    expect(
+      getResultRevealPlan(
+        roomFor(GameType.TIC_TAC_TOE, {
+          config: { ticTacToeMode: 'GOBBLER' },
+          gobblerState: { winner: 'DRAW' },
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      getResultRevealPlan(
+        roomFor(GameType.TIC_TAC_TOE, {
+          config: { ticTacToeMode: 'ULTIMATE' },
+          ultimateTicTacToeState: { winner: 'O' },
+        }),
+      ),
+    ).toBeNull();
+    expect(getResultRevealPlan(roomFor(GameType.RPS, { status: RoomStatus.RESULT }))).toBeNull();
   });
 
   it('uses game seat order and excludes viewers', () => {

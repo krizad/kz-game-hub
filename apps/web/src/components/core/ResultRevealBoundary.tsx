@@ -53,36 +53,7 @@ function FinalEvidence({ room, elapsed }: { room: RoomState; elapsed: number }) 
       </ol>
     );
   }
-  return <FinalBoard room={room} />;
-}
-
-function FinalBoard({ room }: { room: RoomState }) {
-  if (room.gameType !== GameType.TIC_TAC_TOE) return null;
-  const mode = room.config.ticTacToeMode;
-  const cells =
-    mode === 'ULTIMATE'
-      ? room.ultimateTicTacToeState?.macroBoard
-      : mode === 'GOBBLER'
-        ? room.gobblerState?.board.map((stack) => stack.at(-1)?.side ?? null)
-        : room.ticTacToeState?.board;
-  const line =
-    mode === 'ULTIMATE'
-      ? room.ultimateTicTacToeState?.winningMacroLine
-      : mode === 'GOBBLER'
-        ? room.gobblerState?.winningLine
-        : room.ticTacToeState?.winningLine;
-  return (
-    <div data-testid="result-reveal-board" className="grid grid-cols-3 gap-2 w-60 mx-auto">
-      {cells?.map((cell, index) => (
-        <div
-          key={index}
-          className={`aspect-square border-4 border-black flex items-center justify-center text-3xl font-black ${line?.includes(index) ? 'bg-emerald-300' : 'bg-white'}`}
-        >
-          {cell === 'DRAW' ? '—' : cell}
-        </div>
-      ))}
-    </div>
-  );
+  return null;
 }
 
 function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevealState }) {
@@ -101,17 +72,9 @@ function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevea
   const current = room.players.find((p) => p.id === currentId);
   const isMyTurn = !!current && (current.id === playerId || current.socketId === socketId);
   const me = room.players.find((p) => p.socketId === socketId && !p.isViewer);
-  const ttt =
-    room.config.ticTacToeMode === 'GOBBLER'
-      ? room.gobblerState
-      : room.config.ticTacToeMode === 'ULTIMATE'
-        ? room.ultimateTicTacToeState
-        : room.ticTacToeState;
   const isParticipant =
     !!me &&
     (reveal.playerIds.includes(me.id) ||
-      (room.gameType === GameType.TIC_TAC_TOE &&
-        (ttt?.playerXId === me.socketId || ttt?.playerOId === me.socketId)) ||
       (room.gameType === GameType.CIPHER_GRID && !!room.cipherGridState?.teams[me.socketId]));
   const didWin =
     !!me && (outcome.winnerIds.includes(me.socketId) || outcome.winnerIds.includes(me.id));

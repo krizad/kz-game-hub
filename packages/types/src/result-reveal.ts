@@ -93,10 +93,6 @@ export function getResultRevealPlan(room: RoomState): ResultRevealPlan | null {
         );
       }
       break;
-    case GameType.RPS:
-      if (room.status === RoomStatus.RESULT) key = 'result';
-      sockets = room.rpsState?.activePlayers ?? sockets;
-      break;
     case GameType.CARD_GAME:
       if (room.cardGameState?.phase === 'RESULT' && room.cardGameState.result) key = 'result';
       sockets = room.cardGameState?.playerOrder ?? sockets;
@@ -111,18 +107,6 @@ export function getResultRevealPlan(room: RoomState): ResultRevealPlan | null {
       sockets = room.pokerState?.playerOrder ?? sockets;
       kind = room.status === RoomStatus.RESULT ? 'SCORES' : 'HANDS';
       break;
-    case GameType.TIC_TAC_TOE: {
-      const state =
-        room.config?.ticTacToeMode === 'GOBBLER'
-          ? room.gobblerState
-          : room.config?.ticTacToeMode === 'ULTIMATE'
-            ? room.ultimateTicTacToeState
-            : room.ticTacToeState;
-      if (state?.winner) key = 'result';
-      kind = 'BOARD';
-      sockets = [];
-      break;
-    }
     case GameType.CIPHER_GRID:
       if (room.cipherGridState?.phase === 'ROUND_END') key = `round:${room.cipherGridState.round}`;
       kind = 'BOARD';
