@@ -86,6 +86,7 @@ export function WerewolfView() {
   const prevPhaseRef = useRef<WerewolfPhase | undefined>(undefined);
   const werewolfNightAction = useGameStore((s) => s.werewolfNightAction);
   const werewolfDayVote = useGameStore((s) => s.werewolfDayVote);
+  const werewolfSkipDiscussion = useGameStore((s) => s.werewolfSkipDiscussion);
   const [showNarrator, setShowNarrator] = useState(false);
 
   const state = room?.werewolfState as WerewolfState | undefined;
@@ -360,6 +361,15 @@ export function WerewolfView() {
               format="mm:ss"
               className="inline-block mt-2 font-black text-2xl border-2 border-black px-3 py-1 bg-yellow-300"
             />
+            {room?.roomHostId === socketId && !state.paused && (
+              <button
+                data-testid="werewolf-skip-discussion"
+                onClick={() => werewolfSkipDiscussion()}
+                className="block mx-auto mt-3 text-sm font-black bg-indigo-200 border-4 border-black px-4 py-2 shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-none"
+              >
+                ⏭ {t('gameWerewolf.skipDiscussion')}
+              </button>
+            )}
           </div>
         </div>
       );

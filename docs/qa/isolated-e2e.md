@@ -34,3 +34,5 @@ docker stop kz-game-hub-e2e-local
 ```
 
 Nightly/manual CI ใช้ MySQL service `kz_game_hub_test` และ fixture เดียวกัน. การตรวจ workflow บนเครื่องไม่ถือว่า GitHub run ผ่านแล้ว.
+
+Demo suite (`apps/web/e2e/demo.spec.ts` — อัดวีดีโอ demo ครบ 20 เกมลง `apps/web/public/demo/`) ใช้ config หลัก (Web3100/API3101) จึงอยู่ภายใต้สัญญา `TEST_DATABASE_URL` เดียวกัน และต้องมี `ffmpeg` ในเครื่องสำหรับต่อวีดีโอ: `TEST_DATABASE_URL=... pnpm -F web exec playwright test demo`.

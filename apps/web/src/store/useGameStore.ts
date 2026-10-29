@@ -202,6 +202,7 @@ interface GameState {
   cipherCancelRound: (round: number) => void;
   werewolfNightAction: (action: WerewolfNightActionKind, targetId: string) => void;
   werewolfDayVote: (targetId: string) => void;
+  werewolfSkipDiscussion: () => void;
   battleshipPlaceShips: (ships: ShipPlacement[]) => void;
   battleshipFire: (targetId: string, x: number, y: number) => void;
   battleshipPing: (x: number, y: number) => void;
@@ -1293,6 +1294,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
     werewolfDayVote: (targetId: string) => {
       emitGameAction(SOCKET_EVENTS.WEREWOLF_DAY_VOTE, { payload: () => ({ targetId }) });
+    },
+
+    werewolfSkipDiscussion: () => {
+      emitGameAction(SOCKET_EVENTS.WEREWOLF_SKIP_DISCUSSION);
     },
 
     battleshipPlaceShips: (ships: ShipPlacement[]) => {

@@ -1141,7 +1141,9 @@ export function BananaThiefView() {
             </div>
           )}
           <div className="bg-lime-100 border-2 border-black p-2 text-center">
-            {t('gameBananaThief.yourDelta', { score: myDelta })}
+            {myDelta === 1
+              ? t('gameBananaThief.yourDeltaOne')
+              : t('gameBananaThief.yourDelta', { score: myDelta })}
           </div>
         </div>
 

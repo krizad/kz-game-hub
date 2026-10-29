@@ -22,7 +22,7 @@ import {
 } from './card-engine.service';
 import { SLAVE_RANK_ORDER } from './presets/slave.preset';
 
-const PRIVATE_KEY = 'cardGame';
+const PRIVATE_STATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
 const FIRST_PLAY_KEY = 'slaveFirstPlay';
 const LEADER_CARD_ID = '3-CLUBS';
@@ -256,14 +256,14 @@ export class SlaveRuntime {
   }
 
   private setHand(roomCode: string, socketId: string, hand: PlayingCard[]): void {
-    this.privateStateService.set(roomCode, socketId, PRIVATE_KEY, {
+    this.privateStateService.set(roomCode, socketId, PRIVATE_STATE_KEY, {
       preset: 'SLAVE',
       hand,
     } satisfies CardGamePrivateState);
   }
 
   private getHand(roomCode: string, socketId: string): PlayingCard[] | undefined {
-    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)
+    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_STATE_KEY)
       ?.hand;
   }
 

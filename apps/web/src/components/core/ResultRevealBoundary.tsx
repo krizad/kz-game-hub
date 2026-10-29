@@ -224,6 +224,24 @@ function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevea
                   {getRevealEvidence(room, t, secretWord)}
                 </p>
                 <FinalEvidence room={room} elapsed={progress.elapsed} />
+                {reveal.playerIds.length > 0 &&
+                  (() => {
+                    const first = room.players.find((p) => p.id === reveal.playerIds[0]);
+                    if (!first) return null;
+                    return (
+                      <div className="border-4 border-black bg-yellow-200 p-5 text-center shadow-[5px_5px_0_0_#000]">
+                        <div className="text-6xl font-black" aria-hidden="true">
+                          ?
+                        </div>
+                        <p className="mt-3 font-bold">
+                          {t(
+                            reveal.kind === 'ROLES' ? 'resultReveal.waiting' : 'resultReveal.next',
+                            { name: first.name },
+                          )}
+                        </p>
+                      </div>
+                    );
+                  })()}
               </>
             ) : (
               <>

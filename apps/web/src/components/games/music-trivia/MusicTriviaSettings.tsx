@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 import { MusicTriviaLevel } from '@repo/types';
+import { musicTriviaLevelKey } from './levelLabel';
 
 export function MusicTriviaSettings() {
   const { room, artistPresets } = useGameStore();
@@ -96,9 +97,7 @@ export function MusicTriviaSettings() {
               >
                 {t('gameMusicTrivia.lobby.summaryDifficulty')}:{' '}
                 <span className="font-bold">
-                  {t(
-                    `gameMusicTrivia.lobby.level${(room.config.musicTriviaLevel || 'EASY').toLowerCase()}`,
-                  )}
+                  {t(musicTriviaLevelKey(room.config.musicTriviaLevel))}
                 </span>
               </span>
             </>
@@ -235,11 +234,7 @@ export function MusicTriviaSettings() {
                   />
                 ) : (
                   <div className="text-black font-black text-lg px-4 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    {t(
-                      `gameMusicTrivia.lobby.level${(
-                        room.config.musicTriviaLevel || 'EASY'
-                      ).toLowerCase()}`,
-                    )}
+                    {t(musicTriviaLevelKey(room.config.musicTriviaLevel))}
                   </div>
                 )}
                 <p className="text-xs text-black font-bold mt-2 bg-yellow-300 border-2 border-black inline-block px-2 py-1">

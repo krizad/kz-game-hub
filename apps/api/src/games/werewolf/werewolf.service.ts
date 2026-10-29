@@ -920,6 +920,17 @@ export class WerewolfService {
     return room;
   }
 
+  /** Host-only: cut the day discussion short and open the vote immediately. */
+  handleSkipDiscussion(room: RoomState, socketId: string): RoomState | null {
+    const state = room.werewolfState;
+    if (!state || room.status !== RoomStatus.PLAYING) return null;
+    if (state.phase !== WerewolfPhase.DAY_DISCUSSION || state.paused) return null;
+    if (socketId !== room.roomHostId) return null;
+
+    this.beginVote(room);
+    return room;
+  }
+
   // --- disconnect / pause / reconnect ---
 
   handlePlayerDisconnect(room: RoomState, socketId: string): void {

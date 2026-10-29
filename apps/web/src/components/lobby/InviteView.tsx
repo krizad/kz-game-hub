@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useI18nStore } from '@/store/useI18nStore';
 import { LanguageSwitcher } from '@/components/core/LanguageSwitcher';
 
 import { RulesModal } from '@/components/RulesModal';
@@ -12,8 +14,16 @@ export function InviteView() {
   const { connected, myName, setName, joinRoom } = useGameStore();
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room') || '';
+  const setLanguage = useI18nStore((s) => s.setLanguage);
   const { t } = useTranslate();
   const { randomizeName } = useAutoRandomName();
+
+  // Invite links carry the room's language (?lang=), so first-time joiners
+  // land in the room's language instead of the store default.
+  useEffect(() => {
+    const lang = searchParams.get('lang');
+    if (lang === 'en' || lang === 'th') setLanguage(lang);
+  }, [searchParams, setLanguage]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-amber-50 text-black font-mono relative overflow-x-hidden">

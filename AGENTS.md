@@ -5,16 +5,28 @@
 ```bash
 pnpm install            # pnpm@9.1.0 required, Node >=20.19.0
 pnpm db:push            # push schema to the DB in DATABASE_URL (⚠️ currently a REMOTE production MySQL — check .env first)
-pnpm db:seed            # seed SoundsFishyQuestion (150+ Thai trivia) + WhoAmI words
+pnpm db:seed            # seed SoundsFishyQuestion (250 Thai trivia) + WhoAmI words (738)
 pnpm db:use:mysql       # switch prisma datasource provider to mysql (or db:use:pg for postgresql)
 pnpm dev                # turbo dev (web:3000 + api:3001)
 pnpm -F api test        # run all API tests (Jest)
 pnpm -F api test -- --testPathPatterns=sounds-fishy   # single test file
 pnpm test:e2e           # run all E2E tests (Playwright)
 E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -c playwright.sim.config.ts  # simulated play-to-completion for every game/mode
+pnpm -F web exec playwright test demo   # record all 20 game demo videos → apps/web/public/demo/*-demo.mp4 (needs ffmpeg)
 pnpm test:e2e:ui        # run E2E tests with Playwright UI
 pnpm format             # Prettier
 ```
+
+**E2E database gotcha:** every E2E config requires `TEST_DATABASE_URL` pointing at a **local disposable MySQL** (loopback host, db name containing `test`) — it never reads the root `.env` `DATABASE_URL`, which is production. Local setup here: the `kz-game-hub-db` Docker container (port 3307) with database `kz_game_hub_test`:
+
+```bash
+export DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" && pnpm -F @repo/database db:push && pnpm -F @repo/database db:seed
+TEST_DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" pnpm -F api test -- --testPathPatterns=...   # (tests that hit the DB)
+TEST_DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" pnpm -F web exec playwright test demo
+# one-shot alternative: node scripts/test-isolated.mjs --prepare --list  (see docs/qa/isolated-e2e.md)
+```
+
+**Commit gate:** commits are guarded by the Mimosa security plugin — a project scan must have no high findings or the commit is rejected. False positives on dev tooling are handled via `.mimosa/security-policy.json` (gitignored; `threatModel.exclusions`, `network.allowedHosts`, `path.allowedWriteRoots`). Don't bypass the gate without the owner's approval.
 
 ## Env loading gotcha
 
@@ -107,7 +119,9 @@ pnpm -F api test -- --testPathPatterns=rps  # single game
 
 No frontend tests exist.
 
-E2E tests use Playwright with Chromium. Config at `apps/web/playwright.config.ts`. Tests live in `apps/web/e2e/`. The config auto-starts the API (port 3001) and web (port 3000) dev servers, or reuses existing ones. Multi-player tests use separate browser contexts to simulate different players in a room.
+E2E tests use Playwright with Chromium. Config at `apps/web/playwright.config.ts` (plus `playwright.sim.config.ts` for `e2e/sim/` play-to-completion runs and `playwright.poker.config.ts`). Tests live in `apps/web/e2e/`. The config auto-starts the API (port 3001) and web (port 3000) dev servers, or reuses existing ones. Multi-player tests use separate browser contexts to simulate different players in a room.
+
+`e2e/demo.spec.ts` records a demo video for **every game (20)** from lobby to result reveal — multiple recorded player perspectives with canvas-drawn role badges, stitched into split-screen MP4s at `apps/web/public/demo/<slug>-demo.mp4` (requires `ffmpeg`; 3-pane videos use a blurred fill). Demo selectors must use `data-testid`, not text/regex — several buttons are CSS-uppercased and card buttons embed extra labels.
 
 ## Existing agent docs
 

@@ -16,7 +16,7 @@ import {
   DOG_RELAY_DISCUSSION_MS,
   DOG_RELAY_COUNTDOWN_MS,
   DOG_RELAY_RECONNECT_MS,
-  DOG_RELAY_PRIVATE_KEY,
+  DOG_RELAY_PRIVATE_STATE_KEY,
 } from '@repo/types';
 import { PrivateStateService } from '../private-state.service';
 import { isDogRelayPairCorrect, resolveDogRelayWinner } from './dog-relay.rules';
@@ -378,7 +378,7 @@ export class DogRelayService {
       'dogRelaySecrets',
     );
     for (const player of room.players) {
-      this.privateState.delete(room.code, player.socketId, DOG_RELAY_PRIVATE_KEY);
+      this.privateState.delete(room.code, player.socketId, DOG_RELAY_PRIVATE_STATE_KEY);
       if (
         !state?.roundId ||
         !secrets ||
@@ -396,12 +396,12 @@ export class DogRelayService {
       )
         projection.truePair = { ...secrets.truePair };
       if (secrets.ballots[player.id]) projection.ownVoteTargetId = secrets.ballots[player.id];
-      this.privateState.set(room.code, player.socketId, DOG_RELAY_PRIVATE_KEY, projection);
+      this.privateState.set(room.code, player.socketId, DOG_RELAY_PRIVATE_STATE_KEY, projection);
     }
   }
 
   clear(room: RoomState): void {
-    this.privateState.takeRoomData(room.code, DOG_RELAY_PRIVATE_KEY);
+    this.privateState.takeRoomData(room.code, DOG_RELAY_PRIVATE_STATE_KEY);
     this.privateState.delete(room.code, '__room__', 'dogRelaySecrets');
   }
 

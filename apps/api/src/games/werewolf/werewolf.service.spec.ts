@@ -40,11 +40,14 @@ describe('WerewolfService', () => {
     }));
   }
 
+  // Unique code per room: PrivateStateService keys on (code, socketId), so
+  // reusing one code across makeRoom() calls leaks state between rooms.
+  let roomSeq = 0;
   function makeRoom(playerCount = 6, overrides: Partial<RoomState> = {}): RoomState {
     return {
       id: 'r1',
       gameType: GameType.WEREWOLF,
-      code: 'ABC123',
+      code: `WW${String(++roomSeq).padStart(3, '0')}`,
       status: RoomStatus.LOBBY,
       roomHostId: 's1',
       players: makePlayers(playerCount),
@@ -877,6 +880,54 @@ describe('WerewolfService', () => {
       // doctor died tonight: the slot still burns (schedule unchanged)
       expect(state.nightSlots).toEqual(firstSlots);
       expect(state.nightSlots).toContain('DOCTOR');
+    });
+  });
+
+  describe('handleSkipDiscussion', () => {
+    function roomInDiscussion(playerCount = 6): { room: RoomState; staleDeadline: number } {
+      const room = makeRoom(playerCount);
+      service.startGame(room, 's1');
+      settleNight(room); // no kill → discussion
+      expect(room.werewolfState!.phase).toBe(WerewolfPhase.DAY_DISCUSSION);
+      return { room, staleDeadline: room.werewolfState!.phaseEndsAt! };
+    }
+
+    it('host skip ends discussion and opens the vote with a fresh deadline', () => {
+      const { room, staleDeadline } = roomInDiscussion();
+
+      const skipped = service.handleSkipDiscussion(room, 's1');
+      expect(skipped).not.toBeNull();
+      const state = room.werewolfState!;
+      expect(state.phase).toBe(WerewolfPhase.DAY_VOTE);
+      expect(state.voteProgress).toEqual({ cast: 0, total: 6 });
+      expect(state.phaseEndsAt).not.toBe(staleDeadline);
+      for (const key of room.players.map((p) => p.socketId)) {
+        expect(privateState.get(room.code, key, 'wwDayVote')).toBeNull();
+      }
+
+      // The superseded discussion timer must be a no-op when it fires.
+      expect(service.handlePhaseTimeout(room, staleDeadline)).toBeNull();
+    });
+
+    it('rejects non-hosts and out-of-phase/paused rooms', () => {
+      const { room, staleDeadline } = roomInDiscussion();
+
+      expect(service.handleSkipDiscussion(room, 's2')).toBeNull();
+      expect(room.werewolfState!.phase).toBe(WerewolfPhase.DAY_DISCUSSION);
+      expect(room.werewolfState!.phaseEndsAt).toBe(staleDeadline);
+
+      // Vote phase: even the host cannot "skip" again.
+      service.handleSkipDiscussion(room, 's1');
+      expect(room.werewolfState!.phase).toBe(WerewolfPhase.DAY_VOTE);
+      expect(service.handleSkipDiscussion(room, 's1')).toBeNull();
+
+      // Paused discussion cannot be skipped.
+      room.status = RoomStatus.PLAYING;
+      room.werewolfState!.paused = true;
+      room.werewolfState!.phase = WerewolfPhase.DAY_DISCUSSION;
+      room.werewolfState!.phaseEndsAt = staleDeadline;
+      expect(service.handleSkipDiscussion(room, 's1')).toBeNull();
+      expect(room.werewolfState!.phase).toBe(WerewolfPhase.DAY_DISCUSSION);
     });
   });
 });

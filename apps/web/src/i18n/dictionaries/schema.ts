@@ -918,6 +918,8 @@ export interface Dictionary {
     roundOver: string;
     conspiratorWas: string;
     conspiratorCaught: string;
+    detectivesWinTitle: string;
+    conspiratorWinTitle: string;
     detectivesIdentified: string;
     conspiratorEscaped: string;
     nobodyCaught: string;
@@ -1367,6 +1369,7 @@ export interface Dictionary {
       viewOnAppleMusic: string;
       listenOnAppleMusic: string;
       roundLabel: string;
+      finishedLabel: string;
       endGame: string;
       playlist: string;
       regionLabel: string;
@@ -1836,6 +1839,7 @@ export interface Dictionary {
     noFollowers: string;
     resultDiceTitle: string;
     yourDelta: string;
+    yourDeltaOne: string;
     nextRound: string;
     backToLobby: string;
     waitingHost: string;
@@ -2154,6 +2158,7 @@ export interface Dictionary {
     dawnNoDeaths: string;
     discussionTitle: string;
     discussionHint: string;
+    skipDiscussion: string;
     voteTitle: string;
     voteHint: string;
     voteProgress: string;

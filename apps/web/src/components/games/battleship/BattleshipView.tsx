@@ -245,17 +245,28 @@ export function BattleshipView() {
         const hasSunk = state.lastVolleyResults.some((v) => v.result === 'SUNK');
         const hasCollision = state.lastVolleyResults.some((v) => v.result === 'COLLISION');
         const hasHit = state.lastVolleyResults.some((v) => v.result === 'HIT');
+        // Split the cue by role: the shooter gets a short celebratory pulse
+        // (they are about to aim again), the defender gets the damage wash.
+        const iFired = state.lastVolleyResults.some((v) => v.shooterId === socketId);
 
-        if (hasSunk) {
+        if (hasSunk && iFired) {
+          audioManager.playRockCrumble();
+          flash('gold', 300);
+          haptic([80, 40, 100]);
+        } else if (hasSunk) {
           audioManager.playRockCrumble();
           shake(0.75);
-          flash('red', 400);
+          flash('red', 450);
           haptic([100, 40, 120]);
         } else if (hasCollision) {
           audioManager.playClash();
           shake(0.55);
           flash('gold', 350);
           haptic([60, 30, 60]);
+        } else if (hasHit && iFired) {
+          audioManager.playClash();
+          flash('gold', 250);
+          haptic(60);
         } else if (hasHit) {
           audioManager.playClash();
           shake(0.4);

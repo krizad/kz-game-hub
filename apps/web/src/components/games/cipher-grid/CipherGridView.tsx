@@ -6,7 +6,7 @@ import { CipherPictureCard, CipherPictureImage } from './CipherPictureCard';
 import {
   CIPHER_GRID_MAX_CLUE_LENGTH,
   CIPHER_GRID_PICTURE_PACK_IS_FIXTURE,
-  CIPHER_GRID_PRIVATE_KEY,
+  CIPHER_GRID_PRIVATE_STATE_KEY,
 } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -58,7 +58,7 @@ export function CipherGridView() {
 
   // Keycard for leads from private state
   const privateKeycard = (privateState as Record<string, unknown> | undefined)?.[
-    CIPHER_GRID_PRIVATE_KEY
+    CIPHER_GRID_PRIVATE_STATE_KEY
   ] as CipherCardType[] | undefined;
 
   // Guesses remaining calculation

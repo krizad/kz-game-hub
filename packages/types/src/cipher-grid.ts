@@ -24,7 +24,7 @@ export const CIPHER_GRID_MIN_PLAYERS = 4;
 export const CIPHER_GRID_MAX_CLUE_COUNT = 9;
 export const CIPHER_GRID_MAX_CLUE_LENGTH = 30;
 /** Private-state key holding the Cipher Key for each Cipher Lead socket. */
-export const CIPHER_GRID_PRIVATE_KEY = 'cipherKeycard';
+export const CIPHER_GRID_PRIVATE_STATE_KEY = 'cipherKeycard';
 
 export interface CipherCardBase {
   revealed: boolean;

@@ -32,7 +32,7 @@ import { POK_DENG_PRESET } from './presets/pok-deng.preset';
 import { CARD_GAME_PRESETS, presetForConfig } from './presets';
 import { SlaveRuntime } from './slave.runtime';
 
-const PRIVATE_KEY = 'cardGame';
+const PRIVATE_STATE_KEY = 'cardGame';
 const ENGINE_SOCKET_ID = '__card-game-engine__';
 const PILES_KEY = 'piles';
 
@@ -208,7 +208,7 @@ export class CardGameService {
     const state = room.cardGameState;
     if (!state || room.gameType !== GameType.CARD_GAME) return;
     for (const socketId of state.playerOrder) {
-      this.privateStateService.delete(room.code, socketId, PRIVATE_KEY);
+      this.privateStateService.delete(room.code, socketId, PRIVATE_STATE_KEY);
     }
     this.privateStateService.delete(room.code, ENGINE_SOCKET_ID, PILES_KEY);
     room.cardGameState = undefined;
@@ -390,14 +390,14 @@ export class CardGameService {
   }
 
   private setHand(roomCode: string, socketId: string, hand: PlayingCard[]): void {
-    this.privateStateService.set(roomCode, socketId, PRIVATE_KEY, {
+    this.privateStateService.set(roomCode, socketId, PRIVATE_STATE_KEY, {
       preset: 'POK_DENG',
       hand,
     } satisfies CardGamePrivateState);
   }
 
   private getHand(roomCode: string, socketId: string): PlayingCard[] | undefined {
-    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_KEY)
+    return this.privateStateService.get<CardGamePrivateState>(roomCode, socketId, PRIVATE_STATE_KEY)
       ?.hand;
   }
 

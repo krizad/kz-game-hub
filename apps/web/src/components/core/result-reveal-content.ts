@@ -30,7 +30,8 @@ export function revealPlayerName(room: RoomState, id?: string | null): string {
 export function getRevealCard(room: RoomState, player: UserState, t: Translate): RevealCardContent {
   const id = player.socketId;
   const details: string[] = [];
-  const score = (value: number) => t('resultReveal.score', { score: value });
+  const score = (value: number) =>
+    value === 1 ? t('resultReveal.scoreOne') : t('resultReveal.score', { score: value });
   const vote = (target?: string | null) => {
     if (target) details.push(t('resultReveal.votedFor', { name: revealPlayerName(room, target) }));
   };
@@ -250,11 +251,17 @@ export function getRevealOutcome(room: RoomState, t: Translate): RevealOutcome {
     }
     case GameType.DETECTIVE_CLUB: {
       const state = room.detectiveClubState!;
+      const conspiratorEscaped = (state.scoreDeltas?.[state.conspiratorId ?? ''] ?? 0) > 0;
       winnerIds = Object.keys(state.scoreDeltas ?? {}).filter(
         (id) => (state.scoreDeltas?.[id] ?? 0) > 0,
       );
+      title = conspiratorEscaped
+        ? t('gameDetectiveClub.conspiratorWinTitle', {
+            name: revealPlayerName(room, state.conspiratorId),
+          })
+        : t('gameDetectiveClub.detectivesWinTitle');
       reason = t(
-        `gameDetectiveClub.${(state.scoreDeltas?.[state.conspiratorId ?? ''] ?? 0) > 0 ? 'conspiratorEscaped' : 'conspiratorCaught'}`,
+        `gameDetectiveClub.${conspiratorEscaped ? 'conspiratorEscaped' : 'conspiratorCaught'}`,
       );
       break;
     }
@@ -314,8 +321,8 @@ export function getRevealOutcome(room: RoomState, t: Translate): RevealOutcome {
       reason = t(room.rpsState?.gameWinner ? 'resultReveal.matchReason' : 'resultReveal.rpsReason');
       break;
     }
-    case GameType.WHO_FIRST:
-      winnerIds =
+    case GameType.WHO_FIRST: {
+      const topIds =
         room.whoFirstState?.phase === 'FINISHED'
           ? top(
               Object.fromEntries(
@@ -331,17 +338,31 @@ export function getRevealOutcome(room: RoomState, t: Translate): RevealOutcome {
           : room.whoFirstState?.roundWinnerId
             ? [room.whoFirstState.roundWinnerId]
             : [];
+      winnerIds = topIds;
+      if (room.whoFirstState?.phase === 'FINISHED' && topIds.length > 1) {
+        title = t('resultReveal.tieTitle', {
+          names: topIds.map((id) => revealPlayerName(room, id)).join(', '),
+        });
+      }
       reason = t('resultReveal.reactionReason');
       break;
-    case GameType.MUSIC_TRIVIA:
-      winnerIds =
+    }
+    case GameType.MUSIC_TRIVIA: {
+      const topIds =
         room.musicTriviaState?.phase === 'FINISHED'
           ? top(room.musicTriviaState.scores)
           : room.musicTriviaState?.currentRound?.winnerId
             ? [room.musicTriviaState.currentRound.winnerId]
             : [];
+      winnerIds = topIds;
+      if (room.musicTriviaState?.phase === 'FINISHED' && topIds.length > 1) {
+        title = t('resultReveal.tieTitle', {
+          names: topIds.map((id) => revealPlayerName(room, id)).join(', '),
+        });
+      }
       reason = t('resultReveal.musicReason');
       break;
+    }
     case GameType.CARD_GAME:
       winnerIds = room.cardGameState?.result?.winnerIds ?? [];
       reason = t(

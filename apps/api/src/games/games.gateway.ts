@@ -2104,6 +2104,19 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     }
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.WEREWOLF_SKIP_DISCUSSION)
+  handleWerewolfSkipDiscussion(
+    @MessageBody() data: { code: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.werewolfSkipDiscussion(data.code, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot skip discussion' });
+    }
+  }
+
   // --- Battleship (ADR 0016) ---
 
   @SubscribeMessage(SOCKET_EVENTS.BATTLESHIP_PLACE_SHIPS)

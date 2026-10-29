@@ -264,6 +264,44 @@ export function TheMindView() {
     }
   }, [revealedCount]);
 
+  // Keyboard shortcut hook must live above the early returns below: a hook
+  // placed after `if (!room) return null` runs with a different hook count
+  // once the room arrives and crashes the render.
+  const canPlay = room?.theMindState?.phase === TheMindPhase.PLAYING;
+  const myHand = (privateState.theMindHand as number[] | undefined) ?? [];
+
+  React.useEffect(() => {
+    if (!canPlay || myHand.length === 0) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const isExtreme = room?.config?.theMindMode === 'EXTREME';
+        if (isExtreme) {
+          if (selectedExtremeCard !== null) {
+            theMindPlayCard(selectedExtremeCard, 'UP');
+            audioManager.playCardSnap();
+          }
+        } else {
+          theMindPlayCard(myHand[0], 'UP');
+          audioManager.playCardSnap();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canPlay, myHand, room?.config?.theMindMode, selectedExtremeCard, theMindPlayCard]);
+
   if (!room || room.gameType !== GameType.THE_MIND) return null;
 
   const isHost = room.roomHostId === socketId;
@@ -443,43 +481,9 @@ export function TheMindView() {
   }
 
   const state = room.theMindState;
-  const myHand = (privateState.theMindHand as number[] | undefined) ?? [];
-  const canPlay = state.phase === TheMindPhase.PLAYING;
   const shurikenVote = state.shurikenVotes[playerId];
   const isShurikenProposer = state.shurikenProposerId === playerId;
   const blindMistakeIndexes = new Set(state.result?.invalidPlayIndexes ?? []);
-
-  React.useEffect(() => {
-    if (!canPlay || myHand.length === 0) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target?.tagName === 'INPUT' ||
-        target?.tagName === 'TEXTAREA' ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-
-      if (e.code === 'Space') {
-        e.preventDefault();
-        const isExtreme = room.config?.theMindMode === 'EXTREME';
-        if (isExtreme) {
-          if (selectedExtremeCard !== null) {
-            theMindPlayCard(selectedExtremeCard, 'UP');
-            audioManager.playCardSnap();
-          }
-        } else {
-          theMindPlayCard(myHand[0], 'UP');
-          audioManager.playCardSnap();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canPlay, myHand, room?.config?.theMindMode, selectedExtremeCard, theMindPlayCard]);
 
   const renderSetup = () => {
     const connectedPlayers = room.players.filter((p) => p.connected && !p.isViewer);

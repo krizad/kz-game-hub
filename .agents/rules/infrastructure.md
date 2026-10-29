@@ -40,6 +40,7 @@ pnpm dev
 | `pnpm db:use:mysql` / `pnpm db:use:pg` | Switch prisma datasource provider                       |
 | `pnpm start`                           | Start all apps in production mode                       |
 | `pnpm test:e2e`                        | Playwright E2E (auto-starts api:3001 + web:3000)        |
+| `pnpm -F web exec playwright test demo` | Record all 20 game demo MP4s → `apps/web/public/demo/` (needs `ffmpeg`; requires `TEST_DATABASE_URL`) |
 | `pnpm deploy:ftp`                      | Deploy API build via FTP (`scripts/deploy-api-ftp.mjs`) |
 
 ### Turborepo Pipeline
@@ -77,6 +78,7 @@ DETECTIVE_CLUB_CARDS_DIR=             # optional, custom Detective Club card ima
 | Variable                                      | Used By     | Purpose                                                  |
 | --------------------------------------------- | ----------- | -------------------------------------------------------- |
 | `DATABASE_URL`                                | api, DB pkg | MySQL connection (provider auto-detected)                |
+| `TEST_DATABASE_URL`                           | E2E configs | Local disposable MySQL (loopback + `test` db name) — never the prod URL; see `docs/qa/isolated-e2e.md` |
 | `NEXT_PUBLIC_API_URL`                         | web         | API/WS URL                                               |
 | `PORT`                                        | api         | API listen port (default 3001)                           |
 | `CORS_ORIGIN`                                 | api         | Allowed browser origins (comma-separated)                |

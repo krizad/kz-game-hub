@@ -106,7 +106,7 @@ export function RoomHeader() {
           <button
             data-testid="header-copy-link-btn"
             onClick={() => {
-              const inviteLink = `${window.location.origin}/?room=${room.code}`;
+              const inviteLink = `${window.location.origin}/?room=${room.code}&lang=${room.config.language ?? 'th'}`;
               navigator.clipboard.writeText(inviteLink);
               toast.success(t('errors.inviteLinkCopied'));
             }}
@@ -257,7 +257,7 @@ export function RoomHeader() {
 
               <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0_0_#000] mx-auto mb-2">
                 <QRCodeSVG
-                  value={`${globalThis.location.origin}/?room=${room.code}`}
+                  value={`${globalThis.location.origin}/?room=${room.code}&lang=${room.config.language ?? 'th'}`}
                   size={200}
                   bgColor={'#ffffff'}
                   fgColor={'#000000'}

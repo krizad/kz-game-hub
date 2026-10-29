@@ -8,6 +8,7 @@ import { useMusicPlayback } from '@/hooks/useMusicPlayback';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 import { CountdownBadge } from '@/components/core/CountdownBadge';
+import { musicTriviaLevelKey } from './levelLabel';
 
 export function MusicTriviaView() {
   const { t } = useTranslate();
@@ -195,11 +196,19 @@ export function MusicTriviaView() {
           </span>
         </h2>
         <div className="flex gap-4 font-bold items-center">
-          <div className="px-4 py-2 bg-white border-4 border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-lg">
-            {t('gameMusicTrivia.game.roundLabel')}{' '}
-            <span className="text-2xl font-black">{state.currentRound?.roundNumber || 0}</span> /{' '}
-            {state.totalRounds}
-          </div>
+          {(state.currentRound || state.phase === 'FINISHED') && (
+            <div className="px-4 py-2 bg-white border-4 border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-lg">
+              {state.currentRound ? (
+                <>
+                  {t('gameMusicTrivia.game.roundLabel')}{' '}
+                  <span className="text-2xl font-black">{state.currentRound.roundNumber}</span> /{' '}
+                  {state.totalRounds}
+                </>
+              ) : (
+                t('gameMusicTrivia.game.finishedLabel')
+              )}
+            </div>
+          )}
           {isHost && state.phase !== 'FINISHED' && (
             <button
               onClick={() => handleAction('END_GAME')}
@@ -248,9 +257,7 @@ export function MusicTriviaView() {
               {t('gameMusicTrivia.game.difficultyLabel')}
             </span>
             <span data-testid="music-view-difficulty" className="font-black text-base uppercase">
-              {t(
-                `gameMusicTrivia.lobby.level${(state.level || room.config.musicTriviaLevel || 'EASY').toLowerCase()}`,
-              )}
+              {t(musicTriviaLevelKey(state.level ?? room.config.musicTriviaLevel))}
             </span>
           </span>
         )}

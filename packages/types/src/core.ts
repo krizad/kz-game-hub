@@ -208,9 +208,10 @@ export const SOCKET_EVENTS = {
   CIPHER_NEXT_ROUND: 'cipher_next_round',
   CIPHER_RESET: 'cipher_reset',
   CIPHER_CANCEL_ROUND: 'cipher_cancel_round',
-  // Werewolf (ADR 0015): two client events; every transition is server-driven
+  // Werewolf (ADR 0015): three client events; every transition is server-driven
   WEREWOLF_NIGHT_ACTION: 'werewolf_night_action',
   WEREWOLF_DAY_VOTE: 'werewolf_day_vote',
+  WEREWOLF_SKIP_DISCUSSION: 'werewolf_skip_discussion',
   // Battleship (ADR 0016)
   BATTLESHIP_PLACE_SHIPS: 'battleship_place_ships',
   BATTLESHIP_FIRE: 'battleship_fire',

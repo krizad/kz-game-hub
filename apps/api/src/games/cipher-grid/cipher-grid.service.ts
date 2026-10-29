@@ -12,7 +12,7 @@ import {
   CIPHER_GRID_BOARD_SIZE,
   CIPHER_GRID_MAX_CLUE_COUNT,
   CIPHER_GRID_MIN_PLAYERS,
-  CIPHER_GRID_PRIVATE_KEY,
+  CIPHER_GRID_PRIVATE_STATE_KEY,
   CIPHER_GRID_MODE_PRESETS,
   CIPHER_GRID_MAX_CLUE_LENGTH,
   CIPHER_GRID_PICTURES,
@@ -611,9 +611,9 @@ export class CipherGridService {
     const leads = new Set(Object.values(state?.cipherLeads ?? {}));
     for (const player of room.players) {
       if (keycard && leads.has(player.socketId)) {
-        this.privateState.set(room.code, player.socketId, CIPHER_GRID_PRIVATE_KEY, [...keycard]);
+        this.privateState.set(room.code, player.socketId, CIPHER_GRID_PRIVATE_STATE_KEY, [...keycard]);
       } else {
-        this.privateState.delete(room.code, player.socketId, CIPHER_GRID_PRIVATE_KEY);
+        this.privateState.delete(room.code, player.socketId, CIPHER_GRID_PRIVATE_STATE_KEY);
       }
     }
   }
@@ -621,7 +621,7 @@ export class CipherGridService {
   private clearKeycards(room: RoomState): void {
     this.privateState.delete(room.code, ROOM_KEY, ROOM_KEYCARD);
     for (const player of room.players) {
-      this.privateState.delete(room.code, player.socketId, CIPHER_GRID_PRIVATE_KEY);
+      this.privateState.delete(room.code, player.socketId, CIPHER_GRID_PRIVATE_STATE_KEY);
     }
   }
 

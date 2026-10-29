@@ -3,7 +3,7 @@ export const DOG_RELAY_MAX_PLAYERS = 9;
 export const DOG_RELAY_DISCUSSION_MS = 120_000;
 export const DOG_RELAY_COUNTDOWN_MS = 3_000;
 export const DOG_RELAY_RECONNECT_MS = 120_000;
-export const DOG_RELAY_PRIVATE_KEY = 'dogRelay';
+export const DOG_RELAY_PRIVATE_STATE_KEY = 'dogRelay';
 
 export type DogRelayRole = 'LEADER' | 'EVIL' | 'GOOD';
 export type DogRelayLeaderSelection = 'RANDOM' | 'ROUND_ROBIN';

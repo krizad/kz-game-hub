@@ -533,7 +533,7 @@ export function CoupView() {
         )}
         <div className="text-xs font-bold mt-2">
           {t('gameCoup.yourCoins')}: {myCoins} 💰{' '}
-          {isMyTurn && (
+          {state.phase !== 'RESULT' && isMyTurn && (
             <span className="bg-[#EF4444] text-white px-1 ml-1">{t('gameCoup.yourTurn')}</span>
           )}
         </div>

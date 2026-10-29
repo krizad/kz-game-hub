@@ -7,7 +7,7 @@ Python implementation with zero third-party dependencies (pure standard library)
 import argparse
 import json
 import os
-import random
+import secrets
 import sys
 import time
 import urllib.parse
@@ -15,12 +15,54 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+
 DEFAULT_URL = os.environ.get(
     "COMFYUI_URL", "https://duck-rather-mature-plus.trycloudflare.com"
 ).rstrip("/")
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_WORKFLOW = BASE_DIR / "flux-workflow.json"
 DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
+
+# SSRF allowlist: only these host patterns may be contacted (private/loopback
+# hosts additionally require --allow-private). New cloudflared tunnels keep
+# working because they all end in .trycloudflare.com.
+ALLOWED_COMFYUI_HOST_SUFFIX = ".trycloudflare.com"
+ALLOWED_COMFYUI_LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
+def validate_comfy_url(url: str, allow_private: bool = False) -> str:
+    """SSRF guard: http(s) only, no embedded credentials, and the hostname must
+    match the literal allowlist above. `--allow-private` additionally permits
+    loopback/local hosts for a ComfyUI running on this machine."""
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme.lower()
+    host = (parsed.hostname or "").lower()
+    if scheme not in ("http", "https") or not host:
+        raise ValueError(f"ComfyUI URL must be http(s) with a hostname: {url}")
+    if parsed.username or parsed.password:
+        raise ValueError(f"ComfyUI URL must not carry credentials: {url}")
+    if parsed.port is not None and not (0 < parsed.port <= 65535):
+        raise ValueError(f"ComfyUI URL has an invalid port: {url}")
+
+    host_allowed = host.endswith(ALLOWED_COMFYUI_HOST_SUFFIX)
+    local_allowed = allow_private and host in ALLOWED_COMFYUI_LOCAL_HOSTS
+    if not (host_allowed or local_allowed):
+        raise ValueError(
+            f"ComfyUI host {host!r} is not allowed; expected a "
+            f"*{ALLOWED_COMFYUI_HOST_SUFFIX} tunnel"
+            + (" or a local host with --allow-private" if allow_private else "")
+        )
+    return url.rstrip("/")
+
+
+def safe_output_path(output_dir: Path, filename: str) -> Path:
+    """Path-traversal guard: keep the server-reported filename inside
+    `output_dir` no matter what it contains."""
+    base = os.path.abspath(output_dir)
+    candidate = os.path.abspath(os.path.join(base, os.path.basename(filename)))
+    if os.path.commonpath([base, candidate]) != base:
+        raise ValueError(f"Refusing to write outside the output directory: {filename}")
+    return Path(candidate)
 
 
 def prepare_workflow(raw_workflow, args):
@@ -67,7 +109,7 @@ def prepare_workflow(raw_workflow, args):
     seed = (
         args.seed
         if args.seed is not None
-        else random.randint(100000000000000, 999999999999999)
+        else 100000000000000 + secrets.randbelow(900000000000000)
     )
     if ksampler:
         ksampler["inputs"]["seed"] = seed
@@ -100,7 +142,7 @@ def prepare_workflow(raw_workflow, args):
 
 
 def generate_image(args):
-    base_url = args.url.rstrip("/")
+    base_url = validate_comfy_url(args.url, allow_private=args.allow_private)
     workflow_path = Path(args.workflow)
 
     if not workflow_path.exists():
@@ -204,7 +246,8 @@ def generate_image(args):
             final_path = output_target
         else:
             timestamp = time.strftime("%Y-%m-%dT%H-%M-%S")
-            filename = f"{timestamp}_seed{metadata['seed']}_{img_info.get('filename')}"
+            safe_name = safe_output_path(output_dir, str(img_info.get("filename", "image.png"))).name
+            filename = f"{timestamp}_seed{metadata['seed']}_{safe_name}"
             final_path = output_dir / filename
 
         with open(final_path, "wb") as f:
@@ -254,6 +297,11 @@ def main():
         type=str,
         default=str(DEFAULT_WORKFLOW),
         help="Path to workflow JSON",
+    )
+    parser.add_argument(
+        "--allow-private",
+        action="store_true",
+        help="Allow a ComfyUI URL that resolves to a private/loopback address",
     )
     parser.add_argument(
         "--no-meta",

@@ -2161,6 +2161,11 @@ export class GamesService {
     );
   }
 
+  werewolfSkipDiscussion(code: string, clientId: string): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.werewolfService.handleSkipDiscussion(room, clientId));
+  }
+
   werewolfPhaseTimeout(code: string, deadline: number): RoomState | null {
     return this.withRoom(code, (room) => this.werewolfService.handlePhaseTimeout(room, deadline));
   }

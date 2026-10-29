@@ -5,7 +5,7 @@ import {
   GameType,
   CipherCardType,
   CipherTeam,
-  CIPHER_GRID_PRIVATE_KEY,
+  CIPHER_GRID_PRIVATE_STATE_KEY,
   CIPHER_GRID_PICTURES,
 } from '@repo/types';
 import { CipherGridService } from './cipher-grid.service';
@@ -172,10 +172,10 @@ describe('CipherGridService', () => {
     it('keeps the key out of public state and away from trackers', () => {
       startMatch();
       expect(JSON.stringify(state())).not.toMatch(/"type"/);
-      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_KEY)).toHaveLength(25);
-      expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_KEY)).toHaveLength(25);
-      expect(privateState.get(room.code, 's-track', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
-      expect(privateState.get(room.code, 'l-track', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
+      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toHaveLength(25);
+      expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toHaveLength(25);
+      expect(privateState.get(room.code, 's-track', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
+      expect(privateState.get(room.code, 'l-track', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
     });
   });
 
@@ -260,7 +260,7 @@ describe('CipherGridService', () => {
       expect(state().board.every((c) => c.type)).toBe(true);
       expect(room.status).toBe(RoomStatus.RESULT);
       expect(room.players.find((p) => p.socketId === 'l-track')!.score).toBe(1);
-      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
+      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
     });
 
     it('wins when a team finds all its cards', () => {
@@ -390,10 +390,10 @@ describe('CipherGridService', () => {
       expect(key.filter((type) => type === 'VIRUS')).toHaveLength(1);
       expect(state().remaining[team]).toBe(8);
       expect(state().board.every((card) => card.type === undefined)).toBe(true);
-      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_KEY)).toEqual(key);
-      expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_KEY)).toEqual(key);
-      expect(privateState.get(room.code, 's-track', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
-      expect(privateState.get(room.code, 'l-track', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
+      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toEqual(key);
+      expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toEqual(key);
+      expect(privateState.get(room.code, 's-track', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
+      expect(privateState.get(room.code, 'l-track', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
     });
 
     function startPictures() {
@@ -410,7 +410,7 @@ describe('CipherGridService', () => {
       expect(service.revealCard(room, 's-track', 19).error).toBeUndefined();
       expect(state().winner).toBe('LUNAR');
       expect(state().board.every((card) => card.type !== undefined)).toBe(true);
-      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
+      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
     });
 
     it.each(['SOLAR', 'LUNAR'] as const)(
@@ -531,7 +531,7 @@ describe('CipherGridService', () => {
         });
         expect(room.players.map((player) => player.score)).toEqual(playerScores);
         for (const id of ['s-lead', 'l-lead', 's-track', 'l-track']) {
-          expect(privateState.get(room.code, id, CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
+          expect(privateState.get(room.code, id, CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
         }
         expect(privateState.get(room.code, ROOM_KEY, ROOM_KEYCARD)).toBeUndefined();
         expect(service.handleTurnTimeout(room, deadline)).toBeNull();
@@ -565,7 +565,7 @@ describe('CipherGridService', () => {
       service.handlePlayerRemoved(room, 's-lead');
       expect(state().cipherLeads.SOLAR).toBe('s-lead');
       expect(state().phase).toBe('CLUE_GIVING');
-      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_KEY)).toBeDefined();
+      expect(privateState.get(room.code, 's-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeDefined();
     });
 
     it.each(['s-lead', 's-track'])(
@@ -582,7 +582,7 @@ describe('CipherGridService', () => {
         expect(state().turnEndsAt).toBeNull();
         expect(state().scores).toEqual({ SOLAR: 0, LUNAR: 0 });
         expect(privateState.get(room.code, ROOM_KEY, ROOM_KEYCARD)).toBeUndefined();
-        expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_KEY)).toBeUndefined();
+        expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
       },
     );
 

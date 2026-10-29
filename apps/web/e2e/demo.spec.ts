@@ -3,12 +3,12 @@ import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { createRoom, joinRoom, getOrigin } from './helpers';
 import { readCipherState } from './cipher-grid-helpers';
 import { relaySnapshot } from './dog-relay-helpers';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
- * Full Game Demos — records every game & mode (all 18) from lobby to completion,
+ * Full Game Demos — records every game & mode (all 20) from lobby to completion,
  * capturing:
  * 1. Multiple player perspectives & every secret role simultaneously
  * 2. Full gameplay through at least 1 complete round
@@ -64,12 +64,12 @@ async function setPerspectiveBadge(page: Page, text: string, bg = '#fde047') {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         const dpr = window.devicePixelRatio || 1;
-        const font = '900 15px system-ui, -apple-system, sans-serif';
+        const font = '900 24px system-ui, -apple-system, sans-serif';
         ctx.font = font;
         const metrics = ctx.measureText(text);
-        const padX = 14;
+        const padX = 18;
         const w = Math.ceil(metrics.width + padX * 2 + 6);
-        const h = 36;
+        const h = 52;
         canvas.width = w * dpr;
         canvas.height = h * dpr;
         canvas.style.width = `${w}px`;
@@ -83,8 +83,12 @@ async function setPerspectiveBadge(page: Page, text: string, bg = '#fde047') {
         ctx.strokeStyle = '#000000';
         ctx.strokeRect(1.5, 1.5, w - 7, h - 7);
         ctx.font = font;
-        ctx.fillStyle = '#000000';
         ctx.textBaseline = 'middle';
+        // White outline keeps the label legible over any background.
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeText(text, padX, (h - 4) / 2 + 1);
+        ctx.fillStyle = '#000000';
         ctx.fillText(text, padX, (h - 4) / 2 + 1);
       },
       { text, bg },
@@ -159,25 +163,54 @@ async function finalizeDemoVideo(
   const outMp4 = resolve(pubDir, `${slug}-demo.mp4`);
   const copyMp4 = resolve(outDir, `${slug}-demo.mp4`);
 
+  // execFileSync with an argument array (no shell) — recording paths and the
+  // slug are interpolated as literal argv entries, never shell input.
+  const ffmpegArgs = (filter: string, inputs: string[]): string[] => [
+    '-y',
+    ...inputs.flatMap((input) => ['-i', input]),
+    ...(filter ? ['-filter_complex', filter, '-map', '[v]'] : []),
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-r',
+    '30',
+    '-crf',
+    '23',
+    '-movflags',
+    '+faststart',
+    outMp4,
+  ];
+
   if (ordered.length === 1) {
-    execSync(
-      `ffmpeg -y -i "${ordered[0]}" -c:v libx264 -pix_fmt yuv420p -r 30 -crf 23 -movflags +faststart "${outMp4}"`,
-      { stdio: 'pipe' },
-    );
+    execFileSync('ffmpeg', ffmpegArgs('', [ordered[0]]), { stdio: 'pipe' });
   } else if (ordered.length === 2) {
-    execSync(
-      `ffmpeg -y -i "${ordered[0]}" -i "${ordered[1]}" -filter_complex "[0:v]scale=960:540[v0];[1:v]scale=960:540[v1];[v0][v1]hstack=inputs=2[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p -r 30 -crf 23 -movflags +faststart "${outMp4}"`,
+    execFileSync(
+      'ffmpeg',
+      ffmpegArgs(
+        '[0:v]scale=960:540,setsar=1[v0];[1:v]scale=960:540,setsar=1[v1];[v0][v1]hstack=inputs=2[v]',
+        [ordered[0], ordered[1]],
+      ),
       { stdio: 'pipe' },
     );
   } else if (ordered.length === 3) {
-    execSync(
-      `ffmpeg -y -i "${ordered[0]}" -i "${ordered[1]}" -i "${ordered[2]}" -filter_complex "[0:v]scale=960:540[v0];[1:v]scale=960:540[v1];[2:v]scale=960:540,pad=1920:540:480:0:color=#0f172a[v2];[v0][v1]hstack=inputs=2[top];[top][v2]vstack=inputs=2[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p -r 30 -crf 23 -movflags +faststart "${outMp4}"`,
+    // Bottom pane sits on a blurred blow-up of itself instead of a solid pad.
+    execFileSync(
+      'ffmpeg',
+      ffmpegArgs(
+        '[0:v]scale=960:540,setsar=1[v0];[1:v]scale=960:540,setsar=1[v1];[2:v]split=2[v2a][v2b];[v2a]scale=960:540,setsar=1[v2c];[v2b]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:540,boxblur=20:2,eq=brightness=-0.08,setsar=1[v2bg];[v2bg][v2c]overlay=(W-w)/2:(H-h)/2[v2];[v0][v1]hstack=inputs=2[top];[top][v2]vstack=inputs=2[v]',
+        [ordered[0], ordered[1], ordered[2]],
+      ),
       { stdio: 'pipe' },
     );
   } else {
     const p = ordered.slice(0, 4);
-    execSync(
-      `ffmpeg -y -i "${p[0]}" -i "${p[1]}" -i "${p[2]}" -i "${p[3]}" -filter_complex "[0:v]scale=960:540[v0];[1:v]scale=960:540[v1];[2:v]scale=960:540[v2];[3:v]scale=960:540[v3];[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p -r 30 -crf 23 -movflags +faststart "${outMp4}"`,
+    execFileSync(
+      'ffmpeg',
+      ffmpegArgs(
+        '[0:v]scale=960:540,setsar=1[v0];[1:v]scale=960:540,setsar=1[v1];[2:v]scale=960:540,setsar=1[v2];[3:v]scale=960:540,setsar=1[v3];[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[v]',
+        [p[0], p[1], p[2], p[3]],
+      ),
       { stdio: 'pipe' },
     );
   }
@@ -198,16 +231,16 @@ async function waitForAnyVisible(locators: Locator[], timeoutMs = 10000): Promis
   throw new Error('None of the locators became visible within timeout');
 }
 
-/** Returns the lowest enabled numeric card button value on the page (Countaline). */
-async function lowestEnabledCard(page: Page): Promise<number | null> {
-  const btns = page.locator('button').filter({ hasText: /^\d+$/ });
+/** Returns the lowest enabled hand card (value + index) on the page (Countaline). */
+async function lowestEnabledCard(page: Page): Promise<{ value: number; index: number } | null> {
+  const btns = page.locator('[data-testid="the-mind-hand-card"]');
   const n = await btns.count();
-  let best: number | null = null;
+  let best: { value: number; index: number } | null = null;
   for (let i = 0; i < n; i++) {
     const b = btns.nth(i);
     if (!(await b.isEnabled().catch(() => false))) continue;
     const v = parseInt((await b.innerText()).trim(), 10);
-    if (!Number.isNaN(v) && (best === null || v < best)) best = v;
+    if (!Number.isNaN(v) && (best === null || v < best.value)) best = { value: v, index: i };
   }
   return best;
 }
@@ -813,7 +846,8 @@ test.describe('Full Game Demos', () => {
     await startBtn.click();
 
     for (const page of pages) {
-      const readyBtn = page.locator('button', { hasText: /^Ready$/ }).first();
+      // The button label is CSS-uppercased ("READY"), so match by testid.
+      const readyBtn = page.getByTestId('the-mind-ready-btn');
       await readyBtn.waitFor({ state: 'visible', timeout: 10000 });
       await readyBtn.click();
     }
@@ -832,7 +866,7 @@ test.describe('Full Game Demos', () => {
       )
         break;
 
-      const nextLevelBtn = p1.locator('button', { hasText: /Next Level/i }).first();
+      const nextLevelBtn = p1.locator('button', { hasText: /Continue|Next Level/i }).first();
       if (await nextLevelBtn.isVisible().catch(() => false)) {
         await nextLevelBtn.click();
         await p1.waitForTimeout(1200);
@@ -840,7 +874,7 @@ test.describe('Full Game Demos', () => {
       }
 
       for (const page of pages) {
-        const readyBtn = page.locator('button', { hasText: /^Ready$/ }).first();
+        const readyBtn = page.getByTestId('the-mind-ready-btn');
         if (await readyBtn.isVisible().catch(() => false)) {
           await readyBtn.click();
         }
@@ -852,16 +886,10 @@ test.describe('Full Game Demos', () => {
         await p1.waitForTimeout(600);
         continue;
       }
-      if (c1 !== null && (c2 === null || c1 < c2)) {
-        await p1
-          .locator('button', { hasText: new RegExp(`^${c1}$`) })
-          .first()
-          .click();
-      } else {
-        await p2
-          .locator('button', { hasText: new RegExp(`^${c2}$`) })
-          .first()
-          .click();
+      if (c1 !== null && (c2 === null || c1.value < c2.value)) {
+        await p1.locator('[data-testid="the-mind-hand-card"]').nth(c1.index).click();
+      } else if (c2 !== null) {
+        await p2.locator('[data-testid="the-mind-hand-card"]').nth(c2.index).click();
       }
       await p1.waitForTimeout(800);
     }
@@ -2033,5 +2061,201 @@ test.describe('Full Game Demos', () => {
     // Include Leader, Mischief Dog, Final Guesser, and a Loyal Dog in the 2x2 video
     const selected = [...new Set([leaderIdx, evilIdx, finalIdx, ...goodIndices])].slice(0, 4);
     await finalizeDemoVideo('dog-relay', ctxs, pages, selected);
+  });
+
+  // ─── 19. Werewolf (มนุษย์หมาป่า) ──────────────────────────────────────────
+  test('Werewolf Demo', async ({ browser }) => {
+    // Hostless local party game: 6 phones = 2 Wolves + 1 Seer + 3 Villagers
+    test.setTimeout(600000);
+    const { ctxs, pages } = await createRecordedPlayers(browser, 'werewolf', 6);
+    const names = ['Warden', 'Nina', 'Owen', 'Pia', 'Quinn', 'Rex'];
+
+    const roomCode = await createRoom(pages[0], names[0], 'Werewolf');
+    const origin = await getOrigin(pages[0]);
+    for (let i = 1; i < pages.length; i++) {
+      await joinRoom(pages[i], origin, roomCode, names[i]);
+    }
+    await expect(pages[0].getByText(names[5])).toBeVisible({ timeout: 10000 });
+
+    // Fast pacing: minimum timers (5s night steps, 30s discussion, 15s vote)
+    await pages[0].getByTestId('werewolf-setting-werewolfNightSeconds').fill('5');
+    await pages[0].getByTestId('werewolf-setting-werewolfDiscussionSeconds').fill('30');
+    await pages[0].getByTestId('werewolf-setting-werewolfVoteSeconds').fill('15');
+    await pages[0].waitForTimeout(600);
+
+    await pages[0].getByTestId('lobby-start-game').click();
+    for (const page of pages) {
+      await expect(page.getByTestId('werewolf-night-screen')).toBeVisible({ timeout: 15000 });
+    }
+
+    // Flash the shared narrator screen (any phone can host the narration)
+    const narrator = pages[3];
+    await narrator.getByTestId('werewolf-narrator-btn').click();
+    await expect(narrator.getByTestId('werewolf-narrator-caption')).toBeVisible();
+    await narrator.waitForTimeout(1500);
+    await narrator.getByTestId('werewolf-narrator-close').click();
+
+    // Label every phone's secret role from its private role card
+    let wolfIdx = -1;
+    let seerIdx = -1;
+    let villagerIdx = -1;
+    for (let i = 0; i < pages.length; i++) {
+      const roleText = await pages[i].getByTestId('werewolf-role-card').innerText();
+      if (/Werewolf|หมาป่า/i.test(roleText)) {
+        wolfIdx = wolfIdx === -1 ? i : wolfIdx;
+        await setPerspectiveBadge(
+          pages[i],
+          `🎥 ${names[i]} — Role: 🐺 Werewolf (หมาป่า)`,
+          '#fca5a5',
+        );
+      } else if (/Seer|ทำนาย|หมอดู/i.test(roleText)) {
+        seerIdx = i;
+        await setPerspectiveBadge(pages[i], `🎥 ${names[i]} — Role: 🔮 Seer (หมอดู)`, '#c4b5fd');
+      } else {
+        villagerIdx = villagerIdx === -1 ? i : villagerIdx;
+        await setPerspectiveBadge(
+          pages[i],
+          `🎥 ${names[i]} — Role: 🧑‍🌾 Villager (ชาวบ้าน)`,
+          '#86efac',
+        );
+      }
+    }
+    await pages[0].waitForTimeout(1500);
+
+    // Drive night actions (wolf kill, seer check) and day votes to a winner banner
+    for (let step = 0; step < 3000; step++) {
+      const isOver = await pages[0]
+        .getByTestId('werewolf-winner-banner')
+        .isVisible()
+        .catch(() => false);
+      if (isOver) break;
+
+      let acted = false;
+      for (const page of pages) {
+        const nightArea = page.getByTestId('werewolf-night-action-area');
+        if (await nightArea.isVisible().catch(() => false)) {
+          const target = nightArea
+            .locator('[data-testid="werewolf-target-btn"]:not([disabled])')
+            .first();
+          if (await target.isVisible().catch(() => false)) {
+            await page.waitForTimeout(400);
+            await target.click().catch(() => {});
+            acted = true;
+            continue;
+          }
+        }
+        // Host cuts the discussion short (0013) instead of waiting out the clock.
+        const skipBtn = page.getByTestId('werewolf-skip-discussion');
+        if (await skipBtn.isVisible().catch(() => false)) {
+          await page.waitForTimeout(600);
+          await skipBtn.click().catch(() => {});
+          acted = true;
+          continue;
+        }
+        const voteBtn = page.locator('[data-testid="werewolf-vote-btn"]:not([disabled])').first();
+        if (await voteBtn.isVisible().catch(() => false)) {
+          await page.waitForTimeout(400);
+          await voteBtn.click().catch(() => {});
+          acted = true;
+        }
+      }
+      if (!acted) await pages[0].waitForTimeout(400);
+    }
+
+    for (const page of pages) {
+      await expect(page.getByTestId('werewolf-winner-banner')).toBeVisible({ timeout: 20000 });
+    }
+    await pages[0].waitForTimeout(3000);
+
+    // Show the Host, a Werewolf, the Seer, and a Villager in the 2x2 video
+    const selected = Array.from(new Set([0, wolfIdx, seerIdx, villagerIdx]))
+      .filter((i) => i >= 0)
+      .slice(0, 4);
+    await finalizeDemoVideo('werewolf', ctxs, pages, selected);
+  });
+
+  // ─── 20. Battleship (ยุทธการเรือรบ) ────────────────────────────────────────
+  test('Battleship Demo', async ({ browser }) => {
+    test.setTimeout(480000);
+    const { ctxs, pages } = await createRecordedPlayers(browser, 'battleship', 2);
+    const [p1, p2] = pages;
+
+    const roomCode = await createRoom(p1, 'AdmiralA', 'Battleship');
+    const origin = await getOrigin(p1);
+    await joinRoom(p2, origin, roomCode, 'AdmiralB');
+    await expect(p1.getByText('AdmiralB')).toBeVisible({ timeout: 10000 });
+
+    await setPerspectiveBadge(
+      p1,
+      '🎥 AdmiralA — Role: 🌊 Fleet Commander (Free-for-all)',
+      '#7dd3fc',
+    );
+    await setPerspectiveBadge(
+      p2,
+      '🎥 AdmiralB — Role: ⚓ Fleet Commander (Free-for-all)',
+      '#fde047',
+    );
+
+    // Snappier demo: quick 8x8 grid and a 15s turn clock
+    await p1.evaluate(() => {
+      (window as any).__useGameStore.getState().updateConfig({
+        battleshipGridPreset: 'QUICK_8x8',
+        battleshipTurnSeconds: 15,
+      });
+    });
+    await p1.waitForTimeout(800);
+
+    const startBtn = p1.getByTestId('lobby-start-game');
+    await expect(startBtn).toBeEnabled({ timeout: 10000 });
+    await startBtn.click();
+
+    // Placement phase: auto-randomize each fleet, hold to show the ships, then confirm
+    for (const p of [p1, p2]) {
+      const randBtn = p.getByTestId('battleship-randomize-btn');
+      await expect(randBtn).toBeVisible({ timeout: 15000 });
+      await randBtn.click();
+      await p.waitForTimeout(1200);
+      const confirmBtn = p.getByTestId('battleship-confirm-placement-btn');
+      await expect(confirmBtn).toBeEnabled({ timeout: 5000 });
+      await confirmBtn.click();
+    }
+
+    // Battle: alternate salvos (first un-fired cell each turn) until a fleet is sunk
+    for (let i = 0; i < 400; i++) {
+      const isOver = await p1
+        .getByTestId('battleship-winner-banner')
+        .isVisible()
+        .catch(() => false);
+      if (isOver) break;
+
+      let acted = false;
+      for (const p of [p1, p2]) {
+        const cell = p.locator('[data-testid="battleship-target-cell"]:not([disabled])').first();
+        if (await cell.isVisible().catch(() => false)) {
+          await cell.click().catch(() => {});
+          // Showcase the ping (coordination marker) once, on AdmiralA's first aim
+          if (i === 0 && p === p1) {
+            const pingBtn = p.getByTestId('battleship-ping-btn');
+            if (await pingBtn.isVisible().catch(() => false)) {
+              await pingBtn.click().catch(() => {});
+            }
+          }
+          const fireBtn = p.getByTestId('battleship-fire-btn');
+          if (await fireBtn.isEnabled().catch(() => false)) {
+            await p.waitForTimeout(300);
+            await fireBtn.click().catch(() => {});
+            acted = true;
+          }
+        }
+      }
+      if (!acted) await p1.waitForTimeout(250);
+    }
+
+    for (const p of [p1, p2]) {
+      await expect(p.getByTestId('battleship-winner-banner')).toBeVisible({ timeout: 20000 });
+    }
+    await p1.waitForTimeout(3000);
+
+    await finalizeDemoVideo('battleship', ctxs, pages);
   });
 });
