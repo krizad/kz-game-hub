@@ -81,3 +81,9 @@ DELIVERY/
 
 # Generated images
 scripts/gen-image/output/
+__pycache__/
+*.py[cod]
+
+# Local screenshots / review captures
+kz-*.png
+

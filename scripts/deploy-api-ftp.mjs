@@ -273,7 +273,7 @@ function printChecklist() {
    NODE_ENV=production
    DATABASE_URL=mysql://<user>:<pass>@<db-host>:3306/<db>
    CORS_ORIGIN=https://<web-url>   <- ต้องเป็น URL จริง ไม่ใช่ localhost
-   GEMINI_API_KEY=...  SPOTIFY_CLIENT_ID=...  SPOTIFY_CLIENT_SECRET=...  YOUTUBE_API_KEY=...
+   GEMINI_API_KEY=...  SPOTIFY_CLIENT_ID=...  SPOTIFY_CLIENT_SECRET=...  ADMIN_SECRET=...
 5) Restart app -> test https://<api-domain>/health  (ต้องได้ {"status":"ok"})
 
    Rollback: zips เก่าถูกเก็บไว้ที่ ${FTP_REMOTE_DIR} — extract zip อันเก่าแล้ว Restart ได้เลย
