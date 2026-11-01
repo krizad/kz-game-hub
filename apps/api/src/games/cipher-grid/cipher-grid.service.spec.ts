@@ -582,7 +582,9 @@ describe('CipherGridService', () => {
         expect(state().turnEndsAt).toBeNull();
         expect(state().scores).toEqual({ SOLAR: 0, LUNAR: 0 });
         expect(privateState.get(room.code, ROOM_KEY, ROOM_KEYCARD)).toBeUndefined();
-        expect(privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_STATE_KEY)).toBeUndefined();
+        expect(
+          privateState.get(room.code, 'l-lead', CIPHER_GRID_PRIVATE_STATE_KEY),
+        ).toBeUndefined();
       },
     );
 

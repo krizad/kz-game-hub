@@ -611,7 +611,9 @@ export class CipherGridService {
     const leads = new Set(Object.values(state?.cipherLeads ?? {}));
     for (const player of room.players) {
       if (keycard && leads.has(player.socketId)) {
-        this.privateState.set(room.code, player.socketId, CIPHER_GRID_PRIVATE_STATE_KEY, [...keycard]);
+        this.privateState.set(room.code, player.socketId, CIPHER_GRID_PRIVATE_STATE_KEY, [
+          ...keycard,
+        ]);
       } else {
         this.privateState.delete(room.code, player.socketId, CIPHER_GRID_PRIVATE_STATE_KEY);
       }

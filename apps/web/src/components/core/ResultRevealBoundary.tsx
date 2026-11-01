@@ -376,6 +376,13 @@ export function ResultRevealBoundary({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!room || !reveal || isComplete) return children;
+  if (
+    !room ||
+    !reveal ||
+    isComplete ||
+    (room.gameType === GameType.POKER && room.pokerState?.mode === 'CHIPS_LEDGER')
+  ) {
+    return children;
+  }
   return <RevealSequence key={reveal.id} room={room} reveal={reveal} />;
 }

@@ -2026,11 +2026,93 @@ export interface Dictionary {
       onlineBody: string;
       ledgerTitle: string;
       ledgerBody: string;
+      tableSetupTitle: string;
+      tableSetupBody: string;
+      dealerDutiesTitle: string;
+      dealerDutiesBody: string;
       bettingTitle: string;
       bettingBody: string;
       hostTitle: string;
       hostBody: string;
       handsTitle: string;
+    };
+    dealerGuide: {
+      title: string;
+      currentDealer: string;
+      youAreDealer: string;
+      tableChecklistTitle: string;
+      tableChecklistToggle: string;
+      hideChecklist: string;
+      physicalBoardState: string;
+      burnPile: string;
+      burnCount: string;
+      burnCard: string;
+      communitySlots: string;
+      waitingToDeal: string;
+      boardPhysicalNote: string;
+      checklist: {
+        deck: string;
+        deckDesc: string;
+        dealerButton: string;
+        dealerButtonDesc: string;
+        cutCard: string;
+        cutCardDesc: string;
+        burnPile: string;
+        burnPileDesc: string;
+        communityArea: string;
+        communityAreaDesc: string;
+        appChips: string;
+        appChipsDesc: string;
+      };
+      steps: {
+        PREFLOP: {
+          title: string;
+          action: string;
+          step1: string;
+          step2: string;
+          step3: string;
+          step4: string;
+          step5: string;
+        };
+        FLOP: {
+          title: string;
+          action: string;
+          step1: string;
+          step2: string;
+          step3: string;
+          step4: string;
+        };
+        TURN: {
+          title: string;
+          action: string;
+          step1: string;
+          step2: string;
+          step3: string;
+          step4: string;
+        };
+        RIVER: {
+          title: string;
+          action: string;
+          step1: string;
+          step2: string;
+          step3: string;
+          step4: string;
+        };
+        SHOWDOWN: {
+          title: string;
+          action: string;
+          step1: string;
+          step2: string;
+          step3: string;
+        };
+        HAND_RESULT: {
+          title: string;
+          action: string;
+          step1: string;
+          step2: string;
+          step3: string;
+        };
+      };
     };
   };
   cipherGrid: {

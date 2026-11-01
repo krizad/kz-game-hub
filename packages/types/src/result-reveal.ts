@@ -99,6 +99,7 @@ export function getResultRevealPlan(room: RoomState): ResultRevealPlan | null {
       kind = room.cardGameState?.preset === 'SLAVE' ? 'SCORES' : 'HANDS';
       break;
     case GameType.POKER:
+      if (room.pokerState?.mode === 'CHIPS_LEDGER') return null;
       if (room.pokerState?.phase === 'HAND_RESULT')
         key =
           room.status === RoomStatus.RESULT

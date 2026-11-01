@@ -18,6 +18,14 @@ export function PokerRules() {
         <p className="text-sm mt-1">{t('poker.rules.ledgerBody')}</p>
       </section>
       <section>
+        <h3 className="font-black text-lg uppercase">{t('poker.rules.tableSetupTitle')}</h3>
+        <p className="text-sm mt-1 whitespace-pre-line">{t('poker.rules.tableSetupBody')}</p>
+      </section>
+      <section>
+        <h3 className="font-black text-lg uppercase">{t('poker.rules.dealerDutiesTitle')}</h3>
+        <p className="text-sm mt-1 whitespace-pre-line">{t('poker.rules.dealerDutiesBody')}</p>
+      </section>
+      <section>
         <h3 className="font-black text-lg uppercase">{t('poker.rules.bettingTitle')}</h3>
         <p className="text-sm mt-1">{t('poker.rules.bettingBody')}</p>
       </section>

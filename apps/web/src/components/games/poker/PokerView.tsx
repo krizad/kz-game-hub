@@ -19,6 +19,7 @@ import { CardHand } from '@/components/games/card-game/CardHand';
 import { GameDialog } from '@/components/core/GameDialog';
 import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { PokerHandRankings } from './PokerHandRankings';
+import { PokerDealerGuide } from './PokerDealerGuide';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
@@ -381,6 +382,11 @@ export function PokerView() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Physical Table & Dealer Guide (CHIPS_LEDGER) */}
+      {mode === 'CHIPS_LEDGER' && (
+        <PokerDealerGuide state={state} playerName={playerName} socketId={socketId} />
       )}
 
       {/* Seats */}

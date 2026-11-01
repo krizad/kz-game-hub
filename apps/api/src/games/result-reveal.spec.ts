@@ -75,6 +75,13 @@ describe('paced result reveal', () => {
     ).toBeNull();
     expect(
       getResultRevealPlan(
+        roomFor(GameType.POKER, {
+          pokerState: { phase: 'HAND_RESULT', handNumber: 1, mode: 'CHIPS_LEDGER' },
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      getResultRevealPlan(
         roomFor(GameType.SABOTEUR, { saboteurState: { currentPhase: 'GOLD_PICK' } }),
       ),
     ).toBeNull();
