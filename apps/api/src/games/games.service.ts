@@ -19,6 +19,7 @@ import {
   CardGameConfig,
   BananaThiefSpecial,
   PokerAction,
+  PokerV2Action,
   DogRelayActionRequest,
   DogRelayPhase,
   DOG_RELAY_RECONNECT_MS,
@@ -46,6 +47,7 @@ import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
+import { PokerV2Service } from './poker-v2/poker-v2.service';
 import { GameSettingsService } from './game-settings.service';
 import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
@@ -127,6 +129,7 @@ export class GamesService {
     private readonly roomTimerService: RoomTimerService,
     private readonly cardGameService: CardGameService,
     private readonly pokerService: PokerService,
+    private readonly pokerV2Service: PokerV2Service,
     private readonly cipherGridService: CipherGridService,
     private readonly dogRelayService: DogRelayService,
     private readonly werewolfService: WerewolfService,
@@ -294,6 +297,14 @@ export class GamesService {
       room.config.pokerAnte = room.config.pokerAnte ?? 0;
       room.config.pokerTurnTimerEnabled = room.config.pokerTurnTimerEnabled ?? true;
       room.config.pokerTurnTimerSeconds = room.config.pokerTurnTimerSeconds ?? 30;
+    } else if (gameType === GameType.POKER_V2) {
+      room.config.pokerV2SmallBlind = room.config.pokerV2SmallBlind ?? 10;
+      room.config.pokerV2BigBlind = room.config.pokerV2BigBlind ?? 20;
+      room.config.pokerV2StartingStack = room.config.pokerV2StartingStack ?? 1000;
+      room.config.pokerV2Ante = room.config.pokerV2Ante ?? 0;
+      room.config.pokerV2TurnTimerEnabled = room.config.pokerV2TurnTimerEnabled ?? true;
+      room.config.pokerV2TurnTimerSeconds = room.config.pokerV2TurnTimerSeconds ?? 20;
+      room.config.pokerV2AutoDealSeconds = room.config.pokerV2AutoDealSeconds ?? 5;
     } else if (gameType === GameType.BANANA_THIEF) {
       room.config.bananaThiefNarrator = 'AUTO';
       room.config.bananaThiefDlc = false;
@@ -427,6 +438,9 @@ export class GamesService {
       }
       if (room.pokerState) {
         this.pokerService.remapSocketId(room.pokerState, oldSocketId, user.socketId);
+      }
+      if (room.pokerV2State) {
+        this.pokerV2Service.remapSocketId(room.pokerV2State, oldSocketId, user.socketId);
       }
       if (room.cipherGridState) {
         this.cipherGridService.remapSocketId(room.cipherGridState, oldSocketId, user.socketId);
@@ -647,6 +661,9 @@ export class GamesService {
     }
     if (room.pokerState) {
       this.pokerService.handlePlayerDisconnect(room, player.socketId);
+    }
+    if (room.pokerV2State) {
+      this.pokerV2Service.handlePlayerRemoved(room, player.socketId);
     }
     if (room.gameType === GameType.RPS && room.rpsState) {
       this.rpsService.handlePlayerRemoved(room, player.socketId);
@@ -1022,6 +1039,13 @@ export class GamesService {
     copyInteger('pokerAnte', 0, 100_000);
     copyBoolean('pokerTurnTimerEnabled');
     copyInteger('pokerTurnTimerSeconds', 5, 300);
+    copyInteger('pokerV2SmallBlind', 1, 100_000);
+    copyInteger('pokerV2BigBlind', 1, 100_000);
+    copyInteger('pokerV2StartingStack', 10, 10_000_000);
+    copyInteger('pokerV2Ante', 0, 100_000);
+    copyBoolean('pokerV2TurnTimerEnabled');
+    copyInteger('pokerV2TurnTimerSeconds', 5, 300);
+    copyInteger('pokerV2AutoDealSeconds', 3, 30);
     copyInteger('cipherGridTurnSeconds', 0, 300);
     copyEnum('cipherGridMode', ['WORDS', 'PICTURES']);
     copyEnum('cipherGridPicturePack', ['CLASSIC', 'MINIMAL']);
@@ -1183,6 +1207,12 @@ export class GamesService {
       const startedRoom = this.withRoom(code, (r) => this.pokerService.startMatch(r, requesterId));
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
+    if (room.gameType === GameType.POKER_V2) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.pokerV2Service.startMatch(r, requesterId),
+      );
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
     if (room.gameType === GameType.CIPHER_GRID) {
       const startedRoom = this.withRoom(code, (r) =>
         this.cipherGridService.startGame(r, requesterId),
@@ -1308,6 +1338,10 @@ export class GamesService {
       return this.withRoom(code, (r) => this.pokerService.resetMatch(r, requesterId));
     }
 
+    if (room.gameType === GameType.POKER_V2) {
+      return this.withRoom(code, (r) => this.pokerV2Service.resetMatch(r, requesterId));
+    }
+
     switch (room.gameType) {
       case GameType.WHO_KNOW:
         return this.withRoom(code, (r) =>
@@ -1418,6 +1452,24 @@ export class GamesService {
     const room = this.rooms.get(code);
     if (!room) return null;
     return this.pokerService.resolveAutoAction(room);
+  }
+
+  // --- Poker V2 Actions ---
+
+  pokerV2Action(code: string, clientId: string, action: PokerV2Action): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) => this.pokerV2Service.handleAction(room, clientId, action));
+  }
+
+  resolvePokerV2AutoAction(code: string): { playerId: string; action: PokerV2Action } | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    return this.pokerV2Service.resolveAutoAction(room);
+  }
+
+  /** Auto-deal the next Poker V2 hand when its countdown elapses. */
+  pokerV2AutoDeal(code: string): RoomState | null {
+    return this.withRoom(code, (room) => (this.pokerV2Service.autoDealIfDue(room) ? room : null));
   }
 
   saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number {

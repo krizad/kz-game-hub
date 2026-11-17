@@ -21,6 +21,7 @@ import { RoomTimerService } from './room-timer.service';
 import { PrivateStateService } from './private-state.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
+import { PokerV2Service } from './poker-v2/poker-v2.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { RoomStartGuardService } from './room-start-guard.service';
@@ -56,6 +57,7 @@ import { BattleshipService } from './battleship/battleship.service';
     PrivateStateService,
     CardGameService,
     PokerService,
+    PokerV2Service,
     GameSettingsService,
     ArtistPresetService,
     CipherGridService,

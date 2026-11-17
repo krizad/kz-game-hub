@@ -9,7 +9,7 @@ const SCHEMA_PATH = resolve(__dirname, '../prisma/schema.prisma');
 type Provider = 'postgresql' | 'mysql';
 
 function detectProviderFromUrl(url: string): Provider | null {
-  const match = /^([a-zA-Z0-9]+):\/\//.exec(url);
+  const match = url.match(/^([a-zA-Z0-9]+):\/\//);
   if (!match) return null;
   const protocol = match[1].toLowerCase();
   if (protocol === 'mysql' || protocol === 'mariadb') return 'mysql';
@@ -28,7 +28,7 @@ function resolveProvider(): Provider {
   // Keep the provider already tracked in the schema when DATABASE_URL is
   // absent (CI, fresh clone) so generate/build steps still work.
   const schema = readFileSync(SCHEMA_PATH, 'utf-8');
-  const match = PROVIDER_RE.exec(schema);
+  const match = schema.match(PROVIDER_RE);
   const current = match?.[2];
   if (current === 'mysql' || current === 'postgresql') {
     console.warn(`DATABASE_URL is not set; keeping the schema provider "${current}".`);
@@ -48,7 +48,7 @@ function main() {
   const provider = resolveProvider();
   const schema = readFileSync(SCHEMA_PATH, 'utf-8');
 
-  const match = PROVIDER_RE.exec(schema);
+  const match = schema.match(PROVIDER_RE);
   if (!match) {
     console.warn('Could not find datasource db block in schema.prisma. No changes made.');
     return;

@@ -52,6 +52,7 @@ export function LobbyStartButton() {
         return 3;
       case GameType.MUSIC_TRIVIA:
       case GameType.POKER:
+      case GameType.POKER_V2:
       case GameType.BATTLESHIP:
         return 2;
       case GameType.THE_MIND:

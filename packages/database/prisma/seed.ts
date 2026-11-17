@@ -67,6 +67,7 @@ async function main() {
     'CARD_GAME',
     'BANANA_THIEF',
     'POKER',
+    'POKER_V2',
     'CIPHER_GRID',
     'DOG_RELAY',
     'WEREWOLF',

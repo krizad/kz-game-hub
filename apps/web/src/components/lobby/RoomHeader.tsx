@@ -72,13 +72,15 @@ export function RoomHeader() {
                                         ? t('lobby.gameNames.bananaThief')
                                         : room.gameType === GameType.POKER
                                           ? t('lobby.gameNames.poker')
-                                          : room.gameType === GameType.CIPHER_GRID
-                                            ? t('lobby.gameNames.cipherGrid')
-                                            : room.gameType === GameType.WEREWOLF
-                                              ? t('lobby.gameNames.werewolf')
-                                              : room.gameType === GameType.BATTLESHIP
-                                                ? t('lobby.gameNames.battleship')
-                                                : t('lobby.gameNames.whoKnow')}
+                                          : room.gameType === GameType.POKER_V2
+                                            ? t('lobby.gameNames.pokerV2')
+                                            : room.gameType === GameType.CIPHER_GRID
+                                              ? t('lobby.gameNames.cipherGrid')
+                                              : room.gameType === GameType.WEREWOLF
+                                                ? t('lobby.gameNames.werewolf')
+                                                : room.gameType === GameType.BATTLESHIP
+                                                  ? t('lobby.gameNames.battleship')
+                                                  : t('lobby.gameNames.whoKnow')}
             </span>
             <span className="text-lg sm:text-2xl font-black tracking-widest text-indigo-400 leading-none">
               {room.code}

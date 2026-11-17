@@ -1713,6 +1713,50 @@ async function playPoker(s: SimSession, entry: MatrixEntry): Promise<void> {
   await expect(host.getByTestId('poker-pot')).toBeVisible();
 }
 
+/**
+ * Poker V2: shove all-in whenever allowed so hands resolve fast; the table
+ * auto-deals the next hand until one stack owns every chip and the room hits
+ * its RESULT screen.
+ */
+async function playPokerV2(s: SimSession): Promise<void> {
+  const { host, players } = s;
+  await startGame(host);
+  await expect(host.getByTestId('poker-v2-table')).toBeVisible({ timeout: 15000 });
+  const everyone = [host, ...players];
+
+  for (let i = 0; i < 300; i++) {
+    if (
+      await host
+        .getByTestId('result-reveal')
+        .isVisible()
+        .catch(() => false)
+    )
+      return;
+
+    const actor = await anyVisible(everyone, (p) => p.getByTestId('poker-v2-action-panel'));
+    if (!actor) {
+      await host.waitForTimeout(STEP);
+      continue;
+    }
+
+    const check = actor.getByTestId('poker-v2-check');
+    const call = actor.getByTestId('poker-v2-call');
+    const raise = actor.getByTestId('poker-v2-raise');
+    if (await raise.isVisible().catch(() => false)) {
+      // Shove: pick the all-in preset, then confirm the raise.
+      const allin = actor.getByTestId('poker-v2-size-allin');
+      await allin.click().catch(() => {});
+      await raise.click().catch(() => {});
+    } else if (await check.isVisible().catch(() => false)) {
+      await check.click().catch(() => {});
+    } else if (await call.isVisible().catch(() => false)) {
+      await call.click().catch(() => {});
+    }
+    await host.waitForTimeout(STEP);
+  }
+  throw new Error('poker-v2 sim did not reach the result screen');
+}
+
 async function playCipherGrid(s: SimSession): Promise<void> {
   const { host, players } = s;
 
@@ -1844,6 +1888,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playCardGame(s, entry);
     case 'POKER':
       return playPoker(s, entry);
+    case 'POKER_V2':
+      return playPokerV2(s);
     case 'CIPHER_GRID':
       return playCipherGrid(s);
     case 'WEREWOLF':

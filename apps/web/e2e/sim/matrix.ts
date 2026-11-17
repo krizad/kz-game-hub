@@ -500,6 +500,16 @@ export const GAME_MATRIX: MatrixEntry[] = [
     timeout: 240000,
   },
 
+  // --- Poker V2 (auto-deal online tournament) ---
+  {
+    id: 'poker-v2-2p',
+    game: 'POKER_V2',
+    lobbyButton: 'POKER_V2',
+    players: 2,
+    description: 'Landscape auto-deal Hold’em: all-in shoves until one stack owns the table',
+    timeout: 240000,
+  },
+
   // --- Ciphergrid (สายลับคำใบ้) ---
   {
     id: 'cipher-grid-pictures-4p',

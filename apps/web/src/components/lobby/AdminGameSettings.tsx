@@ -22,6 +22,7 @@ const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.COUP, labelKey: 'rules.modal.tabs.coup' },
   { type: GameType.CARD_GAME, labelKey: 'rules.modal.tabs.pokDeng' },
   { type: GameType.POKER, labelKey: 'rules.modal.tabs.poker' },
+  { type: GameType.POKER_V2, labelKey: 'rules.modal.tabs.pokerV2' },
   { type: GameType.BANANA_THIEF, labelKey: 'rules.modal.tabs.bananaThief' },
   { type: GameType.DOG_RELAY, labelKey: 'lobby.gameNames.dogRelay' },
   { type: GameType.CIPHER_GRID, labelKey: 'rules.modal.tabs.cipherGrid' },

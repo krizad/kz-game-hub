@@ -18,6 +18,7 @@ import { BananaThiefService } from './banana-thief/banana-thief.service';
 import { UltimateTicTacToeService } from './ultimate-tic-tac-toe/ultimate-tic-tac-toe.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
+import { PokerV2Service } from './poker-v2/poker-v2.service';
 import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
@@ -207,6 +208,15 @@ describe('GamesService', () => {
       remapSocketId: jest.fn(),
       handlePlayerDisconnect: jest.fn(),
     },
+    pokerV2: {
+      startMatch: jest.fn(),
+      resetMatch: jest.fn(),
+      handleAction: jest.fn(),
+      resolveAutoAction: jest.fn(),
+      autoDealIfDue: jest.fn(),
+      remapSocketId: jest.fn(),
+      handlePlayerRemoved: jest.fn(),
+    },
     bananaThief: {
       startRound: jest.fn(),
       tick: jest.fn(),
@@ -277,6 +287,7 @@ describe('GamesService', () => {
         { provide: UltimateTicTacToeService, useValue: mockGameServices.ultimateTicTacToe },
         { provide: CardGameService, useValue: mockGameServices.cardGame },
         { provide: PokerService, useValue: mockGameServices.poker },
+        { provide: PokerV2Service, useValue: mockGameServices.pokerV2 },
         { provide: CipherGridService, useValue: mockGameServices.cipherGrid },
         DogRelayService,
         WerewolfService,

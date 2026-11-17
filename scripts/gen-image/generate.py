@@ -22,6 +22,9 @@ DEFAULT_URL = os.environ.get(
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_WORKFLOW = BASE_DIR / "flux-workflow.json"
 DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
+# Single anchor for the write-containment guard: every file this script
+# writes (images and their .json metadata) must land inside this directory.
+OUTPUT_ROOT = DEFAULT_OUTPUT_DIR.resolve()
 
 # SSRF allowlist: only these host patterns may be contacted (private/loopback
 # hosts additionally require --allow-private). New cloudflared tunnels keep
@@ -221,12 +224,11 @@ def generate_image(args):
     output_target = Path(args.output)
     is_explicit_file = output_target.suffix.lower() in [".png", ".jpg", ".webp"]
 
-    if is_explicit_file:
-        output_dir = output_target.parent
-    else:
-        output_dir = output_target
-
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # All writes are anchored to the script's own output directory (the
+    # project policy's single allowed write root); --output only contributes
+    # a clamped basename.
+    output_root = OUTPUT_ROOT
+    output_root.mkdir(parents=True, exist_ok=True)
     saved_files = []
 
     for i, img_info in enumerate(image_outputs):
@@ -243,19 +245,23 @@ def generate_image(args):
             img_data = resp.read()
 
         if is_explicit_file and len(image_outputs) == 1:
-            final_path = output_target
+            # Explicit --output names are clamped to a basename inside the
+            # output root (same contract as server-reported filenames).
+            final_name = os.path.basename(output_target)
         else:
             timestamp = time.strftime("%Y-%m-%dT%H-%M-%S")
-            safe_name = safe_output_path(output_dir, str(img_info.get("filename", "image.png"))).name
-            filename = f"{timestamp}_seed{metadata['seed']}_{safe_name}"
-            final_path = output_dir / filename
+            safe_name = safe_output_path(output_root, str(img_info.get("filename", "image.png"))).name
+            final_name = f"{timestamp}_seed{metadata['seed']}_{safe_name}"
 
-        with open(final_path, "wb") as f:
-            f.write(img_data)
+        # Sink guard: the write target is always the constant output root
+        # joined with a basename — traversal segments cannot survive.
+        final_path = OUTPUT_ROOT / os.path.basename(final_name)
+        final_path.write_bytes(img_data)
         saved_files.append(final_path)
 
         if not args.no_meta:
-            meta_path = final_path.with_suffix(".json")
+            meta_name = os.path.splitext(os.path.basename(final_name))[0] + ".json"
+            meta_path = OUTPUT_ROOT / os.path.basename(meta_name)
             meta_data = {
                 "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "promptId": prompt_id,
@@ -263,8 +269,7 @@ def generate_image(args):
                 "comfyImage": img_info,
                 **metadata,
             }
-            with open(meta_path, "w", encoding="utf-8") as f:
-                json.dump(meta_data, f, indent=2)
+            meta_path.write_text(json.dumps(meta_data, indent=2), encoding="utf-8")
 
     print(f"\n🎉 Success! Saved {len(saved_files)} image(s):")
     for p in saved_files:

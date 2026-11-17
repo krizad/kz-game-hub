@@ -25,6 +25,7 @@ import {
   CardGamePublicState,
 } from './card-game';
 import { PokerMode, PokerPublicState } from './poker';
+import { PokerV2PublicState } from './poker-v2';
 import { CipherGridState, CipherGridMode } from './cipher-grid';
 import { CipherGridPicturePack } from './cipher-grid-pictures';
 import { DogRelayPublicState, DogRelayLeaderSelection } from './dog-relay';
@@ -65,6 +66,7 @@ export enum GameType {
   CARD_GAME = 'CARD_GAME',
   BANANA_THIEF = 'BANANA_THIEF',
   POKER = 'POKER',
+  POKER_V2 = 'POKER_V2',
   CIPHER_GRID = 'CIPHER_GRID',
   DOG_RELAY = 'DOG_RELAY',
   WEREWOLF = 'WEREWOLF',
@@ -195,6 +197,8 @@ export const SOCKET_EVENTS = {
   BANANA_THIEF_ROLL_DIE: 'banana_thief_roll_die',
   // Poker (ADR 0009): one shared betting engine, ONLINE + CHIPS_LEDGER modes
   POKER_ACTION: 'poker_action',
+  // Poker V2: auto-dealing online Texas Hold'em tournament
+  POKER_V2_ACTION: 'poker_v2_action',
   // Ciphergrid specific events
   CIPHER_ASSIGN_TEAM: 'cipher_assign_team',
   CIPHER_RANDOMIZE_TEAMS: 'cipher_randomize_teams',
@@ -343,6 +347,15 @@ export interface RoomConfig {
   pokerAnte?: number;
   pokerTurnTimerEnabled?: boolean;
   pokerTurnTimerSeconds?: number;
+  // Poker V2 config
+  pokerV2SmallBlind?: number;
+  pokerV2BigBlind?: number;
+  pokerV2StartingStack?: number;
+  pokerV2Ante?: number;
+  pokerV2TurnTimerEnabled?: boolean;
+  pokerV2TurnTimerSeconds?: number;
+  /** Seconds between a hand result and the next auto deal. */
+  pokerV2AutoDealSeconds?: number;
   // Ciphergrid config
   /** Seconds per team turn (clue + decoding). 0 or missing = no turn timer. */
   cipherGridTurnSeconds?: number;
@@ -412,6 +425,8 @@ export interface RoomState {
   cardGameLog?: CardGameLogEntry[];
   /** Poker hand state — deck order and hole cards live in private state only. */
   pokerState?: PokerPublicState;
+  /** Poker V2 hand state — deck order, hole cards and advisors are private. */
+  pokerV2State?: PokerV2PublicState;
   /** Ciphergrid board — unrevealed card colours live in private state only. */
   cipherGridState?: CipherGridState;
   dogRelayState?: DogRelayPublicState;

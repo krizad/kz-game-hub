@@ -32,6 +32,7 @@ import {
   CardGameAction,
   CardGameConfig,
   PokerAction,
+  PokerV2Action,
   DeleteArtistPayload,
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
@@ -558,7 +559,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           msg = 'Cannot start game. Need at least 3 players.';
         } else if (gameType === GameType.COUP) {
           msg = 'Cannot start game. Need 3-6 players for Coup.';
-        } else if (gameType === GameType.POKER) {
+        } else if (gameType === GameType.POKER || gameType === GameType.POKER_V2) {
           msg = 'Cannot start game. Need at least 2 players.';
         } else if (gameType === GameType.BANANA_THIEF) {
           msg = 'Cannot start game. Need at least 4 players.';
@@ -682,6 +683,8 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         'saboteur',
         'card-game',
         'poker',
+        'poker-v2-turn',
+        'poker-v2-deal',
         'coup-challenge',
         'coup-block',
         'music-trivia-countdown',
@@ -754,6 +757,21 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @ConnectedSocket() client: Socket,
   ) {
     const room = this.gamesService.pokerAction(data.code, client.id, data.action);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid poker action.' });
+    }
+  }
+
+  // --- Poker V2 Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.POKER_V2_ACTION)
+  handlePokerV2Action(
+    @MessageBody() data: { code: string; action: PokerV2Action },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.pokerV2Action(data.code, client.id, data.action);
     if (room) {
       this.broadcastRoomState(room);
     } else {
@@ -2226,6 +2244,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.POKER) {
       this.syncPokerTimer(room);
     }
+    if (room.gameType === GameType.POKER_V2) {
+      this.syncPokerV2Timer(room);
+    }
     if (room.gameType === GameType.BANANA_THIEF) {
       this.syncBananaThiefTimer(room);
     }
@@ -2515,6 +2536,61 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         auto.playerId,
         auto.action,
       );
+      if (updatedRoom) {
+        this.broadcastRoomState(updatedRoom);
+      }
+    });
+  }
+
+  /**
+   * Poker V2 timers: the per-turn auto-action while betting, and the next
+   * hand's auto-deal while the table sits in HAND_RESULT.
+   */
+  private syncPokerV2Timer(room: RoomState): void {
+    const state = room.pokerV2State;
+    const activePlayerId = state?.activePlayerId ?? null;
+    const turnDeadline = state?.turnDeadline ?? null;
+    const nextHandDeadline = state?.nextHandDeadline ?? null;
+
+    if (!state || !activePlayerId || !turnDeadline) {
+      this.roomTimerService.cancel(room.code, 'poker-v2-turn');
+    } else {
+      this.roomTimerService.schedule(room.code, 'poker-v2-turn', turnDeadline, () => {
+        const currentRoom = this.gamesService.getRoom(room.code);
+        const currentState = currentRoom?.pokerV2State;
+        if (
+          !currentRoom ||
+          !currentState ||
+          currentState.activePlayerId !== activePlayerId ||
+          (currentState.turnDeadline ?? null) !== turnDeadline
+        ) {
+          return; // turn already advanced elsewhere
+        }
+        const auto = this.gamesService.resolvePokerV2AutoAction(currentRoom.code);
+        if (!auto) return;
+        const updatedRoom = this.gamesService.pokerV2Action(
+          currentRoom.code,
+          auto.playerId,
+          auto.action,
+        );
+        if (updatedRoom) {
+          this.broadcastRoomState(updatedRoom);
+        }
+      });
+    }
+
+    if (!state || state.phase !== 'HAND_RESULT' || !nextHandDeadline) {
+      this.roomTimerService.cancel(room.code, 'poker-v2-deal');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'poker-v2-deal', nextHandDeadline, () => {
+      const currentRoom = this.gamesService.getRoom(room.code);
+      if (!currentRoom || currentRoom.status !== RoomStatus.PLAYING) return;
+      const currentState = currentRoom.pokerV2State;
+      if (!currentState || (currentState.nextHandDeadline ?? null) !== nextHandDeadline) {
+        return; // a new hand was dealt manually or the match ended
+      }
+      const updatedRoom = this.gamesService.pokerV2AutoDeal(currentRoom.code);
       if (updatedRoom) {
         this.broadcastRoomState(updatedRoom);
       }
@@ -2929,6 +3005,17 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       }
       return true;
     }
+    if (event === SOCKET_EVENTS.POKER_V2_ACTION) {
+      if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
+        return false;
+      }
+      const action = data.action as Record<string, unknown>;
+      if (typeof action.type !== 'string') return false;
+      if (action.type === 'BET') {
+        return typeof action.amount === 'number' && Number.isInteger(action.amount);
+      }
+      return true;
+    }
     const isSmallInt = (v: unknown): v is number =>
       typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
     if (event === SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
@@ -3165,7 +3252,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         const currentScore = p.score ?? 0;
         // Poker scores are final match stacks, not points accumulated across matches.
         const previousBaseline =
-          room.gameType === GameType.POKER || resetBaselines ? 0 : (baselines.get(key) ?? 0);
+          room.gameType === GameType.POKER || room.gameType === GameType.POKER_V2 || resetBaselines
+            ? 0
+            : (baselines.get(key) ?? 0);
         const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;
         const score = Math.max(0, currentScore - effectiveBaseline);
         baselines.set(key, currentScore);

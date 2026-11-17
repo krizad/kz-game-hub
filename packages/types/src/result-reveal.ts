@@ -108,6 +108,13 @@ export function getResultRevealPlan(room: RoomState): ResultRevealPlan | null {
       sockets = room.pokerState?.playerOrder ?? sockets;
       kind = room.status === RoomStatus.RESULT ? 'SCORES' : 'HANDS';
       break;
+    case GameType.POKER_V2:
+      // Per-hand results stay on the table overlay; only the match end gets
+      // the full-screen reveal.
+      if (room.status === RoomStatus.RESULT) key = `match:${room.pokerV2State?.handNumber ?? 0}`;
+      sockets = room.pokerV2State?.playerOrder ?? sockets;
+      kind = 'SCORES';
+      break;
     case GameType.CIPHER_GRID:
       if (room.cipherGridState?.phase === 'ROUND_END') key = `round:${room.cipherGridState.round}`;
       kind = 'BOARD';

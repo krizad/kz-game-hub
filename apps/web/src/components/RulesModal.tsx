@@ -15,6 +15,7 @@ import { SaboteurRules } from './games/saboteur/SaboteurRules';
 import { CoupRules } from './games/coup/CoupRules';
 import { CardGameRules } from './games/card-game/CardGameRules';
 import { PokerRules } from './games/poker/PokerRules';
+import { PokerV2Rules } from './games/poker-v2/PokerV2Rules';
 import { BananaThiefRules } from './games/banana-thief/BananaThiefRules';
 import { DogRelayRules } from './games/dog-relay/DogRelayRules';
 import { CipherGridRules } from './games/cipher-grid/CipherGridRules';
@@ -83,6 +84,8 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
         return <BananaThiefRules />;
       case GameType.POKER:
         return <PokerRules />;
+      case GameType.POKER_V2:
+        return <PokerV2Rules />;
       case GameType.DOG_RELAY:
         return <DogRelayRules />;
       case GameType.CIPHER_GRID:
@@ -286,6 +289,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.POKER ? 'bg-emerald-300 text-black border-2 border-black border border-emerald-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
                     >
                       {t('rules.modal.tabs.poker')}
+                    </button>
+                  )}
+                  {isGameEnabled(GameType.POKER_V2) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.POKER_V2)}
+                      className={`px-4 py-2  text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.POKER_V2 ? 'bg-emerald-300 text-black border-2 border-black border border-emerald-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.pokerV2')}
                     </button>
                   )}
                   {isGameEnabled(GameType.DOG_RELAY) && (

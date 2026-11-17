@@ -20,6 +20,8 @@ import { SlaveView } from '@/components/games/card-game/SlaveView';
 import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
 import { PokerView } from '@/components/games/poker/PokerView';
 import { PokerSettings } from '@/components/games/poker/PokerSettings';
+import { PokerV2View } from '@/components/games/poker-v2/PokerV2View';
+import { PokerV2Settings } from '@/components/games/poker-v2/PokerV2Settings';
 import { CipherGridView } from '@/components/games/cipher-grid/CipherGridView';
 import { DogRelayView } from '@/components/games/dog-relay/DogRelayView';
 import { DogRelaySeats } from '@/components/games/dog-relay/DogRelaySeats';
@@ -145,6 +147,16 @@ function getGameStatus(
             : null;
       }
       break;
+    case GameType.POKER_V2:
+      if (room.pokerV2State) {
+        phase = room.pokerV2State.phase;
+        activePlayerId =
+          room.pokerV2State.activePlayerId &&
+          ['PREFLOP', 'FLOP', 'TURN', 'RIVER'].includes(room.pokerV2State.phase)
+            ? room.pokerV2State.activePlayerId
+            : null;
+      }
+      break;
     case GameType.CIPHER_GRID:
       if (room.cipherGridState) {
         phase = room.cipherGridState.phase;
@@ -204,6 +216,7 @@ function getGameStatus(
     [GameType.COUP]: 'bg-rose-200',
     [GameType.CARD_GAME]: 'bg-amber-500',
     [GameType.POKER]: 'bg-emerald-300',
+    [GameType.POKER_V2]: 'bg-emerald-600',
     [GameType.BANANA_THIEF]: 'bg-lime-400',
     [GameType.CIPHER_GRID]: 'bg-amber-400',
     [GameType.DOG_RELAY]: 'bg-amber-300',
@@ -257,6 +270,9 @@ export function GameViewManager() {
     if (room.gameType === GameType.POKER && room.status !== RoomStatus.LOBBY) {
       return <PokerView />;
     }
+    if (room.gameType === GameType.POKER_V2 && room.status !== RoomStatus.LOBBY) {
+      return <PokerV2View />;
+    }
     if (room.gameType === GameType.CIPHER_GRID && room.status !== RoomStatus.LOBBY) {
       return <CipherGridView />;
     }
@@ -276,6 +292,7 @@ export function GameViewManager() {
             </h4>
             {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
             {room.gameType === GameType.POKER && <PokerSettings />}
+            {room.gameType === GameType.POKER_V2 && <PokerV2Settings />}
             {room.gameType === GameType.DOG_RELAY && (
               <>
                 <DogRelaySeats />

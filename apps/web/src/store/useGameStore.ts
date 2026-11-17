@@ -27,6 +27,7 @@ import {
   CardGameAction,
   CardGameConfig,
   PokerAction,
+  PokerV2Action,
   TttModeFlag,
   ArtistPresetSummary,
   GetArtistPresetsPayload,
@@ -188,6 +189,7 @@ interface GameState {
   bananaThiefReaction: (emoji: string) => void;
   cardGameAction: (action: CardGameAction) => void;
   pokerAction: (action: PokerAction) => void;
+  pokerV2Action: (action: PokerV2Action) => void;
   cipherAssignTeam: (payload: CipherAssignTeamPayload) => void;
   cipherRandomizeTeams: () => void;
   cipherStartMatch: () => void;
@@ -964,6 +966,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
     pokerAction: (action: PokerAction) => {
       emitGameAction(SOCKET_EVENTS.POKER_ACTION, { payload: () => ({ action }) });
+    },
+
+    pokerV2Action: (action: PokerV2Action) => {
+      emitGameAction(SOCKET_EVENTS.POKER_V2_ACTION, { payload: () => ({ action }) });
     },
 
     tttJoinSide: (side: 'X' | 'O') => {

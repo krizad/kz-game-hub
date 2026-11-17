@@ -138,6 +138,7 @@ export interface Dictionary {
       cardGame: string;
       bananaThief: string;
       poker: string;
+      pokerV2: string;
       dogRelay: string;
       cipherGrid: string;
       werewolf: string;
@@ -158,6 +159,7 @@ export interface Dictionary {
       cardGame: { category: string; description: string; players: string };
       bananaThief: { category: string; description: string; players: string };
       poker: { category: string; description: string; players: string };
+      pokerV2: { category: string; description: string; players: string };
       dogRelay: { category: string; description: string; players: string };
       cipherGrid: { category: string; description: string; players: string };
       werewolf: { category: string; description: string; players: string };
@@ -470,6 +472,7 @@ export interface Dictionary {
         pokDeng: string;
         bananaThief: string;
         poker: string;
+        pokerV2: string;
         cipherGrid: string;
         werewolf: string;
         battleship: string;
@@ -2400,5 +2403,114 @@ export interface Dictionary {
     statsShipsSunk: string;
     returnToLobbyBtn: string;
     cellAriaLabel: string;
+  };
+  pokerV2: {
+    lobbyHint: string;
+    rules: {
+      intro: string;
+      howToTitle: string;
+      step1: string;
+      step2: string;
+      step3: string;
+      step4: string;
+      step5: string;
+      winConTitle: string;
+      winConDesc: string;
+      advisorTitle: string;
+      advisorDesc: string;
+    };
+    settingsSmallBlind: string;
+    settingsBigBlind: string;
+    settingsStack: string;
+    settingsAnte: string;
+    settingsTimer: string;
+    settingsTimerSeconds: string;
+    settingsAutoDeal: string;
+    settingsAutoDealSeconds: string;
+    table: {
+      hand: string;
+      blinds: string;
+      pot: string;
+      dealer: string;
+      folded: string;
+      allIn: string;
+      out: string;
+      waiting: string;
+      yourTurn: string;
+      toCall: string;
+      yourCards: string;
+      seconds: string;
+      nextHandIn: string;
+      dealNow: string;
+      endMatch: string;
+      confirmEnd: string;
+      confirmEndDesc: string;
+      cancel: string;
+      standings: string;
+      backToLobby: string;
+      champion: string;
+      rotateHint: string;
+      rankings: string;
+      uncalled: string;
+      phase: {
+        PREFLOP: string;
+        FLOP: string;
+        TURN: string;
+        RIVER: string;
+        SHOWDOWN: string;
+        HAND_RESULT: string;
+      };
+    };
+    action: {
+      fold: string;
+      check: string;
+      call: string;
+      raiseTo: string;
+      min: string;
+      half: string;
+      pot: string;
+      allIn: string;
+      yourMove: string;
+      betAmount: string;
+    };
+    advisor: {
+      title: string;
+      currentHand: string;
+      winChance: string;
+      potential: string;
+      outs: string;
+      improveByRiver: string;
+      none: string;
+      vsPlayers: string;
+      folded: string;
+    };
+    hands: {
+      HIGH_CARD: string;
+      ONE_PAIR: string;
+      TWO_PAIR: string;
+      THREE_OF_A_KIND: string;
+      STRAIGHT: string;
+      FLUSH: string;
+      FULL_HOUSE: string;
+      FOUR_OF_A_KIND: string;
+      STRAIGHT_FLUSH: string;
+      ROYAL_FLUSH: string;
+    };
+    draws: {
+      FLUSH_DRAW: string;
+      BACKDOOR_FLUSH: string;
+      OPEN_ENDED_STRAIGHT: string;
+      GUTSHOT: string;
+      SET_DRAW: string;
+      TWO_PAIR_DRAW: string;
+    };
+    result: {
+      winner: string;
+      splitPot: string;
+      nextHand: string;
+      endMatch: string;
+      chips: string;
+      revealed: string;
+    };
   };
 }
