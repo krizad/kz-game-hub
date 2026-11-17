@@ -1,0 +1,42 @@
+import { PokerV2Action, PokerV2PublicState, RoomState } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
+export declare class PokerV2Service {
+    private readonly privateStateService;
+    constructor(privateStateService: PrivateStateService);
+    startMatch(room: RoomState, requesterId: string): RoomState | null;
+    resetMatch(room: RoomState, requesterId: string): RoomState | null;
+    handleAction(room: RoomState, socketId: string, action: PokerV2Action): RoomState | null;
+    resolveAutoAction(room: RoomState): {
+        playerId: string;
+        action: PokerV2Action;
+    } | null;
+    autoDealIfDue(room: RoomState): boolean;
+    remapSocketId(state: PokerV2PublicState, oldSocketId: string, newSocketId: string): void;
+    handlePlayerRemoved(room: RoomState, socketId: string): void;
+    private dealHand;
+    private applyBettingAction;
+    private advanceAfterAction;
+    private recordRaise;
+    private closeStreet;
+    private enterShowdown;
+    private settlePots;
+    private awardUncontested;
+    private armNextHand;
+    private endMatch;
+    private recomputeAdvisors;
+    private commit;
+    private distribute;
+    private seatsFromDealer;
+    private setActive;
+    private nextToAct;
+    private nextSeatAfter;
+    private nextSeatIn;
+    private holeCards;
+    private deletePrivate;
+    private clearAllPrivate;
+    private smallBlind;
+    private bigBlind;
+    private ante;
+    private startingStack;
+    private autoDealSeconds;
+}

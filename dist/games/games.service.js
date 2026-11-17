@@ -34,6 +34,7 @@ const private_state_service_1 = require("./private-state.service");
 const room_timer_service_1 = require("./room-timer.service");
 const card_game_service_1 = require("./card-game/card-game.service");
 const poker_service_1 = require("./poker/poker.service");
+const poker_v2_service_1 = require("./poker-v2/poker-v2.service");
 const game_settings_service_1 = require("./game-settings.service");
 const room_start_guard_service_1 = require("./room-start-guard.service");
 const action_receipt_service_1 = require("./action-receipt.service");
@@ -50,7 +51,7 @@ let GamesService = GamesService_1 = class GamesService {
         const room = this.rooms.get(code);
         return room && (0, result_reveal_1.applyResultRevealAction)(room, socketId, payload) ? room : null;
     }
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, cipherGridService, dogRelayService, werewolfService, battleshipService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, pokerV2Service, cipherGridService, dogRelayService, werewolfService, battleshipService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -70,6 +71,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.roomTimerService = roomTimerService;
         this.cardGameService = cardGameService;
         this.pokerService = pokerService;
+        this.pokerV2Service = pokerV2Service;
         this.cipherGridService = cipherGridService;
         this.dogRelayService = dogRelayService;
         this.werewolfService = werewolfService;
@@ -230,6 +232,15 @@ let GamesService = GamesService_1 = class GamesService {
             room.config.pokerTurnTimerEnabled = room.config.pokerTurnTimerEnabled ?? true;
             room.config.pokerTurnTimerSeconds = room.config.pokerTurnTimerSeconds ?? 30;
         }
+        else if (gameType === types_1.GameType.POKER_V2) {
+            room.config.pokerV2SmallBlind = room.config.pokerV2SmallBlind ?? 10;
+            room.config.pokerV2BigBlind = room.config.pokerV2BigBlind ?? 20;
+            room.config.pokerV2StartingStack = room.config.pokerV2StartingStack ?? 1000;
+            room.config.pokerV2Ante = room.config.pokerV2Ante ?? 0;
+            room.config.pokerV2TurnTimerEnabled = room.config.pokerV2TurnTimerEnabled ?? true;
+            room.config.pokerV2TurnTimerSeconds = room.config.pokerV2TurnTimerSeconds ?? 20;
+            room.config.pokerV2AutoDealSeconds = room.config.pokerV2AutoDealSeconds ?? 5;
+        }
         else if (gameType === types_1.GameType.BANANA_THIEF) {
             room.config.bananaThiefNarrator = 'AUTO';
             room.config.bananaThiefDlc = false;
@@ -346,6 +357,9 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.pokerState) {
                 this.pokerService.remapSocketId(room.pokerState, oldSocketId, user.socketId);
+            }
+            if (room.pokerV2State) {
+                this.pokerV2Service.remapSocketId(room.pokerV2State, oldSocketId, user.socketId);
             }
             if (room.cipherGridState) {
                 this.cipherGridService.remapSocketId(room.cipherGridState, oldSocketId, user.socketId);
@@ -524,6 +538,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.pokerState) {
             this.pokerService.handlePlayerDisconnect(room, player.socketId);
+        }
+        if (room.pokerV2State) {
+            this.pokerV2Service.handlePlayerRemoved(room, player.socketId);
         }
         if (room.gameType === types_1.GameType.RPS && room.rpsState) {
             this.rpsService.handlePlayerRemoved(room, player.socketId);
@@ -848,6 +865,13 @@ let GamesService = GamesService_1 = class GamesService {
         copyInteger('pokerAnte', 0, 100_000);
         copyBoolean('pokerTurnTimerEnabled');
         copyInteger('pokerTurnTimerSeconds', 5, 300);
+        copyInteger('pokerV2SmallBlind', 1, 100_000);
+        copyInteger('pokerV2BigBlind', 1, 100_000);
+        copyInteger('pokerV2StartingStack', 10, 10_000_000);
+        copyInteger('pokerV2Ante', 0, 100_000);
+        copyBoolean('pokerV2TurnTimerEnabled');
+        copyInteger('pokerV2TurnTimerSeconds', 5, 300);
+        copyInteger('pokerV2AutoDealSeconds', 3, 30);
         copyInteger('cipherGridTurnSeconds', 0, 300);
         copyEnum('cipherGridMode', ['WORDS', 'PICTURES']);
         copyEnum('cipherGridPicturePack', ['CLASSIC', 'MINIMAL']);
@@ -961,6 +985,10 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.pokerService.startMatch(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.POKER_V2) {
+            const startedRoom = this.withRoom(code, (r) => this.pokerV2Service.startMatch(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
         if (room.gameType === types_1.GameType.CIPHER_GRID) {
             const startedRoom = this.withRoom(code, (r) => this.cipherGridService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
@@ -1063,6 +1091,9 @@ let GamesService = GamesService_1 = class GamesService {
         if (room.gameType === types_1.GameType.POKER) {
             return this.withRoom(code, (r) => this.pokerService.resetMatch(r, requesterId));
         }
+        if (room.gameType === types_1.GameType.POKER_V2) {
+            return this.withRoom(code, (r) => this.pokerV2Service.resetMatch(r, requesterId));
+        }
         switch (room.gameType) {
             case types_1.GameType.WHO_KNOW:
                 return this.withRoom(code, (r) => this.whoKnowService.resetGame(r, requesterId, this.secretWords));
@@ -1160,6 +1191,20 @@ let GamesService = GamesService_1 = class GamesService {
         if (!room)
             return null;
         return this.pokerService.resolveAutoAction(room);
+    }
+    pokerV2Action(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.pokerV2Service.handleAction(room, clientId, action));
+    }
+    resolvePokerV2AutoAction(code) {
+        const room = this.rooms.get(code);
+        if (!room)
+            return null;
+        return this.pokerV2Service.resolveAutoAction(room);
+    }
+    pokerV2AutoDeal(code) {
+        return this.withRoom(code, (room) => (this.pokerV2Service.autoDealIfDue(room) ? room : null));
     }
     saboteurTurnDeadline(code, activePlayerId, seconds) {
         const current = this.saboteurTurnDeadlines.get(code);
@@ -1750,6 +1795,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         room_timer_service_1.RoomTimerService,
         card_game_service_1.CardGameService,
         poker_service_1.PokerService,
+        poker_v2_service_1.PokerV2Service,
         cipher_grid_service_1.CipherGridService,
         dog_relay_service_1.DogRelayService,
         werewolf_service_1.WerewolfService,

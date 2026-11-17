@@ -396,7 +396,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 else if (gameType === types_1.GameType.COUP) {
                     msg = 'Cannot start game. Need 3-6 players for Coup.';
                 }
-                else if (gameType === types_1.GameType.POKER) {
+                else if (gameType === types_1.GameType.POKER || gameType === types_1.GameType.POKER_V2) {
                     msg = 'Cannot start game. Need at least 2 players.';
                 }
                 else if (gameType === types_1.GameType.BANANA_THIEF) {
@@ -489,6 +489,8 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 'saboteur',
                 'card-game',
                 'poker',
+                'poker-v2-turn',
+                'poker-v2-deal',
                 'coup-challenge',
                 'coup-block',
                 'music-trivia-countdown',
@@ -530,6 +532,15 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     handlePokerAction(data, client) {
         const room = this.gamesService.pokerAction(data.code, client.id, data.action);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid poker action.' });
+        }
+    }
+    handlePokerV2Action(data, client) {
+        const room = this.gamesService.pokerV2Action(data.code, client.id, data.action);
         if (room) {
             this.broadcastRoomState(room);
         }
@@ -1546,6 +1557,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.POKER) {
             this.syncPokerTimer(room);
         }
+        if (room.gameType === types_1.GameType.POKER_V2) {
+            this.syncPokerV2Timer(room);
+        }
         if (room.gameType === types_1.GameType.BANANA_THIEF) {
             this.syncBananaThiefTimer(room);
         }
@@ -1778,6 +1792,51 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             if (!auto)
                 return;
             const updatedRoom = this.gamesService.pokerAction(currentRoom.code, auto.playerId, auto.action);
+            if (updatedRoom) {
+                this.broadcastRoomState(updatedRoom);
+            }
+        });
+    }
+    syncPokerV2Timer(room) {
+        const state = room.pokerV2State;
+        const activePlayerId = state?.activePlayerId ?? null;
+        const turnDeadline = state?.turnDeadline ?? null;
+        const nextHandDeadline = state?.nextHandDeadline ?? null;
+        if (!state || !activePlayerId || !turnDeadline) {
+            this.roomTimerService.cancel(room.code, 'poker-v2-turn');
+        }
+        else {
+            this.roomTimerService.schedule(room.code, 'poker-v2-turn', turnDeadline, () => {
+                const currentRoom = this.gamesService.getRoom(room.code);
+                const currentState = currentRoom?.pokerV2State;
+                if (!currentRoom ||
+                    !currentState ||
+                    currentState.activePlayerId !== activePlayerId ||
+                    (currentState.turnDeadline ?? null) !== turnDeadline) {
+                    return;
+                }
+                const auto = this.gamesService.resolvePokerV2AutoAction(currentRoom.code);
+                if (!auto)
+                    return;
+                const updatedRoom = this.gamesService.pokerV2Action(currentRoom.code, auto.playerId, auto.action);
+                if (updatedRoom) {
+                    this.broadcastRoomState(updatedRoom);
+                }
+            });
+        }
+        if (!state || state.phase !== 'HAND_RESULT' || !nextHandDeadline) {
+            this.roomTimerService.cancel(room.code, 'poker-v2-deal');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'poker-v2-deal', nextHandDeadline, () => {
+            const currentRoom = this.gamesService.getRoom(room.code);
+            if (!currentRoom || currentRoom.status !== types_1.RoomStatus.PLAYING)
+                return;
+            const currentState = currentRoom.pokerV2State;
+            if (!currentState || (currentState.nextHandDeadline ?? null) !== nextHandDeadline) {
+                return;
+            }
+            const updatedRoom = this.gamesService.pokerV2AutoDeal(currentRoom.code);
             if (updatedRoom) {
                 this.broadcastRoomState(updatedRoom);
             }
@@ -2120,6 +2179,18 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
             return true;
         }
+        if (event === types_1.SOCKET_EVENTS.POKER_V2_ACTION) {
+            if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
+                return false;
+            }
+            const action = data.action;
+            if (typeof action.type !== 'string')
+                return false;
+            if (action.type === 'BET') {
+                return typeof action.amount === 'number' && Number.isInteger(action.amount);
+            }
+            return true;
+        }
         const isSmallInt = (v) => typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
         if (event === types_1.SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
             return (isSmallInt(data.cardIndex) &&
@@ -2306,7 +2377,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             .map((p) => {
             const key = this.getResultPlayerKey(p);
             const currentScore = p.score ?? 0;
-            const previousBaseline = room.gameType === types_1.GameType.POKER || resetBaselines ? 0 : (baselines.get(key) ?? 0);
+            const previousBaseline = room.gameType === types_1.GameType.POKER || room.gameType === types_1.GameType.POKER_V2 || resetBaselines
+                ? 0
+                : (baselines.get(key) ?? 0);
             const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;
             const score = Math.max(0, currentScore - effectiveBaseline);
             baselines.set(key, currentScore);
@@ -2510,6 +2583,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handlePokerAction", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.POKER_V2_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handlePokerV2Action", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.TTT_JOIN_SIDE),
     __param(0, (0, websockets_1.MessageBody)()),

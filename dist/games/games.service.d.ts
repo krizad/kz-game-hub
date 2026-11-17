@@ -1,4 +1,4 @@
-import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DogRelayActionRequest, DogRelayPhase, ResultRevealActionPayload } from '@repo/types';
+import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DogRelayActionRequest, DogRelayPhase, ResultRevealActionPayload } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -18,6 +18,7 @@ import { PrivateStateService } from './private-state.service';
 import { RoomTimerService } from './room-timer.service';
 import { CardGameService } from './card-game/card-game.service';
 import { PokerService } from './poker/poker.service';
+import { PokerV2Service } from './poker-v2/poker-v2.service';
 import { GameSettingsService } from './game-settings.service';
 import { RoomStartGuardService } from './room-start-guard.service';
 import { ActionReceiptService } from './action-receipt.service';
@@ -67,6 +68,7 @@ export declare class GamesService {
     private readonly roomTimerService;
     private readonly cardGameService;
     private readonly pokerService;
+    private readonly pokerV2Service;
     private readonly cipherGridService;
     private readonly dogRelayService;
     private readonly werewolfService;
@@ -80,7 +82,7 @@ export declare class GamesService {
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, battleshipService: BattleshipService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, pokerV2Service: PokerV2Service, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, battleshipService: BattleshipService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;
@@ -143,6 +145,12 @@ export declare class GamesService {
         playerId: string;
         action: PokerAction;
     } | null;
+    pokerV2Action(code: string, clientId: string, action: PokerV2Action): RoomState | null;
+    resolvePokerV2AutoAction(code: string): {
+        playerId: string;
+        action: PokerV2Action;
+    } | null;
+    pokerV2AutoDeal(code: string): RoomState | null;
     saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number;
     clearSaboteurTurnDeadline(code: string): void;
     getPlayerRole(code: string, socketId: string): Role | undefined;

@@ -7,7 +7,7 @@ import { PrivateStateService } from './private-state.service';
 import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind, BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind, BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -84,6 +84,10 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handlePokerAction(data: {
         code: string;
         action: PokerAction;
+    }, client: Socket): void;
+    handlePokerV2Action(data: {
+        code: string;
+        action: PokerV2Action;
     }, client: Socket): void;
     handleTTTJoinSide(data: {
         code: string;
@@ -389,6 +393,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private syncCardGameTimer;
     private syncBananaThiefTimer;
     private syncPokerTimer;
+    private syncPokerV2Timer;
     private syncCipherGridTimer;
     private getOutboundPrivateState;
     private emitPrivateStates;
