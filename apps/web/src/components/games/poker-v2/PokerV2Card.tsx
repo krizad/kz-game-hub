@@ -13,11 +13,16 @@ export const SUIT_SYMBOLS: Record<PlayingCard['suit'], string> = {
 export const isRedSuit = (suit: PlayingCard['suit']): boolean =>
   suit === 'HEARTS' || suit === 'DIAMONDS';
 
+/**
+ * Card geometry: the rank block sits inside a padded corner (no clipping on
+ * "10"), the suit is a large watermark in the middle, and a small suit echo
+ * anchors the bottom-right corner. No rotated duplicate text.
+ */
 const SIZES = {
-  xs: { box: 'w-[34px] h-[48px] rounded-md', rank: 'text-[11px]', pip: 'text-[13px]' },
-  sm: { box: 'w-[42px] h-[60px] rounded-md', rank: 'text-[13px]', pip: 'text-[16px]' },
-  md: { box: 'w-[54px] h-[76px] rounded-lg', rank: 'text-[17px]', pip: 'text-[22px]' },
-  lg: { box: 'w-[68px] h-[96px] rounded-xl', rank: 'text-[22px]', pip: 'text-[28px]' },
+  xs: { box: 'w-[38px] h-[54px] rounded-lg', rank: 'text-[13px]', pip: 'text-[20px]' },
+  sm: { box: 'w-[48px] h-[68px] rounded-lg', rank: 'text-[15px]', pip: 'text-[26px]' },
+  md: { box: 'w-[60px] h-[86px] rounded-xl', rank: 'text-[19px]', pip: 'text-[34px]' },
+  lg: { box: 'w-[74px] h-[106px] rounded-xl', rank: 'text-[24px]', pip: 'text-[42px]' },
 } as const;
 
 export type PokerV2CardSize = keyof typeof SIZES;
@@ -46,57 +51,54 @@ export function PokerV2Card({
   const dims = SIZES[size];
 
   if (faceDown || !card) {
+    if (!card) {
+      return (
+        <div
+          className={`${dims.box} ${className} shrink-0 select-none rounded-lg border-2 border-dashed border-black/30 bg-black/5`}
+          aria-hidden
+        />
+      );
+    }
     return (
       <div
-        className={`${dims.box} ${className} shrink-0 select-none border-2 border-black bg-gradient-to-br from-indigo-600 to-violet-800 shadow-[2px_2px_0_0_#000] ${
-          card ? '' : 'border-dashed border-black/40 bg-black/10 shadow-none'
-        }`}
+        className={`${dims.box} ${className} shrink-0 select-none overflow-hidden border-2 border-black bg-gradient-to-br from-indigo-600 to-violet-800 shadow-[2px_2px_0_0_#000]`}
         aria-hidden
       >
-        {!card ? null : (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="text-white/70 text-lg font-black">♠</span>
-          </div>
-        )}
+        <div className="flex h-full w-full items-center justify-center">
+          <span className="text-lg font-black text-white/80">♠</span>
+        </div>
       </div>
     );
   }
 
   const red = isRedSuit(card.suit);
+  const tone = red ? 'text-red-600' : 'text-black';
 
   return (
     <motion.div
       initial={{ rotateY: 180, scale: 0.8 }}
       animate={{ rotateY: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22, delay }}
-      className={`${dims.box} ${className} relative shrink-0 select-none border-2 border-black bg-white shadow-[2px_2px_0_0_#000] ${
-        highlight ? 'ring-4 ring-yellow-400' : ''
+      className={`${dims.box} ${className} relative shrink-0 select-none overflow-hidden border-2 border-black bg-white shadow-[2px_2px_0_0_#000] ${
+        highlight ? 'ring-4 ring-yellow-400 ring-offset-0' : ''
       } ${dimmed ? 'opacity-40 grayscale' : ''}`}
     >
+      {/* corner index — padded so wide ranks ("10") never touch the edge */}
       <div
-        className={`absolute left-0.5 top-0 flex flex-col items-center leading-none font-black ${dims.rank} ${
-          red ? 'text-red-600' : 'text-black'
-        }`}
+        className={`absolute left-[5px] top-[3px] flex flex-col items-center justify-center gap-[1px] leading-none font-black ${dims.rank} ${tone}`}
       >
         <span>{card.rank}</span>
-        <span>{SUIT_SYMBOLS[card.suit]}</span>
+        <span className="opacity-80">{SUIT_SYMBOLS[card.suit]}</span>
       </div>
+      {/* centre watermark */}
       <div
-        className={`absolute bottom-0.5 right-0.5 rotate-180 leading-none font-black ${dims.rank} ${
-          red ? 'text-red-600' : 'text-black'
-        }`}
-      >
-        <span className="flex flex-col items-center">
-          <span>{card.rank}</span>
-          <span>{SUIT_SYMBOLS[card.suit]}</span>
-        </span>
-      </div>
-      <div
-        className={`flex h-full w-full items-center justify-center ${dims.pip} ${
-          red ? 'text-red-600' : 'text-black'
-        }`}
+        className={`absolute inset-0 flex items-center justify-center ${dims.pip} opacity-90 ${tone}`}
       >
         {SUIT_SYMBOLS[card.suit]}
+      </div>
+      {/* bottom-right echo */}
+      <div className={`absolute bottom-[3px] right-[5px] leading-none ${dims.rank} ${tone}`}>
+        <span className="opacity-80">{SUIT_SYMBOLS[card.suit]}</span>
       </div>
     </motion.div>
   );
@@ -117,7 +119,7 @@ export function PokerV2CardRow({
   highlightIds?: Set<string>;
 }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1.5">
       {cards.map((card, i) => (
         <PokerV2Card
           key={card.id}

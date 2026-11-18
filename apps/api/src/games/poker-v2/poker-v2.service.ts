@@ -5,6 +5,7 @@ import {
   PlayingCard,
   PokerV2Action,
   PokerV2Advisor,
+  PokerV2HandCategory,
   PokerV2PotResult,
   PokerV2PublicState,
   PokerV2Seat,
@@ -29,6 +30,8 @@ const DECK_KEY = 'deck';
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 9;
+/** Bounded reviewable hand history kept in the public state. */
+const MAX_HISTORY = 20;
 
 @Injectable()
 export class PokerV2Service {
@@ -73,6 +76,7 @@ export class PokerV2Service {
       ante: this.ante(room),
       turnDeadline: null,
       nextHandDeadline: null,
+      history: [],
     };
     room.status = RoomStatus.PLAYING;
     this.clearAllPrivate(room);
@@ -102,7 +106,8 @@ export class PokerV2Service {
     const isHost = room.roomHostId === socketId;
     switch (action.type) {
       case 'START_HAND':
-        if (!isHost) return null;
+        // A "deal now" skip: any seated player may cut the countdown short.
+        if (!state.playerOrder.includes(socketId)) return null;
         if (state.phase !== 'HAND_RESULT') return null;
         this.dealHand(room);
         return room;
@@ -467,6 +472,7 @@ export class PokerV2Service {
       this.deletePrivate(room, id);
     }
     state.phase = 'HAND_RESULT';
+    this.recordHistory(room);
 
     const fundable = state.playerOrder.filter((id) => state.seats[id].chips > 0);
     if (fundable.length <= 1) {
@@ -475,6 +481,37 @@ export class PokerV2Service {
       return;
     }
     this.armNextHand(room);
+  }
+
+  /** Snapshot the settled hand into the table history (bounded list). */
+  private recordHistory(room: RoomState): void {
+    const state = room.pokerV2State!;
+    const result = state.handResult;
+    if (!result) return;
+    const revealedCards: Record<string, PlayingCard[]> = {};
+    const seatHands: Record<string, PokerV2HandCategory> = {};
+    for (const [id, cards] of Object.entries(state.showdown?.revealedCards ?? {})) {
+      if (cards.length > 0) revealedCards[id] = [...cards];
+    }
+    for (const id of Object.keys(revealedCards)) {
+      const category = state.seats[id]?.handCategory;
+      if (category) seatHands[id] = category;
+    }
+    state.history = [
+      ...state.history,
+      {
+        handNumber: state.handNumber,
+        board: [...state.board],
+        pots: result.pots.map((pot) => ({
+          winnerIds: [...pot.winnerIds],
+          amount: pot.amount,
+          handCategory: pot.handCategory,
+        })),
+        revealedCards,
+        seatHands,
+        ...(result.uncalledRefund ? { uncalledRefund: { ...result.uncalledRefund } } : {}),
+      },
+    ].slice(-MAX_HISTORY);
   }
 
   /** ONLINE: evaluate every live seat, split each pot among its best hands. */
@@ -544,6 +581,7 @@ export class PokerV2Service {
     state.phase = 'HAND_RESULT';
     state.activePlayerId = null;
     state.turnDeadline = null;
+    this.recordHistory(room);
 
     const fundable = state.playerOrder.filter((id) => state.seats[id].chips > 0);
     if (fundable.length <= 1) {
@@ -594,6 +632,8 @@ export class PokerV2Service {
     const state = room.pokerV2State;
     if (!state || room.status !== RoomStatus.PLAYING) return;
     if (!isStreetPhase(state.phase)) return;
+    // Hosts may switch the win-odds panel off room-wide (also saves CPU).
+    if (room.config.pokerV2AdvisorEnabled === false) return;
 
     const live: EquityEntry[] = [];
     for (const id of state.playerOrder) {
@@ -740,7 +780,7 @@ export class PokerV2Service {
   }
 
   private autoDealSeconds(room: RoomState): number {
-    return Math.min(30, Math.max(3, room.config.pokerV2AutoDealSeconds ?? 5));
+    return Math.min(60, Math.max(3, room.config.pokerV2AutoDealSeconds ?? 10));
   }
 }
 

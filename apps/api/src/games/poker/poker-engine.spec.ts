@@ -109,6 +109,32 @@ describe('poker-engine hand evaluation', () => {
     expect(evaluateHand(seven).category).toBe('FLUSH');
   });
 
+  it('handles 6-card turn-street sets (regression: no 4-card phantom flush)', () => {
+    // 5♠K♥ hole + A♥J♥5♦5♥ board: three fives, only four hearts.
+    const six = [
+      card('5', 'SPADES'),
+      card('K', 'HEARTS'),
+      card('A', 'HEARTS'),
+      card('J', 'HEARTS'),
+      card('5', 'DIAMONDS'),
+      card('5', 'HEARTS'),
+    ];
+    const evaluation = evaluateHand(six);
+    expect(evaluation.category).toBe('THREE_OF_A_KIND');
+    expect(evaluation.best).toHaveLength(5);
+
+    // Four-to-a-flush without a made hand is a pair, never a flush.
+    const drawSix = [
+      card('2', 'HEARTS'),
+      card('7', 'HEARTS'),
+      card('A', 'HEARTS'),
+      card('J', 'HEARTS'),
+      card('5', 'DIAMONDS'),
+      card('5', 'SPADES'),
+    ];
+    expect(evaluateHand(drawSix).category).toBe('ONE_PAIR');
+  });
+
   it('full house beats flush and splits trips correctly', () => {
     const full = [
       card('8', 'SPADES'),

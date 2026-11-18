@@ -304,7 +304,8 @@ export class GamesService {
       room.config.pokerV2Ante = room.config.pokerV2Ante ?? 0;
       room.config.pokerV2TurnTimerEnabled = room.config.pokerV2TurnTimerEnabled ?? true;
       room.config.pokerV2TurnTimerSeconds = room.config.pokerV2TurnTimerSeconds ?? 20;
-      room.config.pokerV2AutoDealSeconds = room.config.pokerV2AutoDealSeconds ?? 5;
+      room.config.pokerV2AutoDealSeconds = room.config.pokerV2AutoDealSeconds ?? 10;
+      room.config.pokerV2AdvisorEnabled = room.config.pokerV2AdvisorEnabled ?? true;
     } else if (gameType === GameType.BANANA_THIEF) {
       room.config.bananaThiefNarrator = 'AUTO';
       room.config.bananaThiefDlc = false;
@@ -1045,7 +1046,8 @@ export class GamesService {
     copyInteger('pokerV2Ante', 0, 100_000);
     copyBoolean('pokerV2TurnTimerEnabled');
     copyInteger('pokerV2TurnTimerSeconds', 5, 300);
-    copyInteger('pokerV2AutoDealSeconds', 3, 30);
+    copyInteger('pokerV2AutoDealSeconds', 3, 60);
+    copyBoolean('pokerV2AdvisorEnabled');
     copyInteger('cipherGridTurnSeconds', 0, 300);
     copyEnum('cipherGridMode', ['WORDS', 'PICTURES']);
     copyEnum('cipherGridPicturePack', ['CLASSIC', 'MINIMAL']);

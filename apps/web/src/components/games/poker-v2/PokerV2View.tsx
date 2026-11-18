@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Crown,
+  History,
   Hourglass,
   ListOrdered,
   Play,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   GameType,
+  PlayingCard,
   PokerV2Action,
   PokerV2PrivateState,
   PokerV2PublicState,
@@ -33,16 +35,16 @@ const STREET_PHASES = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'] as const;
 
 /** Landscape seat slots, clockwise from bottom-centre (slot 0 = the viewer). */
 const SEAT_SLOTS = [
-  { x: 50, y: 76 },
-  { x: 17, y: 84 },
+  { x: 50, y: 78 },
+  { x: 16, y: 86 },
   { x: 7, y: 58 },
   { x: 7, y: 32 },
-  { x: 17, y: 14 },
-  { x: 50, y: 6 },
-  { x: 83, y: 14 },
+  { x: 16, y: 14 },
+  { x: 50, y: 8 },
+  { x: 84, y: 14 },
   { x: 93, y: 32 },
   { x: 93, y: 58 },
-  { x: 83, y: 84 },
+  { x: 84, y: 86 },
 ] as const;
 
 /** Which slots are used per table size, always including slot 0 (me). */
@@ -89,6 +91,7 @@ export function PokerV2View() {
   const [raiseTo, setRaiseTo] = useState<number | null>(null);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showRankings, setShowRankings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [showAdvisorMobile, setShowAdvisorMobile] = useState(false);
   const prevMyTurn = useRef(false);
   const prevResultHand = useRef(0);
@@ -143,6 +146,7 @@ export function PokerV2View() {
 
   const isHost = socketId === room.roomHostId;
   const mySeat = state.seats[socketId];
+  const amSeated = state.playerOrder.includes(socketId);
   const isMyTurn =
     !!mySeat &&
     STREET_PHASES.includes(state.phase as (typeof STREET_PHASES)[number]) &&
@@ -193,133 +197,150 @@ export function PokerV2View() {
       data-testid="poker-v2-table"
       className="flex h-full w-full flex-col gap-2 p-2 lg:flex-row lg:gap-3 lg:p-3"
     >
-      {/* ---------------- Table area ---------------- */}
-      <div className="relative min-h-0 flex-1">
-        <div className="absolute inset-0 overflow-hidden rounded-[40px] border-4 border-black bg-gradient-to-br from-emerald-800 to-emerald-950 shadow-[8px_8px_0_0_#000]">
-          {/* felt inner rail */}
-          <div className="absolute inset-3 rounded-[32px] border-[6px] border-amber-900/70" />
-          <div className="absolute inset-6 rounded-[26px] border-2 border-emerald-600/40" />
-        </div>
-
-        {/* rotate hint (portrait phones only) */}
-        <div className="absolute left-1/2 top-2 hidden -translate-x-1/2 items-center gap-1 rounded-full border-2 border-black bg-amber-300 px-3 py-1 text-[11px] font-black shadow-[2px_2px_0_0_#000] [@media(orientation:portrait)and(max-width:900px)]:flex">
-          <RotateCw className="h-3.5 w-3.5" />
-          {t('pokerV2.table.rotateHint')}
-        </div>
-
-        {/* Phase + hand banner */}
-        <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-2">
-          <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]">
-            {t('pokerV2.table.hand')} {state.handNumber}
-          </span>
-          <span className="rounded-full border-2 border-black bg-emerald-300 px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0_0_#000]">
-            {t(`pokerV2.table.phase.${state.phase}`)}
-          </span>
-          <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]">
-            {t('pokerV2.table.blinds')} {state.smallBlind}/{state.bigBlind}
-          </span>
-        </div>
-
-        {/* Pot */}
-        <div
-          data-testid="poker-v2-pot"
-          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-[110px] flex-col items-center gap-1 lg:-translate-y-[130px]"
-        >
-          <motion.div
-            key={state.pot}
-            initial={{ scale: 1.25 }}
-            animate={{ scale: 1 }}
-            className="flex items-center gap-2 rounded-2xl border-4 border-black bg-amber-300 px-4 py-1.5 shadow-[4px_4px_0_0_#000]"
-          >
-            <span className="text-[11px] font-black uppercase tracking-wide">
-              {t('pokerV2.table.pot')}
+      {/* ---------------- Table column ---------------- */}
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+        {/* Info strip (kept out of the table so seats never overlap it) */}
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full border-2 border-black bg-white px-2.5 py-0.5 text-xs font-black shadow-[2px_2px_0_0_#000]">
+              {t('pokerV2.table.hand')} {state.handNumber}
             </span>
-            <span className="text-lg font-black">{state.pot.toLocaleString()}</span>
-          </motion.div>
-        </div>
-
-        {/* Community board */}
-        <div
-          data-testid="poker-v2-board"
-          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-2xl border-4 border-black/30 bg-black/20 p-2 lg:gap-2.5"
-        >
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center justify-center">
-              {state.board[i] ? (
-                <PokerV2Card
-                  card={state.board[i]}
-                  size="lg"
-                  highlight={winnerIds.size > 0 && isWinningCard(state.board[i], state.handResult)}
-                />
-              ) : (
-                <div className="h-[96px] w-[68px] rounded-xl border-2 border-dashed border-white/30" />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Seats */}
-        {seatLayout.map(({ id, slot }) => (
-          <Seat
-            key={id}
-            id={id}
-            seat={state.seats[id]}
-            slot={slot}
-            name={playerName[id] ?? id}
-            isMe={id === socketId}
-            isDealer={state.dealerId === id}
-            isActive={state.activePlayerId === id && isStreet}
-            isWinner={winnerIds.has(id)}
-            turnDeadline={state.turnDeadline}
-            serverOffset={serverOffset}
-            revealedCards={showdownCards[id]}
-            phase={state.phase}
-          />
-        ))}
-
-        {/* Waiting / turn banner */}
-        {!matchEnded && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
-            {isMyTurn ? (
-              <span className="animate-pulse rounded-full border-2 border-black bg-yellow-300 px-4 py-1 text-sm font-black uppercase shadow-[2px_2px_0_0_#000]">
-                ⚡ {t('pokerV2.table.yourTurn')}
-              </span>
-            ) : state.activePlayerId ? (
-              <span className="flex items-center gap-1.5 rounded-full border-2 border-black bg-white/90 px-4 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]">
-                <Hourglass className="h-3.5 w-3.5" />
-                {t('pokerV2.table.waiting')}
-                {state.turnDeadline && (
-                  <CountdownBadge
-                    deadline={state.turnDeadline}
-                    serverOffset={serverOffset}
-                    className="text-rose-600"
-                    suffix={t('pokerV2.table.seconds')}
-                  />
-                )}
-              </span>
-            ) : null}
+            <span className="rounded-full border-2 border-black bg-emerald-300 px-2.5 py-0.5 text-xs font-black uppercase shadow-[2px_2px_0_0_#000]">
+              {t(`pokerV2.table.phase.${state.phase}`)}
+            </span>
+            <span className="rounded-full border-2 border-black bg-white px-2.5 py-0.5 text-xs font-black shadow-[2px_2px_0_0_#000]">
+              {t('pokerV2.table.blinds')} {state.smallBlind}/{state.bigBlind}
+            </span>
           </div>
-        )}
+          <div className="flex items-center gap-1.5">
+            <button
+              data-testid="poker-v2-history"
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-1 rounded-lg border-2 border-black bg-white px-2 py-1 text-[11px] font-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
+            >
+              <History className="h-3.5 w-3.5" />
+              {t('pokerV2.history.title')}
+            </button>
+            <span className="hidden items-center gap-1 rounded-full border-2 border-black bg-amber-300 px-3 py-1 text-[11px] font-black shadow-[2px_2px_0_0_#000] [@media(orientation:portrait)and(max-width:900px)]:flex">
+              <RotateCw className="h-3 w-3" />
+              {t('pokerV2.table.rotateHint')}
+            </span>
+          </div>
+        </div>
 
-        {/* Hand-result overlay */}
-        {state.handResult && !matchEnded && (
-          <HandResultOverlay
-            state={state}
-            isHost={isHost}
-            serverOffset={serverOffset}
-            onDealNow={() => act({ type: 'START_HAND' })}
-            onEndMatch={() => setShowEndConfirm(true)}
-          />
-        )}
-      </div>
+        {/* Table area */}
+        <div className="relative min-h-0 flex-1">
+          <div className="absolute inset-0 overflow-hidden rounded-[40px] border-4 border-black bg-gradient-to-br from-emerald-800 to-emerald-950 shadow-[8px_8px_0_0_#000]">
+            {/* felt inner rail */}
+            <div className="absolute inset-3 rounded-[32px] border-[6px] border-amber-900/70" />
+            <div className="absolute inset-6 rounded-[26px] border-2 border-emerald-600/40" />
+          </div>
 
-      {/* ---------------- Sidebar ---------------- */}
-      <aside className="flex w-full shrink-0 flex-col gap-2 lg:w-72 lg:gap-3">
-        {/* My hand + actions (mobile: above advisor) */}
+          {/* Pot + board street explainer */}
+          <div
+            data-testid="poker-v2-pot"
+            className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-[130px] flex-col items-center gap-1"
+          >
+            <motion.div
+              key={state.pot}
+              initial={{ scale: 1.25 }}
+              animate={{ scale: 1 }}
+              className="flex items-center gap-2 rounded-2xl border-4 border-black bg-amber-300 px-4 py-1.5 shadow-[4px_4px_0_0_#000]"
+            >
+              <span className="text-[11px] font-black uppercase tracking-wide">
+                {t('pokerV2.table.pot')}
+              </span>
+              <span className="text-lg font-black">{state.pot.toLocaleString()}</span>
+            </motion.div>
+            <span className="rounded-full border-2 border-black bg-white/90 px-2 py-0.5 text-[10px] font-black shadow-[1px_1px_0_0_#000]">
+              {t(`pokerV2.table.phase.${state.phase}`)} ·{' '}
+              {t('pokerV2.table.boardProgress', { count: state.board.length })}
+            </span>
+          </div>
+
+          {/* Community board */}
+          <div
+            data-testid="poker-v2-board"
+            className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-2xl border-4 border-black/30 bg-black/20 p-2 lg:gap-2.5"
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center justify-center">
+                {state.board[i] ? (
+                  <PokerV2Card
+                    card={state.board[i]}
+                    size="lg"
+                    highlight={
+                      winnerIds.size > 0 && isWinningCard(state.board[i], state.handResult)
+                    }
+                  />
+                ) : (
+                  <div className="h-[106px] w-[74px] rounded-xl border-2 border-dashed border-white/30" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Seats */}
+          {seatLayout.map(({ id, slot }) => (
+            <Seat
+              key={id}
+              id={id}
+              seat={state.seats[id]}
+              slot={slot}
+              name={playerName[id] ?? id}
+              isMe={id === socketId}
+              isDealer={state.dealerId === id}
+              isActive={state.activePlayerId === id && isStreet}
+              isWinner={winnerIds.has(id)}
+              turnDeadline={state.turnDeadline}
+              serverOffset={serverOffset}
+              revealedCards={showdownCards[id]}
+              myCards={id === socketId ? mine?.holeCards : undefined}
+            />
+          ))}
+
+          {/* Waiting / turn banner */}
+          {!matchEnded && !state.handResult && (
+            <div className="absolute bottom-1.5 left-1/2 z-10 -translate-x-1/2">
+              {isMyTurn ? (
+                <span className="animate-pulse rounded-full border-2 border-black bg-yellow-300 px-4 py-1 text-sm font-black uppercase shadow-[2px_2px_0_0_#000]">
+                  ⚡ {t('pokerV2.table.yourTurn')}
+                </span>
+              ) : state.activePlayerId ? (
+                <span className="flex items-center gap-1.5 rounded-full border-2 border-black bg-white/90 px-4 py-1 text-xs font-black shadow-[2px_2px_0_0_#000]">
+                  <Hourglass className="h-3.5 w-3.5" />
+                  {t('pokerV2.table.waiting')}
+                  {state.turnDeadline && (
+                    <CountdownBadge
+                      deadline={state.turnDeadline}
+                      serverOffset={serverOffset}
+                      className="text-rose-600"
+                      suffix={t('pokerV2.table.seconds')}
+                    />
+                  )}
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {/* Hand-result overlay */}
+          {state.handResult && !matchEnded && (
+            <HandResultOverlay
+              state={state}
+              playerName={playerName}
+              amSeated={amSeated}
+              isHost={isHost}
+              serverOffset={serverOffset}
+              onDealNow={() => act({ type: 'START_HAND' })}
+              onEndMatch={() => setShowEndConfirm(true)}
+            />
+          )}
+        </div>
+
+        {/* Action bar (actions only — my cards live on the table) */}
         <ActionBar
           visible={isMyTurn}
           mySeat={mySeat}
-          holeCards={mine?.holeCards ?? []}
           toCall={toCall}
           callAmount={callAmount}
           canRaise={canRaise}
@@ -331,13 +352,16 @@ export function PokerV2View() {
           loading={actionLoading}
         />
 
-        {/* Folded / out notice */}
+        {/* Folded / out notice while others play */}
         {!isMyTurn && mySeat && (mySeat.status === 'FOLDED' || mySeat.status === 'OUT') && (
-          <div className="rounded-xl border-4 border-black bg-white p-2 text-center text-xs font-black shadow-[4px_4px_0_0_#000]">
+          <div className="rounded-xl border-4 border-black bg-white p-1.5 text-center text-xs font-black shadow-[4px_4px_0_0_#000]">
             {t('pokerV2.advisor.folded')}
           </div>
         )}
+      </div>
 
+      {/* ---------------- Sidebar ---------------- */}
+      <aside className="flex w-full shrink-0 flex-col gap-2 lg:w-72 lg:gap-3">
         {/* Advisor (desktop) */}
         <div className="hidden lg:block">
           <PokerV2AdvisorPanel advisor={mine?.advisor} opponentCount={liveOpponents} />
@@ -425,6 +449,50 @@ export function PokerV2View() {
       </GameDialog>
 
       <GameDialog
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        title={t('pokerV2.history.title')}
+      >
+        <div
+          data-testid="poker-v2-history-list"
+          className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto"
+        >
+          {state.history.length === 0 && (
+            <p className="text-sm font-bold opacity-60">{t('pokerV2.history.empty')}</p>
+          )}
+          {[...state.history].reverse().map((entry) => {
+            return (
+              <div key={entry.handNumber} className="rounded-xl border-2 border-black bg-white p-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-xs font-black">
+                    {t('pokerV2.history.handLabel', { n: entry.handNumber })}
+                  </span>
+                  {entry.board.length > 0 && <PokerV2CardRow cards={entry.board} size="xs" />}
+                </div>
+                {entry.pots.map((pot, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-wrap items-center justify-between gap-1 py-0.5"
+                  >
+                    <span className="text-[11px] font-black">
+                      🏆 {pot.winnerIds.map((id) => playerName[id] ?? id).join(' + ')}
+                      {pot.handCategory ? ` · ${t(`pokerV2.hands.${pot.handCategory}`)}` : ''}
+                    </span>
+                    <PokerV2Chips amount={pot.amount} tone="amber" className="scale-90" />
+                  </div>
+                ))}
+                {entry.uncalledRefund && (
+                  <p className="text-[10px] font-bold opacity-60">
+                    {t('pokerV2.table.uncalled')}: {entry.uncalledRefund.amount.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </GameDialog>
+
+      <GameDialog
         open={showEndConfirm}
         onClose={() => setShowEndConfirm(false)}
         title={t('pokerV2.table.confirmEnd')}
@@ -471,7 +539,7 @@ function Seat({
   turnDeadline,
   serverOffset,
   revealedCards,
-  phase,
+  myCards,
 }: {
   id: string;
   seat: PokerV2Seat;
@@ -483,13 +551,14 @@ function Seat({
   isWinner: boolean;
   turnDeadline?: number | null;
   serverOffset: number;
-  revealedCards?: import('@repo/types').PlayingCard[];
-  phase: PokerV2PublicState['phase'];
+  revealedCards?: PlayingCard[];
+  myCards?: PlayingCard[];
 }) {
   const { t } = useTranslate();
   const busted = seat.status === 'OUT';
   const folded = seat.status === 'FOLDED';
-  const showCards = !!revealedCards && revealedCards.length > 0;
+  const showRevealed = !!revealedCards && revealedCards.length > 0;
+  const showMyCards = isMe && !!myCards && myCards.length === 2;
 
   const lastActionLabel = (() => {
     switch (seat.lastAction) {
@@ -517,16 +586,15 @@ function Seat({
   return (
     <div
       data-testid={`poker-v2-seat-${id}`}
-      className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
+      className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
       style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
     >
-      {/* hole cards (showdown reveal only — my cards live in the action bar) */}
-      {showCards && !isMe && (
-        <PokerV2CardRow cards={revealedCards!} size="xs" dimmed={folded || busted} />
+      {/* my hole cards live on the table, big and readable */}
+      {showMyCards && <PokerV2CardRow cards={myCards!} size="md" dimmed={folded || busted} />}
+      {/* showdown reveal for the others */}
+      {showRevealed && !isMe && (
+        <PokerV2CardRow cards={revealedCards!} size="sm" dimmed={folded || busted} />
       )}
-
-      {/* street bet */}
-      {seat.bet > 0 && <PokerV2Chips amount={seat.bet} tone="sky" className="scale-90" />}
 
       {/* avatar plate */}
       <motion.div
@@ -592,6 +660,9 @@ function Seat({
         )}
       </motion.div>
 
+      {/* street bet sits below the plate (towards the pot) */}
+      {seat.bet > 0 && <PokerV2Chips amount={seat.bet} tone="sky" className="scale-90" />}
+
       {/* last action bubble */}
       {lastActionLabel && seat.status !== 'OUT' && (
         <span className="rounded-full border-2 border-black bg-white/95 px-2 py-0.5 text-[10px] font-black shadow-[1px_1px_0_0_#000]">
@@ -603,13 +674,12 @@ function Seat({
 }
 
 /* ------------------------------------------------------------------ */
-/* Action bar                                                          */
+/* Action bar (actions only — hole cards are rendered at the seat)     */
 /* ------------------------------------------------------------------ */
 
 function ActionBar({
   visible,
   mySeat,
-  holeCards,
   toCall,
   callAmount,
   canRaise,
@@ -622,7 +692,6 @@ function ActionBar({
 }: {
   visible: boolean;
   mySeat?: PokerV2Seat;
-  holeCards: import('@repo/types').PlayingCard[];
   toCall: number;
   callAmount: number;
   canRaise: boolean;
@@ -634,24 +703,7 @@ function ActionBar({
   loading: boolean;
 }) {
   const { t } = useTranslate();
-  if (!visible || !mySeat) {
-    // Waiting state: keep my cards visible on every screen size.
-    return (
-      <div className="flex items-center gap-2 rounded-xl border-4 border-black bg-white p-2 shadow-[4px_4px_0_0_#000]">
-        <PokerV2CardRow cards={holeCards} size="md" />
-        <div className="flex min-w-0 flex-col leading-tight">
-          <span className="text-[10px] font-black uppercase opacity-60">
-            {t('pokerV2.table.yourCards')}
-          </span>
-          <PokerV2Chips
-            amount={mySeat?.chips ?? 0}
-            tone="emerald"
-            className="scale-90 origin-left"
-          />
-        </div>
-      </div>
-    );
-  }
+  if (!visible || !mySeat) return null;
 
   const btn =
     'flex-1 rounded-xl border-4 border-black px-3 py-2.5 text-sm font-black uppercase tracking-wide shadow-[4px_4px_0_0_#000] transition-transform active:translate-y-1 active:shadow-none disabled:opacity-50';
@@ -661,19 +713,16 @@ function ActionBar({
       data-testid="poker-v2-action-panel"
       className="flex flex-col gap-2 rounded-2xl border-4 border-black bg-white p-2 shadow-[4px_4px_0_0_#000]"
     >
-      <div className="flex items-center gap-2">
-        <PokerV2CardRow cards={holeCards} size="md" />
-        <div className="flex min-w-0 flex-col leading-tight">
-          <span className="text-[10px] font-black uppercase opacity-60">
-            {t('pokerV2.table.yourCards')} ·{' '}
-            <PokerV2Chips amount={mySeat.chips} tone="emerald" className="scale-90" />
-          </span>
+      <div className="flex items-center justify-between text-xs font-black">
+        <span className="uppercase opacity-70">⚡ {t('pokerV2.action.yourMove')}</span>
+        <span className="flex items-center gap-1.5">
+          <PokerV2Chips amount={mySeat.chips} tone="emerald" className="scale-90" />
           {toCall > 0 && (
-            <span className="text-[11px] font-black">
+            <span>
               {t('pokerV2.table.toCall')}: {callAmount.toLocaleString()}
             </span>
           )}
-        </div>
+        </span>
       </div>
 
       <div className="flex gap-2">
@@ -741,7 +790,7 @@ function ActionBar({
               <button
                 key={kind}
                 data-testid={`poker-v2-size-${kind}`}
-                onClick={() => onRaiseChange(presetFor(kind, minRaise, maxRaise, toCall, mySeat))}
+                onClick={() => onRaiseChange(presetFor(kind, minRaise, maxRaise))}
                 className="flex-1 rounded-lg border-2 border-black bg-slate-200 px-1.5 py-1 text-[11px] font-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5 active:shadow-none"
               >
                 {label}
@@ -758,11 +807,7 @@ function presetFor(
   kind: 'min' | 'half' | 'pot' | 'allin',
   minRaise: number,
   maxRaise: number,
-  _toCall: number,
-  _mySeat: PokerV2Seat,
 ): number {
-  void _toCall;
-  void _mySeat;
   if (kind === 'min') return Math.min(minRaise, maxRaise);
   if (kind === 'allin') return maxRaise;
   const target = Math.round(maxRaise * (kind === 'half' ? 0.55 : 1));
@@ -775,12 +820,16 @@ function presetFor(
 
 function HandResultOverlay({
   state,
+  playerName,
+  amSeated,
   isHost,
   serverOffset,
   onDealNow,
   onEndMatch,
 }: {
   state: PokerV2PublicState;
+  playerName: Record<string, string>;
+  amSeated: boolean;
   isHost: boolean;
   serverOffset: number;
   onDealNow: () => void;
@@ -789,97 +838,130 @@ function HandResultOverlay({
   const { t } = useTranslate();
   const result = state.handResult!;
   const matchEnded = !!result.matchEnded;
+  const mainPot = result.pots[0];
+  const winnerNames = mainPot?.winnerIds.map((id) => playerName[id] ?? id).join(' + ') ?? '';
+  const banner =
+    mainPot && mainPot.winnerIds.length > 1
+      ? `${t('pokerV2.result.splitPot')} · ${winnerNames}`
+      : t('pokerV2.result.winBanner', { name: winnerNames });
+
+  const revealed = Object.entries(state.showdown?.revealedCards ?? {}).filter(
+    ([, cards]) => cards.length > 0,
+  );
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
       data-testid="poker-v2-hand-result"
-      className="absolute inset-x-4 bottom-4 z-10 rounded-2xl border-4 border-black bg-white/95 p-3 shadow-[6px_6px_0_0_#000]"
+      className="absolute inset-x-3 bottom-3 z-20 flex flex-col gap-2 rounded-2xl border-4 border-black bg-white/95 p-3 shadow-[6px_6px_0_0_#000]"
     >
-      <div className="flex flex-col gap-2">
-        {result.pots.map((pot, idx) => (
-          <div key={idx} className="flex flex-wrap items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-sm font-black">
-              <Trophy className="h-4 w-4 text-amber-500" />
-              {pot.winnerIds.length > 1 ? t('pokerV2.result.splitPot') : t('pokerV2.result.winner')}
-              {pot.handCategory ? ` · ${t(`pokerV2.hands.${pot.handCategory}`)}` : ''}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <PokerV2Chips amount={pot.amount} tone="amber" />
-            </span>
+      {/* winner banner */}
+      {matchEnded ? (
+        <div className="flex items-center justify-center gap-2 rounded-xl border-4 border-black bg-yellow-300 py-2 text-center text-lg font-black shadow-[3px_3px_0_0_#000]">
+          <Crown className="h-6 w-6 text-yellow-600" />
+          {t('pokerV2.table.champion')}
+        </div>
+      ) : (
+        mainPot && (
+          <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border-4 border-black bg-yellow-300 py-1.5 text-center text-base font-black shadow-[3px_3px_0_0_#000]">
+            <Trophy className="h-5 w-5 text-yellow-700" />
+            <span>{banner}</span>
+            {mainPot.handCategory && (
+              <span className="rounded-full border-2 border-black bg-white px-2 py-0.5 text-xs font-black uppercase">
+                {t(`pokerV2.hands.${mainPot.handCategory}`)}
+              </span>
+            )}
+            <PokerV2Chips amount={mainPot.amount} tone="amber" />
           </div>
-        ))}
-        {result.uncalledRefund && (
-          <p className="text-[11px] font-bold opacity-70">
-            {t('pokerV2.table.uncalled')}: {result.uncalledRefund.amount.toLocaleString()}
-          </p>
-        )}
+        )
+      )}
 
-        {/* revealed hands strip */}
-        {state.showdown && Object.keys(state.showdown.revealedCards).length > 0 && (
-          <div className="flex flex-wrap gap-2 border-t-2 border-black/10 pt-2">
-            {Object.entries(state.showdown.revealedCards).map(([id, cards]) => (
-              <div key={id} className="flex flex-col items-start gap-0.5">
-                <span className="text-[10px] font-black opacity-70">
-                  {state.seats[id]?.handCategory
-                    ? t(`pokerV2.hands.${state.seats[id]!.handCategory!}`)
-                    : ''}
-                </span>
-                <PokerV2CardRow
-                  cards={cards}
-                  size="xs"
-                  highlightIds={
-                    new Set(
-                      result.pots
-                        .find((p) => p.winnerIds.includes(id))
-                        ?.bestCards?.map((c) => c.id) ?? [],
-                    )
-                  }
-                />
+      {/* every revealed seat: cards + hand class */}
+      {revealed.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2">
+          {revealed.map(([id, cards]) => {
+            const isWinner = result.pots.some((pot) => pot.winnerIds.includes(id));
+            return (
+              <div
+                key={id}
+                className={`flex flex-col items-center gap-0.5 rounded-xl border-2 px-2 py-1 ${
+                  isWinner
+                    ? 'border-black bg-yellow-200 ring-2 ring-yellow-400'
+                    : 'border-black/30 bg-white'
+                }`}
+              >
+                <span className="text-[10px] font-black">{playerName[id] ?? id}</span>
+                {state.seats[id]?.handCategory && (
+                  <span className="rounded-full border-2 border-black bg-emerald-300 px-1.5 text-[9px] font-black uppercase">
+                    {t(`pokerV2.hands.${state.seats[id]!.handCategory!}`)}
+                  </span>
+                )}
+                <PokerV2CardRow cards={cards} size="xs" />
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        <div className="flex items-center justify-between gap-2">
-          {matchEnded ? (
-            <span className="flex items-center gap-1.5 text-sm font-black">
-              <Crown className="h-4 w-4 text-yellow-500" />
-              {t('pokerV2.table.champion')}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-sm font-black">
-              <Hourglass className="h-4 w-4" />
-              {t('pokerV2.table.nextHandIn')}
-              <CountdownBadge
-                deadline={state.nextHandDeadline}
-                serverOffset={serverOffset}
-                className="text-emerald-700"
-                suffix={t('pokerV2.table.seconds')}
+      {/* side pots + refund details */}
+      {result.pots.length > 1 && (
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          {result.pots.map((pot, idx) => (
+            <span key={idx} className="flex items-center gap-1 text-[11px] font-black">
+              <PokerV2Chips
+                amount={pot.amount}
+                tone={idx === 0 ? 'amber' : 'sky'}
+                className="scale-90"
               />
+              <span className="opacity-70">
+                → {pot.winnerIds.map((id) => playerName[id] ?? id).join(' + ')}
+              </span>
             </span>
+          ))}
+        </div>
+      )}
+      {result.uncalledRefund && (
+        <p className="text-center text-[11px] font-bold opacity-70">
+          {t('pokerV2.table.uncalled')}: {result.uncalledRefund.amount.toLocaleString()}
+        </p>
+      )}
+
+      {/* countdown + skip (any seated player) */}
+      <div className="flex items-center justify-between gap-2">
+        {matchEnded ? (
+          <span />
+        ) : (
+          <span className="flex items-center gap-1.5 text-sm font-black">
+            <Hourglass className="h-4 w-4" />
+            {t('pokerV2.table.nextHandIn')}
+            <CountdownBadge
+              deadline={state.nextHandDeadline}
+              serverOffset={serverOffset}
+              className="text-emerald-700"
+              suffix={t('pokerV2.table.seconds')}
+            />
+          </span>
+        )}
+        <div className="flex gap-2">
+          {amSeated && !matchEnded && (
+            <button
+              data-testid="poker-v2-deal-now"
+              onClick={onDealNow}
+              className="flex items-center gap-1 rounded-xl border-2 border-black bg-emerald-400 px-3 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
+            >
+              <Play className="h-3.5 w-3.5" />
+              {t('pokerV2.result.nextHand')}
+            </button>
           )}
-          <div className="flex gap-2">
-            {isHost && !matchEnded && (
-              <button
-                data-testid="poker-v2-deal-now"
-                onClick={onDealNow}
-                className="flex items-center gap-1 rounded-xl border-2 border-black bg-emerald-400 px-3 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
-              >
-                <Play className="h-3.5 w-3.5" />
-                {t('pokerV2.table.dealNow')}
-              </button>
-            )}
-            {isHost && (
-              <button
-                onClick={onEndMatch}
-                className="rounded-xl border-2 border-black bg-rose-300 px-3 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
-              >
-                {matchEnded ? t('pokerV2.table.backToLobby') : t('pokerV2.table.endMatch')}
-              </button>
-            )}
-          </div>
+          {isHost && (
+            <button
+              onClick={onEndMatch}
+              className="rounded-xl border-2 border-black bg-rose-300 px-3 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
+            >
+              {matchEnded ? t('pokerV2.table.backToLobby') : t('pokerV2.table.endMatch')}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -888,7 +970,7 @@ function HandResultOverlay({
 
 /** True when the card belongs to the winning hand of the first pot. */
 function isWinningCard(
-  card: import('@repo/types').PlayingCard | undefined,
+  card: PlayingCard | undefined,
   result?: PokerV2PublicState['handResult'],
 ): boolean {
   if (!card || !result) return false;

@@ -130,11 +130,31 @@ export interface PokerV2PublicState {
     revealedCards: Record<string, PlayingCard[]>;
   };
   handResult?: PokerV2HandResult;
+  /** Recent settled hands, oldest first (bounded list). */
+  history: PokerV2HistoryEntry[];
+}
+
+/** One settled hand kept in the table's reviewable history. */
+export interface PokerV2HistoryEntry {
+  handNumber: number;
+  board: PlayingCard[];
+  /** Winning pots of the hand (split pots appear as separate entries). */
+  pots: {
+    winnerIds: string[];
+    amount: number;
+    handCategory?: PokerV2HandCategory;
+  }[];
+  /** Hole cards revealed at showdown (mucked/folded seats are absent). */
+  revealedCards: Record<string, PlayingCard[]>;
+  /** Final hand class per revealed seat. */
+  seatHands: Record<string, PokerV2HandCategory>;
+  uncalledRefund?: { playerId: string; amount: number };
 }
 
 /**
  * Poker V2 player actions. BET carries the raise-TO total for the street.
- * START_HAND stays host-only as a "deal now" skip button for the countdown.
+ * START_HAND is a "deal now" skip any seated player may hit during the
+ * result countdown.
  */
 export type PokerV2Action =
   | { type: 'START_HAND' }

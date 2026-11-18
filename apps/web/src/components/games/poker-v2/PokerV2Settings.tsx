@@ -94,7 +94,7 @@ export function PokerV2Settings() {
             className={numberClass}
             min={5}
             max={300}
-            disabled={disabled}
+            disabled={disabled || room.config.pokerV2TurnTimerEnabled === false}
             value={room.config.pokerV2TurnTimerSeconds ?? 20}
             onChange={(e) => updateNumber('pokerV2TurnTimerSeconds', Number(e.target.value), 5)}
           />
@@ -106,12 +106,55 @@ export function PokerV2Settings() {
             data-testid="poker-v2-autodeal"
             className={numberClass}
             min={3}
-            max={30}
+            max={60}
             disabled={disabled}
-            value={room.config.pokerV2AutoDealSeconds ?? 5}
+            value={room.config.pokerV2AutoDealSeconds ?? 10}
             onChange={(e) => updateNumber('pokerV2AutoDealSeconds', Number(e.target.value), 3)}
           />
         </label>
+      </div>
+
+      {/* Per-turn timer on/off */}
+      <div className="flex items-center justify-between gap-2 border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+        <span className="text-xs font-black uppercase">{t('pokerV2.settingsTimer')}</span>
+        <button
+          type="button"
+          data-testid="poker-v2-timer-toggle"
+          disabled={disabled}
+          className={`w-28 rounded-xl border-4 border-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] transition-all ${
+            room.config.pokerV2TurnTimerEnabled === false
+              ? 'bg-white hover:bg-amber-100'
+              : 'bg-lime-300'
+          } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+          onClick={() =>
+            updateConfig({ pokerV2TurnTimerEnabled: room.config.pokerV2TurnTimerEnabled === false })
+          }
+        >
+          {room.config.pokerV2TurnTimerEnabled === false ? 'OFF' : 'ON'}
+        </button>
+      </div>
+
+      {/* Win-odds advisor on/off */}
+      <div className="flex flex-col gap-1 border-4 border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-black uppercase">{t('pokerV2.settingsAdvisor')}</span>
+          <button
+            type="button"
+            data-testid="poker-v2-advisor-toggle"
+            disabled={disabled}
+            className={`w-28 rounded-xl border-4 border-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0_0_#000] transition-all ${
+              room.config.pokerV2AdvisorEnabled === false
+                ? 'bg-white hover:bg-amber-100'
+                : 'bg-lime-300'
+            } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+            onClick={() =>
+              updateConfig({ pokerV2AdvisorEnabled: room.config.pokerV2AdvisorEnabled === false })
+            }
+          >
+            {room.config.pokerV2AdvisorEnabled === false ? 'OFF' : 'ON'}
+          </button>
+        </div>
+        <p className="text-xs font-bold opacity-70">{t('pokerV2.settingsAdvisorHint')}</p>
       </div>
     </div>
   );

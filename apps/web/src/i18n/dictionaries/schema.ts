@@ -2427,10 +2427,13 @@ export interface Dictionary {
     settingsTimerSeconds: string;
     settingsAutoDeal: string;
     settingsAutoDealSeconds: string;
+    settingsAdvisor: string;
+    settingsAdvisorHint: string;
     table: {
       hand: string;
       blinds: string;
       pot: string;
+      boardProgress: string;
       dealer: string;
       folded: string;
       allIn: string;
@@ -2460,6 +2463,11 @@ export interface Dictionary {
         SHOWDOWN: string;
         HAND_RESULT: string;
       };
+    };
+    history: {
+      title: string;
+      empty: string;
+      handLabel: string;
     };
     action: {
       fold: string;
@@ -2506,6 +2514,7 @@ export interface Dictionary {
     };
     result: {
       winner: string;
+      winBanner: string;
       splitPot: string;
       nextHand: string;
       endMatch: string;

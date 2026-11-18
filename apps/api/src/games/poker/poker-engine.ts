@@ -79,14 +79,19 @@ export function compareEvaluations(a: HandEvaluation, b: HandEvaluation): number
 export function evaluateHand(cards: PlayingCard[]): HandEvaluation {
   if (cards.length < 5) throw new Error('Need at least 5 cards');
   if (cards.length === 5) return evaluateFive(cards);
+  // Try every 5-card subset (the old double loop assumed exactly 7 cards and
+  // produced a 4-card "hand" — a bogus flush — for 6-card turn-street sets).
   let best: HandEvaluation | null = null;
-  for (let i = 0; i < cards.length - 1; i++) {
-    for (let j = i + 1; j < cards.length; j++) {
-      const five = cards.filter((_, idx) => idx !== i && idx !== j);
+  const pick = (start: number, acc: number[]): void => {
+    if (acc.length === 5) {
+      const five = acc.map((idx) => cards[idx]);
       const evaluation = evaluateFive(five);
       if (!best || compareEvaluations(evaluation, best) > 0) best = evaluation;
+      return;
     }
-  }
+    for (let i = start; i < cards.length; i++) pick(i + 1, [...acc, i]);
+  };
+  pick(0, []);
   return best!;
 }
 
