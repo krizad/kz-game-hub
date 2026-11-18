@@ -19,6 +19,7 @@ export declare class PokerV2Service {
     private recordRaise;
     private closeStreet;
     private enterShowdown;
+    private recordHistory;
     private settlePots;
     private awardUncontested;
     private armNextHand;

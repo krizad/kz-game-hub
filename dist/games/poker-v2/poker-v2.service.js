@@ -21,6 +21,7 @@ const ENGINE_SOCKET_ID = '__poker-v2-engine__';
 const DECK_KEY = 'deck';
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 9;
+const MAX_HISTORY = 20;
 let PokerV2Service = class PokerV2Service {
     constructor(privateStateService) {
         this.privateStateService = privateStateService;
@@ -60,6 +61,7 @@ let PokerV2Service = class PokerV2Service {
             ante: this.ante(room),
             turnDeadline: null,
             nextHandDeadline: null,
+            history: [],
         };
         room.status = types_1.RoomStatus.PLAYING;
         this.clearAllPrivate(room);
@@ -85,7 +87,7 @@ let PokerV2Service = class PokerV2Service {
         const isHost = room.roomHostId === socketId;
         switch (action.type) {
             case 'START_HAND':
-                if (!isHost)
+                if (!state.playerOrder.includes(socketId))
                     return null;
                 if (state.phase !== 'HAND_RESULT')
                     return null;
@@ -397,6 +399,7 @@ let PokerV2Service = class PokerV2Service {
             this.deletePrivate(room, id);
         }
         state.phase = 'HAND_RESULT';
+        this.recordHistory(room);
         const fundable = state.playerOrder.filter((id) => state.seats[id].chips > 0);
         if (fundable.length <= 1) {
             state.handResult.matchEnded = true;
@@ -404,6 +407,38 @@ let PokerV2Service = class PokerV2Service {
             return;
         }
         this.armNextHand(room);
+    }
+    recordHistory(room) {
+        const state = room.pokerV2State;
+        const result = state.handResult;
+        if (!result)
+            return;
+        const revealedCards = {};
+        const seatHands = {};
+        for (const [id, cards] of Object.entries(state.showdown?.revealedCards ?? {})) {
+            if (cards.length > 0)
+                revealedCards[id] = [...cards];
+        }
+        for (const id of Object.keys(revealedCards)) {
+            const category = state.seats[id]?.handCategory;
+            if (category)
+                seatHands[id] = category;
+        }
+        state.history = [
+            ...state.history,
+            {
+                handNumber: state.handNumber,
+                board: [...state.board],
+                pots: result.pots.map((pot) => ({
+                    winnerIds: [...pot.winnerIds],
+                    amount: pot.amount,
+                    handCategory: pot.handCategory,
+                })),
+                revealedCards,
+                seatHands,
+                ...(result.uncalledRefund ? { uncalledRefund: { ...result.uncalledRefund } } : {}),
+            },
+        ].slice(-MAX_HISTORY);
     }
     settlePots(room, live, evaluations) {
         const state = room.pokerV2State;
@@ -471,6 +506,7 @@ let PokerV2Service = class PokerV2Service {
         state.phase = 'HAND_RESULT';
         state.activePlayerId = null;
         state.turnDeadline = null;
+        this.recordHistory(room);
         const fundable = state.playerOrder.filter((id) => state.seats[id].chips > 0);
         if (fundable.length <= 1) {
             state.handResult.matchEnded = true;
@@ -507,6 +543,8 @@ let PokerV2Service = class PokerV2Service {
         if (!state || room.status !== types_1.RoomStatus.PLAYING)
             return;
         if (!isStreetPhase(state.phase))
+            return;
+        if (room.config.pokerV2AdvisorEnabled === false)
             return;
         const live = [];
         for (const id of state.playerOrder) {
@@ -623,7 +661,7 @@ let PokerV2Service = class PokerV2Service {
         return Math.max(10, room.config.pokerV2StartingStack ?? 1000);
     }
     autoDealSeconds(room) {
-        return Math.min(30, Math.max(3, room.config.pokerV2AutoDealSeconds ?? 5));
+        return Math.min(60, Math.max(3, room.config.pokerV2AutoDealSeconds ?? 10));
     }
 };
 exports.PokerV2Service = PokerV2Service;

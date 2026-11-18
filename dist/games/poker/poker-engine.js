@@ -67,14 +67,18 @@ function evaluateHand(cards) {
     if (cards.length === 5)
         return evaluateFive(cards);
     let best = null;
-    for (let i = 0; i < cards.length - 1; i++) {
-        for (let j = i + 1; j < cards.length; j++) {
-            const five = cards.filter((_, idx) => idx !== i && idx !== j);
+    const pick = (start, acc) => {
+        if (acc.length === 5) {
+            const five = acc.map((idx) => cards[idx]);
             const evaluation = evaluateFive(five);
             if (!best || compareEvaluations(evaluation, best) > 0)
                 best = evaluation;
+            return;
         }
-    }
+        for (let i = start; i < cards.length; i++)
+            pick(i + 1, [...acc, i]);
+    };
+    pick(0, []);
     return best;
 }
 function evaluateFive(cards) {
