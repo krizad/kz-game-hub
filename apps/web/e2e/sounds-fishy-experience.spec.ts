@@ -374,6 +374,11 @@ test.describe('Sounds Fishy Experience (TASK-SF-001)', () => {
       // Picker banks points and ends round
       await bankButton.click();
 
+      // The staged role-reveal overlay covers every seat before the Round Over
+      // screen (~25s on its own timers) — the host skips it to proceed at once.
+      await expect(p1.getByTestId('result-reveal')).toBeVisible({ timeout: 15000 });
+      await p1.getByTestId('result-reveal-skip').click();
+
       // Transitions to RESULT (Round Over)
       for (const p of pages) {
         await expect(p.getByText(/Round Over|จบรอบ/i).first()).toBeVisible({ timeout: 10000 });
