@@ -279,6 +279,12 @@ export interface RoomConfig {
   ticTacToeMode?: TicTacToeMode;
   ticTacToeVsBot?: boolean;
   ticTacToeBotDifficulty?: TicTacToeBotDifficulty;
+  // Turn timers for games without built-in pacing (0 or missing = off).
+  ticTacToeTurnSeconds?: number;
+  rpsTurnSeconds?: number;
+  whoAmITurnSeconds?: number;
+  soundsFishyTurnSeconds?: number;
+  detectiveClubTurnSeconds?: number;
   // Who Am I config
   maxRounds?: number;
   wordMode?: 'HOST_INPUT' | 'RANDOM' | 'PLAYER_INPUT' | 'AI_GENERATED';

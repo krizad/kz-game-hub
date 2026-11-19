@@ -44,6 +44,7 @@ function minimax(
   depth: number,
   isMaximizing: boolean,
   botSide: 'X' | 'O',
+  maxDepth = Infinity,
 ): number {
   const opponentSide = botSide === 'X' ? 'O' : 'X';
   const winner = checkWinner(board);
@@ -57,13 +58,18 @@ function minimax(
   if (winner === 'DRAW') {
     return 0;
   }
+  // Depth cutoff for MEDIUM: beyond this the position is treated as neutral,
+  // so the bot still takes wins/blocks it can see but plays "human" otherwise.
+  if (depth >= maxDepth) {
+    return 0;
+  }
 
   if (isMaximizing) {
     let maxEval = -Infinity;
     for (let i = 0; i < 9; i++) {
       if (board[i] === null) {
         board[i] = botSide;
-        const evaluation = minimax(board, depth + 1, false, botSide);
+        const evaluation = minimax(board, depth + 1, false, botSide, maxDepth);
         board[i] = null;
         if (evaluation > maxEval) {
           maxEval = evaluation;
@@ -76,7 +82,7 @@ function minimax(
     for (let i = 0; i < 9; i++) {
       if (board[i] === null) {
         board[i] = opponentSide;
-        const evaluation = minimax(board, depth + 1, true, botSide);
+        const evaluation = minimax(board, depth + 1, true, botSide, maxDepth);
         board[i] = null;
         if (evaluation < minEval) {
           minEval = evaluation;
@@ -90,11 +96,16 @@ function minimax(
 /**
  * God Mode: Unbeatable optimal move using Minimax.
  * Mathematically proven to never lose (guaranteed win or draw).
+ * `maxDepth` limits the search (MEDIUM uses 2: wins/blocks only, beatable).
  */
-export function getBestMove(board: TicTacToeCell[], botSide: 'X' | 'O'): number {
+export function getBestMove(
+  board: TicTacToeCell[],
+  botSide: 'X' | 'O',
+  maxDepth = Infinity,
+): number {
   const emptyCount = board.filter((c) => c === null).length;
   // If the board is completely empty, choose center or corner for natural optimal variety
-  if (emptyCount === 9) {
+  if (emptyCount === 9 && maxDepth === Infinity) {
     const optimalFirstMoves = [0, 2, 4, 6, 8];
     return optimalFirstMoves[Math.floor(Math.random() * optimalFirstMoves.length)];
   }
@@ -105,7 +116,7 @@ export function getBestMove(board: TicTacToeCell[], botSide: 'X' | 'O'): number 
   for (let i = 0; i < 9; i++) {
     if (board[i] === null) {
       board[i] = botSide;
-      const score = minimax(board, 0, false, botSide);
+      const score = minimax(board, 0, false, botSide, maxDepth);
       board[i] = null;
 
       if (score > bestScore) {

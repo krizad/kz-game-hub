@@ -5,7 +5,9 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { GameActionArea } from '@/components/core/GameActionArea';
+import { useServerClock } from '@/hooks/useServerClock';
 import { motion, useReducedMotion } from 'framer-motion';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
@@ -22,6 +24,7 @@ export function RPSView() {
     dismissPendingAction,
   } = useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
   const prefersReducedMotion = useReducedMotion();
 
   const [unknownActionId, unknownPendingAction] =
@@ -257,6 +260,13 @@ export function RPSView() {
         {/* Playing Controls */}
         {room.status === RoomStatus.PLAYING && (
           <div className="w-full flex flex-col items-center gap-6 mt-8">
+            <CountdownBadge
+              deadline={rps.turnDeadline}
+              serverOffset={serverOffset}
+              format="seconds"
+              prefix="⏱ "
+              className="font-black text-base border-2 border-black px-2 py-0.5 bg-yellow-300"
+            />
             {!isMyTurn ? (
               <div className="flex flex-col items-center gap-2 max-w-sm w-full">
                 <div className="text-xl sm:text-2xl font-black text-black uppercase tracking-widest bg-gray-300 px-8 py-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">

@@ -61,6 +61,7 @@ export class WhoAmIService {
   private finishGame(room: RoomState, gameState: WhoAmIGameState, winner: string | null): void {
     gameState.winner = winner;
     room.status = RoomStatus.RESULT;
+    gameState.turnDeadline = null;
     const revealedWords: Record<string, string> = {};
     for (const p of room.players) {
       const word = this.privateState.get<string>(room.code, p.socketId, WAI_MY_WORD);
@@ -87,6 +88,40 @@ export class WhoAmIService {
       finalGuessUsed: [],
       wordSubmittedIds: [],
     };
+  }
+
+  /**
+   * Turn timer (battleship pattern): deadline for the current turn's voting
+   * window when `whoAmITurnSeconds` is configured. Only stamped while players
+   * are supposed to vote; word-collection phases stay untimed.
+   */
+  private stampTurnDeadline(room: RoomState, gameState: WhoAmIGameState): void {
+    const seconds = room.config?.whoAmITurnSeconds ?? 0;
+    if (
+      seconds > 0 &&
+      room.status === RoomStatus.PLAYING &&
+      (gameState.phase === 'ASKING' || gameState.phase === 'FINAL_GUESS') &&
+      gameState.turnStatus === 'VOTING'
+    ) {
+      gameState.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      gameState.turnDeadline = null;
+    }
+  }
+
+  /** Timeout: non-voters abstain (MAYBE). Turn advancement stays with the asker/host. */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    if (room.status !== RoomStatus.PLAYING) return null;
+    const gameState = room.whoAmIState;
+    if (!gameState || gameState.turnDeadline !== deadline) return null;
+    if (gameState.turnStatus !== 'VOTING') return null;
+
+    for (const p of this.eligiblePlayers(room)) {
+      if (p.socketId === gameState.currentTurn) continue;
+      if (gameState.votes[p.socketId]) continue;
+      gameState.votes[p.socketId] = 'MAYBE';
+    }
+    return room;
   }
 
   // ─── Categories from DB ────────────────────────────────────────────
@@ -159,6 +194,7 @@ export class WhoAmIService {
     const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
     gameState.hostSocketId = requesterId;
     room.whoAmIState = gameState;
+    this.stampTurnDeadline(room, gameState);
     return room;
   }
 
@@ -298,6 +334,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
       const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
       room.whoAmIState = gameState;
+      this.stampTurnDeadline(room, gameState);
       return room;
     } finally {
       this.startGuard.release(ticket);
@@ -338,6 +375,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
 
       const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
       room.whoAmIState = gameState;
+      this.stampTurnDeadline(room, gameState);
       return room;
     } finally {
       this.startGuard.release(ticket);
@@ -457,6 +495,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       this.eligiblePlayers(room).filter((p) => p.connected !== false),
     );
     gameState.currentTurn = shuffledPlayers[0].socketId;
+    this.stampTurnDeadline(room, gameState);
   }
 
   /** Players who take turns: everyone except the game's starting host (HOST_INPUT mode) and viewers. */
@@ -517,6 +556,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       gameState.votes = {};
       gameState.guessResult = undefined;
       gameState.guessedWord = undefined;
+      this.stampTurnDeadline(room, gameState);
     }
   }
 
@@ -553,6 +593,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     gameState.votes = {};
     gameState.guessResult = undefined;
     gameState.guessedWord = undefined;
+    this.stampTurnDeadline(room, gameState);
     return room;
   }
 
@@ -618,6 +659,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
       gameState.currentGuess = null;
       gameState.turnStatus = 'VOTING';
       gameState.votes = {};
+      this.stampTurnDeadline(room, gameState);
 
       return room;
     }
@@ -701,6 +743,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
           gameState.votes = {};
           gameState.guessResult = undefined;
           gameState.guessedWord = undefined;
+          this.stampTurnDeadline(room, gameState);
         }
       }
 

@@ -337,4 +337,36 @@ describe('RPSService', () => {
       expect(room.players[2].score).toBe(0);
     });
   });
+
+  describe('turn timer (rpsTurnSeconds)', () => {
+    it('stamps a deadline when a round starts', () => {
+      const room = createRoom({ rpsTurnSeconds: 15 });
+      service.assignRoles(room, 'p1');
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(room.rpsState!.turnDeadline).toBeGreaterThan(Date.now());
+    });
+
+    it('auto-picks for players who did not lock a choice, then resolves the round', () => {
+      const room = createRoom({ rpsTurnSeconds: 15 });
+      service.assignRoles(room, 'p1');
+      const deadline = room.rpsState!.turnDeadline!;
+
+      // p1 locks a choice; p2 stalls until the deadline fires.
+      service.makeChoice(room, 'p1', 'ROCK');
+      expect(room.status).toBe(RoomStatus.PLAYING);
+
+      const result = service.handleTurnTimeout(room, deadline);
+      expect(result).not.toBeNull();
+      expect(room.status).toBe(RoomStatus.RESULT);
+      expect(room.rpsState!.turnDeadline).toBeNull();
+      expect(room.rpsState!.choices['p2']).toBeDefined();
+    });
+
+    it('rejects a stale deadline', () => {
+      const room = createRoom({ rpsTurnSeconds: 15 });
+      service.assignRoles(room, 'p1');
+      expect(service.handleTurnTimeout(room, Date.now() + 1)).toBeNull();
+      expect(room.status).toBe(RoomStatus.PLAYING);
+    });
+  });
 });

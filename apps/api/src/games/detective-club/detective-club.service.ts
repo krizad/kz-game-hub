@@ -22,6 +22,10 @@ const DC_ROOM_DISCARD = 'dcRoomDiscard';
 
 const MAX_WORD_LENGTH = 30;
 
+/** Fallback words when a timed-out informer never submits the secret word. */
+const AUTO_WORDS_TH = ['สวนสัตว์', 'โรงแรม', 'สนามฟุตบอล', 'ตลาดนัด', 'สำนักงาน'];
+const AUTO_WORDS_EN = ['zoo', 'hotel', 'stadium', 'market', 'office'];
+
 @Injectable()
 export class DetectiveClubService {
   private readonly logger = new Logger(DetectiveClubService.name);
@@ -29,6 +33,78 @@ export class DetectiveClubService {
 
   constructor(private readonly privateState: PrivateStateService) {
     this.loadAvailableCards();
+  }
+
+  /**
+   * Turn timer (battleship pattern): deadline for the current phase window
+   * (informer word, card play, discussion, voting) when
+   * `detectiveClubTurnSeconds` is configured.
+   */
+  private stampTurnDeadline(room: RoomState): void {
+    const state = room.detectiveClubState;
+    if (!state) return;
+    const seconds = room.config?.detectiveClubTurnSeconds ?? 0;
+    if (seconds > 0 && room.status === RoomStatus.PLAYING) {
+      state.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      state.turnDeadline = null;
+    }
+  }
+
+  /**
+   * Timeout auto-actions keep every phase moving when an actor stalls:
+   * SETUP → random word for the informer; card play → random card from the
+   * active hand; DISCUSSION → advance to voting; VOTING → random votes for
+   * anyone who has not voted yet.
+   */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    const state = room.detectiveClubState;
+    if (!state || room.status !== RoomStatus.PLAYING) return null;
+    if (state.turnDeadline !== deadline) return null;
+
+    if (state.currentPhase === DetectiveClubPhase.SETUP) {
+      const words = (room.config.language || 'th') === 'th' ? AUTO_WORDS_TH : AUTO_WORDS_EN;
+      this.submitWord(room, state.informerId, words[Math.floor(Math.random() * words.length)]);
+      this.stampTurnDeadline(room);
+      return room;
+    }
+
+    if (
+      state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1 ||
+      state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_2
+    ) {
+      if (state.activePlayerId) {
+        const hand = this.getHand(room, state.activePlayerId);
+        if (hand.length > 0) {
+          this.playCard(room, state.activePlayerId, Math.floor(Math.random() * hand.length));
+        }
+      }
+      this.stampTurnDeadline(room);
+      return room;
+    }
+
+    if (state.currentPhase === DetectiveClubPhase.DISCUSSION) {
+      this.nextPhase(room, room.roomHostId);
+      this.stampTurnDeadline(room);
+      return room;
+    }
+
+    if (state.currentPhase === DetectiveClubPhase.VOTING) {
+      const activePlayerIds = new Set(this.participatingIds(room));
+      const votingPlayers = Object.values(state.players).filter(
+        (p) => p.id !== state.informerId && activePlayerIds.has(p.id) && p.votedFor === null,
+      );
+      for (const voter of votingPlayers) {
+        const candidates = this.participatingIds(room).filter(
+          (id) => id !== state.informerId && id !== voter.id,
+        );
+        if (candidates.length === 0) break;
+        const target = candidates[Math.floor(Math.random() * candidates.length)];
+        this.submitVote(room, voter.id, target);
+      }
+    }
+
+    return room;
   }
 
   private shuffleArray<T>(arr: T[]): T[] {
@@ -221,6 +297,7 @@ export class DetectiveClubService {
     room.status = RoomStatus.PLAYING;
     room.detectiveClubState = state;
     this.syncHandSizes(room);
+    this.stampTurnDeadline(room);
 
     return room;
   }
@@ -256,6 +333,7 @@ export class DetectiveClubService {
     }
 
     state.activePlayerId = state.informerId;
+    this.stampTurnDeadline(room);
 
     return room;
   }
@@ -306,15 +384,18 @@ export class DetectiveClubService {
         state.currentPhase = DetectiveClubPhase.PLAYING_ROUND_2;
         state.activePlayerId =
           state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
+        this.stampTurnDeadline(room);
       } else {
         state.currentPhase = DetectiveClubPhase.DISCUSSION;
         state.activePlayerId =
           state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
         // The word becomes public at discussion
         state.word = this.getSecretWord(room);
+        this.stampTurnDeadline(room);
       }
     } else {
       state.activePlayerId = nextPlayerId;
+      this.stampTurnDeadline(room);
     }
 
     this.syncHandSizes(room);
@@ -329,6 +410,7 @@ export class DetectiveClubService {
     if (room.roomHostId !== requesterId) return null;
 
     state.currentPhase = DetectiveClubPhase.VOTING;
+    this.stampTurnDeadline(room);
     return room;
   }
 
@@ -370,6 +452,7 @@ export class DetectiveClubService {
     // A round is a completed game: mark RESULT so the room flow (and the
     // leaderboard) treat it like every other game's end-of-round.
     room.status = RoomStatus.RESULT;
+    state.turnDeadline = null;
     state.scoreDeltas = {};
 
     const conspiratorId = this.getConspiratorId(room);
@@ -473,6 +556,7 @@ export class DetectiveClubService {
       const activePlayerIds = new Set(this.participatingIds(room));
       state.activePlayerId =
         state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
+      this.stampTurnDeadline(room);
       return;
     }
 
@@ -564,6 +648,7 @@ export class DetectiveClubService {
     state.playOrder = [];
     state.round1StarterId = nextInformerId;
     state.scoreDeltas = undefined;
+    this.stampTurnDeadline(room);
 
     return room;
   }

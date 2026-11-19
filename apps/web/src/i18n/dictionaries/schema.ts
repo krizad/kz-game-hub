@@ -191,6 +191,10 @@ export interface Dictionary {
     unknownHost: string;
     copyLink: string;
     qrCode: string;
+    soundVolume: string;
+    turnTimer: string;
+    turnTimerOff: string;
+    turnTimerSeconds: string;
     leave: string;
     confirmLeave: string;
     players: string;
@@ -984,6 +988,8 @@ export interface Dictionary {
       difficulty: string;
       easy: string;
       easyDesc: string;
+      medium: string;
+      mediumDesc: string;
       god: string;
       godDesc: string;
       thinking: string;

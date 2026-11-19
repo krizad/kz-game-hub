@@ -379,4 +379,60 @@ describe('DetectiveClubService', () => {
       expect(state.players['con-new'].score).toBeGreaterThanOrEqual(5);
     });
   });
+
+  describe('turn timer (detectiveClubTurnSeconds)', () => {
+    it('stamps a deadline on every active phase and auto-plays a card on timeout', () => {
+      const room = createRoom(threePlayers(), RoomStatus.LOBBY);
+      room.config.detectiveClubTurnSeconds = 15;
+      const started = startGame(room);
+      expect(started.detectiveClubState!.turnDeadline).toBeGreaterThan(Date.now());
+
+      // Informer word timeout → a fallback word is submitted and play begins.
+      const wordDeadline = started.detectiveClubState!.turnDeadline!;
+      expect(service.handleTurnTimeout(room, wordDeadline)).not.toBeNull();
+      expect(started.detectiveClubState!.currentPhase).toBe(DetectiveClubPhase.PLAYING_ROUND_1);
+      expect(started.detectiveClubState!.turnDeadline).toBeGreaterThan(Date.now());
+
+      // Card-play timeout → a random card leaves the active player's hand.
+      const cardDeadline = started.detectiveClubState!.turnDeadline!;
+      const handBefore = privateState.get<string[]>(
+        room.code,
+        started.detectiveClubState!.activePlayerId!,
+        'dcHand',
+      )!.length;
+      expect(service.handleTurnTimeout(room, cardDeadline)).not.toBeNull();
+      const handAfter = privateState.get<string[]>(
+        room.code,
+        started.detectiveClubState!.activePlayerId!,
+        'dcHand',
+      )!.length;
+      expect(handAfter).toBe(handBefore); // played one, drew a replacement
+    });
+
+    it('auto-votes for holdouts on the voting timeout', () => {
+      const room = createRoom(threePlayers(), RoomStatus.LOBBY);
+      room.config.detectiveClubTurnSeconds = 15;
+      const started = startGame(room);
+      service.handleTurnTimeout(room, started.detectiveClubState!.turnDeadline!); // auto word
+      const state = started.detectiveClubState!;
+
+      // Fast-forward through card play to reach DISCUSSION, then VOTING.
+      while (
+        state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1 ||
+        state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_2
+      ) {
+        service.handleTurnTimeout(room, state.turnDeadline!);
+      }
+      expect(state.currentPhase).toBe(DetectiveClubPhase.DISCUSSION);
+      expect(service.handleTurnTimeout(room, state.turnDeadline!)).not.toBeNull();
+      expect(state.currentPhase).toBe(DetectiveClubPhase.VOTING);
+
+      const votingDeadline = state.turnDeadline!;
+      const result = service.handleTurnTimeout(room, votingDeadline);
+      expect(result).not.toBeNull();
+      // Every non-informer participant now has a vote; with only 3 players the
+      // conspirator may or may not have been hit — scoring has fired either way.
+      expect(state.currentPhase).toBe(DetectiveClubPhase.SCORING);
+    });
+  });
 });

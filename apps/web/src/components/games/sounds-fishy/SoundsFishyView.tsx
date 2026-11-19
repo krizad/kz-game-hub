@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameFeel } from '@/hooks/useGameFeel';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
+import { useServerClock } from '@/hooks/useServerClock';
 import { audioManager } from '@/lib/audioManager';
 
 export function SoundsFishyView() {
@@ -22,6 +24,7 @@ export function SoundsFishyView() {
     actionLoading,
   } = useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
   const { shake, flash, haptic, celebrate } = useGameFeel();
   const prevStatusRef = useRef<RoomStatus | undefined>(undefined);
 
@@ -182,6 +185,14 @@ export function SoundsFishyView() {
             {t('gameSoundsFishy.setupPhase')}
           </h2>
 
+          <CountdownBadge
+            deadline={state.turnDeadline}
+            serverOffset={serverOffset}
+            format="seconds"
+            prefix="⏱ "
+            className="mb-6 inline-block font-black text-lg border-2 border-black px-3 py-1 bg-yellow-300"
+          />
+
           {/* Question Display */}
           <div className="bg-yellow-300 p-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-full mb-8">
             <span className="text-xs font-black text-black uppercase tracking-widest mb-2 block bg-white border-2 border-black px-2 py-1 inline-block">
@@ -328,6 +339,13 @@ export function SoundsFishyView() {
             <p className="text-xl sm:text-2xl font-black text-black mt-2">
               {state.question?.question}
             </p>
+            <CountdownBadge
+              deadline={state.turnDeadline}
+              serverOffset={serverOffset}
+              format="seconds"
+              prefix="⏱ "
+              className="mt-4 inline-block font-black text-lg border-2 border-black px-3 py-1 bg-yellow-300"
+            />
             {isPicker ? (
               <div className="mt-6 pt-6 border-t-4 border-black border-dashed">
                 <span className="text-sm font-black text-black bg-pink-300 px-3 py-1 border-2 border-black uppercase tracking-widest block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] inline-block">

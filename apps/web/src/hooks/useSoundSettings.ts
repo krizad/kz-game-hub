@@ -9,18 +9,25 @@ import { audioManager } from '@/lib/audioManager';
  */
 export function useSoundSettings() {
   const [enabled, setEnabled] = useState<boolean>(() => audioManager.isEnabled());
+  const [volume, setVolumeState] = useState<number>(() => audioManager.getVolume());
   const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     setEnabled(audioManager.isEnabled());
+    setVolumeState(audioManager.getVolume());
     setLoaded(true);
 
     const onSettingsChange = (event: Event) => {
-      const custom = event as CustomEvent<{ enabled: boolean }>;
+      const custom = event as CustomEvent<{ enabled: boolean; volume?: number }>;
       if (custom.detail && typeof custom.detail.enabled === 'boolean') {
         setEnabled(custom.detail.enabled);
       } else {
         setEnabled(audioManager.isEnabled());
+      }
+      if (custom.detail && typeof custom.detail.volume === 'number') {
+        setVolumeState(custom.detail.volume);
+      } else {
+        setVolumeState(audioManager.getVolume());
       }
     };
 
@@ -36,5 +43,10 @@ export function useSoundSettings() {
     setEnabled(next);
   }, []);
 
-  return { enabled, toggle, loaded };
+  const setVolume = useCallback((vol: number) => {
+    audioManager.setVolume(vol);
+    setVolumeState(audioManager.getVolume());
+  }, []);
+
+  return { enabled, toggle, volume, setVolume, loaded };
 }

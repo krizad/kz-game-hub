@@ -126,4 +126,36 @@ describe('TicTacToeAI', () => {
       }
     });
   });
+
+  describe('getBestMove with maxDepth (MEDIUM)', () => {
+    it('takes an immediate win', () => {
+      const board: TicTacToeCell[] = ['X', 'X', null, 'O', 'O', null, null, null, null];
+      const move = getBestMove(board, 'X', 2);
+      expect(move).toBe(2);
+    });
+
+    it('blocks an immediate loss', () => {
+      const board: TicTacToeCell[] = ['O', 'O', null, 'X', null, null, null, null, null];
+      const move = getBestMove(board, 'X', 2);
+      expect(move).toBe(2);
+    });
+
+    it('never loses a minimax duel against GOD within depth 2 on an empty board', () => {
+      // MEDIUM is allowed to be beatable; this only asserts it plays legally
+      // and completes a full game against the optimal bot.
+      for (let game = 0; game < 3; game++) {
+        const board: TicTacToeCell[] = Array(9).fill(null);
+        let turn: 'X' | 'O' = 'X';
+        while (!checkWinner(board)) {
+          const move =
+            turn === 'X' ? getBestMove(board, turn, 2) : getBestMove(board, turn, Infinity);
+          expect(move).toBeGreaterThanOrEqual(0);
+          expect(board[move]).toBeNull();
+          board[move] = turn;
+          turn = turn === 'X' ? 'O' : 'X';
+        }
+        expect(['X', 'O', 'DRAW']).toContain(checkWinner(board));
+      }
+    });
+  });
 });

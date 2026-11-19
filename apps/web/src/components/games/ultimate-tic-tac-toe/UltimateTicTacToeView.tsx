@@ -5,13 +5,16 @@ import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GameType, BOT_SOCKET_ID } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { RulesModal } from '@/components/RulesModal';
+import { useServerClock } from '@/hooks/useServerClock';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function UltimateTicTacToeView() {
   const { room, socketId, utttJoinSide, utttMakeMove, utttReset, actionLoading } = useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
   const [hoveredCell, setHoveredCell] = useState<{ macro: number; micro: number } | null>(null);
   const [focusedCell, setFocusedCell] = useState<{ macro: number; micro: number } | null>(null);
 
@@ -27,13 +30,22 @@ export function UltimateTicTacToeView() {
 
   const isFreeMove = uttt.activeMacroIndex === null;
 
+  const botDifficultyLabel = () =>
+    t(
+      {
+        EASY: 'gameTicTacToe.bot.easy',
+        MEDIUM: 'gameTicTacToe.bot.medium',
+        GOD: 'gameTicTacToe.bot.god',
+      }[room.config?.ticTacToeBotDifficulty ?? 'GOD'],
+    );
+
   const playerXName =
     uttt.playerXId === BOT_SOCKET_ID
-      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+      ? `${t('gameTicTacToe.bot.botBadge')} (${botDifficultyLabel()})`
       : room.players.find((p) => p.socketId === uttt.playerXId)?.name;
   const playerOName =
     uttt.playerOId === BOT_SOCKET_ID
-      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+      ? `${t('gameTicTacToe.bot.botBadge')} (${botDifficultyLabel()})`
       : room.players.find((p) => p.socketId === uttt.playerOId)?.name;
   const playerXScore = room.players.find((p) => p.socketId === uttt.playerXId)?.score || 0;
   const playerOScore = room.players.find((p) => p.socketId === uttt.playerOId)?.score || 0;
@@ -190,6 +202,16 @@ export function UltimateTicTacToeView() {
                     ? t('gameUltimateTTT.yourTurn')
                     : t('gameUltimateTTT.opponentTurn', { turn: uttt.currentTurn })}
               </div>
+
+              {room.status === RoomStatus.PLAYING && isMyTurn && (
+                <CountdownBadge
+                  deadline={uttt.turnDeadline}
+                  serverOffset={serverOffset}
+                  format="seconds"
+                  prefix="⏱ "
+                  className="font-black text-xs sm:text-sm border-2 border-black px-2 py-0.5 bg-yellow-300"
+                />
+              )}
 
               {room.status === RoomStatus.PLAYING && (
                 <div

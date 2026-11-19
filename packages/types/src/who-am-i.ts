@@ -33,6 +33,8 @@ export interface WhoAmIGameState {
   maxRounds: number; // Total rounds configured
   eliminatedPlayers: string[]; // socketIds of players who guessed wrong and are out
   phase: 'COLLECTING_WORDS' | 'AWAITING_HOST_INPUT' | 'ASKING' | 'FINAL_GUESS';
+  /** Server timestamp for the asker/vote window; null when the timer is off (battleship timer pattern). */
+  turnDeadline?: number | null;
   finalGuessUsed: string[]; // socketIds who already used their final guess
   // PLAYER_INPUT collection phase
   wordSubmittedIds: string[]; // socketIds who submitted (values stay private)

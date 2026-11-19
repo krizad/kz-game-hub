@@ -290,4 +290,80 @@ describe('TicTacToeService', () => {
       expect(room.players.find((p) => p.socketId === 'bot-player')!.score).toBe(1);
     });
   });
+
+  describe('turn timer (ticTacToeTurnSeconds)', () => {
+    function createTimedRoom(): RoomState {
+      const room = createRoom(RoomStatus.PLAYING, {});
+      room.config.ticTacToeTurnSeconds = 15;
+      return room;
+    }
+
+    it('stamps a deadline when both seats fill in the lobby', () => {
+      const room = createRoom(RoomStatus.LOBBY, {
+        playerXId: undefined,
+        playerOId: undefined,
+      });
+      room.config.ticTacToeTurnSeconds = 15;
+
+      service.joinSide(room, 'p1', 'X');
+      expect(room.ticTacToeState!.turnDeadline).toBeFalsy(); // still waiting for an opponent
+
+      service.joinSide(room, 'p2', 'O');
+      expect(room.status).toBe(RoomStatus.PLAYING);
+      expect(room.ticTacToeState!.turnDeadline).toBeGreaterThan(Date.now());
+    });
+
+    it('clears the deadline during the deferred bot turn', () => {
+      const room = createRoom(RoomStatus.LOBBY, {
+        playerXId: undefined,
+        playerOId: undefined,
+      });
+      room.config.ticTacToeTurnSeconds = 15;
+      room.config.ticTacToeVsBot = true;
+      room.config.ticTacToeBotDifficulty = 'EASY';
+
+      service.joinSide(room, 'p1', 'X');
+      expect(room.ticTacToeState!.playerOId).toBe('bot-player');
+      expect(room.ticTacToeState!.turnDeadline).toBeGreaterThan(Date.now());
+
+      // Human moves with the bot move deferred to the gateway timer: the bot's
+      // pending turn carries no deadline.
+      const moved = service.makeMove(room, 'p1', 4, { deferBotMove: true });
+      expect(moved).not.toBeNull();
+      expect(room.ticTacToeState!.currentTurn).toBe('O');
+      expect(room.ticTacToeState!.turnDeadline).toBeNull();
+    });
+
+    it('auto-plays a random move for the timed-out human turn', () => {
+      const room = createTimedRoom();
+      const deadline = Date.now() + 15000;
+      room.ticTacToeState!.turnDeadline = deadline;
+
+      const result = service.handleTurnTimeout(room, deadline);
+      expect(result).not.toBeNull();
+      const filled = room.ticTacToeState!.board.filter((c) => c !== null).length;
+      expect(filled).toBe(1);
+      expect(room.ticTacToeState!.turnDeadline).toBeGreaterThan(Date.now());
+    });
+
+    it('rejects a stale deadline (callback fired after the turn moved on)', () => {
+      const room = createTimedRoom();
+      room.ticTacToeState!.turnDeadline = Date.now() + 15000;
+
+      expect(service.handleTurnTimeout(room, Date.now() + 1)).toBeNull();
+      expect(room.ticTacToeState!.board.filter((c) => c !== null).length).toBe(0);
+    });
+
+    it('clears the deadline on game end', () => {
+      const room = createTimedRoom();
+      room.ticTacToeState!.board = ['X', 'X', null, 'O', 'O', null, null, null, null];
+      room.ticTacToeState!.currentTurn = 'X';
+      room.ticTacToeState!.turnDeadline = Date.now() + 15000;
+
+      const result = service.makeMove(room, 'p1', 2);
+      expect(result).not.toBeNull();
+      expect(room.ticTacToeState!.winner).toBe('X');
+      expect(room.ticTacToeState!.turnDeadline).toBeNull();
+    });
+  });
 });

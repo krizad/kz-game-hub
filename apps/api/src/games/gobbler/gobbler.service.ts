@@ -10,7 +10,7 @@ import {
   BOT_SOCKET_ID,
 } from '@repo/types';
 import { v4 as uuidv4 } from 'uuid';
-import { getGobblerMove } from './gobbler-ai';
+import { getGobblerMove, getLegalGobblerMoves } from './gobbler-ai';
 
 @Injectable()
 export class GobblerService {
@@ -31,6 +31,42 @@ export class GobblerService {
 
   private isValidIndex(index: unknown): index is number {
     return Number.isInteger(index) && (index as number) >= 0 && (index as number) < 9;
+  }
+
+  /**
+   * Turn timer (battleship pattern): stamp a deadline on human turns when
+   * `ticTacToeTurnSeconds` is configured; bots pace themselves via the
+   * gateway's bot-move delay, so they never get a deadline.
+   */
+  private stampTurnDeadline(room: RoomState, gb: GobblerState): void {
+    if (gb.winner) {
+      gb.turnDeadline = null;
+      return;
+    }
+    const seconds = room.config?.ticTacToeTurnSeconds ?? 0;
+    const currentSeat = gb.currentTurn === 'X' ? gb.playerXId : gb.playerOId;
+    if (seconds > 0 && currentSeat && currentSeat !== BOT_SOCKET_ID) {
+      gb.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      gb.turnDeadline = null;
+    }
+  }
+
+  /** Auto-move for the timed-out human turn: random legal placement/move. */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    if (room.status !== RoomStatus.PLAYING) return null;
+    const gb = room.gobblerState;
+    if (!gb || gb.turnDeadline !== deadline) return null;
+    const currentSeat = gb.currentTurn === 'X' ? gb.playerXId : gb.playerOId;
+    if (!currentSeat || currentSeat === BOT_SOCKET_ID) return null;
+
+    const legalMoves = getLegalGobblerMoves(gb, gb.currentTurn);
+    if (legalMoves.length === 0) return null;
+    const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    if (move.type === 'PLACE') {
+      return this.placePiece(room, currentSeat, move.pieceId, move.toIndex);
+    }
+    return this.movePiece(room, currentSeat, move.fromIndex, move.toIndex);
   }
 
   private isGobblerRoom(room: RoomState): boolean {
@@ -87,6 +123,7 @@ export class GobblerService {
       if (!options?.deferBotMove) {
         this.executeBotMoveIfNeeded(room);
       }
+      this.stampTurnDeadline(room, gb);
       return room;
     }
 
@@ -115,6 +152,7 @@ export class GobblerService {
 
     if (gb.playerXId && gb.playerOId) {
       room.status = RoomStatus.PLAYING;
+      this.stampTurnDeadline(room, gb);
     }
 
     return room;
@@ -249,6 +287,7 @@ export class GobblerService {
       gb.winner = winner;
       gb.winningLine = line;
       room.status = RoomStatus.RESULT;
+      gb.turnDeadline = null;
 
       if (winner !== 'DRAW') {
         const winnerPlayerId = winner === 'X' ? gb.playerXId : gb.playerOId;
@@ -263,6 +302,7 @@ export class GobblerService {
       gb.scores.O = oPlayer?.score ?? gb.scores.O;
     } else {
       gb.currentTurn = gb.currentTurn === 'X' ? 'O' : 'X';
+      this.stampTurnDeadline(room, gb);
     }
 
     return room;
@@ -311,6 +351,7 @@ export class GobblerService {
         this.executeBotMoveIfNeeded(room);
       }
     }
+    this.stampTurnDeadline(room, room.gobblerState);
 
     return room;
   }

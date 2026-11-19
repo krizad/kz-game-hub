@@ -12,6 +12,8 @@ export interface UltimateTicTacToeState {
   playerXId?: string; // socketId of Player X
   playerOId?: string; // socketId of Player O
   currentTurn: 'X' | 'O';
+  /** Server timestamp; set when a human turn starts, null on game end (battleship timer pattern). */
+  turnDeadline?: number | null;
   activeMacroIndex: number | null; // 0-8, or null for Free Move anywhere
   winner?: 'X' | 'O' | 'DRAW';
   winningMacroLine?: number[]; // indices 0-8 of winning line on macro board

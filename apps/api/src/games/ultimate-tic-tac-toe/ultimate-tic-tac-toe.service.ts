@@ -8,7 +8,7 @@ import {
   UltimateTTTCell,
   BOT_SOCKET_ID,
 } from '@repo/types';
-import { getUltimateMove } from './ultimate-tic-tac-toe-ai';
+import { getLegalUltimateMoves, getUltimateMove } from './ultimate-tic-tac-toe-ai';
 
 @Injectable()
 export class UltimateTicTacToeService {
@@ -57,6 +57,39 @@ export class UltimateTicTacToeService {
 
   private isUltimateTTTRoom(room: RoomState): boolean {
     return room.gameType === GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE';
+  }
+
+  /**
+   * Turn timer (battleship pattern): stamp a deadline on human turns when
+   * `ticTacToeTurnSeconds` is configured; bots pace themselves via the
+   * gateway's bot-move delay, so they never get a deadline.
+   */
+  private stampTurnDeadline(room: RoomState, uttt: UltimateTicTacToeState): void {
+    if (uttt.winner) {
+      uttt.turnDeadline = null;
+      return;
+    }
+    const seconds = room.config?.ticTacToeTurnSeconds ?? 0;
+    const currentSeat = uttt.currentTurn === 'X' ? uttt.playerXId : uttt.playerOId;
+    if (seconds > 0 && currentSeat && currentSeat !== BOT_SOCKET_ID) {
+      uttt.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      uttt.turnDeadline = null;
+    }
+  }
+
+  /** Auto-move for the timed-out human turn: random legal micro cell. */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    if (room.status !== RoomStatus.PLAYING) return null;
+    const uttt = room.ultimateTicTacToeState;
+    if (!uttt || uttt.turnDeadline !== deadline) return null;
+    const currentSeat = uttt.currentTurn === 'X' ? uttt.playerXId : uttt.playerOId;
+    if (!currentSeat || currentSeat === BOT_SOCKET_ID) return null;
+
+    const legalMoves = getLegalUltimateMoves(uttt);
+    if (legalMoves.length === 0) return null;
+    const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    return this.makeMove(room, currentSeat, move.macroIndex, move.microIndex);
   }
 
   executeBotMoveIfNeeded(room: RoomState): boolean {
@@ -108,6 +141,7 @@ export class UltimateTicTacToeService {
       if (!options?.deferBotMove) {
         this.executeBotMoveIfNeeded(room);
       }
+      this.stampTurnDeadline(room, uttt);
       return room;
     }
 
@@ -137,6 +171,7 @@ export class UltimateTicTacToeService {
 
     if (uttt.playerXId && uttt.playerOId) {
       room.status = RoomStatus.PLAYING;
+      this.stampTurnDeadline(room, uttt);
     }
 
     return room;
@@ -197,6 +232,7 @@ export class UltimateTicTacToeService {
       uttt.winner = macroWin.winner;
       uttt.winningMacroLine = macroWin.line;
       room.status = RoomStatus.RESULT;
+      uttt.turnDeadline = null;
 
       const winnerPlayerId = macroWin.winner === 'X' ? uttt.playerXId : uttt.playerOId;
       const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
@@ -209,6 +245,7 @@ export class UltimateTicTacToeService {
     if (!hasPlayableSubBoard) {
       uttt.winner = 'DRAW';
       room.status = RoomStatus.RESULT;
+      uttt.turnDeadline = null;
       return room;
     }
 
@@ -223,6 +260,7 @@ export class UltimateTicTacToeService {
 
     // Switch turn
     uttt.currentTurn = uttt.currentTurn === 'X' ? 'O' : 'X';
+    this.stampTurnDeadline(room, uttt);
 
     return room;
   }
@@ -271,6 +309,7 @@ export class UltimateTicTacToeService {
         this.executeBotMoveIfNeeded(room);
       }
     }
+    this.stampTurnDeadline(room, room.ultimateTicTacToeState);
 
     return room;
   }

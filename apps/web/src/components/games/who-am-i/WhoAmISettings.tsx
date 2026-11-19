@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
+import { TurnTimerSelect } from '@/components/core/TurnTimerSelect';
 
 export function WhoAmISettings() {
   const {
@@ -246,6 +247,10 @@ export function WhoAmISettings() {
             )}
           </div>
         )}
+      </div>
+
+      <div className="bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <TurnTimerSelect configKey="whoAmITurnSeconds" />
       </div>
     </>
   );

@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
+import { useServerClock } from '@/hooks/useServerClock';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 import clsx from 'clsx';
@@ -46,6 +48,7 @@ export function GobblerView() {
     actionLoading,
   } = useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
   const gb = room?.gobblerState;
 
   const [selectedInventoryPieceId, setSelectedInventoryPieceId] = useState<string | null>(null);
@@ -340,7 +343,13 @@ export function GobblerView() {
         <div className="flex flex-col min-w-0">
           <div className="text-sm sm:text-lg lg:text-xs xl:text-base 2xl:text-lg font-black text-black truncate w-full">
             {details?.socketId === BOT_SOCKET_ID
-              ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+              ? `${t('gameTicTacToe.bot.botBadge')} (${t(
+                  {
+                    EASY: 'gameTicTacToe.bot.easy',
+                    MEDIUM: 'gameTicTacToe.bot.medium',
+                    GOD: 'gameTicTacToe.bot.god',
+                  }[room.config?.ticTacToeBotDifficulty ?? 'GOD'],
+                )})`
               : details
                 ? details.name
                 : t('gameGobbler.player', { side })}
@@ -476,6 +485,15 @@ export function GobblerView() {
                         ? t('gameGobbler.yourTurn')
                         : t('gameGobbler.turn', { side: gb.currentTurn })}
                     </span>
+                    {gb.currentTurn !== mySide || (
+                      <CountdownBadge
+                        deadline={gb.turnDeadline}
+                        serverOffset={serverOffset}
+                        format="seconds"
+                        prefix="⏱ "
+                        className="font-black text-xs sm:text-sm border-2 border-black px-2 py-0.5 bg-yellow-300"
+                      />
+                    )}
                   </div>
                 )}
 

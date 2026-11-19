@@ -41,6 +41,82 @@ export class SoundsFishyService {
     return a;
   }
 
+  /**
+   * Turn timer (battleship pattern): deadline for the current phase window
+   * (answer typing in SETUP, picker acting in THE_PITCH/THE_HUNT) when
+   * `soundsFishyTurnSeconds` is configured.
+   */
+  private stampTurnDeadline(room: RoomState): void {
+    const state = room.soundsFishyState;
+    if (!state) return;
+    const seconds = room.config?.soundsFishyTurnSeconds ?? 0;
+    if (seconds > 0 && room.status === RoomStatus.QUESTIONING) {
+      state.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      state.turnDeadline = null;
+    }
+  }
+
+  /**
+   * Timeout auto-actions. SETUP: everyone still typing submits (the blue fish
+   * is given the true answer they were always required to enter; everyone else
+   * submits their draft or a blank). THE_PITCH/THE_HUNT: the picker forfeits
+   * pace control — remaining answers are revealed, then the picker banks if
+   * the pool is non-empty, otherwise the blue fish is eliminated (picker loses).
+   */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    const state = room.soundsFishyState;
+    if (!state || room.status !== RoomStatus.QUESTIONING) return null;
+    if (state.turnDeadline !== deadline) return null;
+
+    if (state.currentPhase === SoundsFishyPhase.SETUP) {
+      const requiredAnswerers = room.players.filter(
+        (p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false,
+      );
+      const answers = this.privateState.getRoomData<{ playerId: string; answer: string }>(
+        room.code,
+        SF_MY_ANSWER,
+      );
+      const trueAnswer = this.getTrueAnswer(room);
+      for (const p of requiredAnswerers) {
+        if (answers.has(p.socketId)) continue;
+        const autoAnswer =
+          p.socketId === this.getBlueFishId(room)
+            ? trueAnswer
+            : this.getRedHerringIds(room).includes(p.socketId)
+              ? '…'
+              : trueAnswer;
+        this.submitAnswer(room, p.socketId, autoAnswer);
+      }
+      this.stampTurnDeadline(room);
+      return room;
+    }
+
+    if (
+      state.currentPhase === SoundsFishyPhase.THE_PITCH ||
+      state.currentPhase === SoundsFishyPhase.THE_HUNT
+    ) {
+      const nonPickerIds = room.players
+        .filter((p) => p.connected !== false && !p.isViewer)
+        .map((p) => p.socketId)
+        .filter((id) => id !== state.pickerId);
+      for (const id of nonPickerIds) {
+        if (state.playerAnswers[id]?.isRevealed) continue;
+        this.revealPlayer(room, state.pickerId, id);
+      }
+      if (state.roundScorePool > 0) {
+        this.bankPoints(room, state.pickerId);
+      } else {
+        const blueFishId = this.getBlueFishId(room);
+        if (blueFishId && !state.eliminatedPlayers.includes(blueFishId)) {
+          this.eliminatePlayer(room, state.pickerId, blueFishId);
+        }
+      }
+    }
+
+    return room;
+  }
+
   private isMember(room: RoomState, socketId: string): boolean {
     return room.players.some((p) => p.socketId === socketId && !p.isViewer);
   }
@@ -197,6 +273,7 @@ export class SoundsFishyService {
 
       room.status = RoomStatus.QUESTIONING;
       room.soundsFishyState = state;
+      this.stampTurnDeadline(room);
 
       const roles: Record<string, Role> = {};
       room.players.forEach((p) => {
@@ -238,6 +315,7 @@ export class SoundsFishyService {
     const answeredCount = requiredAnswerers.filter((p) => answers.has(p.socketId)).length;
     if (answeredCount >= requiredAnswerers.length && requiredAnswerers.length > 0) {
       state.currentPhase = SoundsFishyPhase.THE_PITCH;
+      this.stampTurnDeadline(room);
       return true;
     }
     return false;
@@ -361,6 +439,7 @@ export class SoundsFishyService {
       state.roundPoints[state.pickerId] = 0;
 
       state.currentPhase = SoundsFishyPhase.SCORING;
+      state.turnDeadline = null;
       room.status = RoomStatus.RESULT;
       this.revealRoles(room);
     } else if (redHerringIds.includes(targetId)) {
@@ -386,6 +465,7 @@ export class SoundsFishyService {
         if (blueFishId) state.roundPoints[blueFishId] = 0;
 
         state.currentPhase = SoundsFishyPhase.SCORING;
+        state.turnDeadline = null;
         room.status = RoomStatus.RESULT;
         this.revealRoles(room);
       }
@@ -416,6 +496,7 @@ export class SoundsFishyService {
     if (blueFishId) state.roundPoints[blueFishId] = 0;
 
     state.currentPhase = SoundsFishyPhase.SCORING;
+    state.turnDeadline = null;
     room.status = RoomStatus.RESULT;
     this.revealRoles(room);
 

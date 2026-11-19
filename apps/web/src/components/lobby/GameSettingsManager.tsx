@@ -14,6 +14,8 @@ import { BananaThiefSettings } from '@/components/games/banana-thief/BananaThief
 import { WerewolfSettings } from '@/components/games/werewolf/WerewolfSettings';
 import { DogRelaySettings } from '@/components/games/dog-relay/DogRelaySettings';
 import { BattleshipSettings } from '@/components/games/battleship/BattleshipSettings';
+import { SoundsFishySettings } from '@/components/games/sounds-fishy/SoundsFishySettings';
+import { DetectiveClubSettings } from '@/components/games/detective-club/DetectiveClubSettings';
 
 export function GameSettingsManager() {
   const { room, socketId, updateConfig } = useGameStore();
@@ -31,7 +33,9 @@ export function GameSettingsManager() {
     room.gameType === GameType.BANANA_THIEF ||
     room.gameType === GameType.DOG_RELAY ||
     room.gameType === GameType.WEREWOLF ||
-    room.gameType === GameType.BATTLESHIP;
+    room.gameType === GameType.BATTLESHIP ||
+    room.gameType === GameType.SOUNDS_FISHY ||
+    room.gameType === GameType.DETECTIVE_CLUB;
 
   const isHost = room.roomHostId === socketId;
   const visibility = room.config.visibility ?? 'PUBLIC';
@@ -105,6 +109,8 @@ export function GameSettingsManager() {
           {room.gameType === GameType.BANANA_THIEF && <BananaThiefSettings />}
           {room.gameType === GameType.WEREWOLF && <WerewolfSettings />}
           {room.gameType === GameType.BATTLESHIP && <BattleshipSettings />}
+          {room.gameType === GameType.SOUNDS_FISHY && <SoundsFishySettings />}
+          {room.gameType === GameType.DETECTIVE_CLUB && <DetectiveClubSettings />}
         </div>
       )}
     </div>

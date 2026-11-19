@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { TicTacToeBotDifficulty } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import clsx from 'clsx';
+import { TurnTimerSelect } from '@/components/core/TurnTimerSelect';
 
 export function TicTacToeBotSettings() {
   const { room, socketId, updateConfig, actionLoading } = useGameStore();
@@ -108,7 +109,7 @@ export function TicTacToeBotSettings() {
               <span>{t('gameTicTacToe.bot.difficulty')}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {/* Easy Mode */}
               <button
                 type="button"
@@ -133,6 +134,33 @@ export function TicTacToeBotSettings() {
                 </div>
                 <span className="text-[11px] text-gray-700 font-medium leading-tight">
                   {t('gameTicTacToe.bot.easyDesc')}
+                </span>
+              </button>
+
+              {/* Medium Mode */}
+              <button
+                type="button"
+                data-testid="ttt-diff-medium"
+                disabled={!isHost || actionLoading}
+                onClick={() => handleSelectDifficulty('MEDIUM')}
+                className={clsx(
+                  'border-4 border-black p-2.5 flex flex-col items-center justify-center gap-1 transition-all text-center',
+                  currentDifficulty === 'MEDIUM'
+                    ? 'bg-sky-300 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-0.5'
+                    : 'bg-gray-50 hover:bg-gray-100 opacity-70 hover:opacity-100',
+                  isHost && !actionLoading
+                    ? 'cursor-pointer active:translate-y-0 active:shadow-none'
+                    : 'cursor-default',
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg">⚖️</span>
+                  <span className="font-black text-black text-xs sm:text-sm uppercase">
+                    {t('gameTicTacToe.bot.medium')}
+                  </span>
+                </div>
+                <span className="text-[11px] text-gray-700 font-medium leading-tight">
+                  {t('gameTicTacToe.bot.mediumDesc')}
                 </span>
               </button>
 
@@ -165,6 +193,11 @@ export function TicTacToeBotSettings() {
             </div>
           </div>
         )}
+
+        {/* Turn timer (applies to every TTT mode when vs a human) */}
+        <div className="mt-3 pt-3 border-t-2 border-dashed border-gray-300">
+          <TurnTimerSelect configKey="ticTacToeTurnSeconds" />
+        </div>
       </div>
     </div>
   );

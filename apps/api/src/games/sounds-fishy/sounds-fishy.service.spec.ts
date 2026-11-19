@@ -711,4 +711,55 @@ describe('SoundsFishyService', () => {
       expect(room.soundsFishyState!.blueFishId).toBe('blue-new');
     });
   });
+
+  describe('turn timer (soundsFishyTurnSeconds)', () => {
+    async function startTimedRound(room: RoomState) {
+      room.status = RoomStatus.LOBBY;
+      room.config.soundsFishyTurnSeconds = 15;
+      (prisma.soundsFishyQuestion.aggregate as jest.Mock).mockResolvedValue({
+        _min: { query_count: 0 },
+      });
+      (prisma.soundsFishyQuestion.findMany as jest.Mock).mockResolvedValue([
+        { id: 1, question: 'Q?', answer: 'A!', lang: 'th' },
+      ]);
+      (prisma.soundsFishyQuestion.update as jest.Mock).mockResolvedValue({});
+      const result = await service.assignRoles(room, 'p1');
+      expect(result).not.toBeNull();
+      return result!;
+    }
+
+    it('stamps a deadline at round start and auto-submits holdouts on SETUP timeout', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      const started = await startTimedRound(room);
+      const state = started.room.soundsFishyState!;
+      expect(state.turnDeadline).toBeGreaterThan(Date.now());
+
+      const deadline = state.turnDeadline!;
+      const pickerId = state.pickerId;
+      const blueFishId = privateState.get<string>(room.code, '__room__', 'sfRoomBlueFish')!;
+
+      const result = service.handleTurnTimeout(room, deadline);
+      expect(result).not.toBeNull();
+      // Everyone except the picker now holds an answer and the phase advanced.
+      expect(state.currentPhase).toBe(SoundsFishyPhase.THE_PITCH);
+      for (const p of room.players) {
+        if (p.socketId === pickerId) continue;
+        expect(privateState.has(room.code, p.socketId, 'sfMyAnswer')).toBe(true);
+      }
+      // The blue fish was handed the true answer they are required to submit.
+      expect(
+        privateState.get<{ playerId: string; answer: string }>(room.code, blueFishId, 'sfMyAnswer')!
+          .answer,
+      ).toBe('A!');
+      // A fresh picker window was stamped.
+      expect(state.turnDeadline).toBeGreaterThan(Date.now());
+    });
+
+    it('rejects a stale deadline', async () => {
+      const room = createRoom([{ socketId: 'p1' }, { socketId: 'p2' }, { socketId: 'p3' }]);
+      await startTimedRound(room);
+      expect(service.handleTurnTimeout(room, Date.now() + 1)).toBeNull();
+      expect(room.soundsFishyState!.currentPhase).toBe(SoundsFishyPhase.SETUP);
+    });
+  });
 });

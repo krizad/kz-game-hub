@@ -24,6 +24,8 @@ export interface DetectiveClubPlayer {
 
 export interface DetectiveClubState {
   currentPhase: DetectiveClubPhase;
+  /** Server timestamp for the card-play/vote window; null when the timer is off (battleship timer pattern). */
+  turnDeadline?: number | null;
   informerId: string | null;
   conspiratorId: string | null; // hidden until SCORING
   word: string | null; // hidden from the conspirator until DISCUSSION

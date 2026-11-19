@@ -219,6 +219,14 @@ export function getGobblerMove(
     return randomChoice.move;
   }
 
+  if (difficulty === 'MEDIUM') {
+    // Top-3 pool: keeps the tactical edge (wins/blocks score far above the rest)
+    // while frequently picking merely-good moves instead of the optimum.
+    scoredMoves.sort((a, b) => b.score - a.score);
+    const topPool = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
+    return topPool[Math.floor(Math.random() * topPool.length)].move;
+  }
+
   // Sort descending by score, add slight jitter for variation among top-scored
   scoredMoves.sort((a, b) => b.score - a.score);
   const bestScore = scoredMoves[0].score;

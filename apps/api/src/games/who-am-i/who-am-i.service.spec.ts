@@ -1539,4 +1539,52 @@ describe('WhoAmIService', () => {
       });
     });
   });
+
+  describe('turn timer (whoAmITurnSeconds)', () => {
+    function makeAskingRoom(config?: Partial<RoomState['config']>): RoomState {
+      return {
+        code: 'test-room',
+        status: RoomStatus.PLAYING,
+        roomHostId: 'host1',
+        players: [
+          { socketId: 'p1', isViewer: false, connected: true },
+          { socketId: 'p2', isViewer: false, connected: true },
+          { socketId: 'p3', isViewer: false, connected: true },
+        ],
+        config: { wordMode: 'HOST_INPUT', maxRounds: 3, ...config },
+        whoAmIState: {
+          currentTurn: 'p1',
+          currentGuess: null,
+          votes: {},
+          turnStatus: 'VOTING',
+          winner: null,
+          currentRound: 1,
+          maxRounds: 3,
+          eliminatedPlayers: [],
+          phase: 'ASKING',
+          finalGuessUsed: [],
+          wordSubmittedIds: [],
+          turnDeadline: Date.now() + 15000,
+        },
+      } as unknown as RoomState;
+    }
+
+    it('auto-votes MAYBE for non-voters when the window expires', () => {
+      const room = makeAskingRoom({ whoAmITurnSeconds: 15 });
+      const deadline = room.whoAmIState!.turnDeadline!;
+
+      room.whoAmIState!.votes['p2'] = 'YES';
+      const result = service.handleTurnTimeout(room, deadline);
+      expect(result).not.toBeNull();
+      expect(room.whoAmIState!.votes['p3']).toBe('MAYBE');
+      expect(room.whoAmIState!.votes['p2']).toBe('YES'); // existing votes untouched
+      expect(room.whoAmIState!.votes['p1']).toBeUndefined(); // the asker never auto-votes
+    });
+
+    it('rejects a stale deadline', () => {
+      const room = makeAskingRoom({ whoAmITurnSeconds: 15 });
+      expect(service.handleTurnTimeout(room, Date.now() + 1)).toBeNull();
+      expect(room.whoAmIState!.votes).toEqual({});
+    });
+  });
 });

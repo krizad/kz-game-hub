@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/useGameStore';
-import { GameType, DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
+import { GameType, DetectiveClubPhase, DetectiveClubRole, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { SetupPhase } from './phases/SetupPhase';
 import { PlayingPhase } from './phases/PlayingPhase';
@@ -14,6 +14,8 @@ import { useSoundSettings } from '@/hooks/useSoundSettings';
 import { useGameFeel } from '@/hooks/useGameFeel';
 import { SoundToggle } from '@/components/core/SoundToggle';
 import { useDetectiveClubSoundCues } from './useDetectiveClubSoundCues';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
+import { useServerClock } from '@/hooks/useServerClock';
 
 function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslate>['t']): string {
   switch (role) {
@@ -31,6 +33,7 @@ function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslat
 export function DetectiveClubView() {
   const { room, socketId, privateState } = useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
   const { shake, flash, celebrate } = useGameFeel();
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const playSound = useDetectiveClubSounds(soundsEnabled);
@@ -79,6 +82,18 @@ export function DetectiveClubView() {
 
   return (
     <div className="flex-1 flex flex-col w-full h-full p-4 overflow-y-auto overflow-x-hidden max-w-4xl mx-auto space-y-6 font-mono">
+      {/* Phase timer — every active phase window carries a deadline */}
+      {room.status === RoomStatus.PLAYING && (
+        <div className="flex justify-center">
+          <CountdownBadge
+            deadline={state.turnDeadline}
+            serverOffset={serverOffset}
+            format="seconds"
+            prefix="⏱ "
+            className="font-black text-base border-2 border-black px-3 py-1 bg-yellow-300"
+          />
+        </div>
+      )}
       {/* Main Game Area */}
       {state.currentPhase === DetectiveClubPhase.SETUP && <SetupPhase />}
       {(state.currentPhase === DetectiveClubPhase.PLAYING_ROUND_1 ||

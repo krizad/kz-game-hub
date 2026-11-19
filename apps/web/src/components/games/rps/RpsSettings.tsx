@@ -3,6 +3,7 @@
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
+import { TurnTimerSelect } from '@/components/core/TurnTimerSelect';
 
 export function RpsSettings() {
   const { room } = useGameStore();
@@ -65,6 +66,8 @@ export function RpsSettings() {
           </div>
         )}
       </div>
+
+      <TurnTimerSelect configKey="rpsTurnSeconds" />
     </>
   );
 }

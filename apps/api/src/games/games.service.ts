@@ -2256,6 +2256,42 @@ export class GamesService {
     return this.withRoom(code, (room) => this.battleshipService.handleTimeout(room, deadline));
   }
 
+  /** Turn-timer timeout for the TIC_TAC_TOE family (mode picked from room config). */
+  ticTacToeTurnTimeout(
+    code: string,
+    mode: 'CLASSIC' | 'GOBBLER' | 'ULTIMATE',
+    deadline: number,
+  ): RoomState | null {
+    return this.withRoom(code, (room) => {
+      switch (mode) {
+        case 'GOBBLER':
+          return this.gobblerService.handleTurnTimeout(room, deadline);
+        case 'ULTIMATE':
+          return this.ultimateTicTacToeService.handleTurnTimeout(room, deadline);
+        default:
+          return this.ticTacToeService.handleTurnTimeout(room, deadline);
+      }
+    });
+  }
+
+  rpsTurnTimeout(code: string, deadline: number): RoomState | null {
+    return this.withRoom(code, (room) => this.rpsService.handleTurnTimeout(room, deadline));
+  }
+
+  whoAmITurnTimeout(code: string, deadline: number): RoomState | null {
+    return this.withRoom(code, (room) => this.whoAmIService.handleTurnTimeout(room, deadline));
+  }
+
+  soundsFishyTurnTimeout(code: string, deadline: number): RoomState | null {
+    return this.withRoom(code, (room) => this.soundsFishyService.handleTurnTimeout(room, deadline));
+  }
+
+  detectiveClubTurnTimeout(code: string, deadline: number): RoomState | null {
+    return this.withRoom(code, (room) =>
+      this.detectiveClubService.handleTurnTimeout(room, deadline),
+    );
+  }
+
   private getPlayerId(room: RoomState, socketId: string): string | null {
     return room.players.find((player) => player.socketId === socketId)?.id ?? null;
   }

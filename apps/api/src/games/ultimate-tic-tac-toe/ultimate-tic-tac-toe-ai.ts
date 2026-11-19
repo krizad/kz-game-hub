@@ -159,6 +159,12 @@ export function getUltimateMove(
   }
 
   scoredMoves.sort((a, b) => b.score - a.score);
+  if (difficulty === 'MEDIUM') {
+    // Top-3 pool: keeps tactical saves (wins/blocks score far above the rest)
+    // while often choosing merely-good moves instead of the optimum.
+    const topPool = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
+    return topPool[Math.floor(Math.random() * topPool.length)].move;
+  }
   const bestScore = scoredMoves[0].score;
   const bestTies = scoredMoves.filter((sm) => sm.score >= bestScore - 15);
   const chosen = bestTies[Math.floor(Math.random() * bestTies.length)];

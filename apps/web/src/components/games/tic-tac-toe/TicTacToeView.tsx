@@ -5,7 +5,9 @@ import { useGameStore } from '@/store/useGameStore';
 import { BOT_SOCKET_ID, GameType, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { FirstRoundGuide } from '@/components/lobby/FirstRoundGuide';
+import { useServerClock } from '@/hooks/useServerClock';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
@@ -21,6 +23,7 @@ export function TicTacToeView() {
     dismissPendingAction,
   } = useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
 
   const [unknownActionId, unknownPendingAction] =
     Object.entries(pendingActions).find(([, a]) => a.status === 'unknown') ?? [];
@@ -146,14 +149,23 @@ export function TicTacToeView() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [room.status, isMyTurn, actionLoading, ttt.board, mySide, tttMakeMove]);
 
+  const botDifficultyLabel = () =>
+    t(
+      {
+        EASY: 'gameTicTacToe.bot.easy',
+        MEDIUM: 'gameTicTacToe.bot.medium',
+        GOD: 'gameTicTacToe.bot.god',
+      }[room.config?.ticTacToeBotDifficulty ?? 'GOD'],
+    );
+
   const playerXName =
     ttt.playerXId === BOT_SOCKET_ID
-      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+      ? `${t('gameTicTacToe.bot.botBadge')} (${botDifficultyLabel()})`
       : room.players.find((p) => p.socketId === ttt.playerXId)?.name;
 
   const playerOName =
     ttt.playerOId === BOT_SOCKET_ID
-      ? `${t('gameTicTacToe.bot.botBadge')} (${t(room.config?.ticTacToeBotDifficulty === 'EASY' ? 'gameTicTacToe.bot.easy' : 'gameTicTacToe.bot.god')})`
+      ? `${t('gameTicTacToe.bot.botBadge')} (${botDifficultyLabel()})`
       : room.players.find((p) => p.socketId === ttt.playerOId)?.name;
 
   return (
@@ -243,6 +255,15 @@ export function TicTacToeView() {
                   ? t('gameTicTacToe.gameOver')
                   : t('gameTicTacToe.playing')}
               </div>
+              {!isBotTurn && room.status === RoomStatus.PLAYING && (
+                <CountdownBadge
+                  deadline={ttt.turnDeadline}
+                  serverOffset={serverOffset}
+                  format="seconds"
+                  prefix="⏱ "
+                  className="font-black text-base border-2 border-black px-2 py-0.5 bg-yellow-300"
+                />
+              )}
               {isBotTurn && (
                 <div className="text-xs font-black text-black bg-yellow-300 border-2 border-black px-2 py-0.5 animate-pulse">
                   {t('gameTicTacToe.bot.thinking')}

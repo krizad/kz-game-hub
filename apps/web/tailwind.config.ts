@@ -1,4 +1,6 @@
 import type { Config } from 'tailwindcss';
+// Activates the animate-in/fade-in/zoom-in-95/slide-in-* classes used across game views.
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
   content: [
@@ -17,6 +19,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 };
 export default config;

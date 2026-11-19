@@ -26,6 +26,37 @@ export class TicTacToeService {
     return Number.isInteger(index) && (index as number) >= 0 && (index as number) < 9;
   }
 
+  /**
+   * Turn timer (battleship pattern): stamp a deadline on human turns when
+   * `ticTacToeTurnSeconds` is configured; bots pace themselves via the
+   * gateway's bot-move delay, so they never get a deadline.
+   */
+  private stampTurnDeadline(room: RoomState, ttt: TicTacToeState): void {
+    if (ttt.winner) {
+      ttt.turnDeadline = null;
+      return;
+    }
+    const seconds = room.config?.ticTacToeTurnSeconds ?? 0;
+    const currentSeat = ttt.currentTurn === 'X' ? ttt.playerXId : ttt.playerOId;
+    if (seconds > 0 && currentSeat && currentSeat !== BOT_SOCKET_ID) {
+      ttt.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      ttt.turnDeadline = null;
+    }
+  }
+
+  /** Auto-move for the timed-out human turn: random legal cell, then normal flow. */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    if (room.status !== RoomStatus.PLAYING) return null;
+    const ttt = room.ticTacToeState;
+    if (!ttt || ttt.turnDeadline !== deadline) return null;
+    const currentSeat = ttt.currentTurn === 'X' ? ttt.playerXId : ttt.playerOId;
+    if (!currentSeat || currentSeat === BOT_SOCKET_ID) return null;
+    const move = getRandomMove(ttt.board);
+    if (move < 0 || !this.isValidIndex(move)) return null;
+    return this.makeMove(room, currentSeat, move);
+  }
+
   executeBotMoveIfNeeded(room: RoomState): boolean {
     if (!this.isClassicTTTRoom(room) || room.status !== RoomStatus.PLAYING) return false;
     if (!room.config.ticTacToeVsBot) return false;
@@ -38,7 +69,10 @@ export class TicTacToeService {
     if (!botSide || ttt.currentTurn !== botSide) return false;
 
     const difficulty = room.config.ticTacToeBotDifficulty ?? 'GOD';
-    const move = difficulty === 'EASY' ? getRandomMove(ttt.board) : getBestMove(ttt.board, botSide);
+    const move =
+      difficulty === 'EASY'
+        ? getRandomMove(ttt.board)
+        : getBestMove(ttt.board, botSide, difficulty === 'MEDIUM' ? 2 : Infinity);
 
     if (move < 0 || move >= 9 || ttt.board[move] !== null) return false;
 
@@ -49,14 +83,17 @@ export class TicTacToeService {
       ttt.winner = winner;
       ttt.winningLine = line;
       room.status = RoomStatus.RESULT;
+      ttt.turnDeadline = null;
 
       const botPlayer = room.players.find((p) => p.socketId === BOT_SOCKET_ID);
       if (botPlayer) botPlayer.score += 1;
     } else if (!ttt.board.includes(null)) {
       ttt.winner = 'DRAW';
       room.status = RoomStatus.RESULT;
+      ttt.turnDeadline = null;
     } else {
       ttt.currentTurn = botSide === 'X' ? 'O' : 'X';
+      this.stampTurnDeadline(room, ttt);
     }
 
     return true;
@@ -88,6 +125,7 @@ export class TicTacToeService {
       if (!options?.deferBotMove) {
         this.executeBotMoveIfNeeded(room);
       }
+      this.stampTurnDeadline(room, ttt);
       return room;
     }
 
@@ -116,6 +154,7 @@ export class TicTacToeService {
 
     if (ttt.playerXId && ttt.playerOId) {
       room.status = RoomStatus.PLAYING;
+      this.stampTurnDeadline(room, ttt);
     }
 
     return room;
@@ -166,6 +205,7 @@ export class TicTacToeService {
       ttt.winner = winner;
       ttt.winningLine = line;
       room.status = RoomStatus.RESULT;
+      ttt.turnDeadline = null;
 
       const winnerPlayerId = winner === 'X' ? ttt.playerXId : ttt.playerOId;
       const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
@@ -173,11 +213,13 @@ export class TicTacToeService {
     } else if (!ttt.board.includes(null)) {
       ttt.winner = 'DRAW';
       room.status = RoomStatus.RESULT;
+      ttt.turnDeadline = null;
     } else {
       ttt.currentTurn = ttt.currentTurn === 'X' ? 'O' : 'X';
       if (room.config.ticTacToeVsBot && !options?.deferBotMove) {
         this.executeBotMoveIfNeeded(room);
       }
+      this.stampTurnDeadline(room, ttt);
     }
 
     return room;
@@ -214,6 +256,7 @@ export class TicTacToeService {
     if (room.status === RoomStatus.PLAYING && room.config.ticTacToeVsBot) {
       this.executeBotMoveIfNeeded(room);
     }
+    this.stampTurnDeadline(room, room.ticTacToeState);
 
     return room;
   }

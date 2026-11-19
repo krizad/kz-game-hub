@@ -14,7 +14,12 @@ import { useSoundSettings } from '@/hooks/useSoundSettings';
 export function RoomHeader() {
   const { room, leaveRoom } = useGameStore();
   const { t } = useTranslate();
-  const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
+  const {
+    enabled: soundsEnabled,
+    toggle: toggleSound,
+    volume: soundVolume,
+    setVolume: setSoundVolume,
+  } = useSoundSettings();
 
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -165,6 +170,10 @@ export function RoomHeader() {
             titleOff={t('whoFirst.game.soundOff') || 'Sound effects off'}
             testId="header-sound-toggle"
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg !border-2 shadow-[2px_2px_0_0_#000]"
+            showVolume
+            volume={soundVolume}
+            onVolumeChange={setSoundVolume}
+            volumeLabel={t('lobby.soundVolume')}
           />
           <LanguageSwitcher />
           <RulesModal

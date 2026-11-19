@@ -2259,6 +2259,21 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (room.gameType === GameType.BATTLESHIP) {
       this.syncBattleshipTimer(room);
     }
+    if (room.gameType === GameType.TIC_TAC_TOE) {
+      this.syncTicTacToeTimer(room);
+    }
+    if (room.gameType === GameType.RPS) {
+      this.syncRpsTimer(room);
+    }
+    if (room.gameType === GameType.WHO_AM_I) {
+      this.syncWhoAmITimer(room);
+    }
+    if (room.gameType === GameType.SOUNDS_FISHY) {
+      this.syncSoundsFishyTimer(room);
+    }
+    if (room.gameType === GameType.DETECTIVE_CLUB) {
+      this.syncDetectiveClubTimer(room);
+    }
   }
 
   private syncBattleshipTimer(room: RoomState): void {
@@ -2270,6 +2285,79 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const deadline = state.turnDeadline;
     this.roomTimerService.schedule(room.code, 'battleship', deadline, () => {
       const updated = this.gamesService.battleshipPhaseTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
+  }
+
+  /**
+   * Turn timers for the games that had no pacing (battleship pattern): the
+   * service stamps a deadline into state; the gateway schedules the auto-action
+   * and re-syncs on every broadcast. The stale-deadline guard inside each
+   * service's handleTurnTimeout keeps an already-fired callback harmless.
+   */
+  private syncTicTacToeTimer(room: RoomState): void {
+    const mode = room.config?.ticTacToeMode || 'CLASSIC';
+    const deadline =
+      mode === 'GOBBLER'
+        ? (room.gobblerState?.turnDeadline ?? null)
+        : mode === 'ULTIMATE'
+          ? (room.ultimateTicTacToeState?.turnDeadline ?? null)
+          : (room.ticTacToeState?.turnDeadline ?? null);
+    if (room.status !== RoomStatus.PLAYING || !deadline) {
+      this.roomTimerService.cancel(room.code, 'ttt-turn');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'ttt-turn', deadline, () => {
+      const updated = this.gamesService.ticTacToeTurnTimeout(room.code, mode, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
+  }
+
+  private syncRpsTimer(room: RoomState): void {
+    const deadline = room.rpsState?.turnDeadline ?? null;
+    if (room.status !== RoomStatus.PLAYING || !deadline) {
+      this.roomTimerService.cancel(room.code, 'rps-turn');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'rps-turn', deadline, () => {
+      const updated = this.gamesService.rpsTurnTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
+  }
+
+  private syncWhoAmITimer(room: RoomState): void {
+    const deadline = room.whoAmIState?.turnDeadline ?? null;
+    if (room.status !== RoomStatus.PLAYING || !deadline) {
+      this.roomTimerService.cancel(room.code, 'who-am-i-turn');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'who-am-i-turn', deadline, () => {
+      const updated = this.gamesService.whoAmITurnTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
+  }
+
+  private syncSoundsFishyTimer(room: RoomState): void {
+    const deadline = room.soundsFishyState?.turnDeadline ?? null;
+    // Sounds Fishy runs under QUESTIONING, not PLAYING — any other status cancels.
+    if (room.status !== RoomStatus.QUESTIONING || !deadline) {
+      this.roomTimerService.cancel(room.code, 'sounds-fishy-turn');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'sounds-fishy-turn', deadline, () => {
+      const updated = this.gamesService.soundsFishyTurnTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
+  }
+
+  private syncDetectiveClubTimer(room: RoomState): void {
+    const deadline = room.detectiveClubState?.turnDeadline ?? null;
+    if (room.status !== RoomStatus.PLAYING || !deadline) {
+      this.roomTimerService.cancel(room.code, 'detective-club-turn');
+      return;
+    }
+    this.roomTimerService.schedule(room.code, 'detective-club-turn', deadline, () => {
+      const updated = this.gamesService.detectiveClubTurnTimeout(room.code, deadline);
       if (updated) this.broadcastRoomState(updated);
     });
   }

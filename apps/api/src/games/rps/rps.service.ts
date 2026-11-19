@@ -9,6 +9,81 @@ const VALID_CHOICES: RPSChoice[] = ['ROCK', 'PAPER', 'SCISSORS'];
 export class RPSService {
   constructor(private readonly privateState: PrivateStateService) {}
 
+  /**
+   * Turn timer (battleship pattern): deadline for the current picking window
+   * when `rpsTurnSeconds` is configured; cleared when the round resolves.
+   */
+  private stampTurnDeadline(room: RoomState): void {
+    const rps = room.rpsState;
+    if (!rps) return;
+    const seconds = room.config?.rpsTurnSeconds ?? 0;
+    if (seconds > 0 && room.status === RoomStatus.PLAYING && rps.activePlayers.length >= 2) {
+      rps.turnDeadline = Date.now() + seconds * 1000;
+    } else {
+      rps.turnDeadline = null;
+    }
+  }
+
+  /** Auto-pick a random choice for every active player who has not locked one, then resolve. */
+  handleTurnTimeout(room: RoomState, deadline: number): RoomState | null {
+    if (room.status !== RoomStatus.PLAYING) return null;
+    const rps = room.rpsState;
+    if (!rps || rps.turnDeadline !== deadline) return null;
+
+    for (const id of rps.activePlayers) {
+      if (this.privateState.has(room.code, id, RPS_CHOICE_KEY)) continue;
+      const player = room.players.find((p) => p.socketId === id);
+      if (!player || player.isViewer) continue;
+      const pick = VALID_CHOICES[Math.floor(Math.random() * VALID_CHOICES.length)];
+      this.privateState.set(room.code, id, RPS_CHOICE_KEY, pick);
+      if (!rps.choicesMade.includes(id)) {
+        rps.choicesMade.push(id);
+      }
+    }
+    this.resolveIfComplete(room);
+    rps.turnDeadline = null;
+    return room;
+  }
+
+  /**
+   * Resolve the round once every active seat has locked a choice — shared by
+   * player picks (makeChoice) and the timeout auto-pick (handleTurnTimeout).
+   */
+  private resolveIfComplete(room: RoomState): void {
+    const rps = room.rpsState;
+    if (!rps || rps.gameWinner) return;
+
+    const activeSeatIds = rps.activePlayers.filter((id) =>
+      room.players.some((p) => p.socketId === id && !p.isViewer),
+    );
+    const allChosen =
+      activeSeatIds.length >= 2 &&
+      activeSeatIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
+
+    if (!allChosen) return;
+
+    const revealed = this.revealChoices(room);
+    if (room.config.rpsMode === 'ALL_AT_ONCE') {
+      this.resolveAllAtOnceRound(room, revealed);
+    } else {
+      this.resolve1v1Round(room, revealed);
+    }
+
+    const bestOf = room.config.rpsBestOf || 3;
+    const targetScore = Math.floor(bestOf / 2) + 1;
+
+    const gameWinners = Object.entries(rps.scores)
+      .filter(([, score]) => score >= targetScore)
+      .map(([id]) => id);
+
+    if (gameWinners.length > 0) {
+      rps.gameWinner = gameWinners.length === 1 ? gameWinners[0] : gameWinners;
+    }
+
+    room.status = RoomStatus.RESULT;
+    rps.turnDeadline = null;
+  }
+
   assignRoles(
     room: RoomState,
     requesterId: string,
@@ -46,6 +121,8 @@ export class RPSService {
       this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
     }
 
+    this.stampTurnDeadline(room);
+
     return { room, roles: {} };
   }
 
@@ -63,34 +140,7 @@ export class RPSService {
       rps.choicesMade.push(clientId);
     }
 
-    const activeSeatIds = rps.activePlayers.filter((id) =>
-      room.players.some((p) => p.socketId === id && !p.isViewer),
-    );
-    const allChosen =
-      activeSeatIds.length >= 2 &&
-      activeSeatIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
-
-    if (allChosen) {
-      const revealed = this.revealChoices(room);
-      if (room.config.rpsMode === 'ALL_AT_ONCE') {
-        this.resolveAllAtOnceRound(room, revealed);
-      } else {
-        this.resolve1v1Round(room, revealed);
-      }
-
-      const bestOf = room.config.rpsBestOf || 3;
-      const targetScore = Math.floor(bestOf / 2) + 1;
-
-      const gameWinners = Object.entries(rps.scores)
-        .filter(([, score]) => score >= targetScore)
-        .map(([id]) => id);
-
-      if (gameWinners.length > 0) {
-        rps.gameWinner = gameWinners.length === 1 ? gameWinners[0] : gameWinners;
-      }
-
-      room.status = RoomStatus.RESULT;
-    }
+    this.resolveIfComplete(room);
 
     return room;
   }
@@ -157,6 +207,7 @@ export class RPSService {
     }
 
     room.status = RoomStatus.PLAYING;
+    this.stampTurnDeadline(room);
   }
 
   private revealChoices(room: RoomState): Record<string, RPSChoice> {
@@ -275,6 +326,7 @@ export class RPSService {
       this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
     }
     room.status = RoomStatus.PLAYING;
+    this.stampTurnDeadline(room);
     return room;
   }
 

@@ -14,6 +14,8 @@ export interface GobblerState {
   playerXId?: string; // socketId of Player X
   playerOId?: string; // socketId of Player O
   currentTurn: PlayerSide;
+  /** Server timestamp; set when a human turn starts, null on game end (battleship timer pattern). */
+  turnDeadline?: number | null;
   inventory: {
     X: GobblerPiece[];
     O: GobblerPiece[];

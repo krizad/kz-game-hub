@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getAvatarEmoji } from '@/components/core/utils';
 import { useTranslate } from '@/hooks/useTranslate';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
+import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { GameDialog } from '@/components/core/GameDialog';
+import { useServerClock } from '@/hooks/useServerClock';
 import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
@@ -15,6 +17,7 @@ export function WhoAmIView() {
   const { room, socketId, privateState, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
     useGameStore();
   const { t } = useTranslate();
+  const { serverOffset } = useServerClock();
 
   const [playerWordInput, setPlayerWordInput] = useState('');
   const [showGuessModal, setShowGuessModal] = useState(false);
@@ -416,11 +419,20 @@ export function WhoAmIView() {
 
                     {/* Who may vote & Current asker breakdown */}
                     <div className="w-full max-w-md mx-auto mb-6 bg-white/70 p-3 border-2 border-black border-dashed">
-                      <div className="text-xs font-black uppercase tracking-wider text-black/70 mb-2">
-                        <span>{t('gameWhoAmI.currentAsker')}: </span>
-                        <span className="font-black text-black bg-yellow-300 px-2 py-0.5 border border-black inline-block">
-                          {currentTurnPlayer?.name}
+                      <div className="text-xs font-black uppercase tracking-wider text-black/70 mb-2 flex items-center justify-between gap-2">
+                        <span>
+                          <span>{t('gameWhoAmI.currentAsker')}: </span>
+                          <span className="font-black text-black bg-yellow-300 px-2 py-0.5 border border-black inline-block">
+                            {currentTurnPlayer?.name}
+                          </span>
                         </span>
+                        <CountdownBadge
+                          deadline={gameState.turnDeadline}
+                          serverOffset={serverOffset}
+                          format="seconds"
+                          prefix="⏱ "
+                          className="font-black text-sm border-2 border-black px-2 py-0.5 bg-yellow-300"
+                        />
                       </div>
                       <div className="text-xs font-black uppercase tracking-wider text-black/70 mb-2">
                         {t('gameWhoAmI.whoMayVote')}:
