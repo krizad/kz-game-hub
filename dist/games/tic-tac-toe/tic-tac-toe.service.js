@@ -21,6 +21,34 @@ let TicTacToeService = class TicTacToeService {
     isValidIndex(index) {
         return Number.isInteger(index) && index >= 0 && index < 9;
     }
+    stampTurnDeadline(room, ttt) {
+        if (ttt.winner) {
+            ttt.turnDeadline = null;
+            return;
+        }
+        const seconds = room.config?.ticTacToeTurnSeconds ?? 0;
+        const currentSeat = ttt.currentTurn === 'X' ? ttt.playerXId : ttt.playerOId;
+        if (seconds > 0 && currentSeat && currentSeat !== types_1.BOT_SOCKET_ID) {
+            ttt.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            ttt.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        if (room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        const ttt = room.ticTacToeState;
+        if (!ttt || ttt.turnDeadline !== deadline)
+            return null;
+        const currentSeat = ttt.currentTurn === 'X' ? ttt.playerXId : ttt.playerOId;
+        if (!currentSeat || currentSeat === types_1.BOT_SOCKET_ID)
+            return null;
+        const move = (0, tic_tac_toe_ai_1.getRandomMove)(ttt.board);
+        if (move < 0 || !this.isValidIndex(move))
+            return null;
+        return this.makeMove(room, currentSeat, move);
+    }
     executeBotMoveIfNeeded(room) {
         if (!this.isClassicTTTRoom(room) || room.status !== types_1.RoomStatus.PLAYING)
             return false;
@@ -33,7 +61,9 @@ let TicTacToeService = class TicTacToeService {
         if (!botSide || ttt.currentTurn !== botSide)
             return false;
         const difficulty = room.config.ticTacToeBotDifficulty ?? 'GOD';
-        const move = difficulty === 'EASY' ? (0, tic_tac_toe_ai_1.getRandomMove)(ttt.board) : (0, tic_tac_toe_ai_1.getBestMove)(ttt.board, botSide);
+        const move = difficulty === 'EASY'
+            ? (0, tic_tac_toe_ai_1.getRandomMove)(ttt.board)
+            : (0, tic_tac_toe_ai_1.getBestMove)(ttt.board, botSide, difficulty === 'MEDIUM' ? 2 : Infinity);
         if (move < 0 || move >= 9 || ttt.board[move] !== null)
             return false;
         ttt.board[move] = botSide;
@@ -42,6 +72,7 @@ let TicTacToeService = class TicTacToeService {
             ttt.winner = winner;
             ttt.winningLine = line;
             room.status = types_1.RoomStatus.RESULT;
+            ttt.turnDeadline = null;
             const botPlayer = room.players.find((p) => p.socketId === types_1.BOT_SOCKET_ID);
             if (botPlayer)
                 botPlayer.score += 1;
@@ -49,9 +80,11 @@ let TicTacToeService = class TicTacToeService {
         else if (!ttt.board.includes(null)) {
             ttt.winner = 'DRAW';
             room.status = types_1.RoomStatus.RESULT;
+            ttt.turnDeadline = null;
         }
         else {
             ttt.currentTurn = botSide === 'X' ? 'O' : 'X';
+            this.stampTurnDeadline(room, ttt);
         }
         return true;
     }
@@ -79,6 +112,7 @@ let TicTacToeService = class TicTacToeService {
             if (!options?.deferBotMove) {
                 this.executeBotMoveIfNeeded(room);
             }
+            this.stampTurnDeadline(room, ttt);
             return room;
         }
         const otherSide = side === 'X' ? 'O' : 'X';
@@ -105,6 +139,7 @@ let TicTacToeService = class TicTacToeService {
             return null;
         if (ttt.playerXId && ttt.playerOId) {
             room.status = types_1.RoomStatus.PLAYING;
+            this.stampTurnDeadline(room, ttt);
         }
         return room;
     }
@@ -148,6 +183,7 @@ let TicTacToeService = class TicTacToeService {
             ttt.winner = winner;
             ttt.winningLine = line;
             room.status = types_1.RoomStatus.RESULT;
+            ttt.turnDeadline = null;
             const winnerPlayerId = winner === 'X' ? ttt.playerXId : ttt.playerOId;
             const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
             if (winnerPlayer)
@@ -156,12 +192,14 @@ let TicTacToeService = class TicTacToeService {
         else if (!ttt.board.includes(null)) {
             ttt.winner = 'DRAW';
             room.status = types_1.RoomStatus.RESULT;
+            ttt.turnDeadline = null;
         }
         else {
             ttt.currentTurn = ttt.currentTurn === 'X' ? 'O' : 'X';
             if (room.config.ticTacToeVsBot && !options?.deferBotMove) {
                 this.executeBotMoveIfNeeded(room);
             }
+            this.stampTurnDeadline(room, ttt);
         }
         return room;
     }
@@ -188,6 +226,7 @@ let TicTacToeService = class TicTacToeService {
         if (room.status === types_1.RoomStatus.PLAYING && room.config.ticTacToeVsBot) {
             this.executeBotMoveIfNeeded(room);
         }
+        this.stampTurnDeadline(room, room.ticTacToeState);
         return room;
     }
     remapSocketId(state, oldSocketId, newSocketId) {

@@ -278,5 +278,10 @@ export declare class GamesService {
     battleshipFire(code: string, clientId: string, payload: BattleshipFirePayload): RoomState | null;
     battleshipPing(code: string, clientId: string, payload: BattleshipPingPayload): RoomState | null;
     battleshipPhaseTimeout(code: string, deadline: number): RoomState | null;
+    ticTacToeTurnTimeout(code: string, mode: 'CLASSIC' | 'GOBBLER' | 'ULTIMATE', deadline: number): RoomState | null;
+    rpsTurnTimeout(code: string, deadline: number): RoomState | null;
+    whoAmITurnTimeout(code: string, deadline: number): RoomState | null;
+    soundsFishyTurnTimeout(code: string, deadline: number): RoomState | null;
+    detectiveClubTurnTimeout(code: string, deadline: number): RoomState | null;
     private getPlayerId;
 }

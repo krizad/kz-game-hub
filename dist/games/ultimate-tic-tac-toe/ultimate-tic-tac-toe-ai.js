@@ -121,6 +121,10 @@ function getUltimateMove(uttt, botSide, difficulty = 'GOD') {
         scoredMoves.push({ move, score });
     }
     scoredMoves.sort((a, b) => b.score - a.score);
+    if (difficulty === 'MEDIUM') {
+        const topPool = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
+        return topPool[Math.floor(Math.random() * topPool.length)].move;
+    }
     const bestScore = scoredMoves[0].score;
     const bestTies = scoredMoves.filter((sm) => sm.score >= bestScore - 15);
     const chosen = bestTies[Math.floor(Math.random() * bestTies.length)];

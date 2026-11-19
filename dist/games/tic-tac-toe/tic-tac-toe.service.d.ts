@@ -3,6 +3,8 @@ export declare class TicTacToeService {
     private isMember;
     private isClassicTTTRoom;
     private isValidIndex;
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     executeBotMoveIfNeeded(room: RoomState): boolean;
     joinSide(room: RoomState, clientId: string, side: 'X' | 'O', options?: {
         deferBotMove?: boolean;

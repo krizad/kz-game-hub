@@ -382,6 +382,11 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     }, client: Socket): void;
     private broadcastRoomState;
     private syncBattleshipTimer;
+    private syncTicTacToeTimer;
+    private syncRpsTimer;
+    private syncWhoAmITimer;
+    private syncSoundsFishyTimer;
+    private syncDetectiveClubTimer;
     private syncWerewolfTimer;
     private syncDogRelayTimer;
     private emitMusicTriviaSyncPlay;

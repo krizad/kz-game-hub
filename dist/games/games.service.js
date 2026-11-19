@@ -1770,6 +1770,30 @@ let GamesService = GamesService_1 = class GamesService {
     battleshipPhaseTimeout(code, deadline) {
         return this.withRoom(code, (room) => this.battleshipService.handleTimeout(room, deadline));
     }
+    ticTacToeTurnTimeout(code, mode, deadline) {
+        return this.withRoom(code, (room) => {
+            switch (mode) {
+                case 'GOBBLER':
+                    return this.gobblerService.handleTurnTimeout(room, deadline);
+                case 'ULTIMATE':
+                    return this.ultimateTicTacToeService.handleTurnTimeout(room, deadline);
+                default:
+                    return this.ticTacToeService.handleTurnTimeout(room, deadline);
+            }
+        });
+    }
+    rpsTurnTimeout(code, deadline) {
+        return this.withRoom(code, (room) => this.rpsService.handleTurnTimeout(room, deadline));
+    }
+    whoAmITurnTimeout(code, deadline) {
+        return this.withRoom(code, (room) => this.whoAmIService.handleTurnTimeout(room, deadline));
+    }
+    soundsFishyTurnTimeout(code, deadline) {
+        return this.withRoom(code, (room) => this.soundsFishyService.handleTurnTimeout(room, deadline));
+    }
+    detectiveClubTurnTimeout(code, deadline) {
+        return this.withRoom(code, (room) => this.detectiveClubService.handleTurnTimeout(room, deadline));
+    }
     getPlayerId(room, socketId) {
         return room.players.find((player) => player.socketId === socketId)?.id ?? null;
     }

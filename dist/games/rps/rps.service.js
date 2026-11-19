@@ -19,6 +19,67 @@ let RPSService = class RPSService {
     constructor(privateState) {
         this.privateState = privateState;
     }
+    stampTurnDeadline(room) {
+        const rps = room.rpsState;
+        if (!rps)
+            return;
+        const seconds = room.config?.rpsTurnSeconds ?? 0;
+        if (seconds > 0 && room.status === types_1.RoomStatus.PLAYING && rps.activePlayers.length >= 2) {
+            rps.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            rps.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        if (room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        const rps = room.rpsState;
+        if (!rps || rps.turnDeadline !== deadline)
+            return null;
+        for (const id of rps.activePlayers) {
+            if (this.privateState.has(room.code, id, RPS_CHOICE_KEY))
+                continue;
+            const player = room.players.find((p) => p.socketId === id);
+            if (!player || player.isViewer)
+                continue;
+            const pick = VALID_CHOICES[Math.floor(Math.random() * VALID_CHOICES.length)];
+            this.privateState.set(room.code, id, RPS_CHOICE_KEY, pick);
+            if (!rps.choicesMade.includes(id)) {
+                rps.choicesMade.push(id);
+            }
+        }
+        this.resolveIfComplete(room);
+        rps.turnDeadline = null;
+        return room;
+    }
+    resolveIfComplete(room) {
+        const rps = room.rpsState;
+        if (!rps || rps.gameWinner)
+            return;
+        const activeSeatIds = rps.activePlayers.filter((id) => room.players.some((p) => p.socketId === id && !p.isViewer));
+        const allChosen = activeSeatIds.length >= 2 &&
+            activeSeatIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
+        if (!allChosen)
+            return;
+        const revealed = this.revealChoices(room);
+        if (room.config.rpsMode === 'ALL_AT_ONCE') {
+            this.resolveAllAtOnceRound(room, revealed);
+        }
+        else {
+            this.resolve1v1Round(room, revealed);
+        }
+        const bestOf = room.config.rpsBestOf || 3;
+        const targetScore = Math.floor(bestOf / 2) + 1;
+        const gameWinners = Object.entries(rps.scores)
+            .filter(([, score]) => score >= targetScore)
+            .map(([id]) => id);
+        if (gameWinners.length > 0) {
+            rps.gameWinner = gameWinners.length === 1 ? gameWinners[0] : gameWinners;
+        }
+        room.status = types_1.RoomStatus.RESULT;
+        rps.turnDeadline = null;
+    }
     assignRoles(room, requesterId) {
         if (room.gameType !== types_1.GameType.RPS)
             return null;
@@ -52,6 +113,7 @@ let RPSService = class RPSService {
         for (const id of connectedIds) {
             this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
         }
+        this.stampTurnDeadline(room);
         return { room, roles: {} };
     }
     makeChoice(room, clientId, choice) {
@@ -70,27 +132,7 @@ let RPSService = class RPSService {
         if (!rps.choicesMade.includes(clientId)) {
             rps.choicesMade.push(clientId);
         }
-        const activeSeatIds = rps.activePlayers.filter((id) => room.players.some((p) => p.socketId === id && !p.isViewer));
-        const allChosen = activeSeatIds.length >= 2 &&
-            activeSeatIds.every((id) => this.privateState.has(room.code, id, RPS_CHOICE_KEY));
-        if (allChosen) {
-            const revealed = this.revealChoices(room);
-            if (room.config.rpsMode === 'ALL_AT_ONCE') {
-                this.resolveAllAtOnceRound(room, revealed);
-            }
-            else {
-                this.resolve1v1Round(room, revealed);
-            }
-            const bestOf = room.config.rpsBestOf || 3;
-            const targetScore = Math.floor(bestOf / 2) + 1;
-            const gameWinners = Object.entries(rps.scores)
-                .filter(([, score]) => score >= targetScore)
-                .map(([id]) => id);
-            if (gameWinners.length > 0) {
-                rps.gameWinner = gameWinners.length === 1 ? gameWinners[0] : gameWinners;
-            }
-            room.status = types_1.RoomStatus.RESULT;
-        }
+        this.resolveIfComplete(room);
         return room;
     }
     handlePlayerRemoved(room, removedSocketId) {
@@ -136,6 +178,7 @@ let RPSService = class RPSService {
             return;
         }
         room.status = types_1.RoomStatus.PLAYING;
+        this.stampTurnDeadline(room);
     }
     revealChoices(room) {
         const taken = this.privateState.takeRoomData(room.code, RPS_CHOICE_KEY);
@@ -244,6 +287,7 @@ let RPSService = class RPSService {
             this.privateState.delete(room.code, id, RPS_CHOICE_KEY);
         }
         room.status = types_1.RoomStatus.PLAYING;
+        this.stampTurnDeadline(room);
         return room;
     }
     reset(room, clientId) {

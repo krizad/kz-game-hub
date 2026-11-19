@@ -3,6 +3,9 @@ import { PrivateStateService } from '../private-state.service';
 export declare class RPSService {
     private readonly privateState;
     constructor(privateState: PrivateStateService);
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
+    private resolveIfComplete;
     assignRoles(room: RoomState, requesterId: string): {
         room: RoomState;
         roles: Record<string, Role>;

@@ -51,6 +51,35 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
     isUltimateTTTRoom(room) {
         return room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'ULTIMATE';
     }
+    stampTurnDeadline(room, uttt) {
+        if (uttt.winner) {
+            uttt.turnDeadline = null;
+            return;
+        }
+        const seconds = room.config?.ticTacToeTurnSeconds ?? 0;
+        const currentSeat = uttt.currentTurn === 'X' ? uttt.playerXId : uttt.playerOId;
+        if (seconds > 0 && currentSeat && currentSeat !== types_1.BOT_SOCKET_ID) {
+            uttt.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            uttt.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        if (room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        const uttt = room.ultimateTicTacToeState;
+        if (!uttt || uttt.turnDeadline !== deadline)
+            return null;
+        const currentSeat = uttt.currentTurn === 'X' ? uttt.playerXId : uttt.playerOId;
+        if (!currentSeat || currentSeat === types_1.BOT_SOCKET_ID)
+            return null;
+        const legalMoves = (0, ultimate_tic_tac_toe_ai_1.getLegalUltimateMoves)(uttt);
+        if (legalMoves.length === 0)
+            return null;
+        const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+        return this.makeMove(room, currentSeat, move.macroIndex, move.microIndex);
+    }
     executeBotMoveIfNeeded(room) {
         if (!this.isUltimateTTTRoom(room) || room.status !== types_1.RoomStatus.PLAYING) {
             return false;
@@ -95,6 +124,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
             if (!options?.deferBotMove) {
                 this.executeBotMoveIfNeeded(room);
             }
+            this.stampTurnDeadline(room, uttt);
             return room;
         }
         const otherSide = side === 'X' ? 'O' : 'X';
@@ -122,6 +152,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
             return null;
         if (uttt.playerXId && uttt.playerOId) {
             room.status = types_1.RoomStatus.PLAYING;
+            this.stampTurnDeadline(room, uttt);
         }
         return room;
     }
@@ -166,6 +197,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
             uttt.winner = macroWin.winner;
             uttt.winningMacroLine = macroWin.line;
             room.status = types_1.RoomStatus.RESULT;
+            uttt.turnDeadline = null;
             const winnerPlayerId = macroWin.winner === 'X' ? uttt.playerXId : uttt.playerOId;
             const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
             if (winnerPlayer)
@@ -176,6 +208,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
         if (!hasPlayableSubBoard) {
             uttt.winner = 'DRAW';
             room.status = types_1.RoomStatus.RESULT;
+            uttt.turnDeadline = null;
             return room;
         }
         const targetSubBoard = uttt.subBoards[microIndex];
@@ -186,6 +219,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
             uttt.activeMacroIndex = microIndex;
         }
         uttt.currentTurn = uttt.currentTurn === 'X' ? 'O' : 'X';
+        this.stampTurnDeadline(room, uttt);
         return room;
     }
     reset(room, clientId, toLobby = false, options) {
@@ -219,6 +253,7 @@ let UltimateTicTacToeService = class UltimateTicTacToeService {
                 this.executeBotMoveIfNeeded(room);
             }
         }
+        this.stampTurnDeadline(room, room.ultimateTicTacToeState);
         return room;
     }
     remapSocketId(state, oldSocketId, newSocketId) {

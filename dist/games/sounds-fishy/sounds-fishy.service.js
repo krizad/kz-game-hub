@@ -38,6 +38,64 @@ let SoundsFishyService = class SoundsFishyService {
         }
         return a;
     }
+    stampTurnDeadline(room) {
+        const state = room.soundsFishyState;
+        if (!state)
+            return;
+        const seconds = room.config?.soundsFishyTurnSeconds ?? 0;
+        if (seconds > 0 && room.status === types_1.RoomStatus.QUESTIONING) {
+            state.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            state.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        const state = room.soundsFishyState;
+        if (!state || room.status !== types_1.RoomStatus.QUESTIONING)
+            return null;
+        if (state.turnDeadline !== deadline)
+            return null;
+        if (state.currentPhase === types_1.SoundsFishyPhase.SETUP) {
+            const requiredAnswerers = room.players.filter((p) => !p.isViewer && p.socketId !== state.pickerId && p.connected !== false);
+            const answers = this.privateState.getRoomData(room.code, SF_MY_ANSWER);
+            const trueAnswer = this.getTrueAnswer(room);
+            for (const p of requiredAnswerers) {
+                if (answers.has(p.socketId))
+                    continue;
+                const autoAnswer = p.socketId === this.getBlueFishId(room)
+                    ? trueAnswer
+                    : this.getRedHerringIds(room).includes(p.socketId)
+                        ? '…'
+                        : trueAnswer;
+                this.submitAnswer(room, p.socketId, autoAnswer);
+            }
+            this.stampTurnDeadline(room);
+            return room;
+        }
+        if (state.currentPhase === types_1.SoundsFishyPhase.THE_PITCH ||
+            state.currentPhase === types_1.SoundsFishyPhase.THE_HUNT) {
+            const nonPickerIds = room.players
+                .filter((p) => p.connected !== false && !p.isViewer)
+                .map((p) => p.socketId)
+                .filter((id) => id !== state.pickerId);
+            for (const id of nonPickerIds) {
+                if (state.playerAnswers[id]?.isRevealed)
+                    continue;
+                this.revealPlayer(room, state.pickerId, id);
+            }
+            if (state.roundScorePool > 0) {
+                this.bankPoints(room, state.pickerId);
+            }
+            else {
+                const blueFishId = this.getBlueFishId(room);
+                if (blueFishId && !state.eliminatedPlayers.includes(blueFishId)) {
+                    this.eliminatePlayer(room, state.pickerId, blueFishId);
+                }
+            }
+        }
+        return room;
+    }
     isMember(room, socketId) {
         return room.players.some((p) => p.socketId === socketId && !p.isViewer);
     }
@@ -154,6 +212,7 @@ let SoundsFishyService = class SoundsFishyService {
             };
             room.status = types_1.RoomStatus.QUESTIONING;
             room.soundsFishyState = state;
+            this.stampTurnDeadline(room);
             const roles = {};
             room.players.forEach((p) => {
                 p.role = null;
@@ -185,6 +244,7 @@ let SoundsFishyService = class SoundsFishyService {
         const answeredCount = requiredAnswerers.filter((p) => answers.has(p.socketId)).length;
         if (answeredCount >= requiredAnswerers.length && requiredAnswerers.length > 0) {
             state.currentPhase = types_1.SoundsFishyPhase.THE_PITCH;
+            this.stampTurnDeadline(room);
             return true;
         }
         return false;
@@ -290,6 +350,7 @@ let SoundsFishyService = class SoundsFishyService {
             });
             state.roundPoints[state.pickerId] = 0;
             state.currentPhase = types_1.SoundsFishyPhase.SCORING;
+            state.turnDeadline = null;
             room.status = types_1.RoomStatus.RESULT;
             this.revealRoles(room);
         }
@@ -308,6 +369,7 @@ let SoundsFishyService = class SoundsFishyService {
                 if (blueFishId)
                     state.roundPoints[blueFishId] = 0;
                 state.currentPhase = types_1.SoundsFishyPhase.SCORING;
+                state.turnDeadline = null;
                 room.status = types_1.RoomStatus.RESULT;
                 this.revealRoles(room);
             }
@@ -334,6 +396,7 @@ let SoundsFishyService = class SoundsFishyService {
         if (blueFishId)
             state.roundPoints[blueFishId] = 0;
         state.currentPhase = types_1.SoundsFishyPhase.SCORING;
+        state.turnDeadline = null;
         room.status = types_1.RoomStatus.RESULT;
         this.revealRoles(room);
         return room;

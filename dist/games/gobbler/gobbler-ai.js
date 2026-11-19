@@ -179,6 +179,11 @@ function getGobblerMove(gb, botSide, difficulty = 'GOD') {
         const randomChoice = candidates[Math.floor(Math.random() * candidates.length)];
         return randomChoice.move;
     }
+    if (difficulty === 'MEDIUM') {
+        scoredMoves.sort((a, b) => b.score - a.score);
+        const topPool = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
+        return topPool[Math.floor(Math.random() * topPool.length)].move;
+    }
     scoredMoves.sort((a, b) => b.score - a.score);
     const bestScore = scoredMoves[0].score;
     const bestTies = scoredMoves.filter((sm) => sm.score >= bestScore - 10);

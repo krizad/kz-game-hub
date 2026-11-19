@@ -28,6 +28,38 @@ let GobblerService = class GobblerService {
     isValidIndex(index) {
         return Number.isInteger(index) && index >= 0 && index < 9;
     }
+    stampTurnDeadline(room, gb) {
+        if (gb.winner) {
+            gb.turnDeadline = null;
+            return;
+        }
+        const seconds = room.config?.ticTacToeTurnSeconds ?? 0;
+        const currentSeat = gb.currentTurn === 'X' ? gb.playerXId : gb.playerOId;
+        if (seconds > 0 && currentSeat && currentSeat !== types_1.BOT_SOCKET_ID) {
+            gb.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            gb.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        if (room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        const gb = room.gobblerState;
+        if (!gb || gb.turnDeadline !== deadline)
+            return null;
+        const currentSeat = gb.currentTurn === 'X' ? gb.playerXId : gb.playerOId;
+        if (!currentSeat || currentSeat === types_1.BOT_SOCKET_ID)
+            return null;
+        const legalMoves = (0, gobbler_ai_1.getLegalGobblerMoves)(gb, gb.currentTurn);
+        if (legalMoves.length === 0)
+            return null;
+        const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+        if (move.type === 'PLACE') {
+            return this.placePiece(room, currentSeat, move.pieceId, move.toIndex);
+        }
+        return this.movePiece(room, currentSeat, move.fromIndex, move.toIndex);
+    }
     isGobblerRoom(room) {
         return room.gameType === types_1.GameType.TIC_TAC_TOE && room.config.ticTacToeMode === 'GOBBLER';
     }
@@ -79,6 +111,7 @@ let GobblerService = class GobblerService {
             if (!options?.deferBotMove) {
                 this.executeBotMoveIfNeeded(room);
             }
+            this.stampTurnDeadline(room, gb);
             return room;
         }
         const otherSide = side === 'X' ? 'O' : 'X';
@@ -105,6 +138,7 @@ let GobblerService = class GobblerService {
             return null;
         if (gb.playerXId && gb.playerOId) {
             room.status = types_1.RoomStatus.PLAYING;
+            this.stampTurnDeadline(room, gb);
         }
         return room;
     }
@@ -224,6 +258,7 @@ let GobblerService = class GobblerService {
             gb.winner = winner;
             gb.winningLine = line;
             room.status = types_1.RoomStatus.RESULT;
+            gb.turnDeadline = null;
             if (winner !== 'DRAW') {
                 const winnerPlayerId = winner === 'X' ? gb.playerXId : gb.playerOId;
                 const winnerPlayer = room.players.find((p) => p.socketId === winnerPlayerId);
@@ -237,6 +272,7 @@ let GobblerService = class GobblerService {
         }
         else {
             gb.currentTurn = gb.currentTurn === 'X' ? 'O' : 'X';
+            this.stampTurnDeadline(room, gb);
         }
         return room;
     }
@@ -270,6 +306,7 @@ let GobblerService = class GobblerService {
                 this.executeBotMoveIfNeeded(room);
             }
         }
+        this.stampTurnDeadline(room, room.gobblerState);
         return room;
     }
     remapSocketId(state, oldSocketId, newSocketId) {

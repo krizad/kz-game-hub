@@ -7,6 +7,8 @@ export declare class SoundsFishyService {
     private readonly startGuard;
     constructor(privateState: PrivateStateService, startGuard: RoomStartGuardService);
     private shuffleArray;
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     private isMember;
     private getTrueAnswer;
     private getBlueFishId;

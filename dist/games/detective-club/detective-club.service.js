@@ -25,12 +25,67 @@ const DC_ROOM_WORD = 'dcRoomWord';
 const DC_ROOM_DECK = 'dcRoomDeck';
 const DC_ROOM_DISCARD = 'dcRoomDiscard';
 const MAX_WORD_LENGTH = 30;
+const AUTO_WORDS_TH = ['สวนสัตว์', 'โรงแรม', 'สนามฟุตบอล', 'ตลาดนัด', 'สำนักงาน'];
+const AUTO_WORDS_EN = ['zoo', 'hotel', 'stadium', 'market', 'office'];
 let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
     constructor(privateState) {
         this.privateState = privateState;
         this.logger = new common_1.Logger(DetectiveClubService_1.name);
         this.availableCards = [];
         this.loadAvailableCards();
+    }
+    stampTurnDeadline(room) {
+        const state = room.detectiveClubState;
+        if (!state)
+            return;
+        const seconds = room.config?.detectiveClubTurnSeconds ?? 0;
+        if (seconds > 0 && room.status === types_1.RoomStatus.PLAYING) {
+            state.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            state.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        const state = room.detectiveClubState;
+        if (!state || room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        if (state.turnDeadline !== deadline)
+            return null;
+        if (state.currentPhase === types_1.DetectiveClubPhase.SETUP) {
+            const words = (room.config.language || 'th') === 'th' ? AUTO_WORDS_TH : AUTO_WORDS_EN;
+            this.submitWord(room, state.informerId, words[Math.floor(Math.random() * words.length)]);
+            this.stampTurnDeadline(room);
+            return room;
+        }
+        if (state.currentPhase === types_1.DetectiveClubPhase.PLAYING_ROUND_1 ||
+            state.currentPhase === types_1.DetectiveClubPhase.PLAYING_ROUND_2) {
+            if (state.activePlayerId) {
+                const hand = this.getHand(room, state.activePlayerId);
+                if (hand.length > 0) {
+                    this.playCard(room, state.activePlayerId, Math.floor(Math.random() * hand.length));
+                }
+            }
+            this.stampTurnDeadline(room);
+            return room;
+        }
+        if (state.currentPhase === types_1.DetectiveClubPhase.DISCUSSION) {
+            this.nextPhase(room, room.roomHostId);
+            this.stampTurnDeadline(room);
+            return room;
+        }
+        if (state.currentPhase === types_1.DetectiveClubPhase.VOTING) {
+            const activePlayerIds = new Set(this.participatingIds(room));
+            const votingPlayers = Object.values(state.players).filter((p) => p.id !== state.informerId && activePlayerIds.has(p.id) && p.votedFor === null);
+            for (const voter of votingPlayers) {
+                const candidates = this.participatingIds(room).filter((id) => id !== state.informerId && id !== voter.id);
+                if (candidates.length === 0)
+                    break;
+                const target = candidates[Math.floor(Math.random() * candidates.length)];
+                this.submitVote(room, voter.id, target);
+            }
+        }
+        return room;
     }
     shuffleArray(arr) {
         const a = [...arr];
@@ -193,6 +248,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         room.status = types_1.RoomStatus.PLAYING;
         room.detectiveClubState = state;
         this.syncHandSizes(room);
+        this.stampTurnDeadline(room);
         return room;
     }
     submitWord(room, playerId, word) {
@@ -223,6 +279,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
             state.playOrder.push(playerIds[(informerIndex + i) % playerIds.length]);
         }
         state.activePlayerId = state.informerId;
+        this.stampTurnDeadline(room);
         return room;
     }
     playCard(room, playerId, cardIndex) {
@@ -262,16 +319,19 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
                 state.currentPhase = types_1.DetectiveClubPhase.PLAYING_ROUND_2;
                 state.activePlayerId =
                     state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
+                this.stampTurnDeadline(room);
             }
             else {
                 state.currentPhase = types_1.DetectiveClubPhase.DISCUSSION;
                 state.activePlayerId =
                     state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
                 state.word = this.getSecretWord(room);
+                this.stampTurnDeadline(room);
             }
         }
         else {
             state.activePlayerId = nextPlayerId;
+            this.stampTurnDeadline(room);
         }
         this.syncHandSizes(room);
         return room;
@@ -285,6 +345,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         if (room.roomHostId !== requesterId)
             return null;
         state.currentPhase = types_1.DetectiveClubPhase.VOTING;
+        this.stampTurnDeadline(room);
         return room;
     }
     submitVote(room, playerId, targetId) {
@@ -319,6 +380,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         const state = room.detectiveClubState;
         state.currentPhase = types_1.DetectiveClubPhase.SCORING;
         room.status = types_1.RoomStatus.RESULT;
+        state.turnDeadline = null;
         state.scoreDeltas = {};
         const conspiratorId = this.getConspiratorId(room);
         state.conspiratorId = conspiratorId;
@@ -401,6 +463,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
             const activePlayerIds = new Set(this.participatingIds(room));
             state.activePlayerId =
                 state.playOrder.find((id) => activePlayerIds.has(id)) || state.playOrder[0];
+            this.stampTurnDeadline(room);
             return;
         }
         if (state.currentPhase === types_1.DetectiveClubPhase.VOTING) {
@@ -481,6 +544,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
         state.playOrder = [];
         state.round1StarterId = nextInformerId;
         state.scoreDeltas = undefined;
+        this.stampTurnDeadline(room);
         return room;
     }
     reset(room, requesterId) {

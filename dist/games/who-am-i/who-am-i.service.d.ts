@@ -11,6 +11,8 @@ export declare class WhoAmIService {
     syncVisibleWords(room: RoomState): void;
     private finishGame;
     private createGameState;
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     getCategories(lang?: string): Promise<WordCategory[]>;
     private fetchRandomWords;
     startGameHostInput(room: RoomState, requesterId: string, playerWords: Record<string, string>): RoomState | null;

@@ -1572,6 +1572,21 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.BATTLESHIP) {
             this.syncBattleshipTimer(room);
         }
+        if (room.gameType === types_1.GameType.TIC_TAC_TOE) {
+            this.syncTicTacToeTimer(room);
+        }
+        if (room.gameType === types_1.GameType.RPS) {
+            this.syncRpsTimer(room);
+        }
+        if (room.gameType === types_1.GameType.WHO_AM_I) {
+            this.syncWhoAmITimer(room);
+        }
+        if (room.gameType === types_1.GameType.SOUNDS_FISHY) {
+            this.syncSoundsFishyTimer(room);
+        }
+        if (room.gameType === types_1.GameType.DETECTIVE_CLUB) {
+            this.syncDetectiveClubTimer(room);
+        }
     }
     syncBattleshipTimer(room) {
         const state = room.battleshipState;
@@ -1582,6 +1597,71 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const deadline = state.turnDeadline;
         this.roomTimerService.schedule(room.code, 'battleship', deadline, () => {
             const updated = this.gamesService.battleshipPhaseTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
+    }
+    syncTicTacToeTimer(room) {
+        const mode = room.config?.ticTacToeMode || 'CLASSIC';
+        const deadline = mode === 'GOBBLER'
+            ? (room.gobblerState?.turnDeadline ?? null)
+            : mode === 'ULTIMATE'
+                ? (room.ultimateTicTacToeState?.turnDeadline ?? null)
+                : (room.ticTacToeState?.turnDeadline ?? null);
+        if (room.status !== types_1.RoomStatus.PLAYING || !deadline) {
+            this.roomTimerService.cancel(room.code, 'ttt-turn');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'ttt-turn', deadline, () => {
+            const updated = this.gamesService.ticTacToeTurnTimeout(room.code, mode, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
+    }
+    syncRpsTimer(room) {
+        const deadline = room.rpsState?.turnDeadline ?? null;
+        if (room.status !== types_1.RoomStatus.PLAYING || !deadline) {
+            this.roomTimerService.cancel(room.code, 'rps-turn');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'rps-turn', deadline, () => {
+            const updated = this.gamesService.rpsTurnTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
+    }
+    syncWhoAmITimer(room) {
+        const deadline = room.whoAmIState?.turnDeadline ?? null;
+        if (room.status !== types_1.RoomStatus.PLAYING || !deadline) {
+            this.roomTimerService.cancel(room.code, 'who-am-i-turn');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'who-am-i-turn', deadline, () => {
+            const updated = this.gamesService.whoAmITurnTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
+    }
+    syncSoundsFishyTimer(room) {
+        const deadline = room.soundsFishyState?.turnDeadline ?? null;
+        if (room.status !== types_1.RoomStatus.QUESTIONING || !deadline) {
+            this.roomTimerService.cancel(room.code, 'sounds-fishy-turn');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'sounds-fishy-turn', deadline, () => {
+            const updated = this.gamesService.soundsFishyTurnTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
+    }
+    syncDetectiveClubTimer(room) {
+        const deadline = room.detectiveClubState?.turnDeadline ?? null;
+        if (room.status !== types_1.RoomStatus.PLAYING || !deadline) {
+            this.roomTimerService.cancel(room.code, 'detective-club-turn');
+            return;
+        }
+        this.roomTimerService.schedule(room.code, 'detective-club-turn', deadline, () => {
+            const updated = this.gamesService.detectiveClubTurnTimeout(room.code, deadline);
             if (updated)
                 this.broadcastRoomState(updated);
         });

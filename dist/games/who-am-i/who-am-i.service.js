@@ -68,6 +68,7 @@ let WhoAmIService = class WhoAmIService {
     finishGame(room, gameState, winner) {
         gameState.winner = winner;
         room.status = types_1.RoomStatus.RESULT;
+        gameState.turnDeadline = null;
         const revealedWords = {};
         for (const p of room.players) {
             const word = this.privateState.get(room.code, p.socketId, WAI_MY_WORD);
@@ -90,6 +91,35 @@ let WhoAmIService = class WhoAmIService {
             finalGuessUsed: [],
             wordSubmittedIds: [],
         };
+    }
+    stampTurnDeadline(room, gameState) {
+        const seconds = room.config?.whoAmITurnSeconds ?? 0;
+        if (seconds > 0 &&
+            room.status === types_1.RoomStatus.PLAYING &&
+            (gameState.phase === 'ASKING' || gameState.phase === 'FINAL_GUESS') &&
+            gameState.turnStatus === 'VOTING') {
+            gameState.turnDeadline = Date.now() + seconds * 1000;
+        }
+        else {
+            gameState.turnDeadline = null;
+        }
+    }
+    handleTurnTimeout(room, deadline) {
+        if (room.status !== types_1.RoomStatus.PLAYING)
+            return null;
+        const gameState = room.whoAmIState;
+        if (!gameState || gameState.turnDeadline !== deadline)
+            return null;
+        if (gameState.turnStatus !== 'VOTING')
+            return null;
+        for (const p of this.eligiblePlayers(room)) {
+            if (p.socketId === gameState.currentTurn)
+                continue;
+            if (gameState.votes[p.socketId])
+                continue;
+            gameState.votes[p.socketId] = 'MAYBE';
+        }
+        return room;
     }
     async getCategories(lang) {
         const where = lang ? { lang } : {};
@@ -143,6 +173,7 @@ let WhoAmIService = class WhoAmIService {
         const gameState = this.createGameState(room, shuffled[0].socketId, 'ASKING');
         gameState.hostSocketId = requesterId;
         room.whoAmIState = gameState;
+        this.stampTurnDeadline(room, gameState);
         return room;
     }
     async startGameAiGenerated(room, requesterId) {
@@ -270,6 +301,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             this.syncVisibleWords(room);
             const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
             room.whoAmIState = gameState;
+            this.stampTurnDeadline(room, gameState);
             return room;
         }
         finally {
@@ -307,6 +339,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             this.syncVisibleWords(room);
             const gameState = this.createGameState(room, shuffledPlayers[0].socketId, 'ASKING');
             room.whoAmIState = gameState;
+            this.stampTurnDeadline(room, gameState);
             return room;
         }
         finally {
@@ -405,6 +438,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         gameState.wordSubmittedIds = [];
         const shuffledPlayers = this.shuffleArray(this.eligiblePlayers(room).filter((p) => p.connected !== false));
         gameState.currentTurn = shuffledPlayers[0].socketId;
+        this.stampTurnDeadline(room, gameState);
     }
     eligiblePlayers(room) {
         const gameHostId = room.whoAmIState?.hostSocketId ?? room.roomHostId;
@@ -451,6 +485,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             gameState.votes = {};
             gameState.guessResult = undefined;
             gameState.guessedWord = undefined;
+            this.stampTurnDeadline(room, gameState);
         }
     }
     handlePlayerDisconnect(room, socketId) {
@@ -479,6 +514,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
         gameState.votes = {};
         gameState.guessResult = undefined;
         gameState.guessedWord = undefined;
+        this.stampTurnDeadline(room, gameState);
         return room;
     }
     handleGameAction(room, requesterId, action) {
@@ -531,6 +567,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             gameState.currentGuess = null;
             gameState.turnStatus = 'VOTING';
             gameState.votes = {};
+            this.stampTurnDeadline(room, gameState);
             return room;
         }
         if (action.type === 'GUESS_WORD') {
@@ -606,6 +643,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
                     gameState.votes = {};
                     gameState.guessResult = undefined;
                     gameState.guessedWord = undefined;
+                    this.stampTurnDeadline(room, gameState);
                 }
             }
             return room;

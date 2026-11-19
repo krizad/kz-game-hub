@@ -5,6 +5,8 @@ export declare class DetectiveClubService {
     private readonly logger;
     private availableCards;
     constructor(privateState: PrivateStateService);
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     private shuffleArray;
     private loadAvailableCards;
     private isMember;

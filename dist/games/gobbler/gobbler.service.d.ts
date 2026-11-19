@@ -3,6 +3,8 @@ export declare class GobblerService {
     createInitialInventory(side: PlayerSide): GobblerPiece[];
     private isMember;
     private isValidIndex;
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     private isGobblerRoom;
     executeBotMoveIfNeeded(room: RoomState): boolean;
     joinSide(room: RoomState, clientId: string, side: PlayerSide, options?: {

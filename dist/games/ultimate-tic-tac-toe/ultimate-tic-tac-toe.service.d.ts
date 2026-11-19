@@ -9,6 +9,8 @@ export declare class UltimateTicTacToeService {
         line?: number[];
     };
     private isUltimateTTTRoom;
+    private stampTurnDeadline;
+    handleTurnTimeout(room: RoomState, deadline: number): RoomState | null;
     executeBotMoveIfNeeded(room: RoomState): boolean;
     joinSide(room: RoomState, clientId: string, side: 'X' | 'O', options?: {
         deferBotMove?: boolean;

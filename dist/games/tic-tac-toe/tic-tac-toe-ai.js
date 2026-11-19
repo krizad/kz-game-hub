@@ -38,7 +38,7 @@ function getRandomMove(board) {
     const randomIndex = Math.floor(Math.random() * emptyIndices.length);
     return emptyIndices[randomIndex];
 }
-function minimax(board, depth, isMaximizing, botSide) {
+function minimax(board, depth, isMaximizing, botSide, maxDepth = Infinity) {
     const opponentSide = botSide === 'X' ? 'O' : 'X';
     const winner = checkWinner(board);
     if (winner === botSide) {
@@ -50,12 +50,15 @@ function minimax(board, depth, isMaximizing, botSide) {
     if (winner === 'DRAW') {
         return 0;
     }
+    if (depth >= maxDepth) {
+        return 0;
+    }
     if (isMaximizing) {
         let maxEval = -Infinity;
         for (let i = 0; i < 9; i++) {
             if (board[i] === null) {
                 board[i] = botSide;
-                const evaluation = minimax(board, depth + 1, false, botSide);
+                const evaluation = minimax(board, depth + 1, false, botSide, maxDepth);
                 board[i] = null;
                 if (evaluation > maxEval) {
                     maxEval = evaluation;
@@ -69,7 +72,7 @@ function minimax(board, depth, isMaximizing, botSide) {
         for (let i = 0; i < 9; i++) {
             if (board[i] === null) {
                 board[i] = opponentSide;
-                const evaluation = minimax(board, depth + 1, true, botSide);
+                const evaluation = minimax(board, depth + 1, true, botSide, maxDepth);
                 board[i] = null;
                 if (evaluation < minEval) {
                     minEval = evaluation;
@@ -79,9 +82,9 @@ function minimax(board, depth, isMaximizing, botSide) {
         return minEval;
     }
 }
-function getBestMove(board, botSide) {
+function getBestMove(board, botSide, maxDepth = Infinity) {
     const emptyCount = board.filter((c) => c === null).length;
-    if (emptyCount === 9) {
+    if (emptyCount === 9 && maxDepth === Infinity) {
         const optimalFirstMoves = [0, 2, 4, 6, 8];
         return optimalFirstMoves[Math.floor(Math.random() * optimalFirstMoves.length)];
     }
@@ -90,7 +93,7 @@ function getBestMove(board, botSide) {
     for (let i = 0; i < 9; i++) {
         if (board[i] === null) {
             board[i] = botSide;
-            const score = minimax(board, 0, false, botSide);
+            const score = minimax(board, 0, false, botSide, maxDepth);
             board[i] = null;
             if (score > bestScore) {
                 bestScore = score;
