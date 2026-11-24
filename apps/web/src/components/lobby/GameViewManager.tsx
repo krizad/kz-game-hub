@@ -1,32 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { BOT_PLAYER_NAME, BOT_SOCKET_ID, GameType, RoomState, RoomStatus } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
-import { TicTacToeUnifiedView } from '@/components/games/tic-tac-toe/TicTacToeUnifiedView';
-import { RPSView } from '@/components/games/rps/RPSView';
-import { SoundsFishyView } from '@/components/games/sounds-fishy/SoundsFishyView';
-import { DetectiveClubView } from '@/components/games/detective-club/DetectiveClubView';
-import { WhoAmIView } from '@/components/games/who-am-i/WhoAmIView';
-import { MusicTriviaView } from '@/components/games/music-trivia/MusicTriviaView';
-import { WhoFirstView } from '@/components/games/who-first/WhoFirstView';
-import { TheMindGameView } from '@/components/games/the-mind/TheMindGameView';
-import { SaboteurView } from '@/components/games/saboteur/SaboteurView';
-import { CoupView } from '@/components/games/coup/CoupView';
-import { BananaThiefView } from '@/components/games/banana-thief/BananaThiefView';
-import { WhoKnowView } from '@/components/games/who-know/WhoKnowView';
-import { PokDengView } from '@/components/games/card-game/PokDengView';
-import { SlaveView } from '@/components/games/card-game/SlaveView';
-import { CardGameSettings } from '@/components/games/card-game/CardGameSettings';
-import { PokerView } from '@/components/games/poker/PokerView';
-import { PokerSettings } from '@/components/games/poker/PokerSettings';
-import { PokerV2View } from '@/components/games/poker-v2/PokerV2View';
-import { PokerV2Settings } from '@/components/games/poker-v2/PokerV2Settings';
-import { CipherGridView } from '@/components/games/cipher-grid/CipherGridView';
-import { DogRelayView } from '@/components/games/dog-relay/DogRelayView';
-import { DogRelaySeats } from '@/components/games/dog-relay/DogRelaySeats';
-import { WerewolfView } from '@/components/games/werewolf/WerewolfView';
-import { BattleshipView } from '@/components/games/battleship/BattleshipView';
+import {
+  GAME_VIEW_LOADERS,
+  DynamicTicTacToeUnifiedView,
+  DynamicRPSView,
+  DynamicSoundsFishyView,
+  DynamicDetectiveClubView,
+  DynamicWhoAmIView,
+  DynamicMusicTriviaView,
+  DynamicWhoFirstView,
+  DynamicTheMindGameView,
+  DynamicSaboteurView,
+  DynamicCoupView,
+  DynamicBananaThiefView,
+  DynamicWhoKnowView,
+  DynamicPokDengView,
+  DynamicSlaveView,
+  DynamicCardGameSettings,
+  DynamicPokerView,
+  DynamicPokerSettings,
+  DynamicPokerV2View,
+  DynamicPokerV2Settings,
+  DynamicCipherGridView,
+  DynamicDogRelayView,
+  DynamicDogRelaySeats,
+  DynamicWerewolfView,
+  DynamicBattleshipView,
+} from '@/components/lobby/game-view-loaders';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
 import { LobbyStartButton } from '@/components/lobby/LobbyStartButton';
@@ -236,51 +240,86 @@ function getGameStatus(
 }
 
 export function GameViewManager() {
-  const { room, socketId, privateState } = useGameStore();
+  const { room, socketId, privateState } = useGameStore(
+    useShallow((s) => ({
+      room: s.room,
+      socketId: s.socketId,
+      privateState: s.privateState,
+    })),
+  );
   const { t } = useTranslate();
   const [showPlayersMobile, setShowPlayersMobile] = useState(false);
+
+  const roomStatus = room?.status;
+  const roomGameType = room?.gameType;
+
+  // Pre-warm the active game's JS chunk while players are waiting in the lobby (ADR 0018)
+  useEffect(() => {
+    if (roomStatus !== RoomStatus.LOBBY || !roomGameType) return;
+    const loader = GAME_VIEW_LOADERS[roomGameType];
+    if (!loader) return;
+
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof win.requestIdleCallback === 'function') {
+      const id = win.requestIdleCallback(() => {
+        void loader();
+      }, { timeout: 1500 });
+      return () => win.cancelIdleCallback?.(id);
+    }
+
+    const timer = window.setTimeout(() => {
+      void loader();
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [roomStatus, roomGameType]);
 
   if (!room) return null;
 
   const renderGameView = () => {
     if (room.gameType === GameType.DOG_RELAY && room.status !== RoomStatus.LOBBY)
-      return <DogRelayView />;
-    if (room.gameType === GameType.TIC_TAC_TOE) return <TicTacToeUnifiedView />;
-    if (room.gameType === GameType.RPS && room.status !== RoomStatus.LOBBY) return <RPSView />;
+      return <DynamicDogRelayView />;
+    if (room.gameType === GameType.TIC_TAC_TOE) return <DynamicTicTacToeUnifiedView />;
+    if (room.gameType === GameType.RPS && room.status !== RoomStatus.LOBBY)
+      return <DynamicRPSView />;
     if (room.gameType === GameType.SOUNDS_FISHY && room.status !== RoomStatus.LOBBY)
-      return <SoundsFishyView />;
+      return <DynamicSoundsFishyView />;
     if (room.gameType === GameType.DETECTIVE_CLUB && room.status !== RoomStatus.LOBBY)
-      return <DetectiveClubView />;
+      return <DynamicDetectiveClubView />;
     if (room.gameType === GameType.WHO_AM_I && room.status !== RoomStatus.LOBBY)
-      return <WhoAmIView />;
+      return <DynamicWhoAmIView />;
     if (room.gameType === GameType.MUSIC_TRIVIA && room.status !== RoomStatus.LOBBY)
-      return <MusicTriviaView />;
-    if (room.gameType === GameType.WHO_FIRST) return <WhoFirstView />;
-    if (room.gameType === GameType.THE_MIND) return <TheMindGameView />;
+      return <DynamicMusicTriviaView />;
+    if (room.gameType === GameType.WHO_FIRST) return <DynamicWhoFirstView />;
+    if (room.gameType === GameType.THE_MIND) return <DynamicTheMindGameView />;
     if (room.gameType === GameType.SABOTEUR && room.status !== RoomStatus.LOBBY)
-      return <SaboteurView />;
-    if (room.gameType === GameType.COUP && room.status !== RoomStatus.LOBBY) return <CoupView />;
+      return <DynamicSaboteurView />;
+    if (room.gameType === GameType.COUP && room.status !== RoomStatus.LOBBY)
+      return <DynamicCoupView />;
     if (room.gameType === GameType.BANANA_THIEF && room.status !== RoomStatus.LOBBY)
-      return <BananaThiefView />;
+      return <DynamicBananaThiefView />;
     if (room.gameType === GameType.CARD_GAME && room.status !== RoomStatus.LOBBY) {
       const preset = room.cardGameConfig?.preset ?? 'POK_DENG';
-      if (preset === 'SLAVE') return <SlaveView />;
-      return <PokDengView />;
+      if (preset === 'SLAVE') return <DynamicSlaveView />;
+      return <DynamicPokDengView />;
     }
     if (room.gameType === GameType.POKER && room.status !== RoomStatus.LOBBY) {
-      return <PokerView />;
+      return <DynamicPokerView />;
     }
     if (room.gameType === GameType.POKER_V2 && room.status !== RoomStatus.LOBBY) {
-      return <PokerV2View />;
+      return <DynamicPokerV2View />;
     }
     if (room.gameType === GameType.CIPHER_GRID && room.status !== RoomStatus.LOBBY) {
-      return <CipherGridView />;
+      return <DynamicCipherGridView />;
     }
     if (room.gameType === GameType.WEREWOLF && room.status !== RoomStatus.LOBBY) {
-      return <WerewolfView />;
+      return <DynamicWerewolfView />;
     }
     if (room.gameType === GameType.BATTLESHIP && room.status !== RoomStatus.LOBBY) {
-      return <BattleshipView />;
+      return <DynamicBattleshipView />;
     }
 
     return (
@@ -290,12 +329,12 @@ export function GameViewManager() {
             <h4 className="text-lg font-black uppercase text-black tracking-widest bg-white px-4 py-2 rounded-lg border-4 border-black shadow-[4px_4px_0_0_#000]">
               {t('lobby.waitingRoom')}
             </h4>
-            {room.gameType === GameType.CARD_GAME && <CardGameSettings />}
-            {room.gameType === GameType.POKER && <PokerSettings />}
-            {room.gameType === GameType.POKER_V2 && <PokerV2Settings />}
+            {room.gameType === GameType.CARD_GAME && <DynamicCardGameSettings />}
+            {room.gameType === GameType.POKER && <DynamicPokerSettings />}
+            {room.gameType === GameType.POKER_V2 && <DynamicPokerV2Settings />}
             {room.gameType === GameType.DOG_RELAY && (
               <>
-                <DogRelaySeats />
+                <DynamicDogRelaySeats />
                 {room.dogRelayState?.cancellationReason && (
                   <p role="alert">{t(`dogRelay.${room.dogRelayState.cancellationReason}`)}</p>
                 )}
@@ -305,7 +344,7 @@ export function GameViewManager() {
             <LobbyStartButton />
           </div>
         )}
-        {room.status !== RoomStatus.LOBBY && <WhoKnowView />}
+        {room.status !== RoomStatus.LOBBY && <DynamicWhoKnowView />}
       </div>
     );
   };

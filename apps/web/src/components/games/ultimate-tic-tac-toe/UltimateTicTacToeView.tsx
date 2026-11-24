@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GameType, BOT_SOCKET_ID } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -12,7 +13,7 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function UltimateTicTacToeView() {
-  const { room, socketId, utttJoinSide, utttMakeMove, utttReset, actionLoading } = useGameStore();
+  const { room, socketId, utttJoinSide, utttMakeMove, utttReset, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, utttJoinSide: s.utttJoinSide, utttMakeMove: s.utttMakeMove, utttReset: s.utttReset, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
   const [hoveredCell, setHoveredCell] = useState<{ macro: number; micro: number } | null>(null);

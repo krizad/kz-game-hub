@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { DetectiveClubPhase, DetectiveClubRole } from '@repo/types';
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 import { GameDialog } from '@/components/core/GameDialog';
 
 export function PlayingPhase() {
-  const { room, socketId, privateState, detectiveClubPlayCard, actionLoading } = useGameStore();
+  const { room, socketId, privateState, detectiveClubPlayCard, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, detectiveClubPlayCard: s.detectiveClubPlayCard, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
   const [confirmPlayIndex, setConfirmPlayIndex] = useState<number | null>(null);

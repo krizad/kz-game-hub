@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useI18nStore } from '@/store/useI18nStore';
@@ -11,7 +12,14 @@ import { RulesModal } from '@/components/RulesModal';
 import { useAutoRandomName } from '@/hooks/useAutoRandomName';
 
 export function InviteView() {
-  const { connected, myName, setName, joinRoom } = useGameStore();
+  const { connected, myName, setName, joinRoom } = useGameStore(
+    useShallow((s) => ({
+      connected: s.connected,
+      myName: s.myName,
+      setName: s.setName,
+      joinRoom: s.joinRoom,
+    })),
+  );
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room') || '';
   const setLanguage = useI18nStore((s) => s.setLanguage);

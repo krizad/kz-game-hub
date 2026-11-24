@@ -8,7 +8,7 @@ import clsx from 'clsx';
 
 export function TicTacToeRules() {
   const { t } = useTranslate();
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
 
   const [activeMode, setActiveMode] = useState<TicTacToeMode>(
     room?.config?.ticTacToeMode || 'CLASSIC',

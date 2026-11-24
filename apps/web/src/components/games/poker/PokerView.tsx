@@ -13,6 +13,7 @@ import {
   PokerSeat,
   RoomStatus,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from '@/components/games/card-game/CardHand';
@@ -57,7 +58,7 @@ function seatBadgeLabel(seat: PokerSeat): string | null {
 }
 
 export function PokerView() {
-  const { room, socketId, pokerAction, resetRoom, actionLoading } = useGameStore();
+  const { room, socketId, pokerAction, resetRoom, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, pokerAction: s.pokerAction, resetRoom: s.resetRoom, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const [betInputText, setBetInputText] = useState<string>('');
   const [revealedCount, setRevealedCount] = useState<number>(0);

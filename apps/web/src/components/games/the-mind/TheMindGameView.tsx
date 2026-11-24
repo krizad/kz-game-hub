@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { TheMindPhase } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { TheMindView } from './TheMindView';
 
 export function TheMindGameView() {
-  const { room, playerId, socketId, myName, privateState } = useGameStore();
+  const { room, playerId, socketId, myName, privateState } = useGameStore(useShallow((s) => ({ room: s.room, playerId: s.playerId, socketId: s.socketId, myName: s.myName, privateState: s.privateState })));
   const { t } = useTranslate();
 
   const currentPlayerId = React.useMemo(() => {

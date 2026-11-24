@@ -5,7 +5,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 
 export function WhoKnowSettings() {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
   const { t } = useTranslate();
 
   if (room?.gameType !== 'WHO_KNOW') return null;

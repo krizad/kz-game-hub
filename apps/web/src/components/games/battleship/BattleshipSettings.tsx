@@ -1,12 +1,13 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 import { BattleshipMode, BattleshipTeamFleetMode, BattleshipGridPreset } from '@repo/types';
 
 export function BattleshipSettings() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig })));
   const { t } = useTranslate();
   if (!room) return null;
 

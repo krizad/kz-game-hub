@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -13,16 +14,7 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function RPSView() {
-  const {
-    room,
-    socketId,
-    privateState,
-    rpsMakeChoice,
-    rpsNextRound,
-    actionLoading,
-    pendingActions,
-    dismissPendingAction,
-  } = useGameStore();
+  const { room, socketId, privateState, rpsMakeChoice, rpsNextRound, actionLoading, pendingActions, dismissPendingAction } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, rpsMakeChoice: s.rpsMakeChoice, rpsNextRound: s.rpsNextRound, actionLoading: s.actionLoading, pendingActions: s.pendingActions, dismissPendingAction: s.dismissPendingAction })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
   const prefersReducedMotion = useReducedMotion();

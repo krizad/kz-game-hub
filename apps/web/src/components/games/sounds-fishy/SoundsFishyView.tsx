@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, GameType, SoundsFishyPhase } from '@repo/types';
 import { useEffect, useRef, useState } from 'react';
@@ -11,18 +12,7 @@ import { useServerClock } from '@/hooks/useServerClock';
 import { audioManager } from '@/lib/audioManager';
 
 export function SoundsFishyView() {
-  const {
-    room,
-    socketId,
-    privateState,
-    soundsFishySubmitAnswer,
-    soundsFishyTypeAnswer,
-    soundsFishyRevealAnswer,
-    soundsFishyEliminatePlayer,
-    soundsFishyBankPoints,
-    soundsFishyReset,
-    actionLoading,
-  } = useGameStore();
+  const { room, socketId, privateState, soundsFishySubmitAnswer, soundsFishyTypeAnswer, soundsFishyRevealAnswer, soundsFishyEliminatePlayer, soundsFishyBankPoints, soundsFishyReset, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, soundsFishySubmitAnswer: s.soundsFishySubmitAnswer, soundsFishyTypeAnswer: s.soundsFishyTypeAnswer, soundsFishyRevealAnswer: s.soundsFishyRevealAnswer, soundsFishyEliminatePlayer: s.soundsFishyEliminatePlayer, soundsFishyBankPoints: s.soundsFishyBankPoints, soundsFishyReset: s.soundsFishyReset, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
   const { shake, flash, haptic, celebrate } = useGameFeel();

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
@@ -190,21 +191,7 @@ function useBananaThiefNarrator({
 }
 
 export function BananaThiefView() {
-  const {
-    room,
-    socketId,
-    privateState,
-    bananaThiefPeek,
-    bananaThiefReady,
-    bananaThiefRollDie,
-    bananaThiefChooseFollower,
-    bananaThiefNextHour,
-    bananaThiefVote,
-    bananaThiefStartVote,
-    bananaThiefNextRound,
-    bananaThiefReset,
-    bananaThiefReaction,
-  } = useGameStore();
+  const { room, socketId, privateState, bananaThiefPeek, bananaThiefReady, bananaThiefRollDie, bananaThiefChooseFollower, bananaThiefNextHour, bananaThiefVote, bananaThiefStartVote, bananaThiefNextRound, bananaThiefReset, bananaThiefReaction } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, bananaThiefPeek: s.bananaThiefPeek, bananaThiefReady: s.bananaThiefReady, bananaThiefRollDie: s.bananaThiefRollDie, bananaThiefChooseFollower: s.bananaThiefChooseFollower, bananaThiefNextHour: s.bananaThiefNextHour, bananaThiefVote: s.bananaThiefVote, bananaThiefStartVote: s.bananaThiefStartVote, bananaThiefNextRound: s.bananaThiefNextRound, bananaThiefReset: s.bananaThiefReset, bananaThiefReaction: s.bananaThiefReaction })));
   const { t, language } = useTranslate();
   const { enabled: soundsEnabled, toggle: toggleSound } = useSoundSettings();
   const [peekTarget, setPeekTarget] = useState('');

@@ -8,6 +8,7 @@ import {
   CIPHER_GRID_PICTURE_PACK_IS_FIXTURE,
   CIPHER_GRID_PRIVATE_STATE_KEY,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { GameDialog } from '@/components/core/GameDialog';
@@ -16,7 +17,25 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function CipherGridView() {
-  const { room, socketId, privateState, ...actions } = useGameStore();
+  const { room, socketId, privateState, ...actions } = useGameStore(
+    useShallow((s) => ({
+      room: s.room,
+      socketId: s.socketId,
+      privateState: s.privateState,
+      cipherAssignTeam: s.cipherAssignTeam,
+      cipherCancelRound: s.cipherCancelRound,
+      cipherChallengeClue: s.cipherChallengeClue,
+      cipherEndTurn: s.cipherEndTurn,
+      cipherGiveClue: s.cipherGiveClue,
+      cipherNextRound: s.cipherNextRound,
+      cipherPingCard: s.cipherPingCard,
+      cipherRandomizeTeams: s.cipherRandomizeTeams,
+      cipherReset: s.cipherReset,
+      cipherRespondChallenge: s.cipherRespondChallenge,
+      cipherRevealCard: s.cipherRevealCard,
+      cipherStartMatch: s.cipherStartMatch,
+    })),
+  );
   const { t } = useTranslate();
 
   const [clueWord, setClueWord] = useState('');

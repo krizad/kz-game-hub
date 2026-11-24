@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { GameType, getBananaThiefRequiredPlayerCount, WEREWOLF_MIN_PLAYERS } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -10,7 +11,16 @@ import { FirstRoundGuide } from '@/components/lobby/FirstRoundGuide';
 
 export function LobbyStartButton() {
   const { room, startGame, submitWordsWhoAmI, isLoading, artistPresets, gameStartError } =
-    useGameStore();
+    useGameStore(
+      useShallow((s) => ({
+        room: s.room,
+        startGame: s.startGame,
+        submitWordsWhoAmI: s.submitWordsWhoAmI,
+        isLoading: s.isLoading,
+        artistPresets: s.artistPresets,
+        gameStartError: s.gameStartError,
+      })),
+    );
   const { t, language } = useTranslate();
   const [showHostWordModal, setShowHostWordModal] = useState(false);
   const [hostWordDraft, setHostWordDraft] = useState<Record<string, string>>({});

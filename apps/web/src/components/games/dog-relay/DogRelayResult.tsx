@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameFeel } from '@/hooks/useGameFeel';
@@ -8,7 +9,7 @@ import { audioManager } from '@/lib/audioManager';
 import { DogRelayCard } from './DogRelayCard';
 
 export function DogRelayResult() {
-  const { room, playerId, socketId, sendDogRelayAction, actionLoading } = useGameStore();
+  const { room, playerId, socketId, sendDogRelayAction, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, playerId: s.playerId, socketId: s.socketId, sendDogRelayAction: s.sendDogRelayAction, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const { shake, flash, celebrate } = useGameFeel();
   const celebratedRoundRef = useRef<string | null>(null);

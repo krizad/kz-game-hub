@@ -18,7 +18,7 @@ const TIMER_OPTIONS = [0, 15, 30, 60, 90, 120];
 
 /** Host-facing turn-timer length picker shared by the previously timerless games. */
 export function TurnTimerSelect({ configKey }: TurnTimerSelectProps) {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
   const { t } = useTranslate();
 
   if (!room) return null;

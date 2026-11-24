@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 
 import { MusicTriviaAction, MusicTriviaActionType } from '@repo/types';
@@ -12,8 +13,7 @@ import { musicTriviaLevelKey } from './levelLabel';
 
 export function MusicTriviaView() {
   const { t } = useTranslate();
-  const { room, musicTriviaGameAction, musicTriviaSyncPlay, socketId, resetRoom, artistPresets } =
-    useGameStore();
+  const { room, musicTriviaGameAction, musicTriviaSyncPlay, socketId, resetRoom, artistPresets } = useGameStore(useShallow((s) => ({ room: s.room, musicTriviaGameAction: s.musicTriviaGameAction, musicTriviaSyncPlay: s.musicTriviaSyncPlay, socketId: s.socketId, resetRoom: s.resetRoom, artistPresets: s.artistPresets })));
   const hostAnswer = useGameStore((s) => s.musicTriviaHostAnswer);
   const state = room?.musicTriviaState;
 

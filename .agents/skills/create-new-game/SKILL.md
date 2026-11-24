@@ -197,8 +197,9 @@ kz-game-hub/
      ```typescript
      { type: GameType.<GAME>, labelKey: 'rules.modal.tabs.<game>' },
      ```
-4. **`apps/web/src/components/lobby/GameViewManager.tsx`**:
-   - Add condition to `renderGameView()` to render `<Game>View`.
+4. **`apps/web/src/components/lobby/game-view-loaders.tsx` & `GameViewManager.tsx`**:
+   - Register the game's dynamic loader in `GAME_VIEW_LOADERS` and export `Dynamic<Game>View` using `next/dynamic(..., { ssr: false, loading: () => <GameChunkFallback /> })` (ADR 0018).
+   - Add condition to `renderGameView()` in `GameViewManager.tsx` to render `<Dynamic<Game>View />`.
    - If the game uses the standard waiting lobby, ensure it checks `room.status !== RoomStatus.LOBBY` before rendering the active game board.
 5. **`apps/web/src/components/lobby/LobbyStartButton.tsx`**:
    - In `getMinPlayers()`: add case for `GameType.<GAME>` returning minimum required players (e.g., 2, 3, or 4).

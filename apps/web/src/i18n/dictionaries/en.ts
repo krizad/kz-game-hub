@@ -122,6 +122,17 @@ export const en: Dictionary = {
     initialHelp: 'Check your connection and retry if the page does not load.',
     retry: 'Retry connection',
   },
+  errorBoundary: {
+    loadingGame: 'Loading game...',
+    appTitle: 'Something went wrong',
+    appDesc: 'An unexpected error occurred. Reload the page to continue.',
+    reloadApp: 'Reload Page',
+    gameTitle: 'Game view hit a snag',
+    gameDesc:
+      'Your room connection is still active. Try reloading the game view or return to the lobby.',
+    retryGame: 'Reload Game View',
+    leaveRoom: 'Leave Room',
+  },
   lobby: {
     connecting: 'Connecting...',
     musicQueryMissing: 'Enter a song or artist before starting.',

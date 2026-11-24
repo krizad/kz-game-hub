@@ -1,11 +1,12 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { audioManager } from '@/lib/audioManager';
 
 export function CardGameActionPanel() {
-  const { room, socketId, actionLoading, cardGameAction } = useGameStore();
+  const { room, socketId, actionLoading, cardGameAction } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, actionLoading: s.actionLoading, cardGameAction: s.cardGameAction })));
   const { t } = useTranslate();
   const state = room?.cardGameState;
   if (!room || !state) return null;

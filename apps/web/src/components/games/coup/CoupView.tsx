@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { SoundToggle } from '@/components/core/SoundToggle';
@@ -57,16 +58,7 @@ const phaseKeys: Record<CoupPhase, string> = {
 };
 
 export function CoupView() {
-  const {
-    room,
-    socketId,
-    privateState,
-    resetRoom,
-    coupDeclare,
-    coupChallenge,
-    coupBlock,
-    coupExchangeSelect,
-  } = useGameStore();
+  const { room, socketId, privateState, resetRoom, coupDeclare, coupChallenge, coupBlock, coupExchangeSelect } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, resetRoom: s.resetRoom, coupDeclare: s.coupDeclare, coupChallenge: s.coupChallenge, coupBlock: s.coupBlock, coupExchangeSelect: s.coupExchangeSelect })));
   const { t } = useTranslate();
   const roleLabel = (role: CoupRole) => t(roleKeys[role]);
   const actionLabel = (action: CoupActionType) => t(actionKeys[action]);

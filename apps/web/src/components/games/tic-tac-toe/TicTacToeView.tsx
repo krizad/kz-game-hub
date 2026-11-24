@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { BOT_SOCKET_ID, GameType, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -12,16 +13,7 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function TicTacToeView() {
-  const {
-    room,
-    socketId,
-    tttJoinSide,
-    tttMakeMove,
-    tttReset,
-    actionLoading,
-    pendingActions,
-    dismissPendingAction,
-  } = useGameStore();
+  const { room, socketId, tttJoinSide, tttMakeMove, tttReset, actionLoading, pendingActions, dismissPendingAction } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, tttJoinSide: s.tttJoinSide, tttMakeMove: s.tttMakeMove, tttReset: s.tttReset, actionLoading: s.actionLoading, pendingActions: s.pendingActions, dismissPendingAction: s.dismissPendingAction })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
 

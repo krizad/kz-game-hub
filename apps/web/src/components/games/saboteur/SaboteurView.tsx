@@ -15,6 +15,7 @@ import {
   saboteurGetCardDef,
   saboteurSimulatePlacement,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useSaboteurSounds } from '@/hooks/useSaboteurSounds';
@@ -44,18 +45,7 @@ const TARGETING_STYLE: Record<Exclude<Targeting, null>, string> = {
 };
 
 export function SaboteurView() {
-  const {
-    room,
-    socketId,
-    privateState,
-    actionLoading,
-    saboteurPlacePath,
-    saboteurPlayAction,
-    saboteurDiscard,
-    saboteurPickGold,
-    saboteurNextRound,
-    saboteurReset,
-  } = useGameStore();
+  const { room, socketId, privateState, actionLoading, saboteurPlacePath, saboteurPlayAction, saboteurDiscard, saboteurPickGold, saboteurNextRound, saboteurReset } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, actionLoading: s.actionLoading, saboteurPlacePath: s.saboteurPlacePath, saboteurPlayAction: s.saboteurPlayAction, saboteurDiscard: s.saboteurDiscard, saboteurPickGold: s.saboteurPickGold, saboteurNextRound: s.saboteurNextRound, saboteurReset: s.saboteurReset })));
   const { t } = useTranslate();
 
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);

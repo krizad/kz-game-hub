@@ -103,6 +103,16 @@ export interface Dictionary {
     initialHelp: string;
     retry: string;
   };
+  errorBoundary: {
+    loadingGame: string;
+    appTitle: string;
+    appDesc: string;
+    reloadApp: string;
+    gameTitle: string;
+    gameDesc: string;
+    retryGame: string;
+    leaveRoom: string;
+  };
   lobby: {
     connecting: string;
     musicQueryMissing: string;

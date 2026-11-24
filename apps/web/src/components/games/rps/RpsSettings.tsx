@@ -6,7 +6,7 @@ import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 import { TurnTimerSelect } from '@/components/core/TurnTimerSelect';
 
 export function RpsSettings() {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
   const { t } = useTranslate();
 
   if (room?.gameType !== 'RPS') return null;

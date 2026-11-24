@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { Button } from '@/components/ui/button';
@@ -12,8 +13,7 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export const WhoFirstView = () => {
-  const { room, socketId, startGame, updateConfig, whoFirstGameAction, resetRoom, actionLoading } =
-    useGameStore();
+  const { room, socketId, startGame, updateConfig, whoFirstGameAction, resetRoom, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, startGame: s.startGame, updateConfig: s.updateConfig, whoFirstGameAction: s.whoFirstGameAction, resetRoom: s.resetRoom, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
   const [activeTime, setActiveTime] = useState<number>(0);

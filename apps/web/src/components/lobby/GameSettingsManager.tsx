@@ -1,24 +1,32 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { GameType } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
-
-import { CipherGridSettings } from '@/components/games/cipher-grid/CipherGridSettings';
-import { WhoKnowSettings } from '@/components/games/who-know/WhoKnowSettings';
-import { RpsSettings } from '@/components/games/rps/RpsSettings';
-import { WhoAmISettings } from '@/components/games/who-am-i/WhoAmISettings';
-import { MusicTriviaSettings } from '@/components/games/music-trivia/MusicTriviaSettings';
-import { SaboteurSettings } from '@/components/games/saboteur/SaboteurSettings';
-import { BananaThiefSettings } from '@/components/games/banana-thief/BananaThiefSettings';
-import { WerewolfSettings } from '@/components/games/werewolf/WerewolfSettings';
-import { DogRelaySettings } from '@/components/games/dog-relay/DogRelaySettings';
-import { BattleshipSettings } from '@/components/games/battleship/BattleshipSettings';
-import { SoundsFishySettings } from '@/components/games/sounds-fishy/SoundsFishySettings';
-import { DetectiveClubSettings } from '@/components/games/detective-club/DetectiveClubSettings';
+import {
+  DynamicCipherGridSettings,
+  DynamicWhoKnowSettings,
+  DynamicRpsSettings,
+  DynamicWhoAmISettings,
+  DynamicMusicTriviaSettings,
+  DynamicSaboteurSettings,
+  DynamicBananaThiefSettings,
+  DynamicWerewolfSettings,
+  DynamicDogRelaySettings,
+  DynamicBattleshipSettings,
+  DynamicSoundsFishySettings,
+  DynamicDetectiveClubSettings,
+} from '@/components/lobby/game-view-loaders';
 
 export function GameSettingsManager() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(
+    useShallow((s) => ({
+      room: s.room,
+      socketId: s.socketId,
+      updateConfig: s.updateConfig,
+    })),
+  );
   const { t } = useTranslate();
 
   if (!room) return null;
@@ -99,18 +107,18 @@ export function GameSettingsManager() {
       </details>
       {hasSettings && (
         <div className="space-y-4 border-t border-amber-300 pt-4">
-          {room.gameType === GameType.CIPHER_GRID && <CipherGridSettings />}
-          {room.gameType === GameType.DOG_RELAY && <DogRelaySettings />}
-          {room.gameType === GameType.WHO_KNOW && <WhoKnowSettings />}
-          {room.gameType === GameType.RPS && <RpsSettings />}
-          {room.gameType === GameType.WHO_AM_I && <WhoAmISettings />}
-          {room.gameType === GameType.MUSIC_TRIVIA && <MusicTriviaSettings />}
-          {room.gameType === GameType.SABOTEUR && <SaboteurSettings />}
-          {room.gameType === GameType.BANANA_THIEF && <BananaThiefSettings />}
-          {room.gameType === GameType.WEREWOLF && <WerewolfSettings />}
-          {room.gameType === GameType.BATTLESHIP && <BattleshipSettings />}
-          {room.gameType === GameType.SOUNDS_FISHY && <SoundsFishySettings />}
-          {room.gameType === GameType.DETECTIVE_CLUB && <DetectiveClubSettings />}
+          {room.gameType === GameType.CIPHER_GRID && <DynamicCipherGridSettings />}
+          {room.gameType === GameType.DOG_RELAY && <DynamicDogRelaySettings />}
+          {room.gameType === GameType.WHO_KNOW && <DynamicWhoKnowSettings />}
+          {room.gameType === GameType.RPS && <DynamicRpsSettings />}
+          {room.gameType === GameType.WHO_AM_I && <DynamicWhoAmISettings />}
+          {room.gameType === GameType.MUSIC_TRIVIA && <DynamicMusicTriviaSettings />}
+          {room.gameType === GameType.SABOTEUR && <DynamicSaboteurSettings />}
+          {room.gameType === GameType.BANANA_THIEF && <DynamicBananaThiefSettings />}
+          {room.gameType === GameType.WEREWOLF && <DynamicWerewolfSettings />}
+          {room.gameType === GameType.BATTLESHIP && <DynamicBattleshipSettings />}
+          {room.gameType === GameType.SOUNDS_FISHY && <DynamicSoundsFishySettings />}
+          {room.gameType === GameType.DETECTIVE_CLUB && <DynamicDetectiveClubSettings />}
         </div>
       )}
     </div>

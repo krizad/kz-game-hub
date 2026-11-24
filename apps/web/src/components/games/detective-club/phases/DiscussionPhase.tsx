@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
 import { ZoomIn } from 'lucide-react';
@@ -6,7 +7,7 @@ import { CardViewerModal } from '../CardViewerModal';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function DiscussionPhase() {
-  const { room, socketId, detectiveClubNextPhase, actionLoading } = useGameStore();
+  const { room, socketId, detectiveClubNextPhase, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, detectiveClubNextPhase: s.detectiveClubNextPhase, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
 

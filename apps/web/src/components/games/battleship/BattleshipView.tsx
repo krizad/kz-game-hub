@@ -12,6 +12,7 @@ import {
   CellStatus,
   BATTLESHIP_PRIVATE_OCEAN_KEY,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useGameFeel } from '@/hooks/useGameFeel';
@@ -39,15 +40,7 @@ const SHIP_ICONS: Record<ShipType, string> = {
 };
 
 export function BattleshipView() {
-  const {
-    room,
-    socketId,
-    privateState,
-    battleshipPlaceShips,
-    battleshipFire,
-    battleshipPing,
-    battleshipReset,
-  } = useGameStore();
+  const { room, socketId, privateState, battleshipPlaceShips, battleshipFire, battleshipPing, battleshipReset } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, battleshipPlaceShips: s.battleshipPlaceShips, battleshipFire: s.battleshipFire, battleshipPing: s.battleshipPing, battleshipReset: s.battleshipReset })));
   const { t } = useTranslate();
   const { shake, flash, haptic, celebrate } = useGameFeel();
   const prevVolleySigRef = useRef<string>('');

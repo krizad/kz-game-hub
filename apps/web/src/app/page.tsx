@@ -1,26 +1,56 @@
 'use client';
 
 import { useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, Role, GameType } from '@repo/types';
-import { RoleCard } from '@/components/RoleCard';
 
 import { Toaster } from 'react-hot-toast';
 
 import { HomeView } from '@/components/lobby/HomeView';
 import { InviteView } from '@/components/lobby/InviteView';
-import { RoomHeader } from '@/components/lobby/RoomHeader';
-import { GameViewManager } from '@/components/lobby/GameViewManager';
-import { SecretWordModal } from '@/components/lobby/SecretWordModal';
 import { LoadingFallback } from '@/components/lobby/LoadingFallback';
+import { GameChunkFallback } from '@/components/lobby/GameChunkFallback';
 import { ConnectionStatus } from '@/components/core/ConnectionStatus';
-import { GameFeelLayer } from '@/components/core/GameFeelLayer';
+import { GameErrorBoundary } from '@/components/core/GameErrorBoundary';
+
+const RoleCard = dynamic(() => import('@/components/RoleCard').then((m) => m.RoleCard), {
+  ssr: false,
+});
+const RoomHeader = dynamic(
+  () => import('@/components/lobby/RoomHeader').then((m) => m.RoomHeader),
+  { ssr: false },
+);
+const GameViewManager = dynamic(
+  () => import('@/components/lobby/GameViewManager').then((m) => m.GameViewManager),
+  { ssr: false, loading: () => <GameChunkFallback /> },
+);
+const SecretWordModal = dynamic(
+  () => import('@/components/lobby/SecretWordModal').then((m) => m.SecretWordModal),
+  { ssr: false },
+);
+const GameFeelLayer = dynamic(
+  () => import('@/components/core/GameFeelLayer').then((m) => m.GameFeelLayer),
+  { ssr: false },
+);
 
 // Components extracted to separate files
 
 function GameLobby() {
-  const { connect, connected, connectionStatus, room, myRole, secretWord } = useGameStore();
+  const { connect, connected, connectionStatus, room, myRole, secretWord, leaveRoom } =
+    useGameStore(
+      useShallow((s) => ({
+        connect: s.connect,
+        connected: s.connected,
+        connectionStatus: s.connectionStatus,
+        room: s.room,
+        myRole: s.myRole,
+        secretWord: s.secretWord,
+        leaveRoom: s.leaveRoom,
+      })),
+    );
   const searchParams = useSearchParams();
   const roomQuery = searchParams.get('room');
 
@@ -74,7 +104,9 @@ function GameLobby() {
           )}
 
           {/* Main Content Area */}
-          <GameViewManager />
+          <GameErrorBoundary resetKey={`${room.code}:${room.gameType}`} onLeaveRoom={leaveRoom}>
+            <GameViewManager />
+          </GameErrorBoundary>
         </div>
 
         {/* Secret Word Setting Modal Handle */}

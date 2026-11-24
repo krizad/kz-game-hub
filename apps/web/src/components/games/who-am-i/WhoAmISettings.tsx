@@ -1,23 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
 import { TurnTimerSelect } from '@/components/core/TurnTimerSelect';
 
 export function WhoAmISettings() {
-  const {
-    room,
-    socketId,
-    connected,
-    categories,
-    categoriesLoading,
-    categoriesError,
-    categoriesLang,
-    getCategoriesWhoAmI,
-    updateConfig,
-  } = useGameStore();
+  const { room, socketId, connected, categories, categoriesLoading, categoriesError, categoriesLang, getCategoriesWhoAmI, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, connected: s.connected, categories: s.categories, categoriesLoading: s.categoriesLoading, categoriesError: s.categoriesError, categoriesLang: s.categoriesLang, getCategoriesWhoAmI: s.getCategoriesWhoAmI, updateConfig: s.updateConfig })));
   const { t, language } = useTranslate();
 
   const isWhoAmI = room?.gameType === 'WHO_AM_I';

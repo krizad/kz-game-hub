@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { DetectiveClubRole } from '@repo/types';
@@ -5,7 +6,7 @@ import { getRoleLabel } from '../DetectiveClubView';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function ScoringPhase() {
-  const { room, socketId, detectiveClubNextRound, leaveRoom, actionLoading } = useGameStore();
+  const { room, socketId, detectiveClubNextRound, leaveRoom, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, detectiveClubNextRound: s.detectiveClubNextRound, leaveRoom: s.leaveRoom, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
 
   if (!room || !room.detectiveClubState) return null;

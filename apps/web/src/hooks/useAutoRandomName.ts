@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useI18nStore } from '@/store/useI18nStore';
 import { generateRandomFunnyName } from '@/lib/name-generator';
 
 export function useAutoRandomName() {
-  const { myName, setName } = useGameStore();
+  const { myName, setName } = useGameStore(
+    useShallow((s) => ({ myName: s.myName, setName: s.setName })),
+  );
   const language = useI18nStore((state) => state.language);
   const hasInitializedRef = useRef(false);
 
