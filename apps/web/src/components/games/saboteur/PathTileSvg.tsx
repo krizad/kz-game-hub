@@ -308,16 +308,16 @@ export function PathTileSvg({ cardId, rotation = 0, className }: PathTileSvgProp
 
 /** 3D icon art from thiings.co (free AI-generated icon library). */
 export const SABOTEUR_IMG = {
-  goldIngot: '/images/saboteur/gold-ingot.png',
-  lantern: '/images/saboteur/lantern.png',
-  pickaxe: '/images/saboteur/pickaxe.png',
-  cart: '/images/saboteur/wheelbarrow.png',
-  hammer: '/images/saboteur/hammer.png',
-  wrench: '/images/saboteur/wrench.png',
-  map: '/images/saboteur/treasure-map.png',
-  rock: '/images/saboteur/rock.png',
-  chest: '/images/saboteur/treasure-chest.png',
-  dynamite: '/images/saboteur/dynamite.png',
+  goldIngot: '/images/saboteur/gold-ingot.webp',
+  lantern: '/images/saboteur/lantern.webp',
+  pickaxe: '/images/saboteur/pickaxe.webp',
+  cart: '/images/saboteur/wheelbarrow.webp',
+  hammer: '/images/saboteur/hammer.webp',
+  wrench: '/images/saboteur/wrench.webp',
+  map: '/images/saboteur/treasure-map.webp',
+  rock: '/images/saboteur/rock.webp',
+  chest: '/images/saboteur/treasure-chest.webp',
+  dynamite: '/images/saboteur/dynamite.webp',
 } as const;
 
 export function saboteurToolImg(tool: SaboteurTool): string {

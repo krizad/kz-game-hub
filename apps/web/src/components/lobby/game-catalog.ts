@@ -21,7 +21,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.DOG_RELAY,
     icon: '🐕',
-    coverImage: '/images/covers/dog-relay.jpg',
+    coverImage: '/images/covers/dog-relay.webp',
     catalogKey: 'dogRelay',
     color: 'bg-amber-300',
     minPlayers: 5,
@@ -34,7 +34,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WHO_KNOW,
     icon: '🎭',
-    coverImage: '/images/covers/who-know.jpg',
+    coverImage: '/images/covers/who-know.webp',
     catalogKey: 'whoKnow',
     color: 'bg-indigo-500',
     minPlayers: 4,
@@ -47,7 +47,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.SOUNDS_FISHY,
     icon: '💬',
-    coverImage: '/images/covers/sounds-fishy.jpg',
+    coverImage: '/images/covers/sounds-fishy.webp',
     catalogKey: 'soundsFishy',
     color: 'bg-teal-300',
     minPlayers: 3,
@@ -60,7 +60,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.TIC_TAC_TOE,
     icon: '❌',
-    coverImage: '/images/covers/tic-tac-toe.jpg',
+    coverImage: '/images/covers/tic-tac-toe.webp',
     catalogKey: 'ticTacToe',
     color: 'bg-slate-400',
     minPlayers: 1, // 1 player vs bot or 2 players
@@ -74,7 +74,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.RPS,
     icon: '✊',
-    coverImage: '/images/covers/hand-duel.jpg',
+    coverImage: '/images/covers/hand-duel.webp',
     catalogKey: 'handDuel',
     color: 'bg-amber-300',
     minPlayers: 2,
@@ -88,7 +88,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.DETECTIVE_CLUB,
     icon: '🖼️',
-    coverImage: '/images/covers/detective-club.jpg',
+    coverImage: '/images/covers/detective-club.webp',
     catalogKey: 'detectiveClub',
     color: 'bg-yellow-300',
     minPlayers: 3,
@@ -101,7 +101,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WHO_AM_I,
     icon: '🤔❓',
-    coverImage: '/images/covers/who-am-i.jpg',
+    coverImage: '/images/covers/who-am-i.webp',
     catalogKey: 'whoAmI',
     color: 'bg-pink-400',
     minPlayers: 2, // 2 for random/player input, 3 for host input
@@ -115,7 +115,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WHO_FIRST,
     icon: '🛎️',
-    coverImage: '/images/covers/who-first.jpg',
+    coverImage: '/images/covers/who-first.webp',
     catalogKey: 'whoFirst',
     color: 'bg-emerald-400',
     minPlayers: 2,
@@ -128,7 +128,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.MUSIC_TRIVIA,
     icon: '🎵',
-    coverImage: '/images/covers/music-trivia.jpg',
+    coverImage: '/images/covers/music-trivia.webp',
     catalogKey: 'musicTrivia',
     color: 'bg-violet-400',
     minPlayers: 2,
@@ -142,7 +142,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.THE_MIND,
     icon: '⏳',
-    coverImage: '/images/covers/the-mind.jpg',
+    coverImage: '/images/covers/the-mind.webp',
     catalogKey: 'theMind',
     color: 'bg-orange-200',
     minPlayers: 2,
@@ -155,7 +155,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.SABOTEUR,
     icon: '⛏️',
-    coverImage: '/images/covers/saboteur.jpg',
+    coverImage: '/images/covers/saboteur.webp',
     catalogKey: 'saboteur',
     color: 'bg-orange-500',
     minPlayers: 3,
@@ -168,7 +168,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.COUP,
     icon: '🏠📜',
-    coverImage: '/images/covers/coup.jpg',
+    coverImage: '/images/covers/coup.webp',
     catalogKey: 'coup',
     color: 'bg-rose-200',
     minPlayers: 3,
@@ -181,7 +181,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.CARD_GAME,
     icon: '🃏',
-    coverImage: '/images/covers/card-game.jpg',
+    coverImage: '/images/covers/card-game.webp',
     catalogKey: 'cardGame',
     color: 'bg-amber-500',
     minPlayers: 2,
@@ -195,7 +195,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.BANANA_THIEF,
     icon: '🐒',
-    coverImage: '/images/covers/banana-thief.jpg',
+    coverImage: '/images/covers/banana-thief.webp',
     catalogKey: 'bananaThief',
     color: 'bg-lime-400',
     minPlayers: 4,
@@ -208,7 +208,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.POKER,
     icon: '🅰️',
-    coverImage: '/images/covers/poker.jpg',
+    coverImage: '/images/covers/poker.webp',
     catalogKey: 'poker',
     color: 'bg-emerald-400',
     minPlayers: 2,
@@ -221,7 +221,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.POKER_V2,
     icon: '♠️',
-    coverImage: '/images/covers/poker.jpg',
+    coverImage: '/images/covers/poker.webp',
     catalogKey: 'pokerV2',
     color: 'bg-emerald-600',
     minPlayers: 2,
@@ -234,7 +234,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.CIPHER_GRID,
     icon: '🕵️',
-    coverImage: '/images/covers/cipher-grid.jpg',
+    coverImage: '/images/covers/cipher-grid.webp',
     catalogKey: 'cipherGrid',
     color: 'bg-cyan-400',
     minPlayers: 4,
@@ -247,7 +247,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.WEREWOLF,
     icon: '🐺',
-    coverImage: '/images/covers/werewolf.jpg',
+    coverImage: '/images/covers/werewolf.webp',
     catalogKey: 'werewolf',
     color: 'bg-indigo-400',
     minPlayers: 6,
@@ -260,7 +260,7 @@ export const GAME_CATALOG: GameCatalogItem[] = [
   {
     type: GameType.BATTLESHIP,
     icon: '⚓',
-    coverImage: '/images/covers/battleship.jpg',
+    coverImage: '/images/covers/battleship.webp',
     catalogKey: 'battleship',
     color: 'bg-sky-400',
     minPlayers: 2,

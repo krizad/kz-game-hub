@@ -131,8 +131,8 @@ export class DetectiveClubService {
           this.availableCards = files
             .filter((file) =>
               isCustomDeck
-                ? /\.(svg|jpg|png|jpeg)$/i.test(file)
-                : /^card_\d{3}\.(jpg|png|jpeg)$/i.test(file),
+                ? /\.(svg|jpg|png|jpeg|webp)$/i.test(file)
+                : /^card_\d{3}\.(jpg|png|jpeg|webp)$/i.test(file),
             )
             .sort();
           if (this.availableCards.length === 0) continue;
@@ -153,7 +153,7 @@ export class DetectiveClubService {
         if (Array.isArray(parsed)) {
           this.availableCards = parsed.filter(
             (entry): entry is string =>
-              typeof entry === 'string' && /^card_\d{3}\.(jpg|png|jpeg)$/i.test(entry),
+              typeof entry === 'string' && /^card_\d{3}\.(jpg|png|jpeg|webp)$/i.test(entry),
           );
           if (this.availableCards.length > 0) {
             this.logger.log(

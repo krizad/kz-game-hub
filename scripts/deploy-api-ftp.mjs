@@ -138,7 +138,7 @@ function buildFlatBundle() {
   const dcImagesDir = join(ROOT, 'apps', 'web', 'public', 'images', 'detective-club');
   if (existsSync(dcImagesDir)) {
     const dcCards = readdirSync(dcImagesDir)
-      .filter((file) => /^card_\d{3}\.(jpg|png|jpeg)$/i.test(file))
+      .filter((file) => /^card_\d{3}\.(jpg|png|jpeg|webp)$/i.test(file))
       .sort();
     writeFileSync(join(DEPLOY_DIR, 'detective-club-cards.json'), JSON.stringify(dcCards, null, 2));
     console.log(`Bundled detective-club-cards.json (${dcCards.length} cards)`);
