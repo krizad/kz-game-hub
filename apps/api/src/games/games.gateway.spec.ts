@@ -1921,4 +1921,52 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
       expect(mockLeaderboard.recordGameResult).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('gameplay and lifecycle logging', () => {
+    it('logs gameplay actions with metadata and never logs secret words or admin keys', () => {
+      const gw = new GamesGateway(
+        {
+          findRoomCodeBySocketId: jest.fn(() => 'ABC123'),
+          getRoom: jest.fn(() => ({
+            code: 'ABC123',
+            gameType: GameType.WHO_KNOW,
+            players: [{ socketId: 'sock-1', name: 'Alice' }],
+          })),
+          getRoomCount: jest.fn(() => 1),
+        } as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        gameSettingsStub() as never,
+        artistPresetsStub() as never,
+      );
+      const logSpy = jest
+        .spyOn((gw as unknown as { logger: { log: jest.Mock } }).logger, 'log')
+        .mockImplementation(() => undefined);
+      const warnSpy = jest
+        .spyOn((gw as unknown as { logger: { warn: jest.Mock } }).logger, 'warn')
+        .mockImplementation(() => undefined);
+
+      (
+        gw as unknown as {
+          logClientAction: (clientId: string, event: string, payload: unknown) => void;
+        }
+      ).logClientAction('sock-1', SOCKET_EVENTS.SET_WORD, {
+        code: 'ABC123',
+        word: 'TOP_SECRET_BANANA',
+        adminKey: 'SUPER_ADMIN_SECRET',
+      });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        '[GAME] action=set_word room=ABC123 game=WHO_KNOW player=Alice socket=sock-1',
+      );
+      expect(logSpy.mock.calls.flat().join(' ')).not.toContain('TOP_SECRET_BANANA');
+      expect(logSpy.mock.calls.flat().join(' ')).not.toContain('SUPER_ADMIN_SECRET');
+
+      gw.onModuleDestroy();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[SYS] GamesGateway shutting down activeRooms=1 connectedSockets=unknown',
+      );
+    });
+  });
 });

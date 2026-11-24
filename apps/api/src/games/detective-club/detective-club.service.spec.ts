@@ -435,4 +435,25 @@ describe('DetectiveClubService', () => {
       expect(state.currentPhase).toBe(DetectiveClubPhase.SCORING);
     });
   });
+
+  it('loads cards from detective-club-cards.json manifest when image directories are absent', () => {
+    delete process.env.DETECTIVE_CLUB_CARDS_DIR;
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dc-manifest-'));
+    const manifestPath = path.join(tempDir, 'detective-club-cards.json');
+    fs.writeFileSync(manifestPath, JSON.stringify(['card_001.jpg', 'card_002.jpg', '../bad.jpg']));
+    const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue(tempDir);
+
+    try {
+      const manifestService = new DetectiveClubService(privateState);
+      const room = createRoom(threePlayers());
+      const started = manifestService.startGame(room, 'p1');
+      expect(started).not.toBeNull();
+      const hand = privateState.get<string[]>(room.code, 'p1', 'dcHand') ?? [];
+      expect(hand.length).toBeGreaterThan(0);
+      expect(hand.every((u) => /^\/images\/detective-club\/card_00[12]\.jpg$/.test(u))).toBe(true);
+    } finally {
+      cwdSpy.mockRestore();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

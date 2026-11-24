@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   RoomState,
   RoomStatus,
@@ -97,6 +97,7 @@ export class GamesService {
     return room && applyResultRevealAction(room, socketId, payload) ? room : null;
   }
 
+  private readonly logger = new Logger(GamesService.name);
   /** How long a dropped connection may reclaim its seat before being removed. */
   private static readonly RECONNECT_GRACE_MS = 60_000;
 
@@ -138,6 +139,17 @@ export class GamesService {
     private readonly roomStartGuardService: RoomStartGuardService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
   ) {}
+
+  getRoomCount(): number {
+    return this.rooms.size;
+  }
+
+  private getReconnectGraceMs(): number {
+    const raw = process.env.RECONNECT_GRACE_MS;
+    if (!raw) return GamesService.RECONNECT_GRACE_MS;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : GamesService.RECONNECT_GRACE_MS;
+  }
 
   setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void {
     this.roomLifecycleListener = listener;
@@ -574,8 +586,12 @@ export class GamesService {
     const playerIndex = room.players.findIndex((p) => p.id === playerId);
     if (playerIndex === -1 || room.players[playerIndex].connected !== false) return;
 
-    const socketId = room.players[playerIndex].socketId;
+    const removedPlayer = room.players[playerIndex];
+    const socketId = removedPlayer.socketId;
     const wasHost = room.roomHostId === socketId;
+    this.logger.log(
+      `[ROOM] Reconnect grace expired room=${code} player=${removedPlayer.name} wasHost=${wasHost}`,
+    );
     this.removePlayerFromRoom(code, room, playerIndex);
 
     if (wasHost) {
@@ -583,6 +599,7 @@ export class GamesService {
     }
 
     if (!room.players.some((p) => p.connected !== false && p.socketId !== BOT_SOCKET_ID)) {
+      this.logger.log(`[ROOM] Room emptied after grace expiry room=${code}`);
       this.deleteRoomData(code);
       this.roomLifecycleListener?.({ type: 'ROOM_DELETED', code });
       return;
@@ -599,7 +616,7 @@ export class GamesService {
       Date.now() +
         (this.rooms.get(code)?.gameType === GameType.DOG_RELAY
           ? DOG_RELAY_RECONNECT_MS
-          : GamesService.RECONNECT_GRACE_MS),
+          : this.getReconnectGraceMs()),
       () => this.removeExpiredPlayer(code, playerId),
     );
   }
@@ -736,6 +753,7 @@ export class GamesService {
       (room.gameType === GameType.DOG_RELAY ? undefined : candidates[0]);
     if (!nextHost) return;
     room.roomHostId = nextHost.socketId;
+    this.logger.log(`[ROOM] Host transferred room=${room.code} newHost=${nextHost.name}`);
   }
 
   /** Remove a room that never became usable (e.g. its creator could not join it). */
@@ -744,6 +762,12 @@ export class GamesService {
   }
 
   private deleteRoomData(code: string): void {
+    const existing = this.rooms.get(code);
+    if (existing) {
+      this.logger.log(
+        `[ROOM] Deleted room=${code} game=${existing.gameType} status=${existing.status} players=${existing.players.length}`,
+      );
+    }
     this.rooms.delete(code);
     this.secretWords.delete(code);
     this.saboteurTurnDeadlines.delete(code);

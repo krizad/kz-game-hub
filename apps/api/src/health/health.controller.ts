@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { prisma } from '@repo/database';
 import { APP_VERSION } from '@repo/types';
@@ -6,6 +6,8 @@ import { APP_VERSION } from '@repo/types';
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   @Get()
   @ApiOperation({ summary: 'Health check' })
   async check() {
@@ -24,8 +26,16 @@ export class HealthController {
         status: 'connected',
         latencyMs: Date.now() - databaseStartedAt,
       };
-    } catch {
+      if (database.latencyMs > 1000) {
+        this.logger.warn(`[HEALTH] Slow database check latencyMs=${database.latencyMs}`);
+      } else {
+        this.logger.debug(`[HEALTH] ok dbLatencyMs=${database.latencyMs}`);
+      }
+    } catch (error) {
       database = { status: 'disconnected' };
+      this.logger.warn(
+        `[HEALTH] Degraded database=disconnected reason=${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       if (timeout) clearTimeout(timeout);
     }

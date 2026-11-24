@@ -15,9 +15,12 @@ export class RoomTimerService implements OnModuleDestroy {
       // A throw here would surface as an uncaughtException and kill the
       // whole API process; timer callbacks must never take the server down.
       try {
+        if (!timerName.startsWith('reconnect-grace:')) {
+          this.logger.log(`[TIMER] Triggered timer=${timerName} room=${roomCode}`);
+        }
         callback();
       } catch (error) {
-        this.logger.error(`Timer ${timerName} for room ${roomCode} threw`, error as Error);
+        this.logger.error(`[TIMER] Timer ${timerName} for room ${roomCode} threw`, error as Error);
       }
     }, delay);
     timer.unref();

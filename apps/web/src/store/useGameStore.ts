@@ -224,6 +224,8 @@ export const useGameStore = create<GameState>((set, get) => {
   const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const clockSyncTimeouts: ReturnType<typeof setTimeout>[] = [];
   let bestRtt = Infinity;
+  let browserListenersAttached = false;
+  let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   let stagedDogRelay: DogRelayPrivateState | null = null;
   const seenDogRelayRounds = new Set<string>();
   let latestCategoriesRequest: {
@@ -490,11 +492,54 @@ export const useGameStore = create<GameState>((set, get) => {
         (typeof window !== 'undefined'
           ? `${window.location.protocol}//${window.location.hostname}:3001`
           : 'http://localhost:3001');
-      const socket = io(apiUrl);
+      const configuredTransports = (process.env.NEXT_PUBLIC_SOCKET_TRANSPORTS || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item): item is 'polling' | 'websocket' => item === 'polling' || item === 'websocket');
+      const socket = io(apiUrl, {
+        transports: configuredTransports.length > 0 ? configuredTransports : ['polling', 'websocket'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20_000,
+      });
       // Store the socket synchronously so a double-invoked mount effect
       // (React StrictMode) cannot open a second connection with the
       // single-use reconnect token.
       set({ socket });
+
+      if (typeof window !== 'undefined' && !browserListenersAttached) {
+        browserListenersAttached = true;
+        const resumeSocket = () => {
+          const currentSocket = get().socket;
+          if (!currentSocket || currentSocket.connected) return;
+          set({ connectionStatus: get().room ? 'reconnecting' : 'connecting' });
+          currentSocket.connect();
+        };
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') resumeSocket();
+        });
+        window.addEventListener('online', resumeSocket);
+
+        const keepAliveMs = Number.parseInt(
+          process.env.NEXT_PUBLIC_KEEPALIVE_INTERVAL_MS || '90000',
+          10,
+        );
+        if (Number.isFinite(keepAliveMs) && keepAliveMs > 0 && !keepAliveTimer) {
+          keepAliveTimer = setInterval(() => {
+            if (!get().room) return;
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+            void fetch(`${apiUrl.replace(/\/$/, '')}/health`, {
+              method: 'GET',
+              cache: 'no-store',
+              mode: 'cors',
+            }).catch(() => {
+              // Keep-alive is best-effort and must never surface errors to players.
+            });
+          }, keepAliveMs);
+        }
+      }
 
       socket.on('connect', () => {
         // Auto-reconnect if session exists
@@ -564,12 +609,30 @@ export const useGameStore = create<GameState>((set, get) => {
           musicTriviaSyncPlay: null,
         });
       });
+      socket.io.on('reconnect_attempt', () => {
+        set({
+          connected: false,
+          connectionStatus: get().room ? 'reconnecting' : 'connecting',
+        });
+      });
+      socket.io.on('reconnect_failed', () => {
+        set({
+          connected: false,
+          socketId: '',
+          connectionStatus: 'failed',
+        });
+      });
       socket.on('connect_error', () => {
         clearAllActionTimeouts();
         set({
           connected: false,
           socketId: '',
-          connectionStatus: 'failed',
+          connectionStatus:
+            socket.active && get().room
+              ? 'reconnecting'
+              : socket.active
+                ? 'connecting'
+                : 'failed',
           isLoading: false,
           actionLoading: false,
           pendingActions: {},

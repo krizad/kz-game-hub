@@ -16,6 +16,7 @@ const checks = [
   ['node_modules/@repo/types', 'workspace dep: types'],
   ['node_modules/@nestjs/core', 'nestjs core'],
   ['node_modules/.prisma/client/default.js', 'generated prisma client'],
+  ['detective-club-cards.json', 'detective club card manifest'],
 ];
 for (const [rel, label] of checks) {
   const p = path.resolve(rel);
@@ -32,7 +33,7 @@ for (const [rel, label] of checks) {
   log(`${ok ? 'OK  ' : 'FAIL'} ${label}: ${rel} (${type})`);
 }
 
-for (const k of ['DATABASE_URL', 'PORT', 'NODE_ENV', 'CORS_ORIGIN']) {
+for (const k of ['DATABASE_URL', 'PORT', 'NODE_ENV', 'CORS_ORIGIN', 'RECONNECT_GRACE_MS', 'LOG_LEVEL']) {
   const v = process.env[k];
   const extra = k === 'DATABASE_URL' && v ? ' (' + v.slice(0, 10) + '...)' : '';
   log(`env ${k}: ${v ? 'SET' + extra : 'MISSING'}`);

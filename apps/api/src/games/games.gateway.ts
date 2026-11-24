@@ -8,7 +8,7 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
-import { Logger, UseFilters } from '@nestjs/common';
+import { Logger, OnModuleDestroy, UseFilters } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
@@ -71,18 +71,30 @@ import { MusicTriviaTimerCommand } from './music-trivia/music-trivia.service';
   cors: {
     origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
   },
-  // Tolerate flaky mobile networks: give clients up to ~80s of silence
-  // (interval + timeout) before the server declares the connection dead.
-  pingInterval: 20_000,
-  pingTimeout: 60_000,
+  transports: ['websocket', 'polling'],
+  allowUpgrades: true,
+  // Send pings well inside typical 30s-60s proxy read timeouts while tolerating
+  // mobile network hiccups before declaring the socket dead.
+  pingInterval: 15_000,
+  pingTimeout: 45_000,
 })
-export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class GamesGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy
+{
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(GamesGateway.name);
   private readonly recordedResults = new Set<string>();
   private readonly recordedScoreBaselines = new Map<string, Map<string, number>>();
+  private readonly lastBroadcastSnapshot = new Map<string, string>();
+  private static readonly QUIET_EVENTS = new Set<string>([
+    SOCKET_EVENTS.SERVER_TIME_REQUEST,
+    SOCKET_EVENTS.GET_AVAILABLE_ROOMS,
+    SOCKET_EVENTS.GET_GAME_SETTINGS,
+    SOCKET_EVENTS.GET_ARTIST_PRESETS,
+    SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES,
+  ]);
 
   constructor(
     private readonly gamesService: GamesService,
@@ -110,10 +122,50 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     void this.gameSettingsService.load();
   }
 
+  onModuleDestroy(): void {
+    const roomCount =
+      typeof this.gamesService?.getRoomCount === 'function'
+        ? this.gamesService.getRoomCount()
+        : undefined;
+    const socketCount = this.server?.sockets?.sockets?.size;
+    this.logger.warn(
+      `[SYS] GamesGateway shutting down activeRooms=${roomCount ?? 'unknown'} connectedSockets=${socketCount ?? 'unknown'}`,
+    );
+  }
+
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    const transport = client.conn?.transport?.name ?? 'unknown';
+    const origin =
+      typeof client.handshake?.headers?.origin === 'string'
+        ? client.handshake.headers.origin
+        : '-';
+    const totalSockets = this.server?.sockets?.sockets?.size ?? 'unknown';
+    this.logger.log(
+      `[WS] Connected socket=${client.id} transport=${transport} origin=${origin} totalSockets=${totalSockets}`,
+    );
+
+    client.conn?.on?.('upgrade', (nextTransport: { name?: string }) => {
+      this.logger.log(
+        `[WS] Transport upgraded socket=${client.id} to=${nextTransport?.name ?? 'unknown'}`,
+      );
+    });
+    client.conn?.on?.('error', (error: unknown) => {
+      this.logger.warn(
+        `[WS] Transport error socket=${client.id} message=${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
+    client.once?.('disconnect', (reason: string) => {
+      this.logger.log(
+        `[WS] Socket closed socket=${client.id} reason=${reason} transport=${client.conn?.transport?.name ?? 'unknown'}`,
+      );
+    });
+
     client.use(([event, payload], next) => {
-      if (this.isValidPayload(event, payload)) return next();
+      if (this.isValidPayload(event, payload)) {
+        this.logClientAction(client.id, event, payload);
+        return next();
+      }
+      this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
       next(new Error('Invalid request payload'));
     });
@@ -121,22 +173,29 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    const previousRoomCode =
+      typeof this.gamesService?.findRoomCodeBySocketId === 'function'
+        ? this.gamesService.findRoomCodeBySocketId(client.id)
+        : null;
     const result = this.gamesService.leaveRoom(client.id, false);
+    this.logger.log(
+      `[WS] Disconnected socket=${client.id} room=${previousRoomCode ?? '-'} outcome=${result.outcome}`,
+    );
     this.handleLeaveResult(client, result);
   }
 
   @SubscribeMessage(SOCKET_EVENTS.LEAVE_ROOM)
   handleLeaveRoom(@ConnectedSocket() client: Socket) {
     const result = this.gamesService.leaveRoom(client.id, true);
+    this.logger.log(`[ROOM] Leave requested socket=${client.id} outcome=${result.outcome}`);
     this.handleLeaveResult(client, result);
 
     const roomCode =
       'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
-    const spectatingRoomCode = client.data.spectatingRoomCode as string | undefined;
+    const spectatingRoomCode = client.data?.spectatingRoomCode as string | undefined;
     if (roomCode) client.leave(roomCode);
     if (spectatingRoomCode && spectatingRoomCode !== roomCode) client.leave(spectatingRoomCode);
-    client.data.spectatingRoomCode = undefined;
+    if (client.data) client.data.spectatingRoomCode = undefined;
   }
 
   /** Shared post-leave handling for both explicit leaves and disconnects. */
@@ -152,10 +211,12 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       case 'ROOM_CLOSED':
         // Host left — the service already deleted the room and its timers.
         // Spectators may still be in the socket.io room; notify them.
+        this.logger.log(`[ROOM] Closed by host room=${result.code}`);
         this.server.to(result.code).emit(SOCKET_EVENTS.ROOM_DELETED);
         this.forgetRecordedResult(result.code);
         break;
       case 'ROOM_EMPTIED':
+        this.logger.log(`[ROOM] Emptied and deleted room=${result.code}`);
         this.forgetRecordedResult(result.code);
         break;
       case 'PLAYER_LEFT':
@@ -171,6 +232,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     this.recordedResults.delete(code);
     this.recordedScoreBaselines.delete(code);
     this.recordedDogRelayRounds.delete(code);
+    this.lastBroadcastSnapshot.delete(code);
   }
 
   private readonly recordedDogRelayRounds = new Map<string, string>();
@@ -431,12 +493,18 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     if (updatedRoom) {
       client.join(updatedRoom.code);
       this.emitSessionToken(client, updatedRoom.code);
+      this.logger.log(
+        `[ROOM] Created room=${updatedRoom.code} game=${updatedRoom.gameType} host=${data.name.trim()} socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(updatedRoom));
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
         this.gamesService.getAvailableRooms(),
       );
     } else {
+      this.logger.warn(
+        `[ROOM] Failed create-join rollback room=${room.code} game=${requestedGameType} socket=${client.id}`,
+      );
       this.gamesService.deleteRoom(room.code);
     }
   }
@@ -449,21 +517,28 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     // Block new entries into a disabled game, but never strand a seated player:
     // existing members (reconnecting) may always return to their room. After a
     // browser refresh the socket id is new, so also honor a valid session token.
-    const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
+    const requestedCode = data.code.toUpperCase();
+    const targetRoom = this.gamesService.getRoom(requestedCode);
     if (!targetRoom) {
+      this.logger.warn(
+        `[ROOM] Join rejected room=${requestedCode} reason="Room not found" name=${data.name?.trim() || '-'} hasToken=${Boolean(data.reconnectToken)} socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
       return;
     }
     const name = data.name.trim();
     const isSeatedMember =
       !!data.reconnectToken &&
-      this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken, name);
+      this.gamesService.hasSeatedSession(requestedCode, data.reconnectToken, name);
     if (
       !isSeatedMember &&
       targetRoom.gameType === GameType.DOG_RELAY &&
       targetRoom.status === RoomStatus.LOBBY &&
       targetRoom.players.filter((player) => !player.isViewer).length >= DOG_RELAY_MAX_PLAYERS
     ) {
+      this.logger.warn(
+        `[ROOM] Join rejected room=${requestedCode} reason=DOG_RELAY_ROOM_FULL name=${name} socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_ROOM_FULL' });
       return;
     }
@@ -474,16 +549,22 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       targetRoom.status !== RoomStatus.LOBBY &&
       targetRoom.config?.allowSpectators === false
     ) {
+      this.logger.warn(
+        `[ROOM] Join rejected room=${requestedCode} reason=SPECTATORS_DISABLED name=${name} socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
       return;
     }
     if (!isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
+      this.logger.warn(
+        `[ROOM] Join rejected room=${requestedCode} reason=GAME_DISABLED game=${targetRoom.gameType} name=${name} socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
       return;
     }
-    this.leavePreviousRoom(client, data.code.toUpperCase());
+    this.leavePreviousRoom(client, requestedCode);
     const room = this.gamesService.joinRoom(
-      data.code.toUpperCase(),
+      requestedCode,
       {
         id: client.id, // using socketId as temp ID
         name,
@@ -493,6 +574,10 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     );
 
     if (room) {
+      const player = room.players.find((p) => p.socketId === client.id);
+      this.logger.log(
+        `[ROOM] Joined room=${room.code} game=${room.gameType} player=${name} rejoin=${isSeatedMember} viewer=${Boolean(player?.isViewer)} players=${room.players.length} socket=${client.id}`,
+      );
       client.join(room.code);
       this.emitSessionToken(client, room.code);
       this.broadcastRoomState(room);
@@ -502,7 +587,6 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         this.gamesService.getAvailableRooms(),
       );
 
-      const player = room.players.find((p) => p.socketId === client.id);
       const playerRole = this.gamesService.getPlayerRole(room.code, client.id);
       if (player && playerRole) {
         if (room.status === RoomStatus.WORD_SETTING) {
@@ -519,6 +603,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         }
       }
     } else {
+      this.logger.warn(
+        `[ROOM] Join rejected room=${requestedCode} reason="Player name is already in use" name=${name} socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, {
         message: 'Player name is already in use',
       });
@@ -530,6 +617,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     const result = await this.gamesService.assignRoles(data.code, client.id);
 
     if (result && !result.error) {
+      this.logger.log(
+        `[GAME] Started room=${result.room.code} game=${result.room.gameType} players=${result.room.players.length} hostSocket=${client.id}`,
+      );
       // Broadcast updated room state
       this.broadcastRoomState(result.room);
       this.syncTheMindTimer(result.room);
@@ -569,6 +659,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           msg = 'Cannot start game. Need 6-12 players for Werewolf.';
         }
       }
+      this.logger.warn(
+        `[GAME] Start rejected room=${data.code} game=${gameType ?? 'unknown'} reason="${msg}" socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: msg });
       const currentRoom = result?.room ?? roomInfo;
       if (currentRoom) {
@@ -694,6 +787,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       ]) {
         this.roomTimerService.cancel(room.code, timerName);
       }
+      this.logger.log(
+        `[GAME] Reset to lobby room=${room.code} game=${room.gameType} bySocket=${client.id}`,
+      );
       this.broadcastRoomState(room);
       this.server.emit(
         SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED,
@@ -2198,26 +2294,112 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     @MessageBody() data: { code: string; name: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.gamesService.getRoom(data.code.toUpperCase());
+    const requestedCode = data.code.toUpperCase();
+    const room = this.gamesService.getRoom(requestedCode);
     if (!room) {
+      this.logger.warn(
+        `[ROOM] Spectator rejected room=${requestedCode} reason="Room not found" socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Room not found' });
       return;
     }
     if (room.config?.allowSpectators === false) {
+      this.logger.warn(
+        `[ROOM] Spectator rejected room=${requestedCode} reason=SPECTATORS_DISABLED socket=${client.id}`,
+      );
       client.emit(SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
       return;
     }
 
     this.leavePreviousRoom(client, room.code);
     client.join(room.code);
-    client.data.spectatingRoomCode = room.code;
+    if (client.data) client.data.spectatingRoomCode = room.code;
+    this.logger.log(
+      `[ROOM] Spectator joined room=${room.code} game=${room.gameType} name=${data.name?.trim() || 'Viewer'} socket=${client.id}`,
+    );
     client.emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
     this.emitMusicTriviaSyncPlay(room.code, client);
   }
 
   // --- Private helpers ---
 
+  private logClientAction(clientId: string, event: string, payload: unknown): void {
+    if (GamesGateway.QUIET_EVENTS.has(event)) return;
+
+    const record =
+      payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : undefined;
+    const rawCode = typeof record?.code === 'string' ? record.code.toUpperCase() : null;
+    const resolvedCode =
+      rawCode ??
+      (typeof this.gamesService?.findRoomCodeBySocketId === 'function'
+        ? this.gamesService.findRoomCodeBySocketId(clientId)
+        : null);
+    const room =
+      resolvedCode && typeof this.gamesService?.getRoom === 'function'
+        ? this.gamesService.getRoom(resolvedCode)
+        : undefined;
+    const playerName = room?.players?.find((p) => p.socketId === clientId)?.name;
+
+    const nestedAction =
+      record?.action && typeof record.action === 'object'
+        ? (record.action as Record<string, unknown>).type
+        : undefined;
+    const rawAction =
+      typeof nestedAction === 'string'
+        ? nestedAction
+        : typeof record?.type === 'string'
+          ? record.type
+          : typeof record?.kind === 'string'
+            ? record.kind
+            : undefined;
+    const safeAction =
+      rawAction && rawAction.length <= 40 ? `:${rawAction.replace(/\s+/g, '_')}` : '';
+
+    this.logger.log(
+      `[GAME] action=${event}${safeAction} room=${resolvedCode ?? '-'} game=${room?.gameType ?? '-'} player=${playerName ?? '-'} socket=${clientId}`,
+    );
+  }
+
+  private getRoomStateSignature(room: RoomState): string {
+    const phaseHolder =
+      room.detectiveClubState ??
+      room.soundsFishyState ??
+      room.musicTriviaState ??
+      room.saboteurState ??
+      room.coupState ??
+      room.whoAmIState ??
+      room.whoFirstState ??
+      room.cardGameState ??
+      room.pokerState ??
+      room.pokerV2State ??
+      room.bananaThiefState ??
+      room.cipherGridState ??
+      room.dogRelayState ??
+      room.werewolfState ??
+      room.battleshipState;
+    const phase =
+      phaseHolder && typeof phaseHolder === 'object' && 'phase' in phaseHolder
+        ? String((phaseHolder as { phase?: unknown }).phase ?? '-')
+        : '-';
+    const round =
+      phaseHolder && typeof phaseHolder === 'object' && 'round' in phaseHolder
+        ? String((phaseHolder as { round?: unknown }).round ?? '-')
+        : room.theMindState
+          ? `L${room.theMindState.level}`
+          : '-';
+    return `${room.gameType}|${room.status}|phase=${phase}|round=${round}`;
+  }
+
   private broadcastRoomState(room: RoomState): void {
+    const signature = this.getRoomStateSignature(room);
+    const previous = this.lastBroadcastSnapshot.get(room.code);
+    if (previous !== signature) {
+      this.lastBroadcastSnapshot.set(room.code, signature);
+      const connectedCount = room.players.filter((p) => p.connected !== false).length;
+      this.logger.log(
+        `[GAME] State room=${room.code} ${previous ?? 'INIT'} -> ${signature} connected=${connectedCount}/${room.players.length}`,
+      );
+    }
     this.server.to(room.code).emit(SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
     this.emitPrivateStates(room);
     if (room.gameType === GameType.MUSIC_TRIVIA) {
@@ -3293,11 +3475,11 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       if (room.status !== RoomStatus.RESULT || !state?.result || !state.roundId) return;
       if (this.recordedDogRelayRounds.get(room.code) === state.roundId) return;
       this.recordedDogRelayRounds.set(room.code, state.roundId);
-      void this.leaderboardService.recordGameResult(
-        room.gameType,
-        room.code,
-        buildDogRelayResultRows(room),
+      const dogRelayRows = buildDogRelayResultRows(room);
+      this.logger.log(
+        `[GAME] Result recorded room=${room.code} game=${room.gameType} roundId=${state.roundId} players=${dogRelayRows.length}`,
       );
+      void this.leaderboardService.recordGameResult(room.gameType, room.code, dogRelayRows);
       return;
     }
 
@@ -3375,6 +3557,9 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       };
     });
 
+    this.logger.log(
+      `[GAME] Result recorded room=${room.code} game=${room.gameType} top=${results[0]?.playerName ?? '-'}:${results[0]?.score ?? 0} players=${results.length}`,
+    );
     void this.leaderboardService.recordGameResult(room.gameType, room.code, results);
   }
 }

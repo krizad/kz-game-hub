@@ -142,6 +142,27 @@ export class DetectiveClubService {
           return;
         }
       }
+
+      const manifestCandidates = [
+        path.join(process.cwd(), 'detective-club-cards.json'),
+        path.resolve(__dirname, '../../../detective-club-cards.json'),
+      ];
+      for (const manifestPath of manifestCandidates) {
+        if (!fs.existsSync(manifestPath)) continue;
+        const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as unknown;
+        if (Array.isArray(parsed)) {
+          this.availableCards = parsed.filter(
+            (entry): entry is string =>
+              typeof entry === 'string' && /^card_\d{3}\.(jpg|png|jpeg)$/i.test(entry),
+          );
+          if (this.availableCards.length > 0) {
+            this.logger.log(
+              `Loaded ${this.availableCards.length} detective club cards from manifest ${manifestPath}`,
+            );
+            return;
+          }
+        }
+      }
       this.logger.warn('Detective club images directory not found');
     } catch (error) {
       this.logger.error('Failed to load detective club cards', error);

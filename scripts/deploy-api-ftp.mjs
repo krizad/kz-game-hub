@@ -135,6 +135,15 @@ function buildFlatBundle() {
   }
   cpSync(join(ROOT, 'scripts', 'diag-server.js'), join(DEPLOY_DIR, 'diag.js'));
 
+  const dcImagesDir = join(ROOT, 'apps', 'web', 'public', 'images', 'detective-club');
+  if (existsSync(dcImagesDir)) {
+    const dcCards = readdirSync(dcImagesDir)
+      .filter((file) => /^card_\d{3}\.(jpg|png|jpeg)$/i.test(file))
+      .sort();
+    writeFileSync(join(DEPLOY_DIR, 'detective-club-cards.json'), JSON.stringify(dcCards, null, 2));
+    console.log(`Bundled detective-club-cards.json (${dcCards.length} cards)`);
+  }
+
   const vendorDir = join(DEPLOY_DIR, 'vendor');
   mkdirSync(vendorDir, { recursive: true });
   vendorWorkspacePackage('@repo/database', dbPkgDir, vendorDir);
@@ -193,7 +202,7 @@ function smokeTest() {
     let output = '';
     const child = spawn('node', ['dist/main.js'], {
       cwd: DEPLOY_DIR,
-      env: { ...process.env, PORT: '3999', NODE_ENV: 'production' },
+      env: { ...process.env, PORT: '3999', NODE_ENV: 'production', LOG_TO_FILE: 'false' },
     });
     child.stdout.on('data', (d) => { output += d; });
     child.stderr.on('data', (d) => { output += d; });
@@ -202,6 +211,9 @@ function smokeTest() {
       if (settled) return;
       settled = true;
       try { child.kill('SIGTERM'); } catch {}
+      setTimeout(() => {
+        try { child.kill('SIGKILL'); } catch {}
+      }, 1000).unref();
       if (!ok && output) {
         const tail = output.split('\n').filter(Boolean).slice(-30).join('\n');
         console.error(`--- API boot output (last 30 lines) ---\n${tail}`);
@@ -273,6 +285,8 @@ function printChecklist() {
    NODE_ENV=production
    DATABASE_URL=mysql://<user>:<pass>@<db-host>:3306/<db>
    CORS_ORIGIN=https://<web-url>   <- ต้องเป็น URL จริง ไม่ใช่ localhost
+   RECONNECT_GRACE_MS=120000        <- แนะนำ 120000 (2 นาที) สำหรับเน็ตมือถือ/Shared Host
+   LOG_LEVEL=log                    <- (หรือ debug เพื่อดูรายละเอียดเพิ่ม; ไฟล์อยู่ที่ logs/game-hub.logs)
    GEMINI_API_KEY=...  SPOTIFY_CLIENT_ID=...  SPOTIFY_CLIENT_SECRET=...  ADMIN_SECRET=...
 5) Restart app -> test https://<api-domain>/health  (ต้องได้ {"status":"ok"})
 
@@ -292,6 +306,7 @@ async function main() {
     }
     buildFlatBundle();
     const smoke = await smokeTest();
+    rmSync(join(DEPLOY_DIR, 'logs'), { recursive: true, force: true });
     console.log(smoke.ok ? 'Smoke test: OK' : `Smoke test: WARNING — ${smoke.detail}`);
     if (!smoke.ok && process.env.CI === 'true') {
       throw new Error(`Smoke test failed in CI: ${smoke.detail}`);
