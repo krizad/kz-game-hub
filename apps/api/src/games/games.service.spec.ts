@@ -2232,4 +2232,62 @@ describe('GamesService', () => {
       expect(updated?.config.wordCategory).toBe('');
     });
   });
+
+  describe('room caps, idle TTL sweep, and timing-safe admin auth (ADR 0017)', () => {
+    const originalEnv = { ...process.env };
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    it('enforces MAX_ROOMS cap and throws SERVER_ROOM_LIMIT_REACHED', () => {
+      process.env.MAX_ROOMS = '2';
+      service.createRoom('host1', GameType.WHO_KNOW);
+      service.createRoom('host2', GameType.WHO_KNOW);
+
+      expect(service.isRoomLimitReached()).toBe(true);
+      expect(() => service.createRoom('host3', GameType.WHO_KNOW)).toThrow(
+        'SERVER_ROOM_LIMIT_REACHED',
+      );
+    });
+
+    it('sweeps idle rooms past IDLE_ROOM_TTL_MS and emits ROOM_DELETED', () => {
+      process.env.IDLE_ROOM_TTL_MS = '60000';
+      const events: RoomLifecycleEvent[] = [];
+      service.setRoomLifecycleListener((event) => events.push(event));
+
+      const idleRoom = service.createRoom('host1', GameType.WHO_KNOW);
+      const activeRoom = service.createRoom('host2', GameType.WHO_KNOW);
+
+      const baseNow = Date.now();
+      service.touchRoomActivity(idleRoom.code, baseNow - 61_000);
+      service.touchRoomActivity(activeRoom.code, baseNow - 10_000);
+
+      const expired = service.sweepIdleRooms(baseNow);
+      expect(expired).toEqual([idleRoom.code]);
+      expect(service.getRoom(idleRoom.code)).toBeUndefined();
+      expect(service.getRoom(activeRoom.code)).toBeDefined();
+      expect(events).toEqual([{ type: 'ROOM_DELETED', code: idleRoom.code }]);
+    });
+
+    it('disables idle room sweeping when IDLE_ROOM_TTL_MS=0', () => {
+      process.env.IDLE_ROOM_TTL_MS = '0';
+      const room = service.createRoom('host1', GameType.WHO_KNOW);
+      service.touchRoomActivity(room.code, 0);
+
+      expect(service.sweepIdleRooms(Date.now() + 999_999_999)).toEqual([]);
+      expect(service.getRoom(room.code)).toBeDefined();
+    });
+
+    it('verifies admin key in constant time', () => {
+      process.env.ADMIN_SECRET = 'super-secret-admin-key';
+      expect(service.verifyAdminKey('super-secret-admin-key')).toBe(true);
+      expect(service.verifyAdminKey('wrong')).toBe(false);
+      expect(service.verifyAdminKey('super-secret-admin-keY')).toBe(false);
+      expect(service.verifyAdminKey(undefined)).toBe(false);
+
+      delete process.env.ADMIN_SECRET;
+      expect(service.verifyAdminKey('super-secret-admin-key')).toBe(false);
+    });
+  });
 });

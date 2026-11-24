@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { GameType, DetectiveClubPhase, DetectiveClubRole, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -31,7 +32,7 @@ function getRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslat
 }
 
 export function DetectiveClubView() {
-  const { room, socketId, privateState } = useGameStore();
+  const { room, socketId, privateState } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
   const { shake, flash, celebrate } = useGameFeel();

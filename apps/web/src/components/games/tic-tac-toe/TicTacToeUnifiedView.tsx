@@ -9,7 +9,7 @@ import { TicTacToeModeSelector } from './TicTacToeModeSelector';
 import { TicTacToeBotSettings } from './TicTacToeBotSettings';
 
 export function TicTacToeUnifiedView() {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
 
   if (!room) return null;
 

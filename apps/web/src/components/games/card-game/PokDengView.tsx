@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { CardGamePrivateState } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from './CardHand';
@@ -11,7 +12,7 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function PokDengView() {
-  const { room, socketId, privateState, cardGameAction } = useGameStore();
+  const { room, socketId, privateState, cardGameAction } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, cardGameAction: s.cardGameAction })));
   const { t } = useTranslate();
   const [isDragOverStand, setIsDragOverStand] = useState(false);
   const state = room?.cardGameState;

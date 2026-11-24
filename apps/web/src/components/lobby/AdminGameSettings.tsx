@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { GameType, TttModeFlag } from '@repo/types';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -54,7 +55,17 @@ export function AdminGameSettings({ triggerClassName }: AdminGameSettingsProps) 
     setArtistEnabled,
     deleteArtist,
     verifyAdminKey,
-  } = useGameStore();
+  } = useGameStore(
+    useShallow((s) => ({
+      gameSettings: s.gameSettings,
+      setGameEnabled: s.setGameEnabled,
+      artistPresets: s.artistPresets,
+      getArtistPresets: s.getArtistPresets,
+      setArtistEnabled: s.setArtistEnabled,
+      deleteArtist: s.deleteArtist,
+      verifyAdminKey: s.verifyAdminKey,
+    })),
+  );
 
   const isEnabled = (flag: GameType | TttModeFlag) => gameSettings[flag] ?? true;
 

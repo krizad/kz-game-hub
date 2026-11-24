@@ -1,6 +1,7 @@
 'use client';
 
 import { GameType, PokerMode, RoomStatus } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
@@ -8,7 +9,7 @@ const MODES: PokerMode[] = ['ONLINE', 'CHIPS_LEDGER'];
 
 /** Waiting-room config for POKER: mode, blinds/stack/ante and the turn timer. */
 export function PokerSettings() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig })));
   const { t } = useTranslate();
 
   if (!room || room.gameType !== GameType.POKER || room.status !== RoomStatus.LOBBY) return null;

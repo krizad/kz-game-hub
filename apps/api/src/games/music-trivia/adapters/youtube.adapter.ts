@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { Innertube, YTNodes } from 'youtubei.js';
 import { MusicSourceType } from '@repo/types';
 import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../music-source-adapter';
@@ -7,6 +8,7 @@ const DEFAULT_DURATION_MS = 180000;
 
 export class YouTubeAdapter implements MusicSourceAdapter {
   readonly sourceType: MusicSourceType = 'YOUTUBE';
+  private readonly logger = new Logger(YouTubeAdapter.name);
 
   private innertube: Innertube | null = null;
   private creating: Promise<Innertube> | null = null;
@@ -52,7 +54,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       searchQuery += ` ${start}-${end}`;
     }
 
-    console.log(`[YouTubeAdapter] Searching YouTube for: ${searchQuery} (Limit: ${limit})`);
+    this.logger.log(`Searching YouTube for: ${searchQuery} (Limit: ${limit})`);
 
     try {
       const yt = await this.getInnertube();
@@ -61,7 +63,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       const videos = search.results.filter((r): r is YTNodes.Video => r.type === 'Video');
 
       if (videos.length === 0) {
-        console.warn('[YouTubeAdapter] No videos found on YouTube:', searchQuery);
+        this.logger.warn(`No videos found on YouTube: ${searchQuery}`);
         return [];
       }
 
@@ -77,7 +79,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
       }
 
       results = results.slice(0, limit);
-      console.log(`[YouTubeAdapter] Search completed. Returning ${results.length} videos.`);
+      this.logger.log(`Search completed. Returning ${results.length} videos.`);
 
       return results.map((item) => {
         const title = item.title?.toString() || 'Unknown Title';
@@ -100,7 +102,7 @@ export class YouTubeAdapter implements MusicSourceAdapter {
     } catch (error) {
       // Re-throw like the other adapters so the host sees "source broken"
       // instead of a misleading "no songs found".
-      console.error('[YouTubeAdapter] Search error:', error);
+      this.logger.error('Search error', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }

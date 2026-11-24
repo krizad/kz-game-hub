@@ -1,12 +1,13 @@
 'use client';
 
 import { GameType, RoomStatus } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
 /** Waiting-room config for POKER_V2: blinds/stack/ante, turn timer, auto-deal. */
 export function PokerV2Settings() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig })));
   const { t } = useTranslate();
 
   if (!room || room.gameType !== GameType.POKER_V2 || room.status !== RoomStatus.LOBBY) return null;

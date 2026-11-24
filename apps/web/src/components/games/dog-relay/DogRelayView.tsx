@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DOG_RELAY_CARDS, type DogRelayPrivateState } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CountdownBadge } from '@/components/core/CountdownBadge';
@@ -22,16 +23,7 @@ export function getDogRelayPrivateState(
 }
 
 export function DogRelayView() {
-  const {
-    room,
-    privateState,
-    playerId,
-    socketId,
-    sendDogRelayAction,
-    actionLoading,
-    connected,
-    serverOffset,
-  } = useGameStore();
+  const { room, privateState, playerId, socketId, sendDogRelayAction, actionLoading, connected, serverOffset } = useGameStore(useShallow((s) => ({ room: s.room, privateState: s.privateState, playerId: s.playerId, socketId: s.socketId, sendDogRelayAction: s.sendDogRelayAction, actionLoading: s.actionLoading, connected: s.connected, serverOffset: s.serverOffset })));
   const { t, language } = useTranslate();
   const [revealed, setRevealed] = useState(false);
   const [suspect, setSuspect] = useState('');

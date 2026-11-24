@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { RoomStatus } from '@repo/types';
 import { DogRelayCardCatalog } from './DogRelayCardCatalog';
 
 export function DogRelaySeats() {
-  const { room, socketId, sendDogRelayAction, actionLoading } = useGameStore();
+  const { room, socketId, sendDogRelayAction, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, sendDogRelayAction: s.sendDogRelayAction, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const seatElements = useRef(new Map<string, HTMLLIElement>());
   const movedPlayerId = useRef<string | null>(null);

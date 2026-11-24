@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { BananaThiefSpecial, getBananaThiefRequiredPlayerCount } from '@repo/types';
@@ -41,7 +42,7 @@ const SPECIAL_ROLES: SpecialRoleDef[] = [
 
 /** Host-tunable Banana Thief pacing, roles configuration, and live balance calculation. */
 export function BananaThiefSettings() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig })));
   const { t } = useTranslate();
   if (!room) return null;
 

@@ -47,6 +47,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Build shared packages
+        env:
+          DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+        run: pnpm build --filter=@repo/types --filter=@repo/database
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: API unit tests
+        env:
+          DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+        run: pnpm -F api test
+
       - name: Build flat bundle
         env:
           # CI only needs a MySQL protocol so the adapter/client providers match.

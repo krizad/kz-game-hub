@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
@@ -43,7 +44,24 @@ export function TheMindView() {
     theMindProposeShuriken,
     theMindVoteShuriken,
     theMindCancelShuriken,
-  } = useGameStore();
+  } = useGameStore(
+    useShallow((s) => ({
+      room: s.room,
+      socketId: s.socketId,
+      playerId: s.playerId,
+      myName: s.myName,
+      privateState: s.privateState,
+      updateConfig: s.updateConfig,
+      resetRoom: s.resetRoom,
+      startGame: s.startGame,
+      theMindReady: s.theMindReady,
+      theMindPlayCard: s.theMindPlayCard,
+      theMindNextLevel: s.theMindNextLevel,
+      theMindProposeShuriken: s.theMindProposeShuriken,
+      theMindVoteShuriken: s.theMindVoteShuriken,
+      theMindCancelShuriken: s.theMindCancelShuriken,
+    })),
+  );
   const { t } = useTranslate();
 
   const [displayPhase, setDisplayPhase] = React.useState<TheMindPhase | null>(null);

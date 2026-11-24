@@ -1,11 +1,19 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function ConnectionStatus() {
-  const { connectionStatus, room, retryConnection, leaveRoom } = useGameStore();
+  const { connectionStatus, room, retryConnection, leaveRoom } = useGameStore(
+    useShallow((s) => ({
+      connectionStatus: s.connectionStatus,
+      room: s.room,
+      retryConnection: s.retryConnection,
+      leaveRoom: s.leaveRoom,
+    })),
+  );
   const { t } = useTranslate();
   return (
     <section

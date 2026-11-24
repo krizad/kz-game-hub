@@ -17,7 +17,7 @@ export class HealthController {
 
     try {
       await Promise.race([
-        prisma.$connect(),
+        prisma.$queryRaw`SELECT 1`,
         new Promise<never>((_, reject) => {
           timeout = setTimeout(() => reject(new Error('database connection timeout')), 3000);
         }),
@@ -58,9 +58,5 @@ export class HealthController {
         heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
       },
     };
-  }
-
-  private getPackageVersion(): string {
-    return APP_VERSION;
   }
 }

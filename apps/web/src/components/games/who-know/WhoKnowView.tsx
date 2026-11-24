@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, Role, GameType } from '@repo/types';
 import { CountdownTimer } from '@/components/core/CountdownTimer';
@@ -25,7 +26,7 @@ const phaseMotion = {
 };
 
 export function WhoKnowView() {
-  const { room, socketId, myRole, privateState, actionLoading, secretWord } = useGameStore();
+  const { room, socketId, myRole, privateState, actionLoading, secretWord } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, myRole: s.myRole, privateState: s.privateState, actionLoading: s.actionLoading, secretWord: s.secretWord })));
   const { t } = useTranslate();
   const prefersReducedMotion = useReducedMotion();
   const hasCelebrated = useRef(false);

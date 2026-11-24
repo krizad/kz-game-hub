@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { NeobrutalismSelect } from '@/components/core/NeobrutalismSelect';
@@ -7,7 +8,7 @@ import { MusicTriviaLevel } from '@repo/types';
 import { musicTriviaLevelKey } from './levelLabel';
 
 export function MusicTriviaSettings() {
-  const { room, artistPresets } = useGameStore();
+  const { room, artistPresets } = useGameStore(useShallow((s) => ({ room: s.room, artistPresets: s.artistPresets })));
   const { t } = useTranslate();
 
   if (room?.gameType !== 'MUSIC_TRIVIA') return null;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18nStore } from '@/store/useI18nStore';
-import { dictionaries, Language } from '@/i18n/dictionaries';
+import { getLoadedDictionary, loadDictionary, Language } from '@/i18n/dictionaries';
 
 export function useTranslate() {
   const language = useI18nStore((state) => state.language);
@@ -8,25 +8,42 @@ export function useTranslate() {
 
   // Fix hydration mismatch by only rendering dict after mounting
   const [mounted, setMounted] = useState(false);
+  const [dictVersion, setDictVersion] = useState(0);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    void loadDictionary(language).then(() => {
+      if (active) setDictVersion((v) => v + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [language]);
+
   const t = useCallback(
     (keyString: string, params?: Record<string, string | number>) => {
       // Return english fallback or empty during hydration to prevent mismatch
       // But since the store is persisted, we can just use the store value if mounted, otherwise 'en'
-
+      void dictVersion;
       const activeLanguage = mounted ? language : 'en';
       const keys = keyString.split('.');
 
       // Fallback to English if key is missing in Thai or other language
-      const getTranslation = (lang: Language): any => {
-        let current: any = dictionaries[lang];
+      const getTranslation = (lang: Language): unknown => {
+        let current: unknown = getLoadedDictionary(lang);
         for (const key of keys) {
-          if (current?.[key] === undefined) return undefined;
-          current = current[key];
+          if (
+            !current ||
+            typeof current !== 'object' ||
+            (current as Record<string, unknown>)[key] === undefined
+          ) {
+            return undefined;
+          }
+          current = (current as Record<string, unknown>)[key];
         }
         return current;
       };
@@ -53,7 +70,7 @@ export function useTranslate() {
 
       return translation;
     },
-    [language, mounted],
+    [language, mounted, dictVersion],
   );
 
   return { t, language: mounted ? language : 'en', setLanguage, mounted };

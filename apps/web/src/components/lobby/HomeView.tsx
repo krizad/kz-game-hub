@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { GameType } from '@repo/types';
 import { toast } from 'react-hot-toast';
@@ -57,7 +58,17 @@ const getGameName = (gameType: GameType, t: any) => {
 
 export function HomeView() {
   const { connected, myName, setName, createRoom, joinRoom, availableRooms, isGameEnabled } =
-    useGameStore();
+    useGameStore(
+      useShallow((s) => ({
+        connected: s.connected,
+        myName: s.myName,
+        setName: s.setName,
+        createRoom: s.createRoom,
+        joinRoom: s.joinRoom,
+        availableRooms: s.availableRooms,
+        isGameEnabled: s.isGameEnabled,
+      })),
+    );
   const { t } = useTranslate();
   const { randomizeName } = useAutoRandomName();
 

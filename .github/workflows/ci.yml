@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # CI only needs a MySQL protocol so Prisma schema sync / client generation match.
+      # No real DB connection is made during lint, unit tests, or build.
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build shared packages
+        run: pnpm build --filter=@repo/types --filter=@repo/database
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: API unit tests
+        run: pnpm -F api test
+
+      - name: Build all apps
+        run: pnpm build

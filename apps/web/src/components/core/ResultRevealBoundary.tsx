@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Eye, FastForward, Trophy } from 'lucide-react';
 import { GameType, getResultRevealProgress, RoomState, ResultRevealState } from '@repo/types';
@@ -58,7 +59,16 @@ function FinalEvidence({ room, elapsed }: { room: RoomState; elapsed: number }) 
 
 function RevealSequence({ room, reveal }: { room: RoomState; reveal: ResultRevealState }) {
   const { socketId, playerId, serverOffset, secretWord, resultRevealAction, connected } =
-    useGameStore();
+    useGameStore(
+      useShallow((s) => ({
+        socketId: s.socketId,
+        playerId: s.playerId,
+        serverOffset: s.serverOffset,
+        secretWord: s.secretWord,
+        resultRevealAction: s.resultRevealAction,
+        connected: s.connected,
+      })),
+    );
   const { t } = useTranslate();
   const reducedMotion = useReducedMotion();
   const [now, setNow] = useState(() => Date.now());

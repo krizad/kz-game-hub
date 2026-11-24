@@ -78,7 +78,7 @@ describe('DetectiveClubService', () => {
       const hand = privateState.get<string[]>(room.code, player.socketId, 'dcHand')!;
       expect(hand).toHaveLength(5);
       for (const url of hand) {
-        expect(url).toMatch(/^\/images\/detective-club\/card_\d{3}\.jpg$/);
+        expect(url).toMatch(/^\/images\/detective-club\/card_\d{3}\.(jpg|webp)$/);
         expect(fs.existsSync(path.join(publicDir, url))).toBe(true);
       }
     }

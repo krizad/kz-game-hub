@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useState } from 'react';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -5,7 +6,7 @@ import { DetectiveClubRole } from '@repo/types';
 import { ActionLoadingOverlay } from '@/components/core/ActionLoadingOverlay';
 
 export function SetupPhase() {
-  const { room, privateState, detectiveClubSubmitWord, actionLoading } = useGameStore();
+  const { room, privateState, detectiveClubSubmitWord, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, privateState: s.privateState, detectiveClubSubmitWord: s.detectiveClubSubmitWord, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const [wordInput, setWordInput] = useState('');
 

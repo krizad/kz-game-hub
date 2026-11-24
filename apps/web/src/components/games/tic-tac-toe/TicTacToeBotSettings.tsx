@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { TicTacToeBotDifficulty } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -7,7 +8,7 @@ import clsx from 'clsx';
 import { TurnTimerSelect } from '@/components/core/TurnTimerSelect';
 
 export function TicTacToeBotSettings() {
-  const { room, socketId, updateConfig, actionLoading } = useGameStore();
+  const { room, socketId, updateConfig, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
 
   if (!room) return null;

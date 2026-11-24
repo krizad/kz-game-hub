@@ -8,6 +8,7 @@ import {
   StarterPolicy,
   TiePolicy,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
@@ -44,7 +45,7 @@ function computeDealPreview(
 }
 
 export function CardGameSettings() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig })));
   const { t } = useTranslate();
 
   if (!room || room.gameType !== GameType.CARD_GAME || room.status !== RoomStatus.LOBBY)

@@ -10,7 +10,6 @@ import {
   BattleshipTeam,
   BattleshipTeamFleetMode,
   BattleshipGridPreset,
-  BattleshipPhase,
   BattleshipPlaceShipsPayload,
   BattleshipFirePayload,
   BattleshipPingPayload,

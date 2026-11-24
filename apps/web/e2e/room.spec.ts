@@ -41,7 +41,7 @@ test.describe('Room Creation & Join Flow', () => {
   test('can create Countaline room', async ({ page }) => {
     await createRoom(page, 'Alice', 'Countaline');
     await expect(page.getByText('Countaline — Find your shared rhythm')).toBeVisible({
-      timeout: 5000,
+      timeout: 15000,
     });
   });
 

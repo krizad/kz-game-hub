@@ -4,7 +4,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function CardGameLog() {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
   const { t } = useTranslate();
   const entries = room?.cardGameLog ?? [];
   if (entries.length === 0) return null;

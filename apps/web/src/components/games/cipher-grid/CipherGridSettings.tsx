@@ -1,10 +1,11 @@
 'use client';
 import { RoomStatus, type CipherGridMode, type CipherGridPicturePack } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export function CipherGridSettings() {
-  const { room, socketId, updateConfig } = useGameStore();
+  const { room, socketId, updateConfig } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig })));
   const { t } = useTranslate();
   if (!room) return null;
   const isHost = room.roomHostId === socketId && room.status === RoomStatus.LOBBY;

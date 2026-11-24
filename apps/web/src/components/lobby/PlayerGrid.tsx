@@ -1,12 +1,13 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { Role, RoomStatus } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
 import { getAvatarEmoji } from '@/components/core/utils';
 
 export function PlayerGrid() {
-  const { room, myName } = useGameStore();
+  const { room, myName } = useGameStore(useShallow((s) => ({ room: s.room, myName: s.myName })));
   const { t } = useTranslate();
 
   if (!room) return null;

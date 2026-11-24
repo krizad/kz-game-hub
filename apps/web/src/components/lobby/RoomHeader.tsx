@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { GameType } from '@repo/types';
 import { toast } from 'react-hot-toast';
@@ -12,7 +13,9 @@ import { SoundToggle } from '@/components/core/SoundToggle';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
 
 export function RoomHeader() {
-  const { room, leaveRoom } = useGameStore();
+  const { room, leaveRoom } = useGameStore(
+    useShallow((s) => ({ room: s.room, leaveRoom: s.leaveRoom })),
+  );
   const { t } = useTranslate();
   const {
     enabled: soundsEnabled,

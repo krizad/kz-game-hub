@@ -22,6 +22,7 @@ import {
   PokerV2Seat,
   RoomStatus,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { audioManager } from '@/lib/audioManager';
@@ -85,8 +86,7 @@ const SEAT_TONES = [
 ] as const;
 
 export function PokerV2View() {
-  const { room, socketId, privateState, pokerV2Action, actionLoading, serverOffset } =
-    useGameStore();
+  const { room, socketId, privateState, pokerV2Action, actionLoading, serverOffset } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, pokerV2Action: s.pokerV2Action, actionLoading: s.actionLoading, serverOffset: s.serverOffset })));
   const { t } = useTranslate();
   const [raiseTo, setRaiseTo] = useState<number | null>(null);
   const [showEndConfirm, setShowEndConfirm] = useState(false);

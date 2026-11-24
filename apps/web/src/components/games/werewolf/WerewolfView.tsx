@@ -13,6 +13,7 @@ import {
   WerewolfVision,
   WerewolfWolfRevealMode,
 } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useServerClock } from '@/hooks/useServerClock';
@@ -79,7 +80,7 @@ function PlayerTargetButton({
 }
 
 export function WerewolfView() {
-  const { room, socketId, privateState, resetRoom } = useGameStore();
+  const { room, socketId, privateState, resetRoom } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, resetRoom: s.resetRoom })));
   const { t, language } = useTranslate();
   const { serverOffset } = useServerClock();
   const { shake, flash, celebrate } = useGameFeel();

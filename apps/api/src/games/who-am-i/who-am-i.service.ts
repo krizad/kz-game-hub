@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RoomState, RoomStatus, UserState, WhoAmIGameState, WordCategory } from '@repo/types';
 import { prisma } from '@repo/database';
 import { GoogleGenAI } from '@google/genai';
@@ -13,6 +13,8 @@ const GEMINI_TIMEOUT_MS = 15000;
 
 @Injectable()
 export class WhoAmIService {
+  private readonly logger = new Logger(WhoAmIService.name);
+
   constructor(
     private readonly privateState: PrivateStateService,
     private readonly startGuard: RoomStartGuardService,
@@ -272,12 +274,15 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
             clearTimeout(timeout);
           }
         } catch (error) {
-          console.error('Error calling Gemini API:', error);
+          this.logger.error(
+            'Error calling Gemini API',
+            error instanceof Error ? error.stack : String(error),
+          );
         }
       }
 
       if (words.length < room.players.length) {
-        console.log('Falling back to database for words...');
+        this.logger.log('Falling back to database for words...');
         let category = room.config.wordCategory;
         if (!category) {
           // The seeded database has no generic bucket; fall back to a random
@@ -316,7 +321,10 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
               });
             }
           } catch (dbError) {
-            console.error('Failed to save AI words to DB:', dbError);
+            this.logger.error(
+              'Failed to save AI words to DB',
+              dbError instanceof Error ? dbError.stack : String(dbError),
+            );
           }
         });
       }

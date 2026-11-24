@@ -12,7 +12,7 @@ const TIMER_OPTIONS = [
 ];
 
 export function SaboteurSettings() {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
   const { t } = useTranslate();
 
   if (room?.gameType !== 'SABOTEUR') return null;

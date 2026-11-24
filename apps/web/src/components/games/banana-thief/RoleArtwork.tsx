@@ -14,7 +14,7 @@ const ROLE_ART: Record<
   { src: string; emoji: string; alt: string; nameTh: string; nameEn: string; banner: string }
 > = {
   [BananaThiefRole.THIEF]: {
-    src: '/images/banana-thief/thief.png',
+    src: '/images/banana-thief/thief.webp',
     emoji: '🍌🐒',
     alt: 'ลิงขโมยกล้วย',
     nameTh: 'ลิงขโมยกล้วย',
@@ -22,7 +22,7 @@ const ROLE_ART: Record<
     banner: '#EF4444',
   },
   [BananaThiefRole.MOUSE]: {
-    src: '/images/banana-thief/mouse.png',
+    src: '/images/banana-thief/mouse.webp',
     emoji: '🐒',
     alt: 'ลิงขี้เซา',
     nameTh: 'ลิงขี้เซา',
@@ -30,7 +30,7 @@ const ROLE_ART: Record<
     banner: '#64748B',
   },
   [BananaThiefRole.FOLLOWER]: {
-    src: '/images/banana-thief/follower.png',
+    src: '/images/banana-thief/follower.webp',
     emoji: '🐒🐒',
     alt: 'สมุนโจร',
     nameTh: 'สมุนโจร',
@@ -38,7 +38,7 @@ const ROLE_ART: Record<
     banner: '#A855F7',
   },
   [BananaThiefSpecial.DETECTIVE]: {
-    src: '/images/banana-thief/detective.png',
+    src: '/images/banana-thief/detective.webp',
     emoji: '🕵️',
     alt: 'นักสืบ',
     nameTh: 'นักสืบ',
@@ -46,7 +46,7 @@ const ROLE_ART: Record<
     banner: '#06B6D4',
   },
   [BananaThiefSpecial.SYCOPHANT]: {
-    src: '/images/banana-thief/sycophant.png',
+    src: '/images/banana-thief/sycophant.webp',
     emoji: '🎭',
     alt: 'แกะดำ',
     nameTh: 'แกะดำ',
@@ -54,7 +54,7 @@ const ROLE_ART: Record<
     banner: '#F59E0B',
   },
   [BananaThiefSpecial.TWINS]: {
-    src: '/images/banana-thief/twins.png',
+    src: '/images/banana-thief/twins.webp',
     emoji: '👬',
     alt: 'ลิงแฝด',
     nameTh: 'ลิงแฝด',
@@ -62,7 +62,7 @@ const ROLE_ART: Record<
     banner: '#EC4899',
   },
   [BananaThiefSpecial.SCAPEGOAT]: {
-    src: '/images/banana-thief/goat.png',
+    src: '/images/banana-thief/goat.webp',
     emoji: '🐐',
     alt: 'แพะรับบาป',
     nameTh: 'แพะรับบาป',

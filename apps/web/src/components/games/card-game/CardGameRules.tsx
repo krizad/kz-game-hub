@@ -8,7 +8,7 @@ import { useTranslate } from '@/hooks/useTranslate';
 const MODES: CardGamePreset[] = ['POK_DENG', 'SLAVE'];
 
 export function CardGameRules() {
-  const { room } = useGameStore();
+  const room = useGameStore((s) => s.room);
   const { t } = useTranslate();
   const [mode, setMode] = useState<CardGamePreset>(room?.cardGameConfig?.preset ?? 'POK_DENG');
 

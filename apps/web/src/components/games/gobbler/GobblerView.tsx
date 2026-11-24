@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import {
   RoomStatus,
@@ -38,15 +39,7 @@ const SIZE_STYLES: Record<GobblerSize, { board: string; inventory: string }> = {
 };
 
 export function GobblerView() {
-  const {
-    room,
-    socketId,
-    gobblerJoinSide,
-    gobblerPlacePiece,
-    gobblerMovePiece,
-    gobblerReset,
-    actionLoading,
-  } = useGameStore();
+  const { room, socketId, gobblerJoinSide, gobblerPlacePiece, gobblerMovePiece, gobblerReset, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, gobblerJoinSide: s.gobblerJoinSide, gobblerPlacePiece: s.gobblerPlacePiece, gobblerMovePiece: s.gobblerMovePiece, gobblerReset: s.gobblerReset, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
   const gb = room?.gobblerState;

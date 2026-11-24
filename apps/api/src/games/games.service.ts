@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { timingSafeSecretEqual } from '../common/admin-auth.util';
 import {
   RoomState,
   RoomStatus,
@@ -61,9 +62,6 @@ import {
   BattleshipPlaceShipsPayload,
   BattleshipFirePayload,
   BattleshipPingPayload,
-  BattleshipMode,
-  BattleshipTeamFleetMode,
-  BattleshipGridPreset,
 } from '@repo/types';
 import {
   WerewolfNightActionKind,
@@ -87,7 +85,7 @@ export type RoomLifecycleEvent =
   | { type: 'ROOM_DELETED'; code: string };
 
 @Injectable()
-export class GamesService {
+export class GamesService implements OnModuleDestroy {
   resultRevealAction(
     code: string,
     socketId: string,
@@ -100,8 +98,11 @@ export class GamesService {
   private readonly logger = new Logger(GamesService.name);
   /** How long a dropped connection may reclaim its seat before being removed. */
   private static readonly RECONNECT_GRACE_MS = 60_000;
+  private static readonly DEFAULT_MAX_ROOMS = 200;
+  private static readonly DEFAULT_IDLE_ROOM_TTL_MS = 7_200_000;
 
   private rooms: Map<string, RoomState> = new Map();
+  private readonly roomLastActivity = new Map<string, number>();
   private readonly secretWords: Map<string, string> = new Map();
   /** Per-room Saboteur auto-pass deadline; kept stable across re-broadcasts of the same turn. */
   private readonly saboteurTurnDeadlines = new Map<
@@ -109,6 +110,7 @@ export class GamesService {
     { playerId: string; deadline: number }
   >();
   private roomLifecycleListener?: (event: RoomLifecycleEvent) => void;
+  private idleSweepTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly whoKnowService: WhoKnowService,
@@ -138,7 +140,73 @@ export class GamesService {
     private readonly gameSettings: GameSettingsService,
     private readonly roomStartGuardService: RoomStartGuardService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
-  ) {}
+  ) {
+    this.startIdleSweepTimer();
+  }
+
+  onModuleDestroy(): void {
+    if (this.idleSweepTimer) {
+      clearInterval(this.idleSweepTimer);
+      this.idleSweepTimer = undefined;
+    }
+  }
+
+  private startIdleSweepTimer(): void {
+    const ttlMs = this.getIdleRoomTtlMs();
+    if (ttlMs <= 0) return;
+    const intervalMs = Math.min(60_000, Math.max(1_000, Math.floor(ttlMs / 4)));
+    this.idleSweepTimer = setInterval(() => {
+      this.sweepIdleRooms();
+    }, intervalMs);
+    this.idleSweepTimer.unref?.();
+  }
+
+  getMaxRooms(): number {
+    const raw = process.env.MAX_ROOMS;
+    if (!raw) return GamesService.DEFAULT_MAX_ROOMS;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : GamesService.DEFAULT_MAX_ROOMS;
+  }
+
+  isRoomLimitReached(): boolean {
+    return this.rooms.size >= this.getMaxRooms();
+  }
+
+  getIdleRoomTtlMs(): number {
+    const raw = process.env.IDLE_ROOM_TTL_MS;
+    if (raw === undefined || raw === '') return GamesService.DEFAULT_IDLE_ROOM_TTL_MS;
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return GamesService.DEFAULT_IDLE_ROOM_TTL_MS;
+    return parsed;
+  }
+
+  touchRoomActivity(code: string, now: number = Date.now()): void {
+    if (this.rooms.has(code)) {
+      this.roomLastActivity.set(code, now);
+    }
+  }
+
+  /**
+   * Sweep rooms with zero activity longer than IDLE_ROOM_TTL_MS (0 disables).
+   * Emits ROOM_DELETED via the lifecycle listener and runs full room cleanup.
+   */
+  sweepIdleRooms(now: number = Date.now()): string[] {
+    const ttlMs = this.getIdleRoomTtlMs();
+    if (ttlMs <= 0) return [];
+    const expiredCodes: string[] = [];
+    for (const [code, room] of this.rooms.entries()) {
+      const lastActivity = this.roomLastActivity.get(code) ?? room.createdAt.getTime();
+      if (now - lastActivity >= ttlMs) {
+        expiredCodes.push(code);
+      }
+    }
+    for (const code of expiredCodes) {
+      this.logger.log(`[ROOM] Idle TTL expired room=${code} ttlMs=${ttlMs}`);
+      this.deleteRoomData(code);
+      this.roomLifecycleListener?.({ type: 'ROOM_DELETED', code });
+    }
+    return expiredCodes;
+  }
 
   getRoomCount(): number {
     return this.rooms.size;
@@ -186,8 +254,7 @@ export class GamesService {
   }
 
   verifyAdminKey(adminKey: unknown): boolean {
-    const adminSecret = process.env.ADMIN_SECRET;
-    return typeof adminKey === 'string' && !!adminSecret && adminKey === adminSecret;
+    return timingSafeSecretEqual(adminKey, process.env.ADMIN_SECRET);
   }
 
   getReconnectToken(code: string, socketId: string): string | null {
@@ -215,6 +282,9 @@ export class GamesService {
     gameType: GameType = GameType.WHO_KNOW,
     initialConfig?: Partial<RoomConfig>,
   ): RoomState {
+    if (this.isRoomLimitReached()) {
+      throw new Error('SERVER_ROOM_LIMIT_REACHED');
+    }
     let code: string;
     do {
       code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -350,6 +420,7 @@ export class GamesService {
 
     this.syncBotPlayer(room);
     this.rooms.set(code, room);
+    this.roomLastActivity.set(code, Date.now());
     return room;
   }
 
@@ -769,6 +840,7 @@ export class GamesService {
       );
     }
     this.rooms.delete(code);
+    this.roomLastActivity.delete(code);
     this.secretWords.delete(code);
     this.saboteurTurnDeadlines.delete(code);
     this.roomTimerService.clearRoom(code);

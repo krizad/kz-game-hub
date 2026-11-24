@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { TicTacToeMode } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -36,7 +37,7 @@ const MODES: {
 ];
 
 export function TicTacToeModeSelector() {
-  const { room, socketId, updateConfig, actionLoading, isGameEnabled } = useGameStore();
+  const { room, socketId, updateConfig, actionLoading, isGameEnabled } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, updateConfig: s.updateConfig, actionLoading: s.actionLoading, isGameEnabled: s.isGameEnabled })));
   const { t } = useTranslate();
 
   if (!room) return null;

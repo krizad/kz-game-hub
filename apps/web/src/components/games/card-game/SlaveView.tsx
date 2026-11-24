@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CardGamePrivateState, PlayingCard } from '@repo/types';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { useTranslate } from '@/hooks/useTranslate';
 import { CardHand } from './CardHand';
@@ -26,7 +27,7 @@ const SLAVE_RANK_ORDER: PlayingCard['rank'][] = [
 ];
 
 export function SlaveView() {
-  const { room, socketId, privateState, cardGameAction, actionLoading } = useGameStore();
+  const { room, socketId, privateState, cardGameAction, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, cardGameAction: s.cardGameAction, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const [selected, setSelected] = useState<string[]>([]);
   const [isDragOverTrick, setIsDragOverTrick] = useState(false);

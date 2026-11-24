@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/useGameStore';
 import { RoomStatus, WhoAmIGameState } from '@repo/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,8 +15,7 @@ import { audioManager } from '@/lib/audioManager';
 import { gameFeel } from '@/lib/gameFeel';
 
 export function WhoAmIView() {
-  const { room, socketId, privateState, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } =
-    useGameStore();
+  const { room, socketId, privateState, submitPlayerWordWhoAmI, gameActionWhoAmI, actionLoading } = useGameStore(useShallow((s) => ({ room: s.room, socketId: s.socketId, privateState: s.privateState, submitPlayerWordWhoAmI: s.submitPlayerWordWhoAmI, gameActionWhoAmI: s.gameActionWhoAmI, actionLoading: s.actionLoading })));
   const { t } = useTranslate();
   const { serverOffset } = useServerClock();
 
