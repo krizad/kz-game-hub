@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { TrackResult, MusicSourceAdapter, MusicSourceSearchOptions } from '../music-source-adapter';
 import { MusicSourceType } from '@repo/types';
 
@@ -12,6 +13,7 @@ export interface SpotifyItem {
 
 export class SpotifyAdapter implements MusicSourceAdapter {
   readonly sourceType: MusicSourceType = 'SPOTIFY';
+  private readonly logger = new Logger(SpotifyAdapter.name);
 
   private async getAccessToken(): Promise<string> {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
@@ -23,7 +25,7 @@ export class SpotifyAdapter implements MusicSourceAdapter {
 
     const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-    console.log('[SpotifyAdapter] Requesting Access Token...');
+    this.logger.log('Requesting Access Token...');
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
@@ -34,12 +36,12 @@ export class SpotifyAdapter implements MusicSourceAdapter {
     });
 
     if (!response.ok) {
-      console.error('[SpotifyAdapter] Auth failed:', response.status, response.statusText);
+      this.logger.error(`Auth failed: ${response.status} ${response.statusText}`);
       throw new Error(`Spotify Auth Error: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('[SpotifyAdapter] Access Token received.');
+    this.logger.log('Access Token received.');
     return data.access_token;
   }
 
@@ -79,8 +81,8 @@ export class SpotifyAdapter implements MusicSourceAdapter {
     const market = options?.country || 'TH';
     url.searchParams.append('market', market);
 
-    console.log(
-      `[SpotifyAdapter] Searching for: ${searchQuery} (Market: ${market}, Limit: ${fetchLimit})`,
+    this.logger.log(
+      `Searching for: ${searchQuery} (Market: ${market}, Limit: ${fetchLimit})`,
     );
 
     const response = await fetch(url.toString(), {
@@ -91,24 +93,21 @@ export class SpotifyAdapter implements MusicSourceAdapter {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        '[SpotifyAdapter] Search API failed:',
-        response.status,
-        response.statusText,
-        errorText,
+      this.logger.error(
+        `Search API failed: ${response.status} ${response.statusText} ${errorText}`,
       );
       throw new Error(`Spotify API Error: ${response.statusText}`);
     }
 
     const data = await response.json();
     const tracks = data.tracks?.items || [];
-    console.log(`[SpotifyAdapter] Found ${tracks.length} raw tracks from Spotify API.`);
+    this.logger.log(`Found ${tracks.length} raw tracks from Spotify API.`);
 
     // Filter tracks to ONLY include those with a preview URL
     const validTracks = tracks.filter(
       (t: SpotifyItem) => t.preview_url !== null && t.preview_url !== undefined,
     );
-    console.log(`[SpotifyAdapter] ${validTracks.length} tracks have preview URLs.`);
+    this.logger.log(`${validTracks.length} tracks have preview URLs.`);
 
     return validTracks.slice(0, limit).map((t: SpotifyItem) => ({
       id: t.id,

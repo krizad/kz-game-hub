@@ -45,6 +45,8 @@ model SoundsFishyQuestion {
   answer      String
   lang        String @default("th")
   query_count Int    @default(0)
+
+  @@index([lang, query_count])
 }
 
 model Word {
@@ -68,6 +70,8 @@ model GameResult {
 
   @@index([gameType])
   @@index([playerName])
+  @@index([gameType, playerName])
+  @@index([playerName, createdAt])
 }
 
 

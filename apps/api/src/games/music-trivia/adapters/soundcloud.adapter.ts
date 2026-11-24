@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import scdl from 'soundcloud-downloader';
 import { MusicSourceAdapter, TrackResult } from '../music-source-adapter';
 
@@ -27,6 +28,7 @@ function isSoundCloudTrack(value: unknown): value is SoundCloudTrack {
  */
 export class SoundcloudAdapter implements MusicSourceAdapter {
   readonly sourceType = 'SOUNDCLOUD' as const;
+  private readonly logger = new Logger(SoundcloudAdapter.name);
 
   async search(query: string, limit: number): Promise<TrackResult[]> {
     try {
@@ -58,7 +60,10 @@ export class SoundcloudAdapter implements MusicSourceAdapter {
 
       return tracks.slice(0, limit);
     } catch (error) {
-      console.error('SoundCloud search error:', error);
+      this.logger.error(
+        'SoundCloud search error',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new Error('Failed to search SoundCloud');
     }
   }
