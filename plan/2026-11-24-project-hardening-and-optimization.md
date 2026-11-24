@@ -1,7 +1,7 @@
 # Implementation Plan — KZ Game Hub Hardening, Performance & Maintainability
 
 - **Date**: 2026-11-24
-- **Status**: Planned (Approved via Grill-with-Docs Rounds 1–2; **not yet started**)
+- **Status**: Completed (Phases 1–5 implemented and verified)
 - **ADRs**:
   - [ADR 0017: WebSocket Rate Limiting, Admin Auth Hardening, and Room Lifecycle Caps](../docs/adr/0017-websocket-rate-limiting-and-room-lifecycle.md)
   - [ADR 0018: Frontend Dynamic Game Loading, Lobby Prefetch, and Two-Layer Error Boundaries](../docs/adr/0018-frontend-dynamic-game-loading-and-error-boundaries.md)

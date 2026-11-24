@@ -87,3 +87,7 @@ __pycache__/
 # Local screenshots / review captures
 kz-*.png
 
+# Local IDE / agent tooling
+.zcode/
+
+

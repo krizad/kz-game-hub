@@ -20,7 +20,15 @@ import { ActionReceiptService } from './action-receipt.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 import { WsRateLimitService, extractClientIp } from './ws-rate-limit.service';
 import { parseCorsOrigin } from '../common/cors.util';
-import { timingSafeSecretEqual } from '../common/admin-auth.util';
+import { isValidPayload } from './gateway/payload-validator';
+import {
+  AdminGatewayContext,
+  handleAdminVerifyKeyHelper,
+  handleDeleteArtistHelper,
+  handleGetArtistPresetsHelper,
+  handleSetArtistEnabledHelper,
+  handleSetGameEnabledHelper,
+} from './gateway/admin-gateway.helper';
 import {
   SOCKET_EVENTS,
   ActionReceipt,
@@ -41,11 +49,8 @@ import {
   SetArtistEnabledPayload,
   SetGameEnabledPayload,
   AdminVerifyKeyPayload,
-  AdminKeyVerifiedPayload,
   ServerTimeRequestPayload,
   ServerTimeResponsePayload,
-  TttModeFlag,
-  TTT_MODE_FLAGS,
   BANANA_THIEF_REACTIONS,
   BananaThiefChooseFollowerPayload,
   CipherAssignTeamPayload,
@@ -165,7 +170,7 @@ export class GamesGateway
     });
 
     client.use(([event, payload], next) => {
-      if (!this.isValidPayload(event, payload)) {
+      if (!isValidPayload(event, payload)) {
         this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
         client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
         return next(new Error('Invalid request payload'));
@@ -380,30 +385,23 @@ export class GamesGateway
     } satisfies ServerTimeResponsePayload);
   }
 
+  private getAdminContext(): AdminGatewayContext {
+    return {
+      server: this.server,
+      logger: this.logger,
+      gamesService: this.gamesService,
+      gameSettingsService: this.gameSettingsService,
+      artistPresetService: this.artistPresetService,
+    };
+  }
+
   /** Admin-only: flip a game's enabled flag; needs ADMIN_SECRET from the server env. */
   @SubscribeMessage(SOCKET_EVENTS.SET_GAME_ENABLED)
   async handleSetGameEnabled(
     @MessageBody() data: SetGameEnabledPayload,
     @ConnectedSocket() client: Socket,
   ) {
-    if (!this.isAdminKey(data?.adminKey)) {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
-      return;
-    }
-    if (!data || !this.isSettingsKey(data.gameType) || typeof data.enabled !== 'boolean') {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-      return;
-    }
-    try {
-      await this.gameSettingsService.setEnabled(data.gameType, data.enabled);
-    } catch (error) {
-      this.logger.error(`Failed to persist game setting for ${data.gameType}`, error as Error);
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to update the game setting.' });
-      return;
-    }
-    this.logger.log(`Game ${data.gameType} ${data.enabled ? 'enabled' : 'disabled'}`);
-    this.server.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
-    this.server.emit(SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+    return handleSetGameEnabledHelper(this.getAdminContext(), data, client);
   }
 
   /** Admin-only: verify an admin key before unlocking the client-side panel. */
@@ -412,31 +410,7 @@ export class GamesGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: AdminVerifyKeyPayload,
   ) {
-    const valid = this.isAdminKey(data?.adminKey);
-    client.emit(SOCKET_EVENTS.ADMIN_KEY_VERIFIED, {
-      valid,
-    } satisfies AdminKeyVerifiedPayload);
-  }
-
-  /** Shared admin auth for game flags and artist-preset mutations (timing-safe). */
-  private isAdminKey(adminKey: unknown): boolean {
-    if (this.gamesService?.verifyAdminKey) {
-      return this.gamesService.verifyAdminKey(adminKey);
-    }
-    return timingSafeSecretEqual(adminKey, process.env.ADMIN_SECRET);
-  }
-
-  private async broadcastArtistPresets(): Promise<void> {
-    this.server.emit(SOCKET_EVENTS.ARTIST_PRESETS_UPDATED, await this.listArtistPresets(false));
-  }
-
-  private async listArtistPresets(includeDisabled: boolean) {
-    try {
-      return await this.artistPresetService.listPresets(includeDisabled);
-    } catch (error) {
-      this.logger.error('Failed to list artist presets', error as Error);
-      return [];
-    }
+    handleAdminVerifyKeyHelper(this.getAdminContext(), data, client);
   }
 
   /** Lobby list (enabled only); a valid adminKey unlocks the full list. */
@@ -445,8 +419,7 @@ export class GamesGateway
     @MessageBody() data: GetArtistPresetsPayload | undefined,
     @ConnectedSocket() client: Socket,
   ) {
-    const includeDisabled = this.isAdminKey(data?.adminKey);
-    client.emit(SOCKET_EVENTS.ARTIST_PRESETS_LIST, await this.listArtistPresets(includeDisabled));
+    return handleGetArtistPresetsHelper(this.getAdminContext(), data, client);
   }
 
   /** Admin-only: enable/disable an artist preset (removed from new room setup while disabled). */
@@ -455,28 +428,7 @@ export class GamesGateway
     @MessageBody() data: SetArtistEnabledPayload,
     @ConnectedSocket() client: Socket,
   ) {
-    if (!this.isAdminKey(data?.adminKey)) {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
-      return;
-    }
-    if (
-      !data ||
-      typeof data.artistId !== 'string' ||
-      data.artistId.length > 64 ||
-      typeof data.enabled !== 'boolean'
-    ) {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-      return;
-    }
-    try {
-      await this.artistPresetService.setEnabled(data.artistId, data.enabled);
-    } catch (error) {
-      this.logger.error(`Failed to set artist preset ${data.artistId}`, error as Error);
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to update the artist preset.' });
-      return;
-    }
-    this.logger.log(`Artist preset ${data.artistId} ${data.enabled ? 'enabled' : 'disabled'}`);
-    await this.broadcastArtistPresets();
+    return handleSetArtistEnabledHelper(this.getAdminContext(), data, client);
   }
 
   /** Admin-only: delete an artist preset together with its catalog. */
@@ -485,23 +437,7 @@ export class GamesGateway
     @MessageBody() data: DeleteArtistPayload,
     @ConnectedSocket() client: Socket,
   ) {
-    if (!this.isAdminKey(data?.adminKey)) {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
-      return;
-    }
-    if (!data || typeof data.artistId !== 'string' || data.artistId.length > 64) {
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-      return;
-    }
-    try {
-      await this.artistPresetService.deleteArtist(data.artistId);
-    } catch (error) {
-      this.logger.error(`Failed to delete artist preset ${data.artistId}`, error as Error);
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to delete the artist preset.' });
-      return;
-    }
-    this.logger.log(`Artist preset ${data.artistId} deleted`);
-    await this.broadcastArtistPresets();
+    return handleDeleteArtistHelper(this.getAdminContext(), data, client);
   }
 
   private leavePreviousRoom(client: Socket, nextRoomCode?: string): void {
@@ -3209,278 +3145,7 @@ export class GamesGateway
   }
 
   private isValidPayload(event: string, payload: unknown): boolean {
-    if (
-      event === SOCKET_EVENTS.LEAVE_ROOM ||
-      event === SOCKET_EVENTS.GET_AVAILABLE_ROOMS ||
-      event === SOCKET_EVENTS.GET_GAME_SETTINGS
-    )
-      return true;
-    // Optional-payload read: no adminKey (lobby) or one string (admin panel).
-    if (event === SOCKET_EVENTS.GET_ARTIST_PRESETS) {
-      if (payload === undefined || payload === null) return true;
-      if (typeof payload !== 'object' || Array.isArray(payload)) return false;
-      const d = payload as Record<string, unknown>;
-      return (
-        d.adminKey === undefined || (typeof d.adminKey === 'string' && d.adminKey.length <= 200)
-      );
-    }
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
-
-    const data = payload as Record<string, unknown>;
-    if (!this.hasSafeValues(data)) return false;
-    const isValidArtistId = (value: unknown): value is string =>
-      typeof value === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(value);
-    if (event === SOCKET_EVENTS.SET_ARTIST_ENABLED) {
-      return (
-        isValidArtistId(data.artistId) &&
-        typeof data.enabled === 'boolean' &&
-        typeof data.adminKey === 'string' &&
-        data.adminKey.length <= 200
-      );
-    }
-    if (event === SOCKET_EVENTS.DELETE_ARTIST) {
-      return (
-        isValidArtistId(data.artistId) &&
-        typeof data.adminKey === 'string' &&
-        data.adminKey.length <= 200
-      );
-    }
-    if (event === SOCKET_EVENTS.SET_GAME_ENABLED) {
-      return (
-        this.isSettingsKey(data.gameType as string) &&
-        typeof data.enabled === 'boolean' &&
-        typeof data.adminKey === 'string' &&
-        data.adminKey.length <= 200
-      );
-    }
-    if (event === SOCKET_EVENTS.ADMIN_VERIFY_KEY) {
-      return typeof data.adminKey === 'string' && data.adminKey.length <= 200;
-    }
-    if (event === SOCKET_EVENTS.CREATE_ROOM) {
-      return (
-        this.isValidName(data.name) &&
-        (data.gameType === undefined || Object.values(GameType).includes(data.gameType as GameType))
-      );
-    }
-    if (event === SOCKET_EVENTS.LEADERBOARD_GET) {
-      return data.gameType === undefined || typeof data.gameType === 'string';
-    }
-    if (event === SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
-      return (
-        (data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10)) &&
-        (data.requestId === undefined ||
-          (typeof data.requestId === 'string' &&
-            data.requestId.length >= 1 &&
-            data.requestId.length <= 64))
-      );
-    }
-    if (event === SOCKET_EVENTS.SERVER_TIME_REQUEST) {
-      return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);
-    }
-    if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code)) return false;
-    if (event === SOCKET_EVENTS.RESULT_REVEAL_ACTION) {
-      return (
-        typeof data.revealId === 'string' &&
-        data.revealId.length <= 64 &&
-        (data.action === 'REVEAL' || data.action === 'SKIP')
-      );
-    }
-    if (
-      data.requestId !== undefined &&
-      (typeof data.requestId !== 'string' ||
-        data.requestId.length < 1 ||
-        data.requestId.length > 64)
-    ) {
-      return false;
-    }
-    if (event === SOCKET_EVENTS.JOIN_ROOM || event === SOCKET_EVENTS.SPECTATE_JOIN) {
-      return (
-        this.isValidName(data.name) &&
-        (data.reconnectToken === undefined ||
-          (typeof data.reconnectToken === 'string' && data.reconnectToken.length <= 100))
-      );
-    }
-    if (event === SOCKET_EVENTS.UPDATE_CONFIG) {
-      return !!data.config && typeof data.config === 'object' && !Array.isArray(data.config);
-    }
-    if (event === SOCKET_EVENTS.GAME_ACTION) {
-      return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
-    }
-    if (event === SOCKET_EVENTS.CARD_GAME_ACTION) {
-      return (
-        !!data.action &&
-        typeof data.action === 'object' &&
-        !Array.isArray(data.action) &&
-        typeof (data.action as Record<string, unknown>).type === 'string'
-      );
-    }
-    if (event === SOCKET_EVENTS.POKER_ACTION) {
-      if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
-        return false;
-      }
-      const action = data.action as Record<string, unknown>;
-      if (typeof action.type !== 'string') return false;
-      if (action.type === 'BET') {
-        return typeof action.amount === 'number' && Number.isInteger(action.amount);
-      }
-      if (action.type === 'REBUY' || action.type === 'ADJUST_CHIPS') {
-        return (
-          typeof action.targetId === 'string' &&
-          action.targetId.length <= 64 &&
-          (action.type === 'REBUY' ||
-            (typeof action.amount === 'number' && Number.isInteger(action.amount)))
-        );
-      }
-      if (action.type === 'POT_AWARD') {
-        return (
-          Array.isArray(action.targetIds) &&
-          action.targetIds.length >= 1 &&
-          action.targetIds.length <= 10 &&
-          action.targetIds.every((id: unknown) => typeof id === 'string' && id.length <= 64)
-        );
-      }
-      return true;
-    }
-    if (event === SOCKET_EVENTS.POKER_V2_ACTION) {
-      if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
-        return false;
-      }
-      const action = data.action as Record<string, unknown>;
-      if (typeof action.type !== 'string') return false;
-      if (action.type === 'BET') {
-        return typeof action.amount === 'number' && Number.isInteger(action.amount);
-      }
-      return true;
-    }
-    const isSmallInt = (v: unknown): v is number =>
-      typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
-    if (event === SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
-      return (
-        isSmallInt(data.cardIndex) &&
-        isSmallInt(data.x) &&
-        isSmallInt(data.y) &&
-        (data.rotation === 0 || data.rotation === 180)
-      );
-    }
-    if (event === SOCKET_EVENTS.SABOTEUR_PLAY_ACTION) {
-      return (
-        isSmallInt(data.cardIndex) &&
-        (data.targetPlayerId === undefined || typeof data.targetPlayerId === 'string') &&
-        (data.repairTool === undefined || typeof data.repairTool === 'string') &&
-        (data.goalIndex === undefined || isSmallInt(data.goalIndex)) &&
-        (data.targetX === undefined || isSmallInt(data.targetX)) &&
-        (data.targetY === undefined || isSmallInt(data.targetY))
-      );
-    }
-    if (event === SOCKET_EVENTS.SABOTEUR_DISCARD) {
-      return isSmallInt(data.cardIndex);
-    }
-    if (event === SOCKET_EVENTS.SABOTEUR_PICK_GOLD) {
-      return isSmallInt(data.poolIndex);
-    }
-    if (event === SOCKET_EVENTS.COUP_DECLARE) {
-      return (
-        typeof data.type === 'string' &&
-        ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(
-          data.type,
-        ) &&
-        (data.targetId === undefined || typeof data.targetId === 'string')
-      );
-    }
-    if (event === SOCKET_EVENTS.COUP_CHALLENGE) {
-      return true;
-    }
-    if (event === SOCKET_EVENTS.COUP_BLOCK) {
-      return data.role === undefined || typeof data.role === 'string';
-    }
-    if (event === SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
-      return (
-        Array.isArray(data.keepIndices) &&
-        data.keepIndices.length >= 1 &&
-        data.keepIndices.length <= 4 &&
-        data.keepIndices.every(
-          (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 4,
-        )
-      );
-    }
-    if (event === SOCKET_EVENTS.BANANA_THIEF_PEEK || event === SOCKET_EVENTS.BANANA_THIEF_VOTE) {
-      return typeof data.targetId === 'string' && data.targetId.length <= 64;
-    }
-    if (event === SOCKET_EVENTS.BANANA_THIEF_REACTION) {
-      return (BANANA_THIEF_REACTIONS as readonly string[]).includes(data.emoji as string);
-    }
-    if (event === SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION) {
-      return (
-        ['KILL', 'CHECK', 'HEAL', 'POISON', 'SHOT'].includes(data.action as string) &&
-        typeof data.targetId === 'string' &&
-        data.targetId.length <= 64
-      );
-    }
-    if (event === SOCKET_EVENTS.WEREWOLF_DAY_VOTE) {
-      return typeof data.targetId === 'string' && data.targetId.length <= 64;
-    }
-    if (event === SOCKET_EVENTS.CIPHER_ASSIGN_TEAM) {
-      return (
-        (data.team === null ||
-          data.team === undefined ||
-          data.team === 'SOLAR' ||
-          data.team === 'LUNAR') &&
-        (data.role === undefined || data.role === 'CIPHER_LEAD' || data.role === 'TRACKER') &&
-        (data.targetId === undefined || typeof data.targetId === 'string')
-      );
-    }
-    if (event === SOCKET_EVENTS.CIPHER_GIVE_CLUE) {
-      return (
-        typeof data.word === 'string' &&
-        data.word.trim().length >= 1 &&
-        data.word.trim().length <= 50 &&
-        (data.count === 'UNLIMITED' ||
-          (typeof data.count === 'number' &&
-            Number.isInteger(data.count) &&
-            data.count >= 0 &&
-            data.count <= 9))
-      );
-    }
-    if (event === SOCKET_EVENTS.CIPHER_PING_CARD || event === SOCKET_EVENTS.CIPHER_REVEAL_CARD) {
-      return (
-        typeof data.cardIndex === 'number' &&
-        Number.isInteger(data.cardIndex) &&
-        data.cardIndex >= 0 &&
-        data.cardIndex < 25
-      );
-    }
-    return true;
-  }
-
-  private isValidName(value: unknown): value is string {
-    return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 40;
-  }
-
-  /** Games plus the Tic-Tac-Toe mode flags are togglable via set_game_enabled. */
-  private isSettingsKey(value: unknown): value is GameType | TttModeFlag {
-    return (
-      typeof value === 'string' &&
-      (Object.values(GameType).includes(value as GameType) ||
-        (TTT_MODE_FLAGS as readonly string[]).includes(value))
-    );
-  }
-
-  private hasSafeValues(value: unknown, depth = 0): boolean {
-    if (depth > 4) return false;
-    if (typeof value === 'string') return value.length <= 500;
-    if (typeof value === 'number') return Number.isFinite(value);
-    if (typeof value === 'boolean' || value === null || value === undefined) return true;
-    if (Array.isArray(value)) {
-      return value.length <= 100 && value.every((item) => this.hasSafeValues(item, depth + 1));
-    }
-    if (typeof value === 'object') {
-      const entries = Object.entries(value);
-      return (
-        entries.length <= 50 &&
-        entries.every(([key, item]) => key.length <= 100 && this.hasSafeValues(item, depth + 1))
-      );
-    }
-    return false;
+    return isValidPayload(event, payload);
   }
 
   private getResultPlayerKey(player: { name?: string }): string {

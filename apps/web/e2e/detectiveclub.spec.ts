@@ -49,7 +49,7 @@ test.describe('Cluecanvas Gameplay', () => {
     for (const page of pages) {
       const card = page.locator('img[alt="Hand Card"]').first();
       await expect(card).toBeVisible();
-      await expect(card).toHaveAttribute('src', /\/images\/detective-club\/card_\d{3}\.jpg$/);
+      await expect(card).toHaveAttribute('src', /\/images\/detective-club\/card_\d{3}\.(jpg|webp)$/);
       await expect
         .poll(() =>
           card.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
