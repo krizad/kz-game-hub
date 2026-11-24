@@ -39,6 +39,7 @@ const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const werewolf_service_1 = require("./werewolf/werewolf.service");
 const battleship_service_1 = require("./battleship/battleship.service");
+const ws_rate_limit_service_1 = require("./ws-rate-limit.service");
 let GamesModule = class GamesModule {
 };
 exports.GamesModule = GamesModule;
@@ -47,6 +48,7 @@ exports.GamesModule = GamesModule = __decorate([
         providers: [
             room_start_guard_service_1.RoomStartGuardService,
             action_receipt_service_1.ActionReceiptService,
+            ws_rate_limit_service_1.WsRateLimitService,
             games_gateway_1.GamesGateway,
             games_service_1.GamesService,
             who_know_service_1.WhoKnowService,

@@ -19,5 +19,4 @@ export declare class HealthController {
             heapTotalMb: number;
         };
     }>;
-    private getPackageVersion;
 }

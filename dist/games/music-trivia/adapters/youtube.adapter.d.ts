@@ -2,6 +2,7 @@ import { MusicSourceType } from '@repo/types';
 import { MusicSourceAdapter, MusicSourceSearchOptions, TrackResult } from '../music-source-adapter';
 export declare class YouTubeAdapter implements MusicSourceAdapter {
     readonly sourceType: MusicSourceType;
+    private readonly logger;
     private innertube;
     private creating;
     init(): Promise<void>;

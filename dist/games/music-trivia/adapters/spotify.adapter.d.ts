@@ -18,6 +18,7 @@ export interface SpotifyItem {
 }
 export declare class SpotifyAdapter implements MusicSourceAdapter {
     readonly sourceType: MusicSourceType;
+    private readonly logger;
     private getAccessToken;
     search(query: string, limit: number, options?: MusicSourceSearchOptions): Promise<TrackResult[]>;
 }

@@ -1,3 +1,4 @@
+import { OnModuleDestroy } from '@nestjs/common';
 import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DogRelayActionRequest, DogRelayPhase, ResultRevealActionPayload } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
@@ -48,7 +49,7 @@ export type RoomLifecycleEvent = {
     type: 'ROOM_DELETED';
     code: string;
 };
-export declare class GamesService {
+export declare class GamesService implements OnModuleDestroy {
     private readonly whoKnowService;
     private readonly ticTacToeService;
     private readonly rpsService;
@@ -79,11 +80,22 @@ export declare class GamesService {
     resultRevealAction(code: string, socketId: string, payload: ResultRevealActionPayload): RoomState | null;
     private readonly logger;
     private static readonly RECONNECT_GRACE_MS;
+    private static readonly DEFAULT_MAX_ROOMS;
+    private static readonly DEFAULT_IDLE_ROOM_TTL_MS;
     private rooms;
+    private readonly roomLastActivity;
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
+    private idleSweepTimer?;
     constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, pokerV2Service: PokerV2Service, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, battleshipService: BattleshipService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    onModuleDestroy(): void;
+    private startIdleSweepTimer;
+    getMaxRooms(): number;
+    isRoomLimitReached(): boolean;
+    getIdleRoomTtlMs(): number;
+    touchRoomActivity(code: string, now?: number): void;
+    sweepIdleRooms(now?: number): string[];
     getRoomCount(): number;
     private getReconnectGraceMs;
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;

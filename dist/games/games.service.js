@@ -12,6 +12,7 @@ var GamesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GamesService = void 0;
 const common_1 = require("@nestjs/common");
+const admin_auth_util_1 = require("../common/admin-auth.util");
 const types_1 = require("@repo/types");
 const result_reveal_1 = require("./result-reveal");
 const uuid_1 = require("uuid");
@@ -81,8 +82,68 @@ let GamesService = GamesService_1 = class GamesService {
         this.actionReceiptService = actionReceiptService;
         this.logger = new common_1.Logger(GamesService_1.name);
         this.rooms = new Map();
+        this.roomLastActivity = new Map();
         this.secretWords = new Map();
         this.saboteurTurnDeadlines = new Map();
+        this.startIdleSweepTimer();
+    }
+    onModuleDestroy() {
+        if (this.idleSweepTimer) {
+            clearInterval(this.idleSweepTimer);
+            this.idleSweepTimer = undefined;
+        }
+    }
+    startIdleSweepTimer() {
+        const ttlMs = this.getIdleRoomTtlMs();
+        if (ttlMs <= 0)
+            return;
+        const intervalMs = Math.min(60_000, Math.max(1_000, Math.floor(ttlMs / 4)));
+        this.idleSweepTimer = setInterval(() => {
+            this.sweepIdleRooms();
+        }, intervalMs);
+        this.idleSweepTimer.unref?.();
+    }
+    getMaxRooms() {
+        const raw = process.env.MAX_ROOMS;
+        if (!raw)
+            return GamesService_1.DEFAULT_MAX_ROOMS;
+        const parsed = Number.parseInt(raw, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : GamesService_1.DEFAULT_MAX_ROOMS;
+    }
+    isRoomLimitReached() {
+        return this.rooms.size >= this.getMaxRooms();
+    }
+    getIdleRoomTtlMs() {
+        const raw = process.env.IDLE_ROOM_TTL_MS;
+        if (raw === undefined || raw === '')
+            return GamesService_1.DEFAULT_IDLE_ROOM_TTL_MS;
+        const parsed = Number.parseInt(raw, 10);
+        if (!Number.isFinite(parsed) || parsed < 0)
+            return GamesService_1.DEFAULT_IDLE_ROOM_TTL_MS;
+        return parsed;
+    }
+    touchRoomActivity(code, now = Date.now()) {
+        if (this.rooms.has(code)) {
+            this.roomLastActivity.set(code, now);
+        }
+    }
+    sweepIdleRooms(now = Date.now()) {
+        const ttlMs = this.getIdleRoomTtlMs();
+        if (ttlMs <= 0)
+            return [];
+        const expiredCodes = [];
+        for (const [code, room] of this.rooms.entries()) {
+            const lastActivity = this.roomLastActivity.get(code) ?? room.createdAt.getTime();
+            if (now - lastActivity >= ttlMs) {
+                expiredCodes.push(code);
+            }
+        }
+        for (const code of expiredCodes) {
+            this.logger.log(`[ROOM] Idle TTL expired room=${code} ttlMs=${ttlMs}`);
+            this.deleteRoomData(code);
+            this.roomLifecycleListener?.({ type: 'ROOM_DELETED', code });
+        }
+        return expiredCodes;
     }
     getRoomCount() {
         return this.rooms.size;
@@ -122,8 +183,7 @@ let GamesService = GamesService_1 = class GamesService {
         return this.gameSettings.isEnabled(gameType);
     }
     verifyAdminKey(adminKey) {
-        const adminSecret = process.env.ADMIN_SECRET;
-        return typeof adminKey === 'string' && !!adminSecret && adminKey === adminSecret;
+        return (0, admin_auth_util_1.timingSafeSecretEqual)(adminKey, process.env.ADMIN_SECRET);
     }
     getReconnectToken(code, socketId) {
         const room = this.rooms.get(code);
@@ -142,6 +202,9 @@ let GamesService = GamesService_1 = class GamesService {
         return room.players.some((player) => player.id === playerId && player.name === name);
     }
     createRoom(hostId, gameType = types_1.GameType.WHO_KNOW, initialConfig) {
+        if (this.isRoomLimitReached()) {
+            throw new Error('SERVER_ROOM_LIMIT_REACHED');
+        }
         let code;
         do {
             code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -286,6 +349,7 @@ let GamesService = GamesService_1 = class GamesService {
         }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
+        this.roomLastActivity.set(code, Date.now());
         return room;
     }
     joinRoom(code, user, reconnectToken) {
@@ -630,6 +694,7 @@ let GamesService = GamesService_1 = class GamesService {
             this.logger.log(`[ROOM] Deleted room=${code} game=${existing.gameType} status=${existing.status} players=${existing.players.length}`);
         }
         this.rooms.delete(code);
+        this.roomLastActivity.delete(code);
         this.secretWords.delete(code);
         this.saboteurTurnDeadlines.delete(code);
         this.roomTimerService.clearRoom(code);
@@ -1819,6 +1884,8 @@ let GamesService = GamesService_1 = class GamesService {
 };
 exports.GamesService = GamesService;
 GamesService.RECONNECT_GRACE_MS = 60_000;
+GamesService.DEFAULT_MAX_ROOMS = 200;
+GamesService.DEFAULT_IDLE_ROOM_TTL_MS = 7_200_000;
 exports.GamesService = GamesService = GamesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [who_know_service_1.WhoKnowService,

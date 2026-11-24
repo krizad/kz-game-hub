@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SoundcloudAdapter = void 0;
+const common_1 = require("@nestjs/common");
 const soundcloud_downloader_1 = require("soundcloud-downloader");
 function isSoundCloudTrack(value) {
     if (!value || typeof value !== 'object')
@@ -13,6 +14,7 @@ function isSoundCloudTrack(value) {
 class SoundcloudAdapter {
     constructor() {
         this.sourceType = 'SOUNDCLOUD';
+        this.logger = new common_1.Logger(SoundcloudAdapter.name);
     }
     async search(query, limit) {
         try {
@@ -41,7 +43,7 @@ class SoundcloudAdapter {
             return tracks.slice(0, limit);
         }
         catch (error) {
-            console.error('SoundCloud search error:', error);
+            this.logger.error('SoundCloud search error', error instanceof Error ? error.stack : String(error));
             throw new Error('Failed to search SoundCloud');
         }
     }

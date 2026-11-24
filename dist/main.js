@@ -8,6 +8,7 @@ const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
 const app_logger_1 = require("./app.logger");
 const types_1 = require("@repo/types");
+const cors_util_1 = require("./common/cors.util");
 function registerProcessLogging(logger) {
     process.on('uncaughtException', (error) => {
         logger.fatal('[SYS] Uncaught exception', error);
@@ -22,7 +23,7 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         logger,
     });
-    app.enableCors();
+    app.enableCors({ origin: (0, cors_util_1.parseCorsOrigin)() });
     app.enableShutdownHooks();
     const isProduction = process.env.NODE_ENV === 'production';
     if (!isProduction) {

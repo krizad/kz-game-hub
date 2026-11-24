@@ -108,8 +108,8 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
                     const isCustomDeck = imagesDir === process.env.DETECTIVE_CLUB_CARDS_DIR;
                     this.availableCards = files
                         .filter((file) => isCustomDeck
-                        ? /\.(svg|jpg|png|jpeg)$/i.test(file)
-                        : /^card_\d{3}\.(jpg|png|jpeg)$/i.test(file))
+                        ? /\.(svg|jpg|png|jpeg|webp)$/i.test(file)
+                        : /^card_\d{3}\.(jpg|png|jpeg|webp)$/i.test(file))
                         .sort();
                     if (this.availableCards.length === 0)
                         continue;
@@ -126,7 +126,7 @@ let DetectiveClubService = DetectiveClubService_1 = class DetectiveClubService {
                     continue;
                 const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
                 if (Array.isArray(parsed)) {
-                    this.availableCards = parsed.filter((entry) => typeof entry === 'string' && /^card_\d{3}\.(jpg|png|jpeg)$/i.test(entry));
+                    this.availableCards = parsed.filter((entry) => typeof entry === 'string' && /^card_\d{3}\.(jpg|png|jpeg|webp)$/i.test(entry));
                     if (this.availableCards.length > 0) {
                         this.logger.log(`Loaded ${this.availableCards.length} detective club cards from manifest ${manifestPath}`);
                         return;

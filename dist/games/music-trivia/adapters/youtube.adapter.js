@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.YouTubeAdapter = void 0;
+const common_1 = require("@nestjs/common");
 const MAX_DURATION_MS = 10 * 60 * 1000;
 const DEFAULT_DURATION_MS = 180000;
 class YouTubeAdapter {
     constructor() {
         this.sourceType = 'YOUTUBE';
+        this.logger = new common_1.Logger(YouTubeAdapter.name);
         this.innertube = null;
         this.creating = null;
     }
@@ -36,13 +38,13 @@ class YouTubeAdapter {
             const end = options.yearEnd || new Date().getFullYear();
             searchQuery += ` ${start}-${end}`;
         }
-        console.log(`[YouTubeAdapter] Searching YouTube for: ${searchQuery} (Limit: ${limit})`);
+        this.logger.log(`Searching YouTube for: ${searchQuery} (Limit: ${limit})`);
         try {
             const yt = await this.getInnertube();
             const search = await yt.search(searchQuery, { type: 'video' });
             const videos = search.results.filter((r) => r.type === 'Video');
             if (videos.length === 0) {
-                console.warn('[YouTubeAdapter] No videos found on YouTube:', searchQuery);
+                this.logger.warn(`No videos found on YouTube: ${searchQuery}`);
                 return [];
             }
             let results = videos.filter((video) => {
@@ -53,7 +55,7 @@ class YouTubeAdapter {
                 results = videos;
             }
             results = results.slice(0, limit);
-            console.log(`[YouTubeAdapter] Search completed. Returning ${results.length} videos.`);
+            this.logger.log(`Search completed. Returning ${results.length} videos.`);
             return results.map((item) => {
                 const title = item.title?.toString() || 'Unknown Title';
                 const artist = item.author?.name || 'Unknown Artist';
@@ -72,7 +74,7 @@ class YouTubeAdapter {
             });
         }
         catch (error) {
-            console.error('[YouTubeAdapter] Search error:', error);
+            this.logger.error('Search error', error instanceof Error ? error.stack : String(error));
             throw error;
         }
     }

@@ -25,12 +25,16 @@ const game_settings_service_1 = require("./game-settings.service");
 const artist_preset_service_1 = require("./artist-preset.service");
 const action_receipt_service_1 = require("./action-receipt.service");
 const ws_exception_filter_1 = require("./ws-exception.filter");
+const ws_rate_limit_service_1 = require("./ws-rate-limit.service");
+const cors_util_1 = require("../common/cors.util");
+const payload_validator_1 = require("./gateway/payload-validator");
+const admin_gateway_helper_1 = require("./gateway/admin-gateway.helper");
 const types_1 = require("@repo/types");
 const dog_relay_results_1 = require("./dog-relay/dog-relay-results");
 const result_reveal_1 = require("./result-reveal");
 const GAME_DISABLED_MESSAGE = 'This game is currently disabled.';
 let GamesGateway = GamesGateway_1 = class GamesGateway {
-    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
+    constructor(gamesService, leaderboardService, roomTimerService, privateStateService, gameSettingsService, artistPresetService, actionReceiptService = new action_receipt_service_1.ActionReceiptService(), wsRateLimitService = new ws_rate_limit_service_1.WsRateLimitService()) {
         this.gamesService = gamesService;
         this.leaderboardService = leaderboardService;
         this.roomTimerService = roomTimerService;
@@ -38,6 +42,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.gameSettingsService = gameSettingsService;
         this.artistPresetService = artistPresetService;
         this.actionReceiptService = actionReceiptService;
+        this.wsRateLimitService = wsRateLimitService;
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
         this.recordedScoreBaselines = new Map();
@@ -81,17 +86,58 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             this.logger.log(`[WS] Socket closed socket=${client.id} reason=${reason} transport=${client.conn?.transport?.name ?? 'unknown'}`);
         });
         client.use(([event, payload], next) => {
-            if (this.isValidPayload(event, payload)) {
-                this.logClientAction(client.id, event, payload);
-                return next();
+            if (!(0, payload_validator_1.isValidPayload)(event, payload)) {
+                this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+                return next(new Error('Invalid request payload'));
             }
-            this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-            next(new Error('Invalid request payload'));
+            const rateResult = this.wsRateLimitService.checkEvent({
+                event,
+                socketId: client.id,
+                clientIp: (0, ws_rate_limit_service_1.extractClientIp)(client.handshake),
+                isQuietEvent: GamesGateway_1.QUIET_EVENTS.has(event),
+                isExternalApiEvent: this.isExternalApiEvent(event, payload),
+            });
+            if (!rateResult.allowed) {
+                const errorCode = rateResult.errorCode ?? 'RATE_LIMITED';
+                this.logger.warn(`[WS] Rate limited socket=${client.id} event=${event} code=${errorCode}`);
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: errorCode });
+                return next(new Error(errorCode));
+            }
+            const roomCode = payload && typeof payload === 'object' && 'code' in payload && typeof payload.code === 'string'
+                ? payload.code
+                : undefined;
+            if (roomCode && typeof this.gamesService?.touchRoomActivity === 'function') {
+                this.gamesService.touchRoomActivity(roomCode);
+            }
+            this.logClientAction(client.id, event, payload);
+            return next();
         });
         client.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
     }
+    isExternalApiEvent(event, payload) {
+        if (!payload || typeof payload !== 'object' || !('code' in payload))
+            return false;
+        const code = payload.code;
+        if (typeof code !== 'string')
+            return false;
+        const room = typeof this.gamesService?.getRoom === 'function' ? this.gamesService.getRoom(code) : undefined;
+        if (!room)
+            return false;
+        if (event === types_1.SOCKET_EVENTS.START_GAME) {
+            return (room.gameType === types_1.GameType.MUSIC_TRIVIA ||
+                (room.gameType === types_1.GameType.WHO_AM_I && room.config?.wordMode === 'AI_GENERATED'));
+        }
+        if (event === types_1.SOCKET_EVENTS.GAME_ACTION) {
+            const action = payload.action;
+            return (action === 'NEXT_ROUND' &&
+                room.gameType === types_1.GameType.WHO_AM_I &&
+                room.config?.wordMode === 'AI_GENERATED');
+        }
+        return false;
+    }
     handleDisconnect(client) {
+        this.wsRateLimitService.clearSocket(client.id);
         const previousRoomCode = typeof this.gamesService?.findRoomCodeBySocketId === 'function'
             ? this.gamesService.findRoomCodeBySocketId(client.id)
             : null;
@@ -203,100 +249,29 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             serverNow,
         });
     }
+    getAdminContext() {
+        return {
+            server: this.server,
+            logger: this.logger,
+            gamesService: this.gamesService,
+            gameSettingsService: this.gameSettingsService,
+            artistPresetService: this.artistPresetService,
+        };
+    }
     async handleSetGameEnabled(data, client) {
-        const adminSecret = process.env.ADMIN_SECRET;
-        if (!adminSecret || !data || data.adminKey !== adminSecret) {
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
-            return;
-        }
-        if (!data || !this.isSettingsKey(data.gameType) || typeof data.enabled !== 'boolean') {
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-            return;
-        }
-        try {
-            await this.gameSettingsService.setEnabled(data.gameType, data.enabled);
-        }
-        catch (error) {
-            this.logger.error(`Failed to persist game setting for ${data.gameType}`, error);
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Failed to update the game setting.' });
-            return;
-        }
-        this.logger.log(`Game ${data.gameType} ${data.enabled ? 'enabled' : 'disabled'}`);
-        this.server.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
-        this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
+        return (0, admin_gateway_helper_1.handleSetGameEnabledHelper)(this.getAdminContext(), data, client);
     }
     handleAdminVerifyKey(client, data) {
-        const valid = this.isAdminKey(data?.adminKey);
-        client.emit(types_1.SOCKET_EVENTS.ADMIN_KEY_VERIFIED, {
-            valid,
-        });
-    }
-    isAdminKey(adminKey) {
-        if (this.gamesService?.verifyAdminKey) {
-            return this.gamesService.verifyAdminKey(adminKey);
-        }
-        return (typeof adminKey === 'string' &&
-            !!process.env.ADMIN_SECRET &&
-            adminKey === process.env.ADMIN_SECRET);
-    }
-    async broadcastArtistPresets() {
-        this.server.emit(types_1.SOCKET_EVENTS.ARTIST_PRESETS_UPDATED, await this.listArtistPresets(false));
-    }
-    async listArtistPresets(includeDisabled) {
-        try {
-            return await this.artistPresetService.listPresets(includeDisabled);
-        }
-        catch (error) {
-            this.logger.error('Failed to list artist presets', error);
-            return [];
-        }
+        (0, admin_gateway_helper_1.handleAdminVerifyKeyHelper)(this.getAdminContext(), data, client);
     }
     async handleGetArtistPresets(data, client) {
-        const includeDisabled = this.isAdminKey(data?.adminKey);
-        client.emit(types_1.SOCKET_EVENTS.ARTIST_PRESETS_LIST, await this.listArtistPresets(includeDisabled));
+        return (0, admin_gateway_helper_1.handleGetArtistPresetsHelper)(this.getAdminContext(), data, client);
     }
     async handleSetArtistEnabled(data, client) {
-        if (!this.isAdminKey(data?.adminKey)) {
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
-            return;
-        }
-        if (!data ||
-            typeof data.artistId !== 'string' ||
-            data.artistId.length > 64 ||
-            typeof data.enabled !== 'boolean') {
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-            return;
-        }
-        try {
-            await this.artistPresetService.setEnabled(data.artistId, data.enabled);
-        }
-        catch (error) {
-            this.logger.error(`Failed to set artist preset ${data.artistId}`, error);
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Failed to update the artist preset.' });
-            return;
-        }
-        this.logger.log(`Artist preset ${data.artistId} ${data.enabled ? 'enabled' : 'disabled'}`);
-        await this.broadcastArtistPresets();
+        return (0, admin_gateway_helper_1.handleSetArtistEnabledHelper)(this.getAdminContext(), data, client);
     }
     async handleDeleteArtist(data, client) {
-        if (!this.isAdminKey(data?.adminKey)) {
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
-            return;
-        }
-        if (!data || typeof data.artistId !== 'string' || data.artistId.length > 64) {
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-            return;
-        }
-        try {
-            await this.artistPresetService.deleteArtist(data.artistId);
-        }
-        catch (error) {
-            this.logger.error(`Failed to delete artist preset ${data.artistId}`, error);
-            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Failed to delete the artist preset.' });
-            return;
-        }
-        this.logger.log(`Artist preset ${data.artistId} deleted`);
-        await this.broadcastArtistPresets();
+        return (0, admin_gateway_helper_1.handleDeleteArtistHelper)(this.getAdminContext(), data, client);
     }
     leavePreviousRoom(client, nextRoomCode) {
         const previousRoomCode = this.gamesService.findRoomCodeBySocketId(client.id);
@@ -319,8 +294,24 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
             return;
         }
+        if (typeof this.gamesService.isRoomLimitReached === 'function' &&
+            this.gamesService.isRoomLimitReached()) {
+            this.logger.warn(`[ROOM] Create rejected: room limit reached socket=${client.id}`);
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'SERVER_ROOM_LIMIT_REACHED' });
+            return;
+        }
         this.leavePreviousRoom(client);
-        const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
+        let room;
+        try {
+            room = this.gamesService.createRoom(client.id, data.gameType, data.config);
+        }
+        catch (error) {
+            if (error instanceof Error && error.message === 'SERVER_ROOM_LIMIT_REACHED') {
+                client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'SERVER_ROOM_LIMIT_REACHED' });
+                return;
+            }
+            throw error;
+        }
         const updatedRoom = this.gamesService.joinRoom(room.code, {
             id: client.id,
             name: data.name.trim(),
@@ -2259,231 +2250,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         });
     }
     isValidPayload(event, payload) {
-        if (event === types_1.SOCKET_EVENTS.LEAVE_ROOM ||
-            event === types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS ||
-            event === types_1.SOCKET_EVENTS.GET_GAME_SETTINGS)
-            return true;
-        if (event === types_1.SOCKET_EVENTS.GET_ARTIST_PRESETS) {
-            if (payload === undefined || payload === null)
-                return true;
-            if (typeof payload !== 'object' || Array.isArray(payload))
-                return false;
-            const d = payload;
-            return (d.adminKey === undefined || (typeof d.adminKey === 'string' && d.adminKey.length <= 200));
-        }
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload))
-            return false;
-        const data = payload;
-        if (!this.hasSafeValues(data))
-            return false;
-        const isValidArtistId = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(value);
-        if (event === types_1.SOCKET_EVENTS.SET_ARTIST_ENABLED) {
-            return (isValidArtistId(data.artistId) &&
-                typeof data.enabled === 'boolean' &&
-                typeof data.adminKey === 'string' &&
-                data.adminKey.length <= 200);
-        }
-        if (event === types_1.SOCKET_EVENTS.DELETE_ARTIST) {
-            return (isValidArtistId(data.artistId) &&
-                typeof data.adminKey === 'string' &&
-                data.adminKey.length <= 200);
-        }
-        if (event === types_1.SOCKET_EVENTS.SET_GAME_ENABLED) {
-            return (this.isSettingsKey(data.gameType) &&
-                typeof data.enabled === 'boolean' &&
-                typeof data.adminKey === 'string' &&
-                data.adminKey.length <= 200);
-        }
-        if (event === types_1.SOCKET_EVENTS.ADMIN_VERIFY_KEY) {
-            return typeof data.adminKey === 'string' && data.adminKey.length <= 200;
-        }
-        if (event === types_1.SOCKET_EVENTS.CREATE_ROOM) {
-            return (this.isValidName(data.name) &&
-                (data.gameType === undefined || Object.values(types_1.GameType).includes(data.gameType)));
-        }
-        if (event === types_1.SOCKET_EVENTS.LEADERBOARD_GET) {
-            return data.gameType === undefined || typeof data.gameType === 'string';
-        }
-        if (event === types_1.SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES) {
-            return ((data.lang === undefined || (typeof data.lang === 'string' && data.lang.length <= 10)) &&
-                (data.requestId === undefined ||
-                    (typeof data.requestId === 'string' &&
-                        data.requestId.length >= 1 &&
-                        data.requestId.length <= 64)));
-        }
-        if (event === types_1.SOCKET_EVENTS.SERVER_TIME_REQUEST) {
-            return typeof data.clientSentAt === 'number' && Number.isFinite(data.clientSentAt);
-        }
-        if (typeof data.code !== 'string' || !/^[a-z0-9]{6}$/i.test(data.code))
-            return false;
-        if (event === types_1.SOCKET_EVENTS.RESULT_REVEAL_ACTION) {
-            return (typeof data.revealId === 'string' &&
-                data.revealId.length <= 64 &&
-                (data.action === 'REVEAL' || data.action === 'SKIP'));
-        }
-        if (data.requestId !== undefined &&
-            (typeof data.requestId !== 'string' ||
-                data.requestId.length < 1 ||
-                data.requestId.length > 64)) {
-            return false;
-        }
-        if (event === types_1.SOCKET_EVENTS.JOIN_ROOM || event === types_1.SOCKET_EVENTS.SPECTATE_JOIN) {
-            return (this.isValidName(data.name) &&
-                (data.reconnectToken === undefined ||
-                    (typeof data.reconnectToken === 'string' && data.reconnectToken.length <= 100)));
-        }
-        if (event === types_1.SOCKET_EVENTS.UPDATE_CONFIG) {
-            return !!data.config && typeof data.config === 'object' && !Array.isArray(data.config);
-        }
-        if (event === types_1.SOCKET_EVENTS.GAME_ACTION) {
-            return !!data.action && typeof data.action === 'object' && !Array.isArray(data.action);
-        }
-        if (event === types_1.SOCKET_EVENTS.CARD_GAME_ACTION) {
-            return (!!data.action &&
-                typeof data.action === 'object' &&
-                !Array.isArray(data.action) &&
-                typeof data.action.type === 'string');
-        }
-        if (event === types_1.SOCKET_EVENTS.POKER_ACTION) {
-            if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
-                return false;
-            }
-            const action = data.action;
-            if (typeof action.type !== 'string')
-                return false;
-            if (action.type === 'BET') {
-                return typeof action.amount === 'number' && Number.isInteger(action.amount);
-            }
-            if (action.type === 'REBUY' || action.type === 'ADJUST_CHIPS') {
-                return (typeof action.targetId === 'string' &&
-                    action.targetId.length <= 64 &&
-                    (action.type === 'REBUY' ||
-                        (typeof action.amount === 'number' && Number.isInteger(action.amount))));
-            }
-            if (action.type === 'POT_AWARD') {
-                return (Array.isArray(action.targetIds) &&
-                    action.targetIds.length >= 1 &&
-                    action.targetIds.length <= 10 &&
-                    action.targetIds.every((id) => typeof id === 'string' && id.length <= 64));
-            }
-            return true;
-        }
-        if (event === types_1.SOCKET_EVENTS.POKER_V2_ACTION) {
-            if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
-                return false;
-            }
-            const action = data.action;
-            if (typeof action.type !== 'string')
-                return false;
-            if (action.type === 'BET') {
-                return typeof action.amount === 'number' && Number.isInteger(action.amount);
-            }
-            return true;
-        }
-        const isSmallInt = (v) => typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= 10_000;
-        if (event === types_1.SOCKET_EVENTS.SABOTEUR_PLACE_PATH) {
-            return (isSmallInt(data.cardIndex) &&
-                isSmallInt(data.x) &&
-                isSmallInt(data.y) &&
-                (data.rotation === 0 || data.rotation === 180));
-        }
-        if (event === types_1.SOCKET_EVENTS.SABOTEUR_PLAY_ACTION) {
-            return (isSmallInt(data.cardIndex) &&
-                (data.targetPlayerId === undefined || typeof data.targetPlayerId === 'string') &&
-                (data.repairTool === undefined || typeof data.repairTool === 'string') &&
-                (data.goalIndex === undefined || isSmallInt(data.goalIndex)) &&
-                (data.targetX === undefined || isSmallInt(data.targetX)) &&
-                (data.targetY === undefined || isSmallInt(data.targetY)));
-        }
-        if (event === types_1.SOCKET_EVENTS.SABOTEUR_DISCARD) {
-            return isSmallInt(data.cardIndex);
-        }
-        if (event === types_1.SOCKET_EVENTS.SABOTEUR_PICK_GOLD) {
-            return isSmallInt(data.poolIndex);
-        }
-        if (event === types_1.SOCKET_EVENTS.COUP_DECLARE) {
-            return (typeof data.type === 'string' &&
-                ['INCOME', 'FOREIGN_AID', 'COUP', 'TAX', 'ASSASSINATE', 'STEAL', 'EXCHANGE'].includes(data.type) &&
-                (data.targetId === undefined || typeof data.targetId === 'string'));
-        }
-        if (event === types_1.SOCKET_EVENTS.COUP_CHALLENGE) {
-            return true;
-        }
-        if (event === types_1.SOCKET_EVENTS.COUP_BLOCK) {
-            return data.role === undefined || typeof data.role === 'string';
-        }
-        if (event === types_1.SOCKET_EVENTS.COUP_EXCHANGE_SELECT) {
-            return (Array.isArray(data.keepIndices) &&
-                data.keepIndices.length >= 1 &&
-                data.keepIndices.length <= 4 &&
-                data.keepIndices.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 4));
-        }
-        if (event === types_1.SOCKET_EVENTS.BANANA_THIEF_PEEK || event === types_1.SOCKET_EVENTS.BANANA_THIEF_VOTE) {
-            return typeof data.targetId === 'string' && data.targetId.length <= 64;
-        }
-        if (event === types_1.SOCKET_EVENTS.BANANA_THIEF_REACTION) {
-            return types_1.BANANA_THIEF_REACTIONS.includes(data.emoji);
-        }
-        if (event === types_1.SOCKET_EVENTS.WEREWOLF_NIGHT_ACTION) {
-            return (['KILL', 'CHECK', 'HEAL', 'POISON', 'SHOT'].includes(data.action) &&
-                typeof data.targetId === 'string' &&
-                data.targetId.length <= 64);
-        }
-        if (event === types_1.SOCKET_EVENTS.WEREWOLF_DAY_VOTE) {
-            return typeof data.targetId === 'string' && data.targetId.length <= 64;
-        }
-        if (event === types_1.SOCKET_EVENTS.CIPHER_ASSIGN_TEAM) {
-            return ((data.team === null ||
-                data.team === undefined ||
-                data.team === 'SOLAR' ||
-                data.team === 'LUNAR') &&
-                (data.role === undefined || data.role === 'CIPHER_LEAD' || data.role === 'TRACKER') &&
-                (data.targetId === undefined || typeof data.targetId === 'string'));
-        }
-        if (event === types_1.SOCKET_EVENTS.CIPHER_GIVE_CLUE) {
-            return (typeof data.word === 'string' &&
-                data.word.trim().length >= 1 &&
-                data.word.trim().length <= 50 &&
-                (data.count === 'UNLIMITED' ||
-                    (typeof data.count === 'number' &&
-                        Number.isInteger(data.count) &&
-                        data.count >= 0 &&
-                        data.count <= 9)));
-        }
-        if (event === types_1.SOCKET_EVENTS.CIPHER_PING_CARD || event === types_1.SOCKET_EVENTS.CIPHER_REVEAL_CARD) {
-            return (typeof data.cardIndex === 'number' &&
-                Number.isInteger(data.cardIndex) &&
-                data.cardIndex >= 0 &&
-                data.cardIndex < 25);
-        }
-        return true;
-    }
-    isValidName(value) {
-        return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 40;
-    }
-    isSettingsKey(value) {
-        return (typeof value === 'string' &&
-            (Object.values(types_1.GameType).includes(value) ||
-                types_1.TTT_MODE_FLAGS.includes(value)));
-    }
-    hasSafeValues(value, depth = 0) {
-        if (depth > 4)
-            return false;
-        if (typeof value === 'string')
-            return value.length <= 500;
-        if (typeof value === 'number')
-            return Number.isFinite(value);
-        if (typeof value === 'boolean' || value === null || value === undefined)
-            return true;
-        if (Array.isArray(value)) {
-            return value.length <= 100 && value.every((item) => this.hasSafeValues(item, depth + 1));
-        }
-        if (typeof value === 'object') {
-            const entries = Object.entries(value);
-            return (entries.length <= 50 &&
-                entries.every(([key, item]) => key.length <= 100 && this.hasSafeValues(item, depth + 1)));
-        }
-        return false;
+        return (0, payload_validator_1.isValidPayload)(event, payload);
     }
     getResultPlayerKey(player) {
         return (player.name ?? '').trim();
@@ -3426,7 +3193,7 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
     (0, common_1.UseFilters)(ws_exception_filter_1.WsExceptionFilter),
     (0, websockets_1.WebSocketGateway)({
         cors: {
-            origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
+            origin: (0, cors_util_1.parseCorsOrigin)(),
         },
         transports: ['websocket', 'polling'],
         allowUpgrades: true,
@@ -3439,6 +3206,7 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
         private_state_service_1.PrivateStateService,
         game_settings_service_1.GameSettingsService,
         artist_preset_service_1.ArtistPresetService,
-        action_receipt_service_1.ActionReceiptService])
+        action_receipt_service_1.ActionReceiptService,
+        ws_rate_limit_service_1.WsRateLimitService])
 ], GamesGateway);
 //# sourceMappingURL=games.gateway.js.map

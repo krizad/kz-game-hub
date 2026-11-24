@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var WhoAmIService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhoAmIService = void 0;
 const common_1 = require("@nestjs/common");
@@ -21,10 +22,11 @@ const WAI_VISIBLE_WORDS = 'waiVisibleWords';
 const WAI_SUBMITTED = 'waiSubmittedWord';
 const MAX_WORD_LENGTH = 60;
 const GEMINI_TIMEOUT_MS = 15000;
-let WhoAmIService = class WhoAmIService {
+let WhoAmIService = WhoAmIService_1 = class WhoAmIService {
     constructor(privateState, startGuard) {
         this.privateState = privateState;
         this.startGuard = startGuard;
+        this.logger = new common_1.Logger(WhoAmIService_1.name);
     }
     shuffleArray(arr) {
         const a = [...arr];
@@ -246,11 +248,11 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
                     }
                 }
                 catch (error) {
-                    console.error('Error calling Gemini API:', error);
+                    this.logger.error('Error calling Gemini API', error instanceof Error ? error.stack : String(error));
                 }
             }
             if (words.length < room.players.length) {
-                console.log('Falling back to database for words...');
+                this.logger.log('Falling back to database for words...');
                 let category = room.config.wordCategory;
                 if (!category) {
                     const categories = (await this.getCategories(lang)).filter((c) => c.count >= room.players.length);
@@ -287,7 +289,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
                         }
                     }
                     catch (dbError) {
-                        console.error('Failed to save AI words to DB:', dbError);
+                        this.logger.error('Failed to save AI words to DB', dbError instanceof Error ? dbError.stack : String(dbError));
                     }
                 });
             }
@@ -681,7 +683,7 @@ Output ONLY a JSON array containing exactly ${room.players.length} strings. No m
     }
 };
 exports.WhoAmIService = WhoAmIService;
-exports.WhoAmIService = WhoAmIService = __decorate([
+exports.WhoAmIService = WhoAmIService = WhoAmIService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [private_state_service_1.PrivateStateService,
         room_start_guard_service_1.RoomStartGuardService])

@@ -25,7 +25,7 @@ let HealthController = HealthController_1 = class HealthController {
         let timeout;
         try {
             await Promise.race([
-                database_1.prisma.$connect(),
+                database_1.prisma.$queryRaw `SELECT 1`,
                 new Promise((_, reject) => {
                     timeout = setTimeout(() => reject(new Error('database connection timeout')), 3000);
                 }),
@@ -66,9 +66,6 @@ let HealthController = HealthController_1 = class HealthController {
                 heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
             },
         };
-    }
-    getPackageVersion() {
-        return types_1.APP_VERSION;
     }
 };
 exports.HealthController = HealthController;

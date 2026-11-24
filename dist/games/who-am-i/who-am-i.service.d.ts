@@ -4,6 +4,7 @@ import { RoomStartGuardService } from '../room-start-guard.service';
 export declare class WhoAmIService {
     private readonly privateState;
     private readonly startGuard;
+    private readonly logger;
     constructor(privateState: PrivateStateService, startGuard: RoomStartGuardService);
     private shuffleArray;
     private setMyWord;
