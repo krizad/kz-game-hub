@@ -18,6 +18,9 @@ import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
 import { WsExceptionFilter } from './ws-exception.filter';
+import { WsRateLimitService, extractClientIp } from './ws-rate-limit.service';
+import { parseCorsOrigin } from '../common/cors.util';
+import { timingSafeSecretEqual } from '../common/admin-auth.util';
 import {
   SOCKET_EVENTS,
   ActionReceipt,
@@ -69,7 +72,7 @@ import { MusicTriviaTimerCommand } from './music-trivia/music-trivia.service';
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
+    origin: parseCorsOrigin(),
   },
   transports: ['websocket', 'polling'],
   allowUpgrades: true,
@@ -104,6 +107,7 @@ export class GamesGateway
     private readonly gameSettingsService: GameSettingsService,
     private readonly artistPresetService: ArtistPresetService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
+    private readonly wsRateLimitService: WsRateLimitService = new WsRateLimitService(),
   ) {}
 
   afterInit(): void {
@@ -161,18 +165,68 @@ export class GamesGateway
     });
 
     client.use(([event, payload], next) => {
-      if (this.isValidPayload(event, payload)) {
-        this.logClientAction(client.id, event, payload);
-        return next();
+      if (!this.isValidPayload(event, payload)) {
+        this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
+        return next(new Error('Invalid request payload'));
       }
-      this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
-      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
-      next(new Error('Invalid request payload'));
+
+      const rateResult = this.wsRateLimitService.checkEvent({
+        event,
+        socketId: client.id,
+        clientIp: extractClientIp(client.handshake),
+        isQuietEvent: GamesGateway.QUIET_EVENTS.has(event),
+        isExternalApiEvent: this.isExternalApiEvent(event, payload),
+      });
+      if (!rateResult.allowed) {
+        const errorCode = rateResult.errorCode ?? 'RATE_LIMITED';
+        this.logger.warn(
+          `[WS] Rate limited socket=${client.id} event=${event} code=${errorCode}`,
+        );
+        client.emit(SOCKET_EVENTS.ERROR, { message: errorCode });
+        return next(new Error(errorCode));
+      }
+
+      const roomCode =
+        payload && typeof payload === 'object' && 'code' in payload && typeof (payload as { code?: unknown }).code === 'string'
+          ? (payload as { code: string }).code
+          : undefined;
+      if (roomCode && typeof this.gamesService?.touchRoomActivity === 'function') {
+        this.gamesService.touchRoomActivity(roomCode);
+      }
+
+      this.logClientAction(client.id, event, payload);
+      return next();
     });
     client.emit(SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
   }
 
+  private isExternalApiEvent(event: string, payload: unknown): boolean {
+    if (!payload || typeof payload !== 'object' || !('code' in payload)) return false;
+    const code = (payload as { code?: unknown }).code;
+    if (typeof code !== 'string') return false;
+    const room =
+      typeof this.gamesService?.getRoom === 'function' ? this.gamesService.getRoom(code) : undefined;
+    if (!room) return false;
+    if (event === SOCKET_EVENTS.START_GAME) {
+      return (
+        room.gameType === GameType.MUSIC_TRIVIA ||
+        (room.gameType === GameType.WHO_AM_I && room.config?.wordMode === 'AI_GENERATED')
+      );
+    }
+    if (event === SOCKET_EVENTS.GAME_ACTION) {
+      const action = (payload as { action?: unknown }).action;
+      return (
+        action === 'NEXT_ROUND' &&
+        room.gameType === GameType.WHO_AM_I &&
+        room.config?.wordMode === 'AI_GENERATED'
+      );
+    }
+    return false;
+  }
+
   handleDisconnect(client: Socket) {
+    this.wsRateLimitService.clearSocket(client.id);
     const previousRoomCode =
       typeof this.gamesService?.findRoomCodeBySocketId === 'function'
         ? this.gamesService.findRoomCodeBySocketId(client.id)
@@ -332,8 +386,7 @@ export class GamesGateway
     @MessageBody() data: SetGameEnabledPayload,
     @ConnectedSocket() client: Socket,
   ) {
-    const adminSecret = process.env.ADMIN_SECRET;
-    if (!adminSecret || !data || data.adminKey !== adminSecret) {
+    if (!this.isAdminKey(data?.adminKey)) {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Unauthorized.' });
       return;
     }
@@ -365,16 +418,12 @@ export class GamesGateway
     } satisfies AdminKeyVerifiedPayload);
   }
 
-  /** Shared admin auth for artist-preset mutations (same secret as game flags). */
+  /** Shared admin auth for game flags and artist-preset mutations (timing-safe). */
   private isAdminKey(adminKey: unknown): boolean {
     if (this.gamesService?.verifyAdminKey) {
       return this.gamesService.verifyAdminKey(adminKey);
     }
-    return (
-      typeof adminKey === 'string' &&
-      !!process.env.ADMIN_SECRET &&
-      adminKey === process.env.ADMIN_SECRET
-    );
+    return timingSafeSecretEqual(adminKey, process.env.ADMIN_SECRET);
   }
 
   private async broadcastArtistPresets(): Promise<void> {
@@ -482,8 +531,25 @@ export class GamesGateway
       client.emit(SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
       return;
     }
+    if (
+      typeof this.gamesService.isRoomLimitReached === 'function' &&
+      this.gamesService.isRoomLimitReached()
+    ) {
+      this.logger.warn(`[ROOM] Create rejected: room limit reached socket=${client.id}`);
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'SERVER_ROOM_LIMIT_REACHED' });
+      return;
+    }
     this.leavePreviousRoom(client);
-    const room = this.gamesService.createRoom(client.id, data.gameType, data.config);
+    let room: RoomState;
+    try {
+      room = this.gamesService.createRoom(client.id, data.gameType, data.config);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'SERVER_ROOM_LIMIT_REACHED') {
+        client.emit(SOCKET_EVENTS.ERROR, { message: 'SERVER_ROOM_LIMIT_REACHED' });
+        return;
+      }
+      throw error;
+    }
     const updatedRoom = this.gamesService.joinRoom(room.code, {
       id: client.id,
       name: data.name.trim(),

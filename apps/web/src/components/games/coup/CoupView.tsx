@@ -9,7 +9,6 @@ import { CoupRole, CoupActionType, CoupPhase, type CoupState } from '@repo/types
 import { toast } from 'react-hot-toast';
 import { useCoupSounds, type CoupSound } from '@/hooks/useCoupSounds';
 import { useSoundSettings } from '@/hooks/useSoundSettings';
-import { useServerClock } from '@/hooks/useServerClock';
 import { CountdownBadge } from '@/components/core/CountdownBadge';
 import { gameFeel } from '@/lib/gameFeel';
 

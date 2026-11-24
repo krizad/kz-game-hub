@@ -30,11 +30,13 @@ import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
 import { BattleshipService } from './battleship/battleship.service';
+import { WsRateLimitService } from './ws-rate-limit.service';
 
 @Module({
   providers: [
     RoomStartGuardService,
     ActionReceiptService,
+    WsRateLimitService,
     GamesGateway,
     GamesService,
     WhoKnowService,

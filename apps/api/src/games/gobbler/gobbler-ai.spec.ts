@@ -97,7 +97,8 @@ describe('GobblerAI', () => {
       const isLegal = legalMoves.some(
         (m) =>
           m.toIndex === move!.toIndex &&
-          (m.type === 'PLACE' ? m.pieceId === (move as any).pieceId : true),
+          m.type === move!.type &&
+          (m.type === 'PLACE' && move!.type === 'PLACE' ? m.pieceId === move!.pieceId : true),
       );
       expect(isLegal).toBe(true);
     });

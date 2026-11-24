@@ -3,7 +3,7 @@
 import { TrendingUp, Sparkles, Target } from 'lucide-react';
 import { PokerV2Advisor } from '@repo/types';
 import { useTranslate } from '@/hooks/useTranslate';
-import { PokerV2Card, PokerV2CardRow } from './PokerV2Card';
+import { PokerV2CardRow } from './PokerV2Card';
 
 /** Colour ramp for the win-chance bar (red → yellow → green). */
 function equityTone(p: number): string {

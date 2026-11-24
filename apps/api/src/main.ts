@@ -7,6 +7,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AppLogger } from './app.logger';
 import { APP_VERSION } from '@repo/types';
+import { parseCorsOrigin } from './common/cors.util';
 
 function registerProcessLogging(logger: AppLogger): void {
   process.on('uncaughtException', (error: Error) => {
@@ -28,7 +29,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger,
   });
-  app.enableCors();
+  app.enableCors({ origin: parseCorsOrigin() });
   app.enableShutdownHooks();
 
   const isProduction = process.env.NODE_ENV === 'production';
