@@ -77,12 +77,15 @@ export declare class GamesService {
     private readonly roomStartGuardService;
     private readonly actionReceiptService;
     resultRevealAction(code: string, socketId: string, payload: ResultRevealActionPayload): RoomState | null;
+    private readonly logger;
     private static readonly RECONNECT_GRACE_MS;
     private rooms;
     private readonly secretWords;
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
     constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, pokerV2Service: PokerV2Service, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, battleshipService: BattleshipService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    getRoomCount(): number;
+    private getReconnectGraceMs;
     setRoomLifecycleListener(listener: (event: RoomLifecycleEvent) => void): void;
     isRoomMember(code: string, socketId: string): boolean;
     getPrivateSocketData(code: string, socketId: string): Record<string, unknown>;

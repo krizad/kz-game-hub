@@ -21,10 +21,13 @@ let RoomTimerService = RoomTimerService_1 = class RoomTimerService {
         const timer = setTimeout(() => {
             this.timers.delete(key);
             try {
+                if (!timerName.startsWith('reconnect-grace:')) {
+                    this.logger.log(`[TIMER] Triggered timer=${timerName} room=${roomCode}`);
+                }
                 callback();
             }
             catch (error) {
-                this.logger.error(`Timer ${timerName} for room ${roomCode} threw`, error);
+                this.logger.error(`[TIMER] Timer ${timerName} for room ${roomCode} threw`, error);
             }
         }, delay);
         timer.unref();

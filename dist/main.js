@@ -8,12 +8,22 @@ const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
 const app_logger_1 = require("./app.logger");
 const types_1 = require("@repo/types");
+function registerProcessLogging(logger) {
+    process.on('uncaughtException', (error) => {
+        logger.fatal('[SYS] Uncaught exception', error);
+    });
+    process.on('unhandledRejection', (reason) => {
+        logger.error('[SYS] Unhandled promise rejection', reason instanceof Error ? reason : String(reason));
+    });
+}
 async function bootstrap() {
     const logger = new app_logger_1.AppLogger();
+    registerProcessLogging(logger);
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         logger,
     });
     app.enableCors();
+    app.enableShutdownHooks();
     const isProduction = process.env.NODE_ENV === 'production';
     if (!isProduction) {
         const swaggerConfig = new swagger_1.DocumentBuilder()
@@ -26,9 +36,12 @@ async function bootstrap() {
     }
     const port = Number.parseInt(process.env.PORT || '3001', 10);
     await app.listen(port, '0.0.0.0');
-    logger.log(`API [${types_1.APP_VERSION}] listening on http://localhost:${port}`);
+    logger.log(`[BOOT] API [${types_1.APP_VERSION}] listening on http://localhost:${port} ` +
+        `(env=${process.env.NODE_ENV || 'development'}, pid=${process.pid}, ` +
+        `cors=${process.env.CORS_ORIGIN ? 'configured' : '*'}, ` +
+        `log=${logger.isFileLoggingEnabled() ? logger.getLogPath() : 'disabled'})`);
     if (!isProduction) {
-        logger.log(`Swagger docs at http://localhost:${port}/api`);
+        logger.log(`[BOOT] Swagger docs at http://localhost:${port}/api`);
     }
 }
 bootstrap();

@@ -8,13 +8,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var HealthController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HealthController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const database_1 = require("@repo/database");
 const types_1 = require("@repo/types");
-let HealthController = class HealthController {
+let HealthController = HealthController_1 = class HealthController {
+    constructor() {
+        this.logger = new common_1.Logger(HealthController_1.name);
+    }
     async check() {
         const databaseStartedAt = Date.now();
         let database;
@@ -30,9 +34,16 @@ let HealthController = class HealthController {
                 status: 'connected',
                 latencyMs: Date.now() - databaseStartedAt,
             };
+            if (database.latencyMs > 1000) {
+                this.logger.warn(`[HEALTH] Slow database check latencyMs=${database.latencyMs}`);
+            }
+            else {
+                this.logger.debug(`[HEALTH] ok dbLatencyMs=${database.latencyMs}`);
+            }
         }
-        catch {
+        catch (error) {
             database = { status: 'disconnected' };
+            this.logger.warn(`[HEALTH] Degraded database=disconnected reason=${error instanceof Error ? error.message : String(error)}`);
         }
         finally {
             if (timeout)
@@ -68,7 +79,7 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], HealthController.prototype, "check", null);
-exports.HealthController = HealthController = __decorate([
+exports.HealthController = HealthController = HealthController_1 = __decorate([
     (0, swagger_1.ApiTags)('Health'),
     (0, common_1.Controller)('health')
 ], HealthController);

@@ -79,9 +79,20 @@ let GamesService = GamesService_1 = class GamesService {
         this.gameSettings = gameSettings;
         this.roomStartGuardService = roomStartGuardService;
         this.actionReceiptService = actionReceiptService;
+        this.logger = new common_1.Logger(GamesService_1.name);
         this.rooms = new Map();
         this.secretWords = new Map();
         this.saboteurTurnDeadlines = new Map();
+    }
+    getRoomCount() {
+        return this.rooms.size;
+    }
+    getReconnectGraceMs() {
+        const raw = process.env.RECONNECT_GRACE_MS;
+        if (!raw)
+            return GamesService_1.RECONNECT_GRACE_MS;
+        const parsed = Number.parseInt(raw, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : GamesService_1.RECONNECT_GRACE_MS;
     }
     setRoomLifecycleListener(listener) {
         this.roomLifecycleListener = listener;
@@ -470,13 +481,16 @@ let GamesService = GamesService_1 = class GamesService {
         const playerIndex = room.players.findIndex((p) => p.id === playerId);
         if (playerIndex === -1 || room.players[playerIndex].connected !== false)
             return;
-        const socketId = room.players[playerIndex].socketId;
+        const removedPlayer = room.players[playerIndex];
+        const socketId = removedPlayer.socketId;
         const wasHost = room.roomHostId === socketId;
+        this.logger.log(`[ROOM] Reconnect grace expired room=${code} player=${removedPlayer.name} wasHost=${wasHost}`);
         this.removePlayerFromRoom(code, room, playerIndex);
         if (wasHost) {
             this.transferHost(room, socketId);
         }
         if (!room.players.some((p) => p.connected !== false && p.socketId !== types_1.BOT_SOCKET_ID)) {
+            this.logger.log(`[ROOM] Room emptied after grace expiry room=${code}`);
             this.deleteRoomData(code);
             this.roomLifecycleListener?.({ type: 'ROOM_DELETED', code });
             return;
@@ -488,7 +502,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.roomTimerService.schedule(code, `${RECONNECT_GRACE_TIMER}:${playerId}`, Date.now() +
             (this.rooms.get(code)?.gameType === types_1.GameType.DOG_RELAY
                 ? types_1.DOG_RELAY_RECONNECT_MS
-                : GamesService_1.RECONNECT_GRACE_MS), () => this.removeExpiredPlayer(code, playerId));
+                : this.getReconnectGraceMs()), () => this.removeExpiredPlayer(code, playerId));
     }
     removePlayerFromRoom(code, room, playerIndex) {
         const removedPlayer = room.players[playerIndex];
@@ -605,11 +619,16 @@ let GamesService = GamesService_1 = class GamesService {
         if (!nextHost)
             return;
         room.roomHostId = nextHost.socketId;
+        this.logger.log(`[ROOM] Host transferred room=${room.code} newHost=${nextHost.name}`);
     }
     deleteRoom(code) {
         this.deleteRoomData(code);
     }
     deleteRoomData(code) {
+        const existing = this.rooms.get(code);
+        if (existing) {
+            this.logger.log(`[ROOM] Deleted room=${code} game=${existing.gameType} status=${existing.status} players=${existing.players.length}`);
+        }
         this.rooms.delete(code);
         this.secretWords.delete(code);
         this.saboteurTurnDeadlines.delete(code);

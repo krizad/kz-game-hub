@@ -1,4 +1,5 @@
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit } from '@nestjs/websockets';
+import { OnModuleDestroy } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { GamesService } from './games.service';
 import { LeaderboardService } from './leaderboard/leaderboard.service';
@@ -8,7 +9,7 @@ import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
 import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind, BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
-export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy {
     private readonly gamesService;
     private readonly leaderboardService;
     private readonly roomTimerService;
@@ -20,8 +21,11 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private readonly logger;
     private readonly recordedResults;
     private readonly recordedScoreBaselines;
+    private readonly lastBroadcastSnapshot;
+    private static readonly QUIET_EVENTS;
     constructor(gamesService: GamesService, leaderboardService: LeaderboardService, roomTimerService: RoomTimerService, privateStateService: PrivateStateService, gameSettingsService: GameSettingsService, artistPresetService: ArtistPresetService, actionReceiptService?: ActionReceiptService);
     afterInit(): void;
+    onModuleDestroy(): void;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
     handleLeaveRoom(client: Socket): void;
@@ -380,6 +384,8 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
         code: string;
         name: string;
     }, client: Socket): void;
+    private logClientAction;
+    private getRoomStateSignature;
     private broadcastRoomState;
     private syncBattleshipTimer;
     private syncTicTacToeTimer;

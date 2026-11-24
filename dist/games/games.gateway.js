@@ -41,6 +41,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.logger = new common_1.Logger(GamesGateway_1.name);
         this.recordedResults = new Set();
         this.recordedScoreBaselines = new Map();
+        this.lastBroadcastSnapshot = new Map();
         this.recordedDogRelayRounds = new Map();
     }
     afterInit() {
@@ -56,39 +57,70 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         });
         void this.gameSettingsService.load();
     }
+    onModuleDestroy() {
+        const roomCount = typeof this.gamesService?.getRoomCount === 'function'
+            ? this.gamesService.getRoomCount()
+            : undefined;
+        const socketCount = this.server?.sockets?.sockets?.size;
+        this.logger.warn(`[SYS] GamesGateway shutting down activeRooms=${roomCount ?? 'unknown'} connectedSockets=${socketCount ?? 'unknown'}`);
+    }
     handleConnection(client) {
-        this.logger.log(`Client connected: ${client.id}`);
+        const transport = client.conn?.transport?.name ?? 'unknown';
+        const origin = typeof client.handshake?.headers?.origin === 'string'
+            ? client.handshake.headers.origin
+            : '-';
+        const totalSockets = this.server?.sockets?.sockets?.size ?? 'unknown';
+        this.logger.log(`[WS] Connected socket=${client.id} transport=${transport} origin=${origin} totalSockets=${totalSockets}`);
+        client.conn?.on?.('upgrade', (nextTransport) => {
+            this.logger.log(`[WS] Transport upgraded socket=${client.id} to=${nextTransport?.name ?? 'unknown'}`);
+        });
+        client.conn?.on?.('error', (error) => {
+            this.logger.warn(`[WS] Transport error socket=${client.id} message=${error instanceof Error ? error.message : String(error)}`);
+        });
+        client.once?.('disconnect', (reason) => {
+            this.logger.log(`[WS] Socket closed socket=${client.id} reason=${reason} transport=${client.conn?.transport?.name ?? 'unknown'}`);
+        });
         client.use(([event, payload], next) => {
-            if (this.isValidPayload(event, payload))
+            if (this.isValidPayload(event, payload)) {
+                this.logClientAction(client.id, event, payload);
                 return next();
+            }
+            this.logger.warn(`[WS] Invalid payload socket=${client.id} event=${event}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid request payload' });
             next(new Error('Invalid request payload'));
         });
         client.emit(types_1.SOCKET_EVENTS.GAME_SETTINGS_UPDATED, this.gameSettingsService.snapshot());
     }
     handleDisconnect(client) {
-        this.logger.log(`Client disconnected: ${client.id}`);
+        const previousRoomCode = typeof this.gamesService?.findRoomCodeBySocketId === 'function'
+            ? this.gamesService.findRoomCodeBySocketId(client.id)
+            : null;
         const result = this.gamesService.leaveRoom(client.id, false);
+        this.logger.log(`[WS] Disconnected socket=${client.id} room=${previousRoomCode ?? '-'} outcome=${result.outcome}`);
         this.handleLeaveResult(client, result);
     }
     handleLeaveRoom(client) {
         const result = this.gamesService.leaveRoom(client.id, true);
+        this.logger.log(`[ROOM] Leave requested socket=${client.id} outcome=${result.outcome}`);
         this.handleLeaveResult(client, result);
         const roomCode = 'room' in result ? result.room.code : 'code' in result ? result.code : undefined;
-        const spectatingRoomCode = client.data.spectatingRoomCode;
+        const spectatingRoomCode = client.data?.spectatingRoomCode;
         if (roomCode)
             client.leave(roomCode);
         if (spectatingRoomCode && spectatingRoomCode !== roomCode)
             client.leave(spectatingRoomCode);
-        client.data.spectatingRoomCode = undefined;
+        if (client.data)
+            client.data.spectatingRoomCode = undefined;
     }
     handleLeaveResult(client, result) {
         switch (result.outcome) {
             case 'ROOM_CLOSED':
+                this.logger.log(`[ROOM] Closed by host room=${result.code}`);
                 this.server.to(result.code).emit(types_1.SOCKET_EVENTS.ROOM_DELETED);
                 this.forgetRecordedResult(result.code);
                 break;
             case 'ROOM_EMPTIED':
+                this.logger.log(`[ROOM] Emptied and deleted room=${result.code}`);
                 this.forgetRecordedResult(result.code);
                 break;
             case 'PLAYER_LEFT':
@@ -103,6 +135,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         this.recordedResults.delete(code);
         this.recordedScoreBaselines.delete(code);
         this.recordedDogRelayRounds.delete(code);
+        this.lastBroadcastSnapshot.delete(code);
     }
     handleDogRelayAction(input, client) {
         if (!input || typeof input !== 'object')
@@ -296,52 +329,60 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (updatedRoom) {
             client.join(updatedRoom.code);
             this.emitSessionToken(client, updatedRoom.code);
+            this.logger.log(`[ROOM] Created room=${updatedRoom.code} game=${updatedRoom.gameType} host=${data.name.trim()} socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(updatedRoom));
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
         else {
+            this.logger.warn(`[ROOM] Failed create-join rollback room=${room.code} game=${requestedGameType} socket=${client.id}`);
             this.gamesService.deleteRoom(room.code);
         }
     }
     handleJoinRoom(data, client) {
-        const targetRoom = this.gamesService.getRoom(data.code.toUpperCase());
+        const requestedCode = data.code.toUpperCase();
+        const targetRoom = this.gamesService.getRoom(requestedCode);
         if (!targetRoom) {
+            this.logger.warn(`[ROOM] Join rejected room=${requestedCode} reason="Room not found" name=${data.name?.trim() || '-'} hasToken=${Boolean(data.reconnectToken)} socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found' });
             return;
         }
         const name = data.name.trim();
         const isSeatedMember = !!data.reconnectToken &&
-            this.gamesService.hasSeatedSession(data.code.toUpperCase(), data.reconnectToken, name);
+            this.gamesService.hasSeatedSession(requestedCode, data.reconnectToken, name);
         if (!isSeatedMember &&
             targetRoom.gameType === types_1.GameType.DOG_RELAY &&
             targetRoom.status === types_1.RoomStatus.LOBBY &&
             targetRoom.players.filter((player) => !player.isViewer).length >= types_1.DOG_RELAY_MAX_PLAYERS) {
+            this.logger.warn(`[ROOM] Join rejected room=${requestedCode} reason=DOG_RELAY_ROOM_FULL name=${name} socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'DOG_RELAY_ROOM_FULL' });
             return;
         }
         if (!isSeatedMember &&
             targetRoom.status !== types_1.RoomStatus.LOBBY &&
             targetRoom.config?.allowSpectators === false) {
+            this.logger.warn(`[ROOM] Join rejected room=${requestedCode} reason=SPECTATORS_DISABLED name=${name} socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
             return;
         }
         if (!isSeatedMember && !this.gamesService.isGameEnabled(targetRoom.gameType)) {
+            this.logger.warn(`[ROOM] Join rejected room=${requestedCode} reason=GAME_DISABLED game=${targetRoom.gameType} name=${name} socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: GAME_DISABLED_MESSAGE });
             return;
         }
-        this.leavePreviousRoom(client, data.code.toUpperCase());
-        const room = this.gamesService.joinRoom(data.code.toUpperCase(), {
+        this.leavePreviousRoom(client, requestedCode);
+        const room = this.gamesService.joinRoom(requestedCode, {
             id: client.id,
             name,
             socketId: client.id,
         }, data.reconnectToken);
         if (room) {
+            const player = room.players.find((p) => p.socketId === client.id);
+            this.logger.log(`[ROOM] Joined room=${room.code} game=${room.gameType} player=${name} rejoin=${isSeatedMember} viewer=${Boolean(player?.isViewer)} players=${room.players.length} socket=${client.id}`);
             client.join(room.code);
             this.emitSessionToken(client, room.code);
             this.broadcastRoomState(room);
             this.emitMusicTriviaSyncPlay(room.code, client);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
-            const player = room.players.find((p) => p.socketId === client.id);
             const playerRole = this.gamesService.getPlayerRole(room.code, client.id);
             if (player && playerRole) {
                 if (room.status === types_1.RoomStatus.WORD_SETTING) {
@@ -359,6 +400,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             }
         }
         else {
+            this.logger.warn(`[ROOM] Join rejected room=${requestedCode} reason="Player name is already in use" name=${name} socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, {
                 message: 'Player name is already in use',
             });
@@ -367,6 +409,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     async handleStartGame(data, client) {
         const result = await this.gamesService.assignRoles(data.code, client.id);
         if (result && !result.error) {
+            this.logger.log(`[GAME] Started room=${result.room.code} game=${result.room.gameType} players=${result.room.players.length} hostSocket=${client.id}`);
             this.broadcastRoomState(result.room);
             this.syncTheMindTimer(result.room);
             this.syncWhoFirstTimer(result.room);
@@ -409,6 +452,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                     msg = 'Cannot start game. Need 6-12 players for Werewolf.';
                 }
             }
+            this.logger.warn(`[GAME] Start rejected room=${data.code} game=${gameType ?? 'unknown'} reason="${msg}" socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: msg });
             const currentRoom = result?.room ?? roomInfo;
             if (currentRoom) {
@@ -500,6 +544,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             ]) {
                 this.roomTimerService.cancel(room.code, timerName);
             }
+            this.logger.log(`[GAME] Reset to lobby room=${room.code} game=${room.gameType} bySocket=${client.id}`);
             this.broadcastRoomState(room);
             this.server.emit(types_1.SOCKET_EVENTS.AVAILABLE_ROOMS_UPDATED, this.gamesService.getAvailableRooms());
         }
@@ -1514,22 +1559,86 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         client.emit(types_1.SOCKET_EVENTS.LEADERBOARD_DATA, leaderboard);
     }
     handleSpectateJoin(data, client) {
-        const room = this.gamesService.getRoom(data.code.toUpperCase());
+        const requestedCode = data.code.toUpperCase();
+        const room = this.gamesService.getRoom(requestedCode);
         if (!room) {
+            this.logger.warn(`[ROOM] Spectator rejected room=${requestedCode} reason="Room not found" socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Room not found' });
             return;
         }
         if (room.config?.allowSpectators === false) {
+            this.logger.warn(`[ROOM] Spectator rejected room=${requestedCode} reason=SPECTATORS_DISABLED socket=${client.id}`);
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'SPECTATORS_DISABLED' });
             return;
         }
         this.leavePreviousRoom(client, room.code);
         client.join(room.code);
-        client.data.spectatingRoomCode = room.code;
+        if (client.data)
+            client.data.spectatingRoomCode = room.code;
+        this.logger.log(`[ROOM] Spectator joined room=${room.code} game=${room.gameType} name=${data.name?.trim() || 'Viewer'} socket=${client.id}`);
         client.emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
         this.emitMusicTriviaSyncPlay(room.code, client);
     }
+    logClientAction(clientId, event, payload) {
+        if (GamesGateway_1.QUIET_EVENTS.has(event))
+            return;
+        const record = payload && typeof payload === 'object' ? payload : undefined;
+        const rawCode = typeof record?.code === 'string' ? record.code.toUpperCase() : null;
+        const resolvedCode = rawCode ??
+            (typeof this.gamesService?.findRoomCodeBySocketId === 'function'
+                ? this.gamesService.findRoomCodeBySocketId(clientId)
+                : null);
+        const room = resolvedCode && typeof this.gamesService?.getRoom === 'function'
+            ? this.gamesService.getRoom(resolvedCode)
+            : undefined;
+        const playerName = room?.players?.find((p) => p.socketId === clientId)?.name;
+        const nestedAction = record?.action && typeof record.action === 'object'
+            ? record.action.type
+            : undefined;
+        const rawAction = typeof nestedAction === 'string'
+            ? nestedAction
+            : typeof record?.type === 'string'
+                ? record.type
+                : typeof record?.kind === 'string'
+                    ? record.kind
+                    : undefined;
+        const safeAction = rawAction && rawAction.length <= 40 ? `:${rawAction.replace(/\s+/g, '_')}` : '';
+        this.logger.log(`[GAME] action=${event}${safeAction} room=${resolvedCode ?? '-'} game=${room?.gameType ?? '-'} player=${playerName ?? '-'} socket=${clientId}`);
+    }
+    getRoomStateSignature(room) {
+        const phaseHolder = room.detectiveClubState ??
+            room.soundsFishyState ??
+            room.musicTriviaState ??
+            room.saboteurState ??
+            room.coupState ??
+            room.whoAmIState ??
+            room.whoFirstState ??
+            room.cardGameState ??
+            room.pokerState ??
+            room.pokerV2State ??
+            room.bananaThiefState ??
+            room.cipherGridState ??
+            room.dogRelayState ??
+            room.werewolfState ??
+            room.battleshipState;
+        const phase = phaseHolder && typeof phaseHolder === 'object' && 'phase' in phaseHolder
+            ? String(phaseHolder.phase ?? '-')
+            : '-';
+        const round = phaseHolder && typeof phaseHolder === 'object' && 'round' in phaseHolder
+            ? String(phaseHolder.round ?? '-')
+            : room.theMindState
+                ? `L${room.theMindState.level}`
+                : '-';
+        return `${room.gameType}|${room.status}|phase=${phase}|round=${round}`;
+    }
     broadcastRoomState(room) {
+        const signature = this.getRoomStateSignature(room);
+        const previous = this.lastBroadcastSnapshot.get(room.code);
+        if (previous !== signature) {
+            this.lastBroadcastSnapshot.set(room.code, signature);
+            const connectedCount = room.players.filter((p) => p.connected !== false).length;
+            this.logger.log(`[GAME] State room=${room.code} ${previous ?? 'INIT'} -> ${signature} connected=${connectedCount}/${room.players.length}`);
+        }
         this.server.to(room.code).emit(types_1.SOCKET_EVENTS.ROOM_STATE_UPDATED, this.publicRoomView(room));
         this.emitPrivateStates(room);
         if (room.gameType === types_1.GameType.MUSIC_TRIVIA) {
@@ -2425,7 +2534,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             if (this.recordedDogRelayRounds.get(room.code) === state.roundId)
                 return;
             this.recordedDogRelayRounds.set(room.code, state.roundId);
-            void this.leaderboardService.recordGameResult(room.gameType, room.code, (0, dog_relay_results_1.buildDogRelayResultRows)(room));
+            const dogRelayRows = (0, dog_relay_results_1.buildDogRelayResultRows)(room);
+            this.logger.log(`[GAME] Result recorded room=${room.code} game=${room.gameType} roundId=${state.roundId} players=${dogRelayRows.length}`);
+            void this.leaderboardService.recordGameResult(room.gameType, room.code, dogRelayRows);
             return;
         }
         if (room.status !== types_1.RoomStatus.RESULT) {
@@ -2490,10 +2601,18 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 rank: currentRank,
             };
         });
+        this.logger.log(`[GAME] Result recorded room=${room.code} game=${room.gameType} top=${results[0]?.playerName ?? '-'}:${results[0]?.score ?? 0} players=${results.length}`);
         void this.leaderboardService.recordGameResult(room.gameType, room.code, results);
     }
 };
 exports.GamesGateway = GamesGateway;
+GamesGateway.QUIET_EVENTS = new Set([
+    types_1.SOCKET_EVENTS.SERVER_TIME_REQUEST,
+    types_1.SOCKET_EVENTS.GET_AVAILABLE_ROOMS,
+    types_1.SOCKET_EVENTS.GET_GAME_SETTINGS,
+    types_1.SOCKET_EVENTS.GET_ARTIST_PRESETS,
+    types_1.SOCKET_EVENTS.WHO_AM_I_GET_CATEGORIES,
+]);
 __decorate([
     (0, websockets_1.WebSocketServer)(),
     __metadata("design:type", socket_io_1.Server)
@@ -3309,8 +3428,10 @@ exports.GamesGateway = GamesGateway = GamesGateway_1 = __decorate([
         cors: {
             origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*',
         },
-        pingInterval: 20_000,
-        pingTimeout: 60_000,
+        transports: ['websocket', 'polling'],
+        allowUpgrades: true,
+        pingInterval: 15_000,
+        pingTimeout: 45_000,
     }),
     __metadata("design:paramtypes", [games_service_1.GamesService,
         leaderboard_service_1.LeaderboardService,

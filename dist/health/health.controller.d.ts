@@ -1,4 +1,5 @@
 export declare class HealthController {
+    private readonly logger;
     check(): Promise<{
         status: string;
         service: string;
