@@ -64,6 +64,7 @@ export function LobbyStartButton() {
       case GameType.POKER:
       case GameType.POKER_V2:
       case GameType.BATTLESHIP:
+      case GameType.THIRTY_ONE:
         return 2;
       case GameType.THE_MIND:
         return 2;

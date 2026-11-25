@@ -44,6 +44,7 @@ import {
   CardGameConfig,
   PokerAction,
   PokerV2Action,
+  ThirtyOneAction,
   DeleteArtistPayload,
   GetArtistPresetsPayload,
   SetArtistEnabledPayload,
@@ -145,9 +146,7 @@ export class GamesGateway
   handleConnection(client: Socket) {
     const transport = client.conn?.transport?.name ?? 'unknown';
     const origin =
-      typeof client.handshake?.headers?.origin === 'string'
-        ? client.handshake.headers.origin
-        : '-';
+      typeof client.handshake?.headers?.origin === 'string' ? client.handshake.headers.origin : '-';
     const totalSockets = this.server?.sockets?.sockets?.size ?? 'unknown';
     this.logger.log(
       `[WS] Connected socket=${client.id} transport=${transport} origin=${origin} totalSockets=${totalSockets}`,
@@ -185,15 +184,16 @@ export class GamesGateway
       });
       if (!rateResult.allowed) {
         const errorCode = rateResult.errorCode ?? 'RATE_LIMITED';
-        this.logger.warn(
-          `[WS] Rate limited socket=${client.id} event=${event} code=${errorCode}`,
-        );
+        this.logger.warn(`[WS] Rate limited socket=${client.id} event=${event} code=${errorCode}`);
         client.emit(SOCKET_EVENTS.ERROR, { message: errorCode });
         return next(new Error(errorCode));
       }
 
       const roomCode =
-        payload && typeof payload === 'object' && 'code' in payload && typeof (payload as { code?: unknown }).code === 'string'
+        payload &&
+        typeof payload === 'object' &&
+        'code' in payload &&
+        typeof (payload as { code?: unknown }).code === 'string'
           ? (payload as { code: string }).code
           : undefined;
       if (roomCode && typeof this.gamesService?.touchRoomActivity === 'function') {
@@ -211,7 +211,9 @@ export class GamesGateway
     const code = (payload as { code?: unknown }).code;
     if (typeof code !== 'string') return false;
     const room =
-      typeof this.gamesService?.getRoom === 'function' ? this.gamesService.getRoom(code) : undefined;
+      typeof this.gamesService?.getRoom === 'function'
+        ? this.gamesService.getRoom(code)
+        : undefined;
     if (!room) return false;
     if (event === SOCKET_EVENTS.START_GAME) {
       return (
@@ -651,7 +653,11 @@ export class GamesGateway
           msg = 'Cannot start game. Need at least 3 players.';
         } else if (gameType === GameType.COUP) {
           msg = 'Cannot start game. Need 3-6 players for Coup.';
-        } else if (gameType === GameType.POKER || gameType === GameType.POKER_V2) {
+        } else if (
+          gameType === GameType.POKER ||
+          gameType === GameType.POKER_V2 ||
+          gameType === GameType.THIRTY_ONE
+        ) {
           msg = 'Cannot start game. Need at least 2 players.';
         } else if (gameType === GameType.BANANA_THIEF) {
           msg = 'Cannot start game. Need at least 4 players.';
@@ -874,6 +880,21 @@ export class GamesGateway
       this.broadcastRoomState(room);
     } else {
       client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid poker action.' });
+    }
+  }
+
+  // --- Thirty-One Actions ---
+
+  @SubscribeMessage(SOCKET_EVENTS.THIRTY_ONE_ACTION)
+  handleThirtyOneAction(
+    @MessageBody() data: { code: string; action: ThirtyOneAction },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = this.gamesService.thirtyOneAction(data.code, client.id, data.action);
+    if (room) {
+      this.broadcastRoomState(room);
+    } else {
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
     }
   }
 
@@ -2378,7 +2399,8 @@ export class GamesGateway
       room.cipherGridState ??
       room.dogRelayState ??
       room.werewolfState ??
-      room.battleshipState;
+      room.battleshipState ??
+      room.thirtyOneState;
     const phase =
       phaseHolder && typeof phaseHolder === 'object' && 'phase' in phaseHolder
         ? String((phaseHolder as { phase?: unknown }).phase ?? '-')
@@ -2443,6 +2465,9 @@ export class GamesGateway
     if (room.gameType === GameType.BATTLESHIP) {
       this.syncBattleshipTimer(room);
     }
+    if (room.gameType === GameType.THIRTY_ONE) {
+      this.syncThirtyOneTimer(room);
+    }
     if (room.gameType === GameType.TIC_TAC_TOE) {
       this.syncTicTacToeTimer(room);
     }
@@ -2458,6 +2483,19 @@ export class GamesGateway
     if (room.gameType === GameType.DETECTIVE_CLUB) {
       this.syncDetectiveClubTimer(room);
     }
+  }
+
+  private syncThirtyOneTimer(room: RoomState): void {
+    const state = room.thirtyOneState;
+    if (!state || state.phase !== 'PLAYING' || !state.turnDeadline) {
+      this.roomTimerService.cancel(room.code, 'thirty-one-turn');
+      return;
+    }
+    const deadline = state.turnDeadline;
+    this.roomTimerService.schedule(room.code, 'thirty-one-turn', deadline, () => {
+      const updated = this.gamesService.thirtyOneTurnTimeout(room.code, deadline);
+      if (updated) this.broadcastRoomState(updated);
+    });
   }
 
   private syncBattleshipTimer(room: RoomState): void {
@@ -3169,6 +3207,9 @@ export class GamesGateway
     if (room.gameType === GameType.CARD_GAME && room.cardGameState) {
       return !room.cardGameState.result;
     }
+    if (room.gameType === GameType.THIRTY_ONE && room.thirtyOneState) {
+      return !room.thirtyOneState.winnerId;
+    }
     return false;
   }
 
@@ -3253,7 +3294,10 @@ export class GamesGateway
         const currentScore = p.score ?? 0;
         // Poker scores are final match stacks, not points accumulated across matches.
         const previousBaseline =
-          room.gameType === GameType.POKER || room.gameType === GameType.POKER_V2 || resetBaselines
+          room.gameType === GameType.POKER ||
+          room.gameType === GameType.POKER_V2 ||
+          room.gameType === GameType.THIRTY_ONE ||
+          resetBaselines
             ? 0
             : (baselines.get(key) ?? 0);
         const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;

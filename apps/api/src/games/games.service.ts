@@ -26,6 +26,7 @@ import {
   DOG_RELAY_RECONNECT_MS,
   DOG_RELAY_MAX_PLAYERS,
   ResultRevealActionPayload,
+  ThirtyOneAction,
 } from '@repo/types';
 import { applyResultRevealAction } from './result-reveal';
 import { v4 as uuidv4 } from 'uuid';
@@ -58,6 +59,7 @@ import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
 import { BattleshipService } from './battleship/battleship.service';
+import { ThirtyOneService } from './thirty-one/thirty-one.service';
 import {
   BattleshipPlaceShipsPayload,
   BattleshipFirePayload,
@@ -137,6 +139,7 @@ export class GamesService implements OnModuleDestroy {
     private readonly dogRelayService: DogRelayService,
     private readonly werewolfService: WerewolfService,
     private readonly battleshipService: BattleshipService,
+    private readonly thirtyOneService: ThirtyOneService,
     private readonly gameSettings: GameSettingsService,
     private readonly roomStartGuardService: RoomStartGuardService,
     private readonly actionReceiptService: ActionReceiptService = new ActionReceiptService(),
@@ -416,6 +419,8 @@ export class GamesService implements OnModuleDestroy {
       // WerewolfState is initialized when the game starts via assignRoles
     } else if (gameType === GameType.BATTLESHIP) {
       this.battleshipService.initLobby(room);
+    } else if (gameType === GameType.THIRTY_ONE) {
+      room.config.thirtyOneTurnSeconds = room.config.thirtyOneTurnSeconds ?? 0;
     }
 
     this.syncBotPlayer(room);
@@ -534,6 +539,9 @@ export class GamesService implements OnModuleDestroy {
       }
       if (room.battleshipState) {
         this.battleshipService.remapSocketId(room.battleshipState, oldSocketId, user.socketId);
+      }
+      if (room.thirtyOneState) {
+        this.thirtyOneService.remapSocketId(room.thirtyOneState, oldSocketId, user.socketId);
       }
 
       this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
@@ -753,6 +761,9 @@ export class GamesService implements OnModuleDestroy {
     }
     if (room.pokerV2State) {
       this.pokerV2Service.handlePlayerRemoved(room, player.socketId);
+    }
+    if (room.thirtyOneState) {
+      this.thirtyOneService.handlePlayerRemoved(room, player.socketId);
     }
     if (room.gameType === GameType.RPS && room.rpsState) {
       this.rpsService.handlePlayerRemoved(room, player.socketId);
@@ -1159,6 +1170,7 @@ export class GamesService implements OnModuleDestroy {
     copyEnum('battleshipGridPreset', ['CLASSIC_10x10', 'QUICK_8x8']);
     copyBoolean('battleshipHitStreak');
     copyInteger('battleshipTurnSeconds', 5, 120);
+    copyInteger('thirtyOneTurnSeconds', 0, 300);
 
     return result;
   }
@@ -1348,6 +1360,13 @@ export class GamesService implements OnModuleDestroy {
       return startedRoom ? { room: startedRoom, roles: {} } : null;
     }
 
+    if (room.gameType === GameType.THIRTY_ONE) {
+      const startedRoom = this.withRoom(code, (r) =>
+        this.thirtyOneService.startMatch(r, requesterId),
+      );
+      return startedRoom ? { room: startedRoom, roles: {} } : null;
+    }
+
     if (room.gameType === GameType.WHO_KNOW) {
       return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
     }
@@ -1438,6 +1457,10 @@ export class GamesService implements OnModuleDestroy {
 
     if (room.gameType === GameType.POKER_V2) {
       return this.withRoom(code, (r) => this.pokerV2Service.resetMatch(r, requesterId));
+    }
+
+    if (room.gameType === GameType.THIRTY_ONE) {
+      return this.withRoom(code, (r) => this.thirtyOneService.resetMatch(r, requesterId));
     }
 
     switch (room.gameType) {
@@ -1568,6 +1591,21 @@ export class GamesService implements OnModuleDestroy {
   /** Auto-deal the next Poker V2 hand when its countdown elapses. */
   pokerV2AutoDeal(code: string): RoomState | null {
     return this.withRoom(code, (room) => (this.pokerV2Service.autoDealIfDue(room) ? room : null));
+  }
+
+  // --- Thirty-One Actions ---
+
+  thirtyOneAction(code: string, clientId: string, action: ThirtyOneAction): RoomState | null {
+    if (this.rejectViewer(code, clientId)) return null;
+    return this.withRoom(code, (room) =>
+      this.thirtyOneService.handleAction(room, clientId, action),
+    );
+  }
+
+  thirtyOneTurnTimeout(code: string, expectedDeadline: number): RoomState | null {
+    return this.withRoom(code, (room) =>
+      this.thirtyOneService.handleTurnTimeout(room, expectedDeadline),
+    );
   }
 
   saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number {

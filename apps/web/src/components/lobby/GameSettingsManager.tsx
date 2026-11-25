@@ -17,6 +17,7 @@ import {
   DynamicBattleshipSettings,
   DynamicSoundsFishySettings,
   DynamicDetectiveClubSettings,
+  DynamicThirtyOneSettings,
 } from '@/components/lobby/game-view-loaders';
 
 export function GameSettingsManager() {
@@ -43,7 +44,8 @@ export function GameSettingsManager() {
     room.gameType === GameType.WEREWOLF ||
     room.gameType === GameType.BATTLESHIP ||
     room.gameType === GameType.SOUNDS_FISHY ||
-    room.gameType === GameType.DETECTIVE_CLUB;
+    room.gameType === GameType.DETECTIVE_CLUB ||
+    room.gameType === GameType.THIRTY_ONE;
 
   const isHost = room.roomHostId === socketId;
   const visibility = room.config.visibility ?? 'PUBLIC';
@@ -119,6 +121,7 @@ export function GameSettingsManager() {
           {room.gameType === GameType.BATTLESHIP && <DynamicBattleshipSettings />}
           {room.gameType === GameType.SOUNDS_FISHY && <DynamicSoundsFishySettings />}
           {room.gameType === GameType.DETECTIVE_CLUB && <DynamicDetectiveClubSettings />}
+          {room.gameType === GameType.THIRTY_ONE && <DynamicThirtyOneSettings />}
         </div>
       )}
     </div>

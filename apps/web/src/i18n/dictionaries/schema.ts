@@ -153,6 +153,7 @@ export interface Dictionary {
       cipherGrid: string;
       werewolf: string;
       battleship: string;
+      thirtyOne: string;
     };
     gameCards: {
       whoKnow: { category: string; description: string; players: string };
@@ -174,6 +175,7 @@ export interface Dictionary {
       cipherGrid: { category: string; description: string; players: string };
       werewolf: { category: string; description: string; players: string };
       battleship: { category: string; description: string; players: string };
+      thirtyOne: { category: string; description: string; players: string };
     };
     or: string;
     roomCodePlaceholder: string;
@@ -431,6 +433,14 @@ export interface Dictionary {
       challengeOpportunity: string;
       roundEnd: string;
     };
+    thirtyOne: {
+      yourAction: string;
+      yourDiscard: string;
+      waitingTurn: string;
+      finalTurn: string;
+      roundResult: string;
+      matchOver: string;
+    };
   };
   errors: {
     enterNameFirst: string;
@@ -490,6 +500,7 @@ export interface Dictionary {
         cipherGrid: string;
         werewolf: string;
         battleship: string;
+        thirtyOne: string;
       };
       closeBtn: string;
       closeLabel: string;
@@ -2536,6 +2547,86 @@ export interface Dictionary {
       endMatch: string;
       chips: string;
       revealed: string;
+    };
+  };
+  thirtyOne: {
+    lobbyHint: string;
+    settingsTurnTimer: string;
+    timerOff: string;
+    timerSeconds: string;
+    round: string;
+    dealer: string;
+    lives: string;
+    onWelfare: string;
+    eliminated: string;
+    knockedBadge: string;
+    drawPile: string;
+    discardPile: string;
+    cardsLeft: string;
+    drawFromStock: string;
+    drawFromDiscard: string;
+    knock: string;
+    discardHint: string;
+    antiStallLocked: string;
+    antiStallNote: string;
+    yourHand: string;
+    scoreLabel: string;
+    threeOfAKind: string;
+    blitz31: string;
+    suitName: {
+      SPADES: string;
+      HEARTS: string;
+      DIAMONDS: string;
+      CLUBS: string;
+    };
+    reshuffledNotice: string;
+    finalTurnsLeft: string;
+    lastAction: {
+      DRAW_STOCK: string;
+      DRAW_DISCARD: string;
+      DISCARD: string;
+      KNOCK: string;
+      AUTO_TURN: string;
+    };
+    showdown: {
+      blitzTitle: string;
+      blitzDesc: string;
+      knockTitle: string;
+      knockPenaltyDesc: string;
+      normalKnockDesc: string;
+      lostLives: string;
+      enteredWelfare: string;
+      eliminatedNow: string;
+      safe: string;
+      nextRound: string;
+      waitingHostNextRound: string;
+      championTitle: string;
+      backToLobby: string;
+      endMatch: string;
+    };
+    rules: {
+      intro: string;
+      setupTitle: string;
+      setupBody: string;
+      scoringTitle: string;
+      scoringA: string;
+      scoringFace: string;
+      scoringNum: string;
+      scoringBlitz: string;
+      scoringTrips: string;
+      scoringExample: string;
+      turnsTitle: string;
+      turnDraw: string;
+      turnAntiStall: string;
+      turnKnock: string;
+      showdownTitle: string;
+      showdownBlitz: string;
+      showdownKnock: string;
+      showdownPenalty: string;
+      edgeTitle: string;
+      edgeReshuffle: string;
+      edgeWelfare: string;
+      edgeWin: string;
     };
   };
 }

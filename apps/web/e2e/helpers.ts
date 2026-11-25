@@ -82,6 +82,8 @@ export async function extractRoomCode(page: Page): Promise<string> {
     'สายลับคำใบ้',
     'Battleship',
     'ยุทธการเรือรบ',
+    'Thirty-One',
+    'ไพ่ 31',
   ];
   for (const name of knownNames) {
     const idx = bodyText.indexOf(name);

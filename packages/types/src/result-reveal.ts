@@ -115,6 +115,13 @@ export function getResultRevealPlan(room: RoomState): ResultRevealPlan | null {
       sockets = room.pokerV2State?.playerOrder ?? sockets;
       kind = 'SCORES';
       break;
+    case GameType.THIRTY_ONE:
+      if (room.status === RoomStatus.RESULT) {
+        key = `match:${room.thirtyOneState?.roundNumber ?? 0}`;
+      }
+      sockets = room.thirtyOneState?.playerOrder ?? sockets;
+      kind = 'SCORES';
+      break;
     case GameType.CIPHER_GRID:
       if (room.cipherGridState?.phase === 'ROUND_END') key = `round:${room.cipherGridState.round}`;
       kind = 'BOARD';

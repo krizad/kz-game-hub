@@ -30,6 +30,7 @@ import {
   DynamicDogRelaySeats,
   DynamicWerewolfView,
   DynamicBattleshipView,
+  DynamicThirtyOneView,
 } from '@/components/lobby/game-view-loaders';
 import { PlayerGrid } from '@/components/lobby/PlayerGrid';
 import { GameSettingsManager } from '@/components/lobby/GameSettingsManager';
@@ -193,6 +194,13 @@ function getGameStatus(
         activePlayerId = room.battleshipState.turnPlayerId;
       }
       break;
+    case GameType.THIRTY_ONE:
+      if (room.thirtyOneState) {
+        phase = room.thirtyOneState.phase;
+        activePlayerId =
+          room.thirtyOneState.phase === 'PLAYING' ? room.thirtyOneState.activePlayerId : null;
+      }
+      break;
     default:
       break;
   }
@@ -226,6 +234,7 @@ function getGameStatus(
     [GameType.DOG_RELAY]: 'bg-amber-300',
     [GameType.WEREWOLF]: 'bg-indigo-300',
     [GameType.BATTLESHIP]: 'bg-sky-400',
+    [GameType.THIRTY_ONE]: 'bg-amber-400',
   };
 
   return {
@@ -265,9 +274,12 @@ export function GameViewManager() {
     };
 
     if (typeof win.requestIdleCallback === 'function') {
-      const id = win.requestIdleCallback(() => {
-        void loader();
-      }, { timeout: 1500 });
+      const id = win.requestIdleCallback(
+        () => {
+          void loader();
+        },
+        { timeout: 1500 },
+      );
       return () => win.cancelIdleCallback?.(id);
     }
 
@@ -320,6 +332,9 @@ export function GameViewManager() {
     }
     if (room.gameType === GameType.BATTLESHIP && room.status !== RoomStatus.LOBBY) {
       return <DynamicBattleshipView />;
+    }
+    if (room.gameType === GameType.THIRTY_ONE && room.status !== RoomStatus.LOBBY) {
+      return <DynamicThirtyOneView />;
     }
 
     return (

@@ -159,6 +159,20 @@ export function getRevealCard(room: RoomState, player: UserState, t: Translate):
       details.push(t('resultReveal.chips', { amount: state.seats[id]?.chips ?? 0 }));
       break;
     }
+    case GameType.THIRTY_ONE: {
+      const state = room.thirtyOneState;
+      const seat = state?.seats[id];
+      if (seat) {
+        label =
+          seat.status === 'ELIMINATED'
+            ? t('thirtyOne.eliminated')
+            : t('thirtyOne.lives', { count: seat.lives });
+        if (seat.onWelfare && seat.status !== 'ELIMINATED') {
+          details.push(t('thirtyOne.onWelfare'));
+        }
+      }
+      break;
+    }
   }
   return { label, details, cards };
 }
@@ -212,6 +226,8 @@ export function getRevealEvidence(
         level: room.theMindState?.level ?? 0,
         lives: room.theMindState?.lives ?? 0,
       });
+    case GameType.THIRTY_ONE:
+      return t('resultReveal.scoresHint');
     default:
       return t('resultReveal.rolesHint');
   }
@@ -420,6 +436,12 @@ export function getRevealOutcome(room: RoomState, t: Translate): RevealOutcome {
       reason = t(success ? 'resultReveal.mindWin' : 'resultReveal.mindLoss');
       winnerIds = success ? room.players.filter((p) => !p.isViewer).map((p) => p.id) : [];
       return { title, reason, winnerIds, cooperative: true };
+    }
+    case GameType.THIRTY_ONE: {
+      const state = room.thirtyOneState;
+      winnerIds = state?.winnerId ? [state.winnerId] : [];
+      reason = t('thirtyOne.matchOver');
+      break;
     }
   }
   if (!title)

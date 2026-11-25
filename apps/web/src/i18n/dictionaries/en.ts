@@ -174,6 +174,7 @@ export const en: Dictionary = {
       cipherGrid: REBRANDED_TITLES.en.cipherGrid,
       werewolf: 'Werewolf',
       battleship: 'Battleship',
+      thirtyOne: 'Thirty-One (31)',
     },
     gameCards: {
       whoKnow: {
@@ -275,6 +276,12 @@ export const en: Dictionary = {
         description:
           'Place your secret fleet and command salvos! Supports team coordination and multi-player battle royale with mid-air shell collisions.',
         players: '2–8 players',
+      },
+      thirtyOne: {
+        category: 'Card Game · Push Your Luck',
+        description:
+          'Build the highest single-suit hand up to 31 or Knock to lock the table! Beware the 2-life Knock Penalty and survive On the Welfare.',
+        players: '2–9 players (best at 3–6)',
       },
     },
     or: 'OR',
@@ -587,6 +594,14 @@ export const en: Dictionary = {
       challengeOpportunity: 'Opponent is decoding — you may challenge if the clue breaks rules',
       roundEnd: 'Round ended — review results and keycard reveal',
     },
+    thirtyOne: {
+      yourAction: 'Your turn — Draw a card or Knock!',
+      yourDiscard: 'Choose 1 card to discard (cannot return the card picked from discard)',
+      waitingTurn: 'Waiting for {name}...',
+      finalTurn: 'Final turn! {knocker} knocked — play 1 last turn before showdown',
+      roundResult: 'Showdown — round results',
+      matchOver: 'Match over — see the winner!',
+    },
   },
   errors: {
     enterNameFirst: 'Please enter your display name first',
@@ -649,6 +664,7 @@ export const en: Dictionary = {
         cipherGrid: REBRANDED_TITLES.en.cipherGrid,
         werewolf: 'Werewolf',
         battleship: 'Battleship',
+        thirtyOne: 'Thirty-One (31)',
       },
       closeBtn: "Got it, let's play!",
       closeLabel: 'Close rules',
@@ -2878,6 +2894,99 @@ export const en: Dictionary = {
       endMatch: 'End match & rank',
       chips: 'chips',
       revealed: 'Cards revealed',
+    },
+  },
+  thirtyOne: {
+    lobbyHint:
+      'Build the highest single-suit score up to 31 (or 30.5 for Three of a Kind). Everyone starts with 3 lives plus 1 final round On the Welfare!',
+    settingsTurnTimer: 'Turn timer',
+    timerOff: 'Off',
+    timerSeconds: '{sec}s',
+    round: 'Round {n}',
+    dealer: 'Dealer',
+    lives: '{count} lives',
+    onWelfare: 'On the Welfare (Last Chance!)',
+    eliminated: 'Eliminated',
+    knockedBadge: 'Knocked!',
+    drawPile: 'Draw Pile',
+    discardPile: 'Discard Pile',
+    cardsLeft: '{count} left',
+    drawFromStock: 'Draw from Deck',
+    drawFromDiscard: 'Take Top Discard',
+    knock: 'Knock',
+    discardHint: 'Tap 1 card in your hand to discard it',
+    antiStallLocked: 'Locked',
+    antiStallNote:
+      'Anti-stall rule: you cannot discard the card you just took from the discard pile',
+    yourHand: 'Your Hand',
+    scoreLabel: '{score} pts',
+    threeOfAKind: 'Three of a Kind! (30.5 pts)',
+    blitz31: '31 BLITZ!',
+    suitName: {
+      SPADES: 'Spades ♠',
+      HEARTS: 'Hearts ♥',
+      DIAMONDS: 'Diamonds ♦',
+      CLUBS: 'Clubs ♣',
+    },
+    reshuffledNotice: 'Draw pile ran out — discard pile reshuffled into deck!',
+    finalTurnsLeft: '{count} final turn(s) remaining',
+    lastAction: {
+      DRAW_STOCK: '{name} drew from the deck',
+      DRAW_DISCARD: '{name} took the top discard',
+      DISCARD: '{name} discarded',
+      KNOCK: '{name} knocked! Everyone gets 1 final turn',
+      AUTO_TURN: '{name} timed out (auto-played)',
+    },
+    showdown: {
+      blitzTitle: '31 BLITZ!',
+      blitzDesc: 'Someone hit 31! Everyone without 31 loses 1 life immediately.',
+      knockTitle: 'Knock Showdown',
+      knockPenaltyDesc: '{name} knocked with the lowest score! Knock Penalty: -2 lives.',
+      normalKnockDesc: 'Lowest scorer(s) lose 1 life.',
+      lostLives: '-{count} life',
+      enteredWelfare: 'Entered On the Welfare!',
+      eliminatedNow: 'Eliminated!',
+      safe: 'Safe',
+      nextRound: 'Next Round',
+      waitingHostNextRound: 'Waiting for host to start next round...',
+      championTitle: 'Thirty-One Champion!',
+      backToLobby: 'Back to Lobby',
+      endMatch: 'End Match',
+    },
+    rules: {
+      intro:
+        'Thirty-One (31) is a classic 2–9 player card game with a standard 52-card deck. Everyone starts with 3 lives — race to build the highest single-suit hand up to 31 or Knock to trap the lowest hand!',
+      setupTitle: 'Setup & Dealing',
+      setupBody:
+        'Each player receives 3 face-down cards and 3 lives. Remaining cards form the Draw Pile, with 1 card flipped face-up to start the Discard Pile. Losing all 3 lives puts you On the Welfare (1 last chance!).',
+      scoringTitle: 'Scoring (Highest Single Suit Only)',
+      scoringA: 'Ace (A) = 11 pts',
+      scoringFace: 'K, Q, J, 10 = 10 pts each',
+      scoringNum: '2 – 9 = Face value (e.g., 7♥ = 7 pts)',
+      scoringBlitz: '31 (Blitz) = e.g., A♠ + K♠ + 10♠ — wins the round immediately!',
+      scoringTrips:
+        'Three of a Kind = 30.5 pts (3 matching ranks across suits; beats everything except 31)',
+      scoringExample: 'Example: K♠ + 9♠ + A♥ → Spades = 19, Hearts = 11 → Hand value is 19 pts.',
+      turnsTitle: 'Turn Actions',
+      turnDraw:
+        'Option A (Draw & Discard): Draw the top card from either the Draw Pile or Discard Pile, then discard 1 card so you end with 3 cards.',
+      turnAntiStall:
+        'Anti-Stall Rule: If you draw from the Discard Pile, you cannot discard that exact same card back on the same turn.',
+      turnKnock:
+        'Option B (Knock): At the start of your turn instead of drawing, Knock to close the round. Every other player gets 1 final turn before Showdown.',
+      showdownTitle: 'Showdown & Life Loss',
+      showdownBlitz:
+        '31 Blitz: Whenever anyone holds 31 (on the deal or after a discard), the round ends immediately — everyone without 31 loses 1 life.',
+      showdownKnock: 'Knock Showdown: The lowest-scoring player(s) lose 1 life.',
+      showdownPenalty:
+        'Knock Penalty: If the knocker has the lowest score (or ties for lowest), the knocker loses 2 lives instead and nobody else loses a life!',
+      edgeTitle: 'Special Rules & Edge Cases',
+      edgeReshuffle:
+        'Empty Draw Pile: Keep the top discard card, shuffle the rest of the Discard Pile into a new Draw Pile, and continue.',
+      edgeWelfare:
+        'On the Welfare (0 lives): After losing your 3rd life, you stay in for 1 free final round. Lose again and you are eliminated.',
+      edgeWin:
+        'Winner: The last surviving player (even if On the Welfare with 0 lives) wins the match!',
     },
   },
 };

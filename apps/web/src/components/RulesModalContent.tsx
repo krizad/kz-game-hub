@@ -21,6 +21,7 @@ import { DogRelayRules } from './games/dog-relay/DogRelayRules';
 import { CipherGridRules } from './games/cipher-grid/CipherGridRules';
 import { WerewolfRules } from './games/werewolf/WerewolfRules';
 import { BattleshipRules } from './games/battleship/BattleshipRules';
+import { ThirtyOneRules } from './games/thirty-one/ThirtyOneRules';
 
 export function RulesModalContent({ activeTab }: { activeTab: GameType | 'LOBBY' }) {
   switch (activeTab) {
@@ -64,6 +65,8 @@ export function RulesModalContent({ activeTab }: { activeTab: GameType | 'LOBBY'
       return <WerewolfRules />;
     case GameType.BATTLESHIP:
       return <BattleshipRules />;
+    case GameType.THIRTY_ONE:
+      return <ThirtyOneRules />;
     default:
       return null;
   }

@@ -29,6 +29,7 @@ const ALL_FLAGS: { type: GameType | TttModeFlag; labelKey: string }[] = [
   { type: GameType.CIPHER_GRID, labelKey: 'rules.modal.tabs.cipherGrid' },
   { type: GameType.WEREWOLF, labelKey: 'rules.modal.tabs.werewolf' },
   { type: GameType.BATTLESHIP, labelKey: 'rules.modal.tabs.battleship' },
+  { type: GameType.THIRTY_ONE, labelKey: 'rules.modal.tabs.thirtyOne' },
 ];
 
 interface AdminGameSettingsProps {

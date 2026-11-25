@@ -72,6 +72,7 @@ async function main() {
     'DOG_RELAY',
     'WEREWOLF',
     'BATTLESHIP',
+    'THIRTY_ONE',
     // Tic-Tac-Toe mode flags (gate individual modes, not whole games)
     'GOBBLER_MODE',
     'ULTIMATE_MODE',

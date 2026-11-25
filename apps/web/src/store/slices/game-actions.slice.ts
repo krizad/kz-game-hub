@@ -10,6 +10,7 @@ import {
   PokerV2Action,
   SOCKET_EVENTS,
   ShipPlacement,
+  ThirtyOneAction,
   WerewolfNightActionKind,
   WhoFirstGameActionType,
 } from '@repo/types';
@@ -66,6 +67,10 @@ export function createGameActionsSlice(
 
     pokerV2Action: (action: PokerV2Action) => {
       emitGameAction(SOCKET_EVENTS.POKER_V2_ACTION, { payload: () => ({ action }) });
+    },
+
+    thirtyOneAction: (action: ThirtyOneAction) => {
+      emitGameAction(SOCKET_EVENTS.THIRTY_ONE_ACTION, { payload: () => ({ action }) });
     },
 
     tttJoinSide: (side: 'X' | 'O') => {

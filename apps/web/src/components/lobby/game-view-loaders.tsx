@@ -9,8 +9,7 @@ const loadTicTacToeUnifiedView = () =>
   import('@/components/games/tic-tac-toe/TicTacToeUnifiedView');
 const loadRPSView = () => import('@/components/games/rps/RPSView');
 const loadSoundsFishyView = () => import('@/components/games/sounds-fishy/SoundsFishyView');
-const loadDetectiveClubView = () =>
-  import('@/components/games/detective-club/DetectiveClubView');
+const loadDetectiveClubView = () => import('@/components/games/detective-club/DetectiveClubView');
 const loadWhoAmIView = () => import('@/components/games/who-am-i/WhoAmIView');
 const loadMusicTriviaView = () => import('@/components/games/music-trivia/MusicTriviaView');
 const loadWhoFirstView = () => import('@/components/games/who-first/WhoFirstView');
@@ -27,6 +26,7 @@ const loadCipherGridView = () => import('@/components/games/cipher-grid/CipherGr
 const loadDogRelayView = () => import('@/components/games/dog-relay/DogRelayView');
 const loadWerewolfView = () => import('@/components/games/werewolf/WerewolfView');
 const loadBattleshipView = () => import('@/components/games/battleship/BattleshipView');
+const loadThirtyOneView = () => import('@/components/games/thirty-one/ThirtyOneView');
 
 /**
  * Prefetch map used while a room is in LOBBY status so the active game's chunk
@@ -52,6 +52,7 @@ export const GAME_VIEW_LOADERS: Record<GameType, () => Promise<unknown>> = {
   [GameType.DOG_RELAY]: loadDogRelayView,
   [GameType.WEREWOLF]: loadWerewolfView,
   [GameType.BATTLESHIP]: loadBattleshipView,
+  [GameType.THIRTY_ONE]: loadThirtyOneView,
 };
 
 // Dynamic Game Views (options must be inline object literals for Next.js SWC)
@@ -135,6 +136,10 @@ export const DynamicBattleshipView = dynamic(
   () => loadBattleshipView().then((m) => m.BattleshipView),
   { ssr: false, loading: () => <GameChunkFallback /> },
 );
+export const DynamicThirtyOneView = dynamic(
+  () => loadThirtyOneView().then((m) => m.ThirtyOneView),
+  { ssr: false, loading: () => <GameChunkFallback /> },
+);
 
 // Dynamic Lobby Settings & Panels
 export const DynamicCardGameSettings = dynamic(
@@ -213,5 +218,9 @@ export const DynamicDetectiveClubSettings = dynamic(
     import('@/components/games/detective-club/DetectiveClubSettings').then(
       (m) => m.DetectiveClubSettings,
     ),
+  { ssr: false },
+);
+export const DynamicThirtyOneSettings = dynamic(
+  () => import('@/components/games/thirty-one/ThirtyOneSettings').then((m) => m.ThirtyOneSettings),
   { ssr: false },
 );

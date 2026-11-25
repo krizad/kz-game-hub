@@ -30,6 +30,8 @@ Built as a modern web application within a Turborepo.
 
 - **Battleship (ยุทธการเรือรบ):** Modern naval strategy supporting both Team vs Team (Shared Fleet or Multi-Board) and Free-for-all Battle Royale for 2–8 players. Features mobile-first fleet placement with auto-randomize, real-time teammate ping coordination, sequential hit streaks, and simultaneous volleys with mid-air shell collision explosions. See [ADR 0016](docs/adr/0016-battleship-team-and-ffa-architecture.md).
 
+- **Thirty-One (ไพ่ 31):** Fast-paced classic card game for 2–9 players. Build the highest single-suit hand up to 31 points (or 30.5 for Three of a Kind). Draw from stock or discard, observe the anti-stall rule, or knock when your hand is ready. 3 starting lives plus 1 final chance On the Welfare, with Knock Penalties for careless callers!
+
 ## ✨ Core Features
 
 - **Real-time Multiplayer:** Play live with your friends using WebSockets.

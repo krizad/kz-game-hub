@@ -1,10 +1,5 @@
 import { GameType, SOCKET_EVENTS, TTT_MODE_FLAGS } from '@repo/types';
-import {
-  hasSafeValues,
-  isSettingsKey,
-  isValidName,
-  isValidPayload,
-} from './payload-validator';
+import { hasSafeValues, isSettingsKey, isValidName, isValidPayload } from './payload-validator';
 
 describe('gateway/payload-validator', () => {
   it('validates player display names', () => {
@@ -64,6 +59,35 @@ describe('gateway/payload-validator', () => {
         code: 'AB12CD',
         word: 'Ocean',
         count: 99,
+      }),
+    ).toBe(false);
+
+    expect(
+      isValidPayload(SOCKET_EVENTS.CREATE_ROOM, { name: 'Host', gameType: GameType.THIRTY_ONE }),
+    ).toBe(true);
+
+    expect(
+      isValidPayload(SOCKET_EVENTS.THIRTY_ONE_ACTION, {
+        code: 'AB12CD',
+        action: { type: 'DRAW_STOCK' },
+      }),
+    ).toBe(true);
+    expect(
+      isValidPayload(SOCKET_EVENTS.THIRTY_ONE_ACTION, {
+        code: 'AB12CD',
+        action: { type: 'DISCARD', cardId: 'card-1' },
+      }),
+    ).toBe(true);
+    expect(
+      isValidPayload(SOCKET_EVENTS.THIRTY_ONE_ACTION, {
+        code: 'AB12CD',
+        action: { type: 'DISCARD' },
+      }),
+    ).toBe(false);
+    expect(
+      isValidPayload(SOCKET_EVENTS.THIRTY_ONE_ACTION, {
+        code: 'AB12CD',
+        action: { type: 'INVALID_TYPE' },
       }),
     ).toBe(false);
   });

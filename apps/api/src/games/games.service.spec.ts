@@ -23,6 +23,7 @@ import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
 import { BattleshipService } from './battleship/battleship.service';
+import { ThirtyOneService } from './thirty-one/thirty-one.service';
 import { POK_DENG_PRESET } from './card-game/presets/pok-deng.preset';
 import { SLAVE_PRESET } from './card-game/presets/slave.preset';
 import { RoomState, RoomStatus, GameType, Role, SOCKET_EVENTS } from '@repo/types';
@@ -292,6 +293,7 @@ describe('GamesService', () => {
         DogRelayService,
         WerewolfService,
         BattleshipService,
+        ThirtyOneService,
         PlayerSessionService,
         PrivateStateService,
         RoomTimerService,

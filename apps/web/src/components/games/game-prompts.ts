@@ -513,6 +513,30 @@ export function getGamePrompt(
       if (state.phase === 'RESULT') return { key: 'battleship.victory' };
       break;
     }
+
+    case GameType.THIRTY_ONE: {
+      const state = room.thirtyOneState;
+      if (!state) return { key: 'gamePrompts.spectating' };
+      if (state.phase === 'MATCH_OVER') return { key: 'gamePrompts.thirtyOne.matchOver' };
+      if (state.phase === 'ROUND_RESULT') return { key: 'gamePrompts.thirtyOne.roundResult' };
+      if (isSpectator || state.seats[socketId]?.status === 'ELIMINATED') {
+        return { key: 'gamePrompts.spectating' };
+      }
+      if (state.activePlayerId === socketId) {
+        if (state.turnSubPhase === 'DISCARD') {
+          return { key: 'gamePrompts.thirtyOne.yourDiscard' };
+        }
+        if (state.knockerId) {
+          const knockerName =
+            room.players.find((p) => p.socketId === state.knockerId)?.name || 'Player';
+          return { key: 'gamePrompts.thirtyOne.finalTurn', params: { knocker: knockerName } };
+        }
+        return { key: 'gamePrompts.thirtyOne.yourAction' };
+      }
+      const activeName =
+        room.players.find((p) => p.socketId === state.activePlayerId)?.name || 'Player';
+      return { key: 'gamePrompts.thirtyOne.waitingTurn', params: { name: activeName } };
+    }
   }
 
   return { key: 'gameStatus.groupAction' };

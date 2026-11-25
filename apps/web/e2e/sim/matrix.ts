@@ -558,6 +558,17 @@ export const GAME_MATRIX: MatrixEntry[] = [
     description: 'Free-for-all 2-player naval battle royale',
     timeout: 180000,
   },
+
+  // --- Thirty-One (ไพ่ 31) ---
+  {
+    id: 'thirty-one-2p',
+    game: 'THIRTY_ONE',
+    lobbyButton: 'THIRTY_ONE',
+    players: 2,
+    description:
+      '2-player Thirty-One: draw stock/discard, knock and lives elimination to match winner',
+    timeout: 180000,
+  },
 ];
 
 export function filterMatrix(idsOrPrefixes: string[]): MatrixEntry[] {

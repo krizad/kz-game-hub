@@ -270,6 +270,19 @@ export const GAME_CATALOG: GameCatalogItem[] = [
     textRequired: false,
     styles: ['competitive', 'cooperative'],
   },
+  {
+    type: GameType.THIRTY_ONE,
+    icon: '🃏',
+    coverImage: '/images/covers/card-game.webp',
+    catalogKey: 'thirtyOne',
+    color: 'bg-amber-300',
+    minPlayers: 2,
+    maxPlayers: 9,
+    cooperative: false,
+    audioRequired: false,
+    textRequired: false,
+    styles: ['competitive', 'party', 'quick'],
+  },
 ];
 
 export function getGameCatalogItem(type: GameType): GameCatalogItem | undefined {

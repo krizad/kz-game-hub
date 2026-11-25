@@ -1896,6 +1896,8 @@ export async function playToCompletion(s: SimSession, entry: MatrixEntry): Promi
       return playWerewolf(s);
     case 'BATTLESHIP':
       return playBattleship(s);
+    case 'THIRTY_ONE':
+      return playThirtyOne(s);
     default:
       throw new Error(`No driver for game ${entry.game}`);
   }
@@ -1990,4 +1992,83 @@ async function playBattleship(s: SimSession): Promise<void> {
   await expect(host.getByTestId('battleship-winner-banner')).toBeVisible({
     timeout: 15000,
   });
+}
+
+async function playThirtyOne(s: SimSession): Promise<void> {
+  const { host, players } = s;
+  await startGame(host);
+
+  // Play turns until either champion banner appears or showdown is shown
+  for (let turn = 0; turn < 150; turn++) {
+    const isMatchOver = await host
+      .getByTestId('thirty-one-champion-banner')
+      .isVisible()
+      .catch(() => false);
+    if (isMatchOver) break;
+
+    // If host sees next round button in showdown, advance to next round
+    const nextRoundBtn = host.getByTestId('thirty-one-next-round');
+    if (await nextRoundBtn.isVisible().catch(() => false)) {
+      await nextRoundBtn.click().catch(() => {});
+      await host.waitForTimeout(400);
+      continue;
+    }
+
+    let acted = false;
+    for (const p of players) {
+      const knockBtn = p.getByTestId('thirty-one-knock');
+      const drawStockBtn = p.getByTestId('thirty-one-draw-stock');
+      const drawDiscardBtn = p.getByTestId('thirty-one-draw-discard');
+
+      // Knock if available after turn 4
+      if (turn > 4 && (await knockBtn.isVisible().catch(() => false))) {
+        await knockBtn.click().catch(() => {});
+        acted = true;
+        await p.waitForTimeout(300);
+        break;
+      }
+
+      if (await drawStockBtn.isEnabled().catch(() => false)) {
+        await drawStockBtn.click().catch(() => {});
+        acted = true;
+        await p.waitForTimeout(300);
+        const cardBtn = p
+          .locator('button[data-testid^="thirty-one-card-"]:not([disabled])')
+          .first();
+        if (await cardBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await cardBtn.click().catch(() => {});
+        }
+        break;
+      } else if (await drawDiscardBtn.isEnabled().catch(() => false)) {
+        await drawDiscardBtn.click().catch(() => {});
+        acted = true;
+        await p.waitForTimeout(300);
+        const cardBtn = p
+          .locator('button[data-testid^="thirty-one-card-"]:not([disabled])')
+          .first();
+        if (await cardBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await cardBtn.click().catch(() => {});
+        }
+        break;
+      }
+    }
+
+    if (!acted) {
+      await host.waitForTimeout(250);
+    }
+  }
+
+  const championOrShowdown = await Promise.race([
+    host
+      .getByTestId('thirty-one-champion-banner')
+      .waitFor({ state: 'visible', timeout: 15000 })
+      .then(() => true)
+      .catch(() => false),
+    host
+      .getByTestId('thirty-one-showdown')
+      .waitFor({ state: 'visible', timeout: 15000 })
+      .then(() => true)
+      .catch(() => false),
+  ]);
+  expect(championOrShowdown).toBe(true);
 }

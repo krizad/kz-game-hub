@@ -36,6 +36,7 @@ import {
   BattleshipTeamFleetMode,
   BattleshipGridPreset,
 } from './battleship';
+import { ThirtyOnePublicState } from './thirty-one';
 import type { ResultRevealState } from './result-reveal';
 
 export const APP_VERSION = 'v1.0.0';
@@ -71,6 +72,7 @@ export enum GameType {
   DOG_RELAY = 'DOG_RELAY',
   WEREWOLF = 'WEREWOLF',
   BATTLESHIP = 'BATTLESHIP',
+  THIRTY_ONE = 'THIRTY_ONE',
 }
 
 /**
@@ -221,6 +223,8 @@ export const SOCKET_EVENTS = {
   BATTLESHIP_FIRE: 'battleship_fire',
   BATTLESHIP_PING: 'battleship_ping',
   BATTLESHIP_RESET: 'battleship_reset',
+  // Thirty-One (31)
+  THIRTY_ONE_ACTION: 'thirty_one_action',
   // Shared gameplay receipt (TASK-SH-002)
   ACTION_RECEIPT: 'action_receipt',
   // Server clock sync (TASK-SH-001)
@@ -392,6 +396,8 @@ export interface RoomConfig {
   battleshipGridPreset?: BattleshipGridPreset;
   battleshipHitStreak?: boolean;
   battleshipTurnSeconds?: number;
+  // Thirty-One config
+  thirtyOneTurnSeconds?: number;
 }
 
 export interface RoomState {
@@ -442,6 +448,8 @@ export interface RoomState {
   werewolfState?: WerewolfState;
   /** Battleship public state — unrevealed ships live in private state only. */
   battleshipState?: BattleshipState;
+  /** Thirty-One public state — deck order and unrevealed hands live in private state only. */
+  thirtyOneState?: ThirtyOnePublicState;
 }
 
 export interface AvailableRoom {

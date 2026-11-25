@@ -25,6 +25,7 @@ import {
   RoomState,
   SaboteurTool,
   ShipPlacement,
+  ThirtyOneAction,
   TttModeFlag,
   WerewolfNightActionKind,
   WhoFirstGameActionType,
@@ -44,7 +45,10 @@ export interface PendingAction {
  * Room config patch. `musicTriviaArtistPresetId: null` explicitly leaves
  * artist-preset mode (JSON can't carry undefined across the socket).
  */
-export type UpdateConfigPayload = Omit<Partial<RoomState['config']>, 'musicTriviaArtistPresetId'> & {
+export type UpdateConfigPayload = Omit<
+  Partial<RoomState['config']>,
+  'musicTriviaArtistPresetId'
+> & {
   musicTriviaArtistPresetId?: string | null;
 };
 
@@ -187,6 +191,7 @@ export interface GameActionsSlice {
   cardGameAction: (action: CardGameAction) => void;
   pokerAction: (action: PokerAction) => void;
   pokerV2Action: (action: PokerV2Action) => void;
+  thirtyOneAction: (action: ThirtyOneAction) => void;
   cipherAssignTeam: (payload: CipherAssignTeamPayload) => void;
   cipherRandomizeTeams: () => void;
   cipherStartMatch: () => void;

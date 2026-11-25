@@ -30,6 +30,7 @@ import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
 import { BattleshipService } from './battleship/battleship.service';
+import { ThirtyOneService } from './thirty-one/thirty-one.service';
 import { WsRateLimitService } from './ws-rate-limit.service';
 
 @Module({
@@ -66,6 +67,7 @@ import { WsRateLimitService } from './ws-rate-limit.service';
     DogRelayService,
     WerewolfService,
     BattleshipService,
+    ThirtyOneService,
   ],
 })
 export class GamesModule {}

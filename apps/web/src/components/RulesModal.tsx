@@ -274,6 +274,14 @@ export function RulesModal({ defaultGameType, isGameRoom, triggerClassName }: Ru
                       {t('rules.modal.tabs.battleship')}
                     </button>
                   )}
+                  {isGameEnabled(GameType.THIRTY_ONE) && (
+                    <button
+                      onClick={() => setActiveTab(GameType.THIRTY_ONE)}
+                      className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors ${activeTab === GameType.THIRTY_ONE ? 'bg-amber-300 text-black border-2 border-black border border-amber-500/20' : 'text-black bg-white border-2 border-black hover:bg-yellow-300'}`}
+                    >
+                      {t('rules.modal.tabs.thirtyOne')}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
