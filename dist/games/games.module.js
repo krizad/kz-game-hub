@@ -39,6 +39,7 @@ const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const werewolf_service_1 = require("./werewolf/werewolf.service");
 const battleship_service_1 = require("./battleship/battleship.service");
+const thirty_one_service_1 = require("./thirty-one/thirty-one.service");
 const ws_rate_limit_service_1 = require("./ws-rate-limit.service");
 let GamesModule = class GamesModule {
 };
@@ -78,6 +79,7 @@ exports.GamesModule = GamesModule = __decorate([
             dog_relay_service_1.DogRelayService,
             werewolf_service_1.WerewolfService,
             battleship_service_1.BattleshipService,
+            thirty_one_service_1.ThirtyOneService,
         ],
     })
 ], GamesModule);

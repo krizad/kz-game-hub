@@ -1,0 +1,35 @@
+import { PlayingCard, RoomState, ThirtyOneAction, ThirtyOneHandEvaluation, ThirtyOnePublicState } from '@repo/types';
+import { PrivateStateService } from '../private-state.service';
+export declare function cardPointValue(rank: PlayingCard['rank']): number;
+export declare function evaluateThirtyOneHand(cards: PlayingCard[]): ThirtyOneHandEvaluation;
+export declare class ThirtyOneService {
+    private readonly privateStateService;
+    constructor(privateStateService: PrivateStateService);
+    startMatch(room: RoomState, requesterId: string): RoomState | null;
+    resetMatch(room: RoomState, requesterId: string): RoomState | null;
+    handleAction(room: RoomState, socketId: string, action: ThirtyOneAction): RoomState | null;
+    handleTurnTimeout(room: RoomState, expectedDeadline: number): RoomState | null;
+    remapSocketId(state: ThirtyOnePublicState, oldSocketId: string, newSocketId: string): void;
+    handlePlayerRemoved(room: RoomState, socketId: string): void;
+    private dealRound;
+    private handleDrawStock;
+    private handleDrawDiscard;
+    private handleDiscard;
+    private handleKnock;
+    private resolveShowdown;
+    private endMatch;
+    private finishMatch;
+    private reshuffleDiscardIntoDraw;
+    private pickBestValidDiscard;
+    private setActive;
+    private getAlivePlayerIds;
+    private nextAlivePlayer;
+    private buildFinalTurnQueue;
+    private nextEliminationOrder;
+    private getDeck;
+    private setDeck;
+    private getPrivate;
+    private setPrivate;
+    private deletePrivate;
+    private clearAllPrivate;
+}

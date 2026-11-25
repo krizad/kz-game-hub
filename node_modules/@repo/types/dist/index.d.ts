@@ -24,3 +24,4 @@ export * from './cipher-grid-pictures';
 export * from './werewolf';
 export * from './battleship';
 export * from './poker-v2';
+export * from './thirty-one';

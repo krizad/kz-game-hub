@@ -1,5 +1,5 @@
 import { OnModuleDestroy } from '@nestjs/common';
-import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DogRelayActionRequest, DogRelayPhase, ResultRevealActionPayload } from '@repo/types';
+import { RoomState, Role, UserState, RoomConfig, GameType, RPSChoice, WordCategory, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DogRelayActionRequest, DogRelayPhase, ResultRevealActionPayload, ThirtyOneAction } from '@repo/types';
 import { WhoKnowService } from './who-know/who-know.service';
 import { TicTacToeService } from './tic-tac-toe/tic-tac-toe.service';
 import { RPSService } from './rps/rps.service';
@@ -27,6 +27,7 @@ import { CipherGridService } from './cipher-grid/cipher-grid.service';
 import { DogRelayService } from './dog-relay/dog-relay.service';
 import { WerewolfService } from './werewolf/werewolf.service';
 import { BattleshipService } from './battleship/battleship.service';
+import { ThirtyOneService } from './thirty-one/thirty-one.service';
 import { BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
 import { WerewolfNightActionKind } from '@repo/types';
 import { CipherTeam, CipherRole, CipherClueCount } from '@repo/types';
@@ -74,6 +75,7 @@ export declare class GamesService implements OnModuleDestroy {
     private readonly dogRelayService;
     private readonly werewolfService;
     private readonly battleshipService;
+    private readonly thirtyOneService;
     private readonly gameSettings;
     private readonly roomStartGuardService;
     private readonly actionReceiptService;
@@ -88,7 +90,7 @@ export declare class GamesService implements OnModuleDestroy {
     private readonly saboteurTurnDeadlines;
     private roomLifecycleListener?;
     private idleSweepTimer?;
-    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, pokerV2Service: PokerV2Service, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, battleshipService: BattleshipService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
+    constructor(whoKnowService: WhoKnowService, ticTacToeService: TicTacToeService, rpsService: RPSService, gobblerService: GobblerService, soundsFishyService: SoundsFishyService, detectiveClubService: DetectiveClubService, whoAmIService: WhoAmIService, whoFirstService: WhoFirstService, musicTriviaService: MusicTriviaService, theMindService: TheMindService, saboteurService: SaboteurService, coupService: CoupService, bananaThiefService: BananaThiefService, ultimateTicTacToeService: UltimateTicTacToeService, playerSessionService: PlayerSessionService, privateStateService: PrivateStateService, roomTimerService: RoomTimerService, cardGameService: CardGameService, pokerService: PokerService, pokerV2Service: PokerV2Service, cipherGridService: CipherGridService, dogRelayService: DogRelayService, werewolfService: WerewolfService, battleshipService: BattleshipService, thirtyOneService: ThirtyOneService, gameSettings: GameSettingsService, roomStartGuardService: RoomStartGuardService, actionReceiptService?: ActionReceiptService);
     onModuleDestroy(): void;
     private startIdleSweepTimer;
     getMaxRooms(): number;
@@ -166,6 +168,8 @@ export declare class GamesService implements OnModuleDestroy {
         action: PokerV2Action;
     } | null;
     pokerV2AutoDeal(code: string): RoomState | null;
+    thirtyOneAction(code: string, clientId: string, action: ThirtyOneAction): RoomState | null;
+    thirtyOneTurnTimeout(code: string, expectedDeadline: number): RoomState | null;
     saboteurTurnDeadline(code: string, activePlayerId: string, seconds: number): number;
     clearSaboteurTurnDeadline(code: string): void;
     getPlayerRole(code: string, socketId: string): Role | undefined;

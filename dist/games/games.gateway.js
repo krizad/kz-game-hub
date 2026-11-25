@@ -71,9 +71,7 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
     }
     handleConnection(client) {
         const transport = client.conn?.transport?.name ?? 'unknown';
-        const origin = typeof client.handshake?.headers?.origin === 'string'
-            ? client.handshake.headers.origin
-            : '-';
+        const origin = typeof client.handshake?.headers?.origin === 'string' ? client.handshake.headers.origin : '-';
         const totalSockets = this.server?.sockets?.sockets?.size ?? 'unknown';
         this.logger.log(`[WS] Connected socket=${client.id} transport=${transport} origin=${origin} totalSockets=${totalSockets}`);
         client.conn?.on?.('upgrade', (nextTransport) => {
@@ -104,7 +102,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 client.emit(types_1.SOCKET_EVENTS.ERROR, { message: errorCode });
                 return next(new Error(errorCode));
             }
-            const roomCode = payload && typeof payload === 'object' && 'code' in payload && typeof payload.code === 'string'
+            const roomCode = payload &&
+                typeof payload === 'object' &&
+                'code' in payload &&
+                typeof payload.code === 'string'
                 ? payload.code
                 : undefined;
             if (roomCode && typeof this.gamesService?.touchRoomActivity === 'function') {
@@ -121,7 +122,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         const code = payload.code;
         if (typeof code !== 'string')
             return false;
-        const room = typeof this.gamesService?.getRoom === 'function' ? this.gamesService.getRoom(code) : undefined;
+        const room = typeof this.gamesService?.getRoom === 'function'
+            ? this.gamesService.getRoom(code)
+            : undefined;
         if (!room)
             return false;
         if (event === types_1.SOCKET_EVENTS.START_GAME) {
@@ -430,7 +433,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
                 else if (gameType === types_1.GameType.COUP) {
                     msg = 'Cannot start game. Need 3-6 players for Coup.';
                 }
-                else if (gameType === types_1.GameType.POKER || gameType === types_1.GameType.POKER_V2) {
+                else if (gameType === types_1.GameType.POKER ||
+                    gameType === types_1.GameType.POKER_V2 ||
+                    gameType === types_1.GameType.THIRTY_ONE) {
                     msg = 'Cannot start game. Need at least 2 players.';
                 }
                 else if (gameType === types_1.GameType.BANANA_THIEF) {
@@ -582,6 +587,15 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         }
         else {
             client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid poker action.' });
+        }
+    }
+    handleThirtyOneAction(data, client) {
+        const room = this.gamesService.thirtyOneAction(data.code, client.id, data.action);
+        if (room) {
+            this.broadcastRoomState(room);
+        }
+        else {
+            client.emit(types_1.SOCKET_EVENTS.ERROR, { message: 'Invalid action' });
         }
     }
     handleTTTJoinSide(data, client) {
@@ -1611,7 +1625,8 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             room.cipherGridState ??
             room.dogRelayState ??
             room.werewolfState ??
-            room.battleshipState;
+            room.battleshipState ??
+            room.thirtyOneState;
         const phase = phaseHolder && typeof phaseHolder === 'object' && 'phase' in phaseHolder
             ? String(phaseHolder.phase ?? '-')
             : '-';
@@ -1672,6 +1687,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.BATTLESHIP) {
             this.syncBattleshipTimer(room);
         }
+        if (room.gameType === types_1.GameType.THIRTY_ONE) {
+            this.syncThirtyOneTimer(room);
+        }
         if (room.gameType === types_1.GameType.TIC_TAC_TOE) {
             this.syncTicTacToeTimer(room);
         }
@@ -1687,6 +1705,19 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.DETECTIVE_CLUB) {
             this.syncDetectiveClubTimer(room);
         }
+    }
+    syncThirtyOneTimer(room) {
+        const state = room.thirtyOneState;
+        if (!state || state.phase !== 'PLAYING' || !state.turnDeadline) {
+            this.roomTimerService.cancel(room.code, 'thirty-one-turn');
+            return;
+        }
+        const deadline = state.turnDeadline;
+        this.roomTimerService.schedule(room.code, 'thirty-one-turn', deadline, () => {
+            const updated = this.gamesService.thirtyOneTurnTimeout(room.code, deadline);
+            if (updated)
+                this.broadcastRoomState(updated);
+        });
     }
     syncBattleshipTimer(room) {
         const state = room.battleshipState;
@@ -2268,6 +2299,9 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
         if (room.gameType === types_1.GameType.CARD_GAME && room.cardGameState) {
             return !room.cardGameState.result;
         }
+        if (room.gameType === types_1.GameType.THIRTY_ONE && room.thirtyOneState) {
+            return !room.thirtyOneState.winnerId;
+        }
         return false;
     }
     syncResultScoreBaselines(room) {
@@ -2335,7 +2369,10 @@ let GamesGateway = GamesGateway_1 = class GamesGateway {
             .map((p) => {
             const key = this.getResultPlayerKey(p);
             const currentScore = p.score ?? 0;
-            const previousBaseline = room.gameType === types_1.GameType.POKER || room.gameType === types_1.GameType.POKER_V2 || resetBaselines
+            const previousBaseline = room.gameType === types_1.GameType.POKER ||
+                room.gameType === types_1.GameType.POKER_V2 ||
+                room.gameType === types_1.GameType.THIRTY_ONE ||
+                resetBaselines
                 ? 0
                 : (baselines.get(key) ?? 0);
             const effectiveBaseline = currentScore < previousBaseline ? 0 : previousBaseline;
@@ -2557,6 +2594,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GamesGateway.prototype, "handlePokerV2Action", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.THIRTY_ONE_ACTION),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], GamesGateway.prototype, "handleThirtyOneAction", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)(types_1.SOCKET_EVENTS.TTT_JOIN_SIDE),
     __param(0, (0, websockets_1.MessageBody)()),

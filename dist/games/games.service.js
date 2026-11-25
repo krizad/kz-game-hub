@@ -45,6 +45,7 @@ const cipher_grid_service_1 = require("./cipher-grid/cipher-grid.service");
 const dog_relay_service_1 = require("./dog-relay/dog-relay.service");
 const werewolf_service_1 = require("./werewolf/werewolf.service");
 const battleship_service_1 = require("./battleship/battleship.service");
+const thirty_one_service_1 = require("./thirty-one/thirty-one.service");
 const types_2 = require("@repo/types");
 const RECONNECT_GRACE_TIMER = 'reconnect-grace';
 let GamesService = GamesService_1 = class GamesService {
@@ -52,7 +53,7 @@ let GamesService = GamesService_1 = class GamesService {
         const room = this.rooms.get(code);
         return room && (0, result_reveal_1.applyResultRevealAction)(room, socketId, payload) ? room : null;
     }
-    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, pokerV2Service, cipherGridService, dogRelayService, werewolfService, battleshipService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
+    constructor(whoKnowService, ticTacToeService, rpsService, gobblerService, soundsFishyService, detectiveClubService, whoAmIService, whoFirstService, musicTriviaService, theMindService, saboteurService, coupService, bananaThiefService, ultimateTicTacToeService, playerSessionService, privateStateService, roomTimerService, cardGameService, pokerService, pokerV2Service, cipherGridService, dogRelayService, werewolfService, battleshipService, thirtyOneService, gameSettings, roomStartGuardService, actionReceiptService = new action_receipt_service_1.ActionReceiptService()) {
         this.whoKnowService = whoKnowService;
         this.ticTacToeService = ticTacToeService;
         this.rpsService = rpsService;
@@ -77,6 +78,7 @@ let GamesService = GamesService_1 = class GamesService {
         this.dogRelayService = dogRelayService;
         this.werewolfService = werewolfService;
         this.battleshipService = battleshipService;
+        this.thirtyOneService = thirtyOneService;
         this.gameSettings = gameSettings;
         this.roomStartGuardService = roomStartGuardService;
         this.actionReceiptService = actionReceiptService;
@@ -347,6 +349,9 @@ let GamesService = GamesService_1 = class GamesService {
         else if (gameType === types_1.GameType.BATTLESHIP) {
             this.battleshipService.initLobby(room);
         }
+        else if (gameType === types_1.GameType.THIRTY_ONE) {
+            room.config.thirtyOneTurnSeconds = room.config.thirtyOneTurnSeconds ?? 0;
+        }
         this.syncBotPlayer(room);
         this.rooms.set(code, room);
         this.roomLastActivity.set(code, Date.now());
@@ -445,6 +450,9 @@ let GamesService = GamesService_1 = class GamesService {
             }
             if (room.battleshipState) {
                 this.battleshipService.remapSocketId(room.battleshipState, oldSocketId, user.socketId);
+            }
+            if (room.thirtyOneState) {
+                this.thirtyOneService.remapSocketId(room.thirtyOneState, oldSocketId, user.socketId);
             }
             this.privateStateService.remapSocketId(code, oldSocketId, user.socketId);
             if (room.gameType === types_1.GameType.THE_MIND && room.theMindState) {
@@ -620,6 +628,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.pokerV2State) {
             this.pokerV2Service.handlePlayerRemoved(room, player.socketId);
+        }
+        if (room.thirtyOneState) {
+            this.thirtyOneService.handlePlayerRemoved(room, player.socketId);
         }
         if (room.gameType === types_1.GameType.RPS && room.rpsState) {
             this.rpsService.handlePlayerRemoved(room, player.socketId);
@@ -973,6 +984,7 @@ let GamesService = GamesService_1 = class GamesService {
         copyEnum('battleshipGridPreset', ['CLASSIC_10x10', 'QUICK_8x8']);
         copyBoolean('battleshipHitStreak');
         copyInteger('battleshipTurnSeconds', 5, 120);
+        copyInteger('thirtyOneTurnSeconds', 0, 300);
         return result;
     }
     isViewerClient(room, socketId) {
@@ -1105,6 +1117,10 @@ let GamesService = GamesService_1 = class GamesService {
             const startedRoom = this.withRoom(code, (r) => this.battleshipService.startGame(r, requesterId));
             return startedRoom ? { room: startedRoom, roles: {} } : null;
         }
+        if (room.gameType === types_1.GameType.THIRTY_ONE) {
+            const startedRoom = this.withRoom(code, (r) => this.thirtyOneService.startMatch(r, requesterId));
+            return startedRoom ? { room: startedRoom, roles: {} } : null;
+        }
         if (room.gameType === types_1.GameType.WHO_KNOW) {
             return this.withRoomResult(code, (r) => this.whoKnowService.assignRoles(r, requesterId));
         }
@@ -1179,6 +1195,9 @@ let GamesService = GamesService_1 = class GamesService {
         }
         if (room.gameType === types_1.GameType.POKER_V2) {
             return this.withRoom(code, (r) => this.pokerV2Service.resetMatch(r, requesterId));
+        }
+        if (room.gameType === types_1.GameType.THIRTY_ONE) {
+            return this.withRoom(code, (r) => this.thirtyOneService.resetMatch(r, requesterId));
         }
         switch (room.gameType) {
             case types_1.GameType.WHO_KNOW:
@@ -1291,6 +1310,14 @@ let GamesService = GamesService_1 = class GamesService {
     }
     pokerV2AutoDeal(code) {
         return this.withRoom(code, (room) => (this.pokerV2Service.autoDealIfDue(room) ? room : null));
+    }
+    thirtyOneAction(code, clientId, action) {
+        if (this.rejectViewer(code, clientId))
+            return null;
+        return this.withRoom(code, (room) => this.thirtyOneService.handleAction(room, clientId, action));
+    }
+    thirtyOneTurnTimeout(code, expectedDeadline) {
+        return this.withRoom(code, (room) => this.thirtyOneService.handleTurnTimeout(room, expectedDeadline));
     }
     saboteurTurnDeadline(code, activePlayerId, seconds) {
         const current = this.saboteurTurnDeadlines.get(code);
@@ -1912,6 +1939,7 @@ exports.GamesService = GamesService = GamesService_1 = __decorate([
         dog_relay_service_1.DogRelayService,
         werewolf_service_1.WerewolfService,
         battleship_service_1.BattleshipService,
+        thirty_one_service_1.ThirtyOneService,
         game_settings_service_1.GameSettingsService,
         room_start_guard_service_1.RoomStartGuardService,
         action_receipt_service_1.ActionReceiptService])

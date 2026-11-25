@@ -44,7 +44,7 @@ function isValidPayload(event, payload) {
         if (typeof payload !== 'object' || Array.isArray(payload))
             return false;
         const d = payload;
-        return (d.adminKey === undefined || (typeof d.adminKey === 'string' && d.adminKey.length <= 200));
+        return d.adminKey === undefined || (typeof d.adminKey === 'string' && d.adminKey.length <= 200);
     }
     if (!payload || typeof payload !== 'object' || Array.isArray(payload))
         return false;
@@ -97,9 +97,7 @@ function isValidPayload(event, payload) {
             (data.action === 'REVEAL' || data.action === 'SKIP'));
     }
     if (data.requestId !== undefined &&
-        (typeof data.requestId !== 'string' ||
-            data.requestId.length < 1 ||
-            data.requestId.length > 64)) {
+        (typeof data.requestId !== 'string' || data.requestId.length < 1 || data.requestId.length > 64)) {
         return false;
     }
     if (event === types_1.SOCKET_EVENTS.JOIN_ROOM || event === types_1.SOCKET_EVENTS.SPECTATE_JOIN) {
@@ -152,6 +150,21 @@ function isValidPayload(event, payload) {
             return false;
         if (action.type === 'BET') {
             return typeof action.amount === 'number' && Number.isInteger(action.amount);
+        }
+        return true;
+    }
+    if (event === types_1.SOCKET_EVENTS.THIRTY_ONE_ACTION) {
+        if (!data.action || typeof data.action !== 'object' || Array.isArray(data.action)) {
+            return false;
+        }
+        const action = data.action;
+        if (typeof action.type !== 'string')
+            return false;
+        if (!['DRAW_STOCK', 'DRAW_DISCARD', 'DISCARD', 'KNOCK', 'NEXT_ROUND', 'END_MATCH'].includes(action.type)) {
+            return false;
+        }
+        if (action.type === 'DISCARD') {
+            return (typeof action.cardId === 'string' && action.cardId.length >= 1 && action.cardId.length <= 32);
         }
         return true;
     }

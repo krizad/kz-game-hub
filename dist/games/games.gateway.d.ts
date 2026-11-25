@@ -9,7 +9,7 @@ import { GameSettingsService } from './game-settings.service';
 import { ArtistPresetService } from './artist-preset.service';
 import { ActionReceiptService } from './action-receipt.service';
 import { WsRateLimitService } from './ws-rate-limit.service';
-import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind, BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
+import { RoomState, GameType, RoomConfig, RPSChoice, CoupActionType, CoupRole, CardGameAction, CardGameConfig, PokerAction, PokerV2Action, ThirtyOneAction, DeleteArtistPayload, GetArtistPresetsPayload, SetArtistEnabledPayload, SetGameEnabledPayload, AdminVerifyKeyPayload, ServerTimeRequestPayload, BananaThiefChooseFollowerPayload, CipherAssignTeamPayload, CipherGiveCluePayload, CipherCardIndexPayload, CipherRespondChallengePayload, ResultRevealActionPayload, WerewolfNightActionKind, BattleshipPlaceShipsPayload, BattleshipFirePayload, BattleshipPingPayload } from '@repo/types';
 export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy {
     private readonly gamesService;
     private readonly leaderboardService;
@@ -93,6 +93,10 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     handlePokerV2Action(data: {
         code: string;
         action: PokerV2Action;
+    }, client: Socket): void;
+    handleThirtyOneAction(data: {
+        code: string;
+        action: ThirtyOneAction;
     }, client: Socket): void;
     handleTTTJoinSide(data: {
         code: string;
@@ -388,6 +392,7 @@ export declare class GamesGateway implements OnGatewayConnection, OnGatewayDisco
     private logClientAction;
     private getRoomStateSignature;
     private broadcastRoomState;
+    private syncThirtyOneTimer;
     private syncBattleshipTimer;
     private syncTicTacToeTimer;
     private syncRpsTimer;
