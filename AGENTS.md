@@ -4,7 +4,7 @@
 
 ```bash
 pnpm install            # pnpm@9.1.0 required, Node >=20.19.0
-pnpm db:push            # push schema to the DB in DATABASE_URL (⚠️ currently a REMOTE production MySQL — check .env first)
+pnpm db:push            # push schema to the DB in DATABASE_URL (local dev MySQL kz_game_hub_dev since 2026-11-26)
 pnpm db:seed            # seed SoundsFishyQuestion (250 Thai trivia) + WhoAmI words (738)
 pnpm db:use:mysql       # switch prisma datasource provider to mysql (or db:use:pg for postgresql)
 pnpm dev                # turbo dev (web:3000 + api:3001)
@@ -12,17 +12,19 @@ pnpm -F api test        # run all API tests (Jest)
 pnpm -F api test -- --testPathPatterns=sounds-fishy   # single test file
 pnpm test:e2e           # run all E2E tests (Playwright)
 E2E_SIM_PLAYS=2 pnpm -F web exec playwright test -c playwright.sim.config.ts  # simulated play-to-completion for every game/mode
-pnpm -F web exec playwright test demo   # record all 20 game demo videos → apps/web/public/demo/*-demo.mp4 (needs ffmpeg)
+pnpm -F web exec playwright test -c playwright.demo.config.ts   # record all 20 game demo videos → apps/web/public/demo/*-demo.mp4 (needs ffmpeg)
 pnpm test:e2e:ui        # run E2E tests with Playwright UI
 pnpm format             # Prettier
 ```
 
-**E2E database gotcha:** every E2E config requires `TEST_DATABASE_URL` pointing at a **local disposable MySQL** (loopback host, db name containing `test`) — it never reads the root `.env` `DATABASE_URL`, which is production. Local setup here: the `kz-game-hub-db` Docker container (port 3307) with database `kz_game_hub_test`:
+**E2E database gotcha:** every E2E config requires `TEST_DATABASE_URL` pointing at a **local disposable MySQL** (loopback host, db name containing `test`). Local setup here: the `kz-game-hub-db` Docker container (port 3307) with database `kz_game_hub_test`:
+
+**Database note (since 2026-11-26):** root `.env` `DATABASE_URL` now points at the local dev database `kz_game_hub_dev` (same container). A boot guard in `packages/database/src/index.ts` + `prisma.config.ts` rejects non-loopback `DATABASE_URL` outside production unless `ALLOW_REMOTE_DATABASE_URL=1` — the production MySQL is configured on the Plesk host itself.
 
 ```bash
 export DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" && pnpm -F @repo/database db:push && pnpm -F @repo/database db:seed
 TEST_DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" pnpm -F api test -- --testPathPatterns=...   # (tests that hit the DB)
-TEST_DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" pnpm -F web exec playwright test demo
+TEST_DATABASE_URL="mysql://root:password@127.0.0.1:3307/kz_game_hub_test" pnpm -F web exec playwright test -c playwright.demo.config.ts
 # one-shot alternative: node scripts/test-isolated.mjs --prepare --list  (see docs/qa/isolated-e2e.md)
 ```
 
@@ -49,7 +51,7 @@ Copy `.env.example` to `.env` at the repo root.
 ## Architecture constraints
 
 - **WebSocket-only backend**: All communication is via Socket.io events through `GamesGateway`. The only REST endpoint is `GET /health` (with Swagger UI at `/api` in dev). Do not add new `@Controller` classes.
-- **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Do not persist game state to DB during play. The DB (currently a **remote production MySQL** via `DATABASE_URL`; the datasource provider is auto-detected from that URL by `packages/database/scripts/sync-schema.ts`) is only used for reference/persistent data: Sounds Fishy trivia questions, Who Am I words, the leaderboard's recorded game results (`GameResult`), and per-game enable/disable flags (`GameSetting`, mirrored into `GameSettingsService`'s in-memory map at boot).
+- **In-memory game state**: Room state lives in `Map<string, RoomState>` inside `GamesService`. Do not persist game state to DB during play. The DB (local dev MySQL via `DATABASE_URL` = `kz_game_hub_dev`; production configures its own MySQL on Plesk; the datasource provider is auto-detected from that URL by `packages/database/scripts/sync-schema.ts`) is only used for reference/persistent data: Sounds Fishy trivia questions, Who Am I words, the leaderboard's recorded game results (`GameResult`), and per-game enable/disable flags (`GameSetting`, mirrored into `GameSettingsService`'s in-memory map at boot).
 - **Server-authoritative**: Client never mutates state directly. Client emits actions → server processes → broadcasts `room_state_updated`. Zustand store (`useGameStore`) is a read-only mirror of server state.
 - **Private data**: Roles and secret words are sent via `server.to(socketId).emit('role_assigned')`, NOT in broadcasted `RoomState`. Do not add sensitive fields to broadcast payloads.
 - **Single-page frontend**: `apps/web/src/app/page.tsx` is a `"use client"` component that conditionally renders the correct game view based on `room.gameType`. There are no separate routes per game.

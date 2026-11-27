@@ -26,22 +26,22 @@ pnpm dev
 
 ### Available Scripts
 
-| Command                                 | Description                                                                                           |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `pnpm dev`                              | Start all apps in dev mode (via Turborepo)                                                            |
-| `pnpm build`                            | Build all apps for production                                                                         |
-| `pnpm lint`                             | Lint all apps                                                                                         |
-| `pnpm format`                           | Format all files with Prettier                                                                        |
-| `pnpm db:generate`                      | Generate Prisma Client                                                                                |
-| `pnpm db:migrate`                       | Run Prisma migrations                                                                                 |
-| `pnpm db:push`                          | Push schema to DB (no migration)                                                                      |
-| `pnpm db:studio`                        | Open Prisma Studio GUI                                                                                |
-| `pnpm db:seed`                          | Seed database (Sounds Fishy questions + Who Am I words)                                               |
-| `pnpm db:use:mysql` / `pnpm db:use:pg`  | Switch prisma datasource provider                                                                     |
-| `pnpm start`                            | Start all apps in production mode                                                                     |
-| `pnpm test:e2e`                         | Playwright E2E (auto-starts api:3001 + web:3000)                                                      |
-| `pnpm -F web exec playwright test demo` | Record all 20 game demo MP4s → `apps/web/public/demo/` (needs `ffmpeg`; requires `TEST_DATABASE_URL`) |
-| `pnpm deploy:ftp`                       | Deploy API build via FTP (`scripts/deploy-api-ftp.mjs`)                                               |
+| Command                                                         | Description                                                                                           |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                                                      | Start all apps in dev mode (via Turborepo)                                                            |
+| `pnpm build`                                                    | Build all apps for production                                                                         |
+| `pnpm lint`                                                     | Lint all apps                                                                                         |
+| `pnpm format`                                                   | Format all files with Prettier                                                                        |
+| `pnpm db:generate`                                              | Generate Prisma Client                                                                                |
+| `pnpm db:migrate`                                               | Run Prisma migrations                                                                                 |
+| `pnpm db:push`                                                  | Push schema to DB (no migration)                                                                      |
+| `pnpm db:studio`                                                | Open Prisma Studio GUI                                                                                |
+| `pnpm db:seed`                                                  | Seed database (Sounds Fishy questions + Who Am I words)                                               |
+| `pnpm db:use:mysql` / `pnpm db:use:pg`                          | Switch prisma datasource provider                                                                     |
+| `pnpm start`                                                    | Start all apps in production mode                                                                     |
+| `pnpm test:e2e`                                                 | Playwright E2E (auto-starts api:3001 + web:3000)                                                      |
+| `pnpm -F web exec playwright test -c playwright.demo.config.ts` | Record all 20 game demo MP4s → `apps/web/public/demo/` (needs `ffmpeg`; requires `TEST_DATABASE_URL`) |
+| `pnpm deploy:ftp`                                               | Deploy API build via FTP (`scripts/deploy-api-ftp.mjs`)                                               |
 
 ### Turborepo Pipeline
 
