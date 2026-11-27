@@ -37,6 +37,13 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Type-check both apps: `next build` does not surface errors that live
+      # outside the compiled routes (e.g. Playwright specs under e2e/).
+      - name: Type-check
+        run: |
+          pnpm -F api exec tsc --noEmit
+          pnpm -F web exec tsc --noEmit
+
       - name: API unit tests
         run: pnpm -F api test
 

@@ -1341,7 +1341,7 @@ test.describe('Full Game Demos', () => {
     await expect(p1.getByTestId('saboteur-round-result')).toBeVisible({ timeout: 15000 });
     await p1.waitForTimeout(3000);
 
-    const selected = [...new Set([0, ...saboteurIndices, ...minerIndices])].slice(0, 4);
+    const selected = Array.from(new Set([0, ...saboteurIndices, ...minerIndices])).slice(0, 4);
     await finalizeDemoVideo('saboteur', ctxs, pages, selected);
   });
 
@@ -2059,7 +2059,10 @@ test.describe('Full Game Demos', () => {
     await pages[0].waitForTimeout(2500);
 
     // Include Leader, Mischief Dog, Final Guesser, and a Loyal Dog in the 2x2 video
-    const selected = [...new Set([leaderIdx, evilIdx, finalIdx, ...goodIndices])].slice(0, 4);
+    const selected = Array.from(new Set([leaderIdx, evilIdx, finalIdx, ...goodIndices])).slice(
+      0,
+      4,
+    );
     await finalizeDemoVideo('dog-relay', ctxs, pages, selected);
   });
 

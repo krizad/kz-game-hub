@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import { resolve } from 'path';
 import { configureTestDatabase } from '../../scripts/test-database.mjs';
+
+// Same rationale as playwright.config.ts: specs may read ADMIN_SECRET.
+dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 configureTestDatabase();
 
