@@ -163,6 +163,7 @@ describe('GamesGateway payload guard', () => {
         findRoomCodeBySocketId: jest.fn(() => null),
         isGameEnabled: jest.fn(() => true),
         hasSeatedSession,
+        getMaxPlayers: jest.fn(() => 20),
         joinRoom,
       } as never,
       {} as never,
@@ -204,6 +205,7 @@ describe('GamesGateway payload guard', () => {
         findRoomCodeBySocketId: jest.fn(() => null),
         isGameEnabled: jest.fn(() => true),
         hasSeatedSession,
+        getMaxPlayers: jest.fn(() => 20),
         joinRoom,
       } as never,
       {} as never,
@@ -286,6 +288,7 @@ describe('GamesGateway payload guard', () => {
         findRoomCodeBySocketId,
         getRoom: jest.fn(() => ({ code: 'ABC123', gameType: GameType.WHO_KNOW, players: [] })),
         isGameEnabled: jest.fn(() => true),
+        getMaxPlayers: jest.fn(() => 20),
       } as never,
       {} as never,
       {} as never,
@@ -319,6 +322,7 @@ describe('GamesGateway payload guard', () => {
         findRoomCodeBySocketId,
         getRoom: jest.fn(() => ({ code: 'ABC123', gameType: GameType.WHO_KNOW, players: [] })),
         isGameEnabled: jest.fn(() => true),
+        getMaxPlayers: jest.fn(() => 20),
       } as never,
       {} as never,
       {} as never,
@@ -527,6 +531,7 @@ describe('GamesGateway payload guard', () => {
       findRoomCodeBySocketId: jest.fn(() => null),
       getRoom: jest.fn(() => disabledRoom),
       isGameEnabled: jest.fn(() => false),
+      getMaxPlayers: jest.fn(() => 20),
     };
     const gateway = new GamesGateway(
       gamesService as never,
@@ -643,6 +648,8 @@ describe('GamesGateway Music Trivia reconnect', () => {
       getPlayerRole: jest.fn(() => null),
       getAvailableRooms: jest.fn(() => []),
       isGameEnabled: jest.fn(() => true),
+      hasSeatedSession: jest.fn(() => false),
+      getMaxPlayers: jest.fn(() => 20),
       musicTriviaCurrentSyncPlay: jest.fn(() => syncPlay),
       musicTriviaCurrentHostAnswer: jest.fn((_code: string, socketId: string) =>
         socketId === room.roomHostId ? hostAnswer : null,
@@ -1968,5 +1975,79 @@ describe('GamesGateway TASK-SH-002 Action Receipts (TTT and RPS pilot)', () => {
         '[SYS] GamesGateway shutting down activeRooms=1 connectedSockets=unknown',
       );
     });
+  });
+});
+
+describe('Room player cap', () => {
+  const makeGateway = (games: Record<string, jest.Mock>) =>
+    new GamesGateway(
+      games as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      gameSettingsStub() as never,
+      artistPresetsStub() as never,
+    );
+
+  it('rejects a fresh join into a full room with SERVER_ROOM_FULL', () => {
+    const fullRoom = {
+      code: 'ABC123',
+      gameType: GameType.WHO_KNOW,
+      status: RoomStatus.LOBBY,
+      config: { allowSpectators: true },
+      players: Array.from({ length: 20 }, (_, i) => ({ socketId: `p${i}`, name: `p${i}` })),
+    } as unknown as RoomState;
+    const games = {
+      getRoom: jest.fn(() => fullRoom),
+      hasSeatedSession: jest.fn(() => false),
+      getMaxPlayers: jest.fn(() => 20),
+      joinRoom: jest.fn(),
+    };
+    const gateway = makeGateway(games);
+    const client = { id: 'sock-new', emit: jest.fn(), data: {} };
+
+    gateway.handleJoinRoom({ code: 'abc123', name: 'Newcomer' }, client as never);
+
+    expect(client.emit).toHaveBeenCalledWith(SOCKET_EVENTS.ERROR, { message: 'SERVER_ROOM_FULL' });
+    expect(games.joinRoom).not.toHaveBeenCalled();
+  });
+
+  it('lets a seated member reconnect past the cap', () => {
+    const fullRoom = {
+      code: 'ABC123',
+      gameType: GameType.WHO_KNOW,
+      status: RoomStatus.PLAYING,
+      config: {},
+      players: Array.from({ length: 20 }, (_, i) => ({ socketId: `p${i}`, name: `p${i}` })),
+    } as unknown as RoomState;
+    const games = {
+      getRoom: jest.fn(() => fullRoom),
+      hasSeatedSession: jest.fn(() => true),
+      getMaxPlayers: jest.fn(() => 20),
+      leaveRoom: jest.fn(() => ({ outcome: 'NOT_IN_ROOM' })),
+      findRoomCodeBySocketId: jest.fn(() => null),
+      joinRoom: jest.fn(() => fullRoom),
+      getReconnectToken: jest.fn(() => null),
+      getPlayerRole: jest.fn(() => undefined),
+      getAvailableRooms: jest.fn(() => []),
+      musicTriviaCurrentSyncPlay: jest.fn(() => null),
+    };
+    const gateway = makeGateway(games);
+    gateway.server = { emit: jest.fn(), to: jest.fn(() => ({ emit: jest.fn() })) } as never;
+    const broadcast = jest
+      .spyOn(
+        gateway as unknown as { broadcastRoomState: (room: RoomState) => void },
+        'broadcastRoomState',
+      )
+      .mockImplementation(() => {});
+    const client = { id: 'p0', emit: jest.fn(), data: {}, join: jest.fn() };
+
+    gateway.handleJoinRoom(
+      { code: 'ABC123', name: 'p0', reconnectToken: 'valid-token' },
+      client as never,
+    );
+
+    expect(games.joinRoom).toHaveBeenCalled();
+    expect(broadcast).toHaveBeenCalledWith(fullRoom);
   });
 });

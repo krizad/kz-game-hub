@@ -278,6 +278,8 @@ export class GamesGateway
         break;
       case 'ROOM_EMPTIED':
         this.logger.log(`[ROOM] Emptied and deleted room=${result.code}`);
+        // Spectators (not in room.players) may still be in the socket.io room.
+        this.server.to(result.code).emit(SOCKET_EVENTS.ROOM_DELETED);
         this.forgetRecordedResult(result.code);
         break;
       case 'PLAYER_LEFT':
@@ -534,6 +536,15 @@ export class GamesGateway
     const isSeatedMember =
       !!data.reconnectToken &&
       this.gamesService.hasSeatedSession(requestedCode, data.reconnectToken, name);
+    // Room-wide player cap (any game). Checked here, synchronously right
+    // before joinRoom, so it cannot race; seated reconnects always get back in.
+    if (!isSeatedMember && targetRoom.players.length >= this.gamesService.getMaxPlayers()) {
+      this.logger.warn(
+        `[ROOM] Join rejected room=${requestedCode} reason=SERVER_ROOM_FULL players=${targetRoom.players.length} socket=${client.id}`,
+      );
+      client.emit(SOCKET_EVENTS.ERROR, { message: 'SERVER_ROOM_FULL' });
+      return;
+    }
     if (
       !isSeatedMember &&
       targetRoom.gameType === GameType.DOG_RELAY &&

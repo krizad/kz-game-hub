@@ -102,6 +102,8 @@ export class GamesService implements OnModuleDestroy {
   private static readonly RECONNECT_GRACE_MS = 60_000;
   private static readonly DEFAULT_MAX_ROOMS = 200;
   private static readonly DEFAULT_IDLE_ROOM_TTL_MS = 7_200_000;
+  /** Per-room join cap (any game) to bound memory and broadcast cost. */
+  private static readonly DEFAULT_MAX_PLAYERS = 20;
 
   private rooms: Map<string, RoomState> = new Map();
   private readonly roomLastActivity = new Map<string, number>();
@@ -169,6 +171,22 @@ export class GamesService implements OnModuleDestroy {
     if (!raw) return GamesService.DEFAULT_MAX_ROOMS;
     const parsed = Number.parseInt(raw, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : GamesService.DEFAULT_MAX_ROOMS;
+  }
+
+  getMaxPlayers(): number {
+    const raw = process.env.MAX_PLAYERS;
+    if (!raw) return GamesService.DEFAULT_MAX_PLAYERS;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : GamesService.DEFAULT_MAX_PLAYERS;
+  }
+
+  /**
+   * Names are compared case-insensitively (and whitespace-trimmed) so two
+   * players cannot both claim "Bob" and "bob" — in social deduction games a
+   * lookalike name is easy impersonation.
+   */
+  static normalizeName(name: string): string {
+    return name.trim().toLowerCase();
   }
 
   isRoomLimitReached(): boolean {
@@ -443,7 +461,9 @@ export class GamesService implements OnModuleDestroy {
     const existingPlayer = playerId
       ? room.players.find((player) => player.id === playerId && player.name === user.name)
       : undefined;
-    const duplicateName = room.players.some((player) => player.name === user.name);
+    const duplicateName = room.players.some(
+      (player) => GamesService.normalizeName(player.name) === GamesService.normalizeName(user.name),
+    );
 
     if (!existingPlayer && duplicateName) return null;
 
@@ -1443,6 +1463,9 @@ export class GamesService implements OnModuleDestroy {
       room.cardGameChips = undefined;
       room.cardGameAllowedOptions = presetForConfig(room.cardGameConfig).allowed;
       this.privateStateService.clearRoom(code);
+      // This branch skips withRoom, so clear viewer flags explicitly or late
+      // joiners stay spectators in the next round.
+      this.clearViewerFlagsOnLobby(room);
       this.rooms.set(code, room);
       return room;
     }

@@ -511,6 +511,16 @@ describe('GamesService', () => {
       expect(service.joinRoom('XXXXXX', { id: 'p1', name: 'Test', socketId: 'p1' })).toBeNull();
     });
 
+    it('treats names differing only by case or surrounding spaces as duplicates', () => {
+      const room = service.createRoom('host1');
+      service.joinRoom(room.code, { id: 'host1', name: 'Bob', socketId: 'host1' });
+
+      expect(service.joinRoom(room.code, { id: 'p2', name: 'bob', socketId: 'p2' })).toBeNull();
+      expect(service.joinRoom(room.code, { id: 'p3', name: 'BOB ', socketId: 'p3' })).toBeNull();
+      // The original name remains untouched.
+      expect(service.getRoom(room.code)!.players).toHaveLength(1);
+    });
+
     it('should add a new player to the room', () => {
       const room = service.createRoom('host1');
       const updatedRoom = service.joinRoom(room.code, {
@@ -1330,6 +1340,23 @@ describe('GamesService', () => {
 
       expect(updated.status).toBe(RoomStatus.LOBBY);
       expect(updated.players.find((p) => p.socketId === 'p1')!.isViewer).toBeUndefined();
+      expect(service.getRoom(room.code)!.players.every((p) => !p.isViewer)).toBe(true);
+    });
+
+    // The CARD_GAME reset branch skips withRoom, so it must clear viewer flags
+    // explicitly or late joiners stay spectators for the next round.
+    it('should clear viewer flags when a card game resets to the lobby', () => {
+      const room = service.createRoom('host1', GameType.CARD_GAME);
+      service.joinRoom(room.code, { id: 'host1', name: 'Host', socketId: 'host1' });
+      service.joinRoom(room.code, { id: 'p2', name: 'Late Joiner', socketId: 'p2' });
+      const stored = service.getRoom(room.code)!;
+      stored.status = RoomStatus.PLAYING;
+      stored.players.find((p) => p.socketId === 'p2')!.isViewer = true;
+
+      const updated = service.resetGame(room.code, 'host1')!;
+
+      expect(updated.status).toBe(RoomStatus.LOBBY);
+      expect(updated.players.find((p) => p.socketId === 'p2')!.isViewer).toBeUndefined();
       expect(service.getRoom(room.code)!.players.every((p) => !p.isViewer)).toBe(true);
     });
   });

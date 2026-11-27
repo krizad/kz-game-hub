@@ -14,6 +14,7 @@ describe('WsRateLimitService', () => {
     delete process.env.RATE_LIMIT_CREATE_ROOM_MAX;
     delete process.env.RATE_LIMIT_EXTERNAL_MAX;
     delete process.env.RATE_LIMIT_GENERAL_MAX;
+    delete process.env.TRUSTED_PROXY_HOPS;
     service = new WsRateLimitService();
   });
 
@@ -21,15 +22,91 @@ describe('WsRateLimitService', () => {
     process.env = originalEnv;
   });
 
-  it('extracts first hop IP from x-forwarded-for or falls back to address', () => {
+  it('ignores spoofable x-forwarded-for unless TRUSTED_PROXY_HOPS is set', () => {
+    // Default: the header is client-controlled, so the socket address wins.
     expect(
       extractClientIp({
         headers: { 'x-forwarded-for': '203.0.113.10, 10.0.0.1' },
-        address: '127.0.0.1',
+        address: '192.168.1.5',
       }),
-    ).toBe('203.0.113.10');
+    ).toBe('192.168.1.5');
     expect(extractClientIp({ headers: {}, address: '192.168.1.5' })).toBe('192.168.1.5');
     expect(extractClientIp(undefined)).toBe('unknown');
+
+    // One trusted proxy: the proxy appends the client to x-forwarded-for and
+    // appears as the socket peer, so the client is one hop left of the peer.
+    process.env.TRUSTED_PROXY_HOPS = '1';
+    expect(
+      extractClientIp({
+        headers: { 'x-forwarded-for': '203.0.113.10' },
+        address: '10.0.0.1',
+      }),
+    ).toBe('203.0.113.10');
+
+    // Two trusted proxies: x-forwarded-for holds "client, firstProxy" and the
+    // second proxy is the peer.
+    process.env.TRUSTED_PROXY_HOPS = '2';
+    expect(
+      extractClientIp({
+        headers: { 'x-forwarded-for': '203.0.113.10, 10.0.0.1' },
+        address: '10.0.0.9',
+      }),
+    ).toBe('203.0.113.10');
+
+    // More hops claimed than hops present: fall back to the leftmost entry.
+    process.env.TRUSTED_PROXY_HOPS = '4';
+    expect(
+      extractClientIp({ headers: { 'x-forwarded-for': '203.0.113.10' }, address: '10.0.0.1' }),
+    ).toBe('203.0.113.10');
+    delete process.env.TRUSTED_PROXY_HOPS;
+  });
+
+  it('a spoofed header cannot escape the admin bucket', () => {
+    const t0 = 500_000;
+    // Exactly what the gateway does: extractClientIp(handshake) feeds checkEvent.
+    // With no trusted proxy configured, every rotated header resolves to the
+    // same socket address, so the bucket cannot be escaped.
+    const handshakeWithSpoof = (spoof: string) => ({
+      headers: { 'x-forwarded-for': spoof },
+      address: '10.0.0.1',
+    });
+    for (let i = 0; i < 5; i++) {
+      const res = service.checkEvent({
+        event: SOCKET_EVENTS.ADMIN_VERIFY_KEY,
+        socketId: `spoof-${i}`,
+        clientIp: extractClientIp(handshakeWithSpoof(`203.0.113.${100 + i}`)),
+        isQuietEvent: false,
+        now: t0 + i * 1_000,
+      });
+      expect(res.allowed).toBe(true);
+    }
+    // The 6th attempt is still blocked even with yet another spoofed header.
+    const blocked = service.checkEvent({
+      event: SOCKET_EVENTS.ADMIN_VERIFY_KEY,
+      socketId: 'spoof-new',
+      clientIp: extractClientIp(handshakeWithSpoof('203.0.113.200')),
+      isQuietEvent: false,
+      now: t0 + 10_000,
+    });
+    expect(blocked.allowed).toBe(false);
+  });
+
+  it('prunes stale admin buckets once the soft cap is exceeded', () => {
+    const t0 = 600_000;
+    // Fill far beyond the soft cap with keys last seen 2 minutes ago (outside
+    // the 60s admin window, no lockout) — every one of them is stale.
+    for (let i = 0; i < 1_000; i++) {
+      service.checkBucket('admin', `prune-key-${i}`, t0 - 120_000);
+    }
+    // One live entry with a fresh timestamp must survive pruning.
+    service.checkBucket('admin', 'prune-live', t0);
+    // The next admin event from yet another key trips the cap and prunes.
+    service.checkBucket('admin', 'prune-trigger', t0 + 1_000);
+    const size = service.getAdminBucketCount();
+    expect(size).toBeLessThan(512);
+    // The live entry remains usable within its window (no rate-limit false hit).
+    const live = service.checkBucket('admin', 'prune-live', t0 + 2_000);
+    expect(live.allowed).toBe(true);
   });
 
   it('enforces IP-keyed admin limit (5/60s) with 5m lockout', () => {

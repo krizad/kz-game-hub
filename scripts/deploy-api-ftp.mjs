@@ -177,7 +177,8 @@ function buildFlatBundle() {
   run('npm install --omit=dev --no-audit --no-fund --loglevel=error', DEPLOY_DIR);
 
   const prismaSource = findPrismaSource();
-  if (!prismaSource) throw new Error('Cannot find generated Prisma client (.prisma) in workspace node_modules');
+  if (!prismaSource)
+    throw new Error('Cannot find generated Prisma client (.prisma) in workspace node_modules');
   rmSync(join(DEPLOY_DIR, 'node_modules', '.prisma'), { recursive: true, force: true });
   cpSync(prismaSource, join(DEPLOY_DIR, 'node_modules', '.prisma'), { recursive: true });
   console.log('Copied generated Prisma client into node_modules/.prisma');
@@ -204,15 +205,23 @@ function smokeTest() {
       cwd: DEPLOY_DIR,
       env: { ...process.env, PORT: '3999', NODE_ENV: 'production', LOG_TO_FILE: 'false' },
     });
-    child.stdout.on('data', (d) => { output += d; });
-    child.stderr.on('data', (d) => { output += d; });
+    child.stdout.on('data', (d) => {
+      output += d;
+    });
+    child.stderr.on('data', (d) => {
+      output += d;
+    });
     let settled = false;
     const finish = (ok, detail) => {
       if (settled) return;
       settled = true;
-      try { child.kill('SIGTERM'); } catch {}
+      try {
+        child.kill('SIGTERM');
+      } catch {}
       setTimeout(() => {
-        try { child.kill('SIGKILL'); } catch {}
+        try {
+          child.kill('SIGKILL');
+        } catch {}
       }, 1000).unref();
       if (!ok && output) {
         const tail = output.split('\n').filter(Boolean).slice(-30).join('\n');
@@ -224,20 +233,29 @@ function smokeTest() {
       try {
         const res = await fetch('http://localhost:3999/health');
         const body = await res.text();
-        // CI uses a dummy database URL; this smoke test only checks app boot.
-        // The health payload separately reports database connectivity.
-        finish(res.ok && body.includes('"service":"kz-game-hub-api"'), body);
+        // CI uses a dummy database URL, so /health answers 503 degraded there;
+        // this smoke test only checks app boot, i.e. HTTP reachable + our
+        // payload on 200 (db up) or 503 (db down — reported in the payload).
+        const bootOk =
+          (res.status === 200 || res.status === 503) &&
+          body.includes('"service":"kz-game-hub-api"');
+        finish(bootOk, body);
       } catch (e) {
         finish(false, e.message);
       }
     }, 8000);
-    child.on('exit', () => { clearTimeout(timer); finish(false, 'process exited early'); });
+    child.on('exit', () => {
+      clearTimeout(timer);
+      finish(false, 'process exited early');
+    });
   });
 }
 
 async function ftpUpload() {
   if (!FTP_HOST || !FTP_USER || !FTP_PASS) {
-    throw new Error('Missing FTP_HOST / FTP_USER / FTP_PASS (set in root .env or pass --host/--user/--pass)');
+    throw new Error(
+      'Missing FTP_HOST / FTP_USER / FTP_PASS (set in root .env or pass --host/--user/--pass)',
+    );
   }
   const client = new Client(30000);
   client.ftp.verbose = false;

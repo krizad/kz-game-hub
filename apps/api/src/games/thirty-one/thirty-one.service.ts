@@ -17,8 +17,10 @@ import {
 import { createDeck, shuffleDeck } from '../poker/poker-engine';
 import { PrivateStateService } from '../private-state.service';
 
-const PRIVATE_KEY = 'thirtyOne';
-const ENGINE_SOCKET_ID = '__thirty-one-engine__';
+/** Namespace for this game's entries in the shared per-socket private state. */
+const STATE_NS = 'thirtyOne';
+/** Pseudo seat id under which the engine stores the deck in private state. */
+const ENGINE_SOCKET_ID = 'engine-seat';
 const DECK_KEY = 'deck';
 
 interface EngineDeckState {
@@ -801,20 +803,20 @@ export class ThirtyOneService {
   }
 
   private getPrivate(room: RoomState, socketId: string): ThirtyOnePrivateState | undefined {
-    return this.privateStateService.get<ThirtyOnePrivateState>(room.code, socketId, PRIVATE_KEY);
+    return this.privateStateService.get<ThirtyOnePrivateState>(room.code, socketId, STATE_NS);
   }
 
   private setPrivate(room: RoomState, socketId: string, data: ThirtyOnePrivateState): void {
-    this.privateStateService.set(room.code, socketId, PRIVATE_KEY, data);
+    this.privateStateService.set(room.code, socketId, STATE_NS, data);
   }
 
   private deletePrivate(room: RoomState, socketId: string): void {
-    this.privateStateService.delete(room.code, socketId, PRIVATE_KEY);
+    this.privateStateService.delete(room.code, socketId, STATE_NS);
   }
 
   private clearAllPrivate(room: RoomState): void {
     for (const player of room.players) {
-      this.privateStateService.delete(room.code, player.socketId, PRIVATE_KEY);
+      this.privateStateService.delete(room.code, player.socketId, STATE_NS);
     }
   }
 }

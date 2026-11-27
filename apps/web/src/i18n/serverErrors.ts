@@ -46,6 +46,7 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     RATE_LIMITED: 'Too many requests. Please slow down and try again.',
     ADMIN_RATE_LIMITED: 'Too many admin attempts. Please try again in 5 minutes.',
     SERVER_ROOM_LIMIT_REACHED: 'Server is currently full. Please try again later.',
+    SERVER_ROOM_FULL: 'This room is full. Please try again later.',
   },
   th: {
     'Cannot cancel round.': 'เฉพาะโฮสต์เท่านั้นที่ยกเลิกรอบที่กำลังเล่นได้',
@@ -120,6 +121,7 @@ const SERVER_ERRORS: Record<Language, Record<string, string>> = {
     RATE_LIMITED: 'ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่',
     ADMIN_RATE_LIMITED: 'ลองรหัสแอดมินบ่อยเกินไป กรุณารอ 5 นาทีแล้วลองใหม่',
     SERVER_ROOM_LIMIT_REACHED: 'เซิร์ฟเวอร์มีห้องเต็มแล้ว กรุณาลองใหม่ภายหลัง',
+    SERVER_ROOM_FULL: 'ห้องนี้มีผู้เล่นเต็มแล้ว กรุณาลองใหม่ภายหลัง',
   },
 };
 

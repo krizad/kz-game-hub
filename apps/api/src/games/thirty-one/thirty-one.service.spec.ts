@@ -4,8 +4,8 @@ import * as pokerEngine from '../poker/poker-engine';
 import { PrivateStateService } from '../private-state.service';
 import { ThirtyOneService, evaluateThirtyOneHand } from './thirty-one.service';
 
-const ENGINE_ID = '__thirty-one-engine__';
-const PRIVATE_KEY = 'thirtyOne';
+const ENGINE_ID = 'engine-seat';
+const STATE_NS = 'thirtyOne';
 
 function card(rank: PlayingCard['rank'], suit: PlayingCard['suit']): PlayingCard {
   return { id: `${rank}-${suit}`, rank, suit };
@@ -158,7 +158,7 @@ describe('ThirtyOneService', () => {
     expect(state.seats.s2.lives).toBe(3);
     expect(state.seats.s3.lives).toBe(3);
 
-    const p2Priv = privateState.get<ThirtyOnePrivateState>('ROOM1', 's2', PRIVATE_KEY);
+    const p2Priv = privateState.get<ThirtyOnePrivateState>('ROOM1', 's2', STATE_NS);
     expect(p2Priv?.hand).toHaveLength(3);
     expect(p2Priv?.evaluation?.score).toBe(9);
   });
@@ -304,13 +304,13 @@ describe('ThirtyOneService', () => {
     service.handleAction(room, 's2', { type: 'DISCARD', cardId: '2-SPADES' }); // wait, let's discard from hand
     // Actually let's draw discard (4-HEARTS) and discard 2-DIAMONDS? No, 4-HEARTS + 9 + 6 = 19, let's check
     // Wait: in the mock above, drawTops only had 2 cards, so rest of deck is on top. Let's just check what s2 holds:
-    const s2Hand = privateState.get<ThirtyOnePrivateState>('ROOM1', 's2', PRIVATE_KEY)!.hand;
+    const s2Hand = privateState.get<ThirtyOnePrivateState>('ROOM1', 's2', STATE_NS)!.hand;
     const s2Drawn = s2Hand[s2Hand.length - 1];
     service.handleAction(room, 's2', { type: 'DISCARD', cardId: s2Drawn.id });
 
     // s3 draws from stock and discards drawn card so s3 stays 15
     service.handleAction(room, 's3', { type: 'DRAW_STOCK' });
-    const s3Hand = privateState.get<ThirtyOnePrivateState>('ROOM1', 's3', PRIVATE_KEY)!.hand;
+    const s3Hand = privateState.get<ThirtyOnePrivateState>('ROOM1', 's3', STATE_NS)!.hand;
     const s3Drawn = s3Hand[s3Hand.length - 1];
     service.handleAction(room, 's3', { type: 'DISCARD', cardId: s3Drawn.id });
 

@@ -1,5 +1,6 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { prisma } from '@repo/database';
 import { APP_VERSION } from '@repo/types';
 
@@ -10,7 +11,7 @@ export class HealthController {
 
   @Get()
   @ApiOperation({ summary: 'Health check' })
-  async check() {
+  async check(@Res({ passthrough: true }) res: Response) {
     const databaseStartedAt = Date.now();
     let database: { status: 'connected' | 'disconnected'; latencyMs?: number };
     let timeout: NodeJS.Timeout | undefined;
@@ -40,10 +41,15 @@ export class HealthController {
       if (timeout) clearTimeout(timeout);
     }
 
+    const connected = database.status === 'connected';
+    // A degraded database must read as a failing probe (503), or uptime
+    // monitors treat an unreachable database as healthy.
+    res.status(connected ? 200 : 503);
+
     const memory = process.memoryUsage();
 
     return {
-      status: database.status === 'connected' ? 'ok' : 'degraded',
+      status: connected ? 'ok' : 'degraded',
       service: 'kz-game-hub-api',
       version: APP_VERSION,
       environment: process.env.NODE_ENV || 'development',
