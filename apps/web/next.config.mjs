@@ -10,6 +10,10 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const nextConfig = {
   poweredByHeader: false,
   transpilePackages: ['@repo/types'],
+  // The app never uses next/image, and Next 14's image optimizer carries
+  // critical RCE advisories (patched only in Next >= 15.5.x). Disabling the
+  // optimizer closes that endpoint until the Next upgrade lands.
+  images: { unoptimized: true },
   async headers() {
     return [
       {
